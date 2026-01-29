@@ -11,16 +11,16 @@ flowchart TB
             CONDA["Conda 가상환경<br/>(Python 3.11)"]
             UVICORN["Uvicorn (ASGI)"]
             FASTAPI_DEV["FastAPI"]
-            SQLA_DEV["SQLAlchemy ORM"]
+            OSPY_DEV["opensearch-py"]
         end
         subgraph FE_DEV["Frontend"]
             NPM["npm"]
             VITE["Vite Dev Server"]
-            REACT_DEV["React + TypeScript"]
+            REACT_DEV["React + TypeScript + MUI"]
         end
 
         VITE -->|"API 호출"| UVICORN
-        UVICORN --> FASTAPI_DEV --> SQLA_DEV
+        UVICORN --> FASTAPI_DEV --> OSPY_DEV
     end
 
     subgraph GIT["Git Workflow (GitLab)"]
@@ -48,11 +48,10 @@ flowchart TB
         subgraph WEB["Web Container (SIEM Web)"]
             subgraph BE_CONT["Backend Container"]
                 FASTAPI_PROD["FastAPI + Uvicorn"]
-                SQLA_PROD["SQLAlchemy"]
             end
             subgraph FE_CONT["Frontend Container"]
                 NGINX["Nginx"]
-                REACT_PROD["React (Build)"]
+                REACT_PROD["React + MUI (Build)"]
             end
         end
 
@@ -62,18 +61,13 @@ flowchart TB
         end
 
         OS_DASH["OpenSearch<br/>Dashboard"]
- 
-        subgraph DB["Database"]
-            POSTGRESQL["PostgreSQL<br/>(RDB)"]
-            OPENSEARCH["OpenSearch<br/>(NoSQL)"]
-        end
+
+        OPENSEARCH["OpenSearch"]
 
         KAFKA --> VECTOR --> OPENSEARCH
 
         NGINX -->|"API 프록시"| FASTAPI_PROD
-        FASTAPI_PROD --> SQLA_PROD
-        SQLA_PROD --> POSTGRESQL
-        FASTAPI_PROD -->|"검색/로그"| OPENSEARCH
+        FASTAPI_PROD -->|"데이터 저장/검색"| OPENSEARCH
     end
 
     USER -->|"웹 접속"| NGINX
@@ -81,4 +75,4 @@ flowchart TB
     DEV -->|"git push"| GIT
     MAIN -->|"트리거"| CICD
     DEPLOY -->|"컨테이너 배포"| WEB
-    SQLA_DEV -->|"DB 연결"| POSTGRESQL
+    OSPY_DEV -->|"OpenSearch 연결"| OPENSEARCH

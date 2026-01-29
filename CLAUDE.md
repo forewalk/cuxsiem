@@ -7,9 +7,9 @@
 SIEM (Security Information and Event Management) 웹 애플리케이션. 9단계 Claude Code 워크플로우 시스템을 통한 체계적 기능 개발.
 
 **기술 스택:**
-- 백엔드: FastAPI + Python 3.11 + SQLAlchemy (async) + Alembic
-- 프론트엔드: React 18 + TypeScript + Vite
-- 데이터베이스: PostgreSQL (주 RDB), OpenSearch (로그/검색)
+- 백엔드: FastAPI + Python 3.11 + opensearch-py
+- 프론트엔드: React 18 + TypeScript + Vite + MUI (Material UI)
+- 데이터베이스: OpenSearch (로그/검색/저장)
 - 데이터 파이프라인: Kafka + Vector
 - 배포: Docker + Docker Compose, Nginx 리버스 프록시
 
@@ -47,13 +47,6 @@ flake8 app/
 mypy app/
 ```
 
-### 데이터베이스 마이그레이션
-```bash
-alembic revision --autogenerate -m "add {feature} table"
-alembic upgrade head
-alembic downgrade -1
-```
-
 ### API 문서
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
@@ -68,12 +61,12 @@ Service (app/services/)            -- 비즈니스 로직, 검증
     ↓
 Repository (app/repositories/)     -- 데이터 접근, CRUD
     ↓
-Model (app/models/)                -- SQLAlchemy ORM 정의
+Model (app/models/)                -- 데이터 모델 정의
     ↓
-PostgreSQL / OpenSearch
+OpenSearch
 ```
 
-모든 레이어는 **async/await** 사용. DB 세션은 `get_db()`에서 `AsyncSession`으로 주입.
+모든 레이어는 **async/await** 사용. OpenSearch 클라이언트는 `get_opensearch()`로 주입.
 
 ### 기능별 파일 패턴
 기능 구현 시 생성되는 파일:
@@ -83,7 +76,6 @@ app/schemas/{feature}.py
 app/repositories/{feature}.py
 app/services/{feature}.py
 app/api/v1/endpoints/{feature}.py
-alembic/versions/xxx_add_{feature}_table.py
 tests/test_repositories/test_{feature}.py
 tests/test_services/test_{feature}.py
 tests/test_api/test_{feature}.py
@@ -95,13 +87,11 @@ tests/test_api/test_{feature}.py
 - `{Feature}Update` -- 수정용 (모두 Optional)
 - `{Feature}Response` -- 응답용 (id + timestamps), `from_attributes = True`
 
-### 데이터베이스 규칙
-- **테이블명:** snake_case, 복수형 (`users`, `order_items`)
-- **컬럼명:** snake_case (`created_at`, `user_id`)
-- **Primary Key:** `id` BIGINT 자동 증가
-- **타임스탬프:** `created_at`, `updated_at` (서버 기본값), `deleted_at` (nullable)
-- **Soft delete:** 모든 모델은 `deleted_at` 컬럼 사용, 조회 시 삭제된 레코드 필터링
-- **Foreign Key:** `{table}_id` 형식
+### OpenSearch 인덱스 규칙
+- **인덱스명:** snake_case, 복수형 (`users`, `log_events`)
+- **필드명:** snake_case (`created_at`, `user_id`)
+- **타임스탬프:** `created_at`, `updated_at`, `deleted_at` (nullable)
+- **Soft delete:** `deleted_at` 필드 사용, 조회 시 삭제된 문서 필터링
 - **Boolean 필드:** `is_`, `has_`, `can_`, `should_` 접두사
 
 ### 네이밍 규칙
@@ -122,9 +112,48 @@ DELETE /api/v1/{features}/{id}    -- 삭제 (204)
 
 새 라우터는 `app/api/v1/endpoints/__init__.py`에 등록.
 
+### 프론트엔드 구조
+```
+frontend/src/
+├── components/       # 공통 재사용 컴포넌트
+├── pages/            # 페이지 단위 컴포넌트
+├── hooks/            # 커스텀 훅
+├── services/         # API 호출 (axios)
+├── theme/            # MUI 테마 설정
+├── types/            # TypeScript 타입 정의
+├── utils/            # 유틸리티 함수
+├── routes/           # React Router 라우트 정의
+├── main.tsx          # 엔트리 (ThemeProvider, RouterProvider)
+└── App.tsx           # 루트 컴포넌트
+```
+
+### 프론트엔드 규칙
+- **UI 라이브러리:** MUI (Material UI) 사용
+  - `@mui/material` -- 코어 컴포넌트 (Button, TextField, Typography 등)
+  - `@mui/icons-material` -- 아이콘
+  - `@mui/x-data-grid` -- 데이터 테이블
+  - `@mui/x-date-pickers` + `dayjs` -- 날짜 선택
+- **상태 관리:** React 기본 훅 (useState, useReducer, useContext)
+- **라우팅:** react-router-dom (createBrowserRouter)
+- **HTTP 클라이언트:** axios (`src/services/api.ts`)
+- **경로 별칭:** `@/` = `src/` (예: `import theme from "@/theme"`)
+- **테마:** 다크 모드 기본, `src/theme/index.ts`에서 관리
+
 ## 9단계 개발 워크플로우
 
-슬래시 커맨드를 활용한 체계적 기능 개발:
+> **필수:** 모든 기능 개발은 반드시 이 워크플로우를 따른다.
+> 슬래시 커맨드(`.claude/commands/`)와 템플릿(`.claude/workflow/templates/`)을 사용한다.
+
+### 워크플로우 리소스 위치
+
+| 경로 | 내용 |
+|------|------|
+| `.claude/commands/` | 슬래시 커맨드 정의 (workflow-start, review-spec, develop 등) |
+| `.claude/workflow/templates/` | 단계별 문서 템플릿 (1_spec ~ 9_technical_doc) |
+| `.claude/workflow/workflow_templates/` | 워크플로우 가이드 (WORKFLOW_GUIDE.md, WORKFLOW_README.md) |
+| `docs/workflows/{feature}/` | 기능별 워크플로우 산출물 저장 위치 |
+
+### 단계
 
 ```
 1. /workflow-start {feature}    -- 워크플로우 문서 스캐폴드 생성
@@ -138,9 +167,7 @@ DELETE /api/v1/{features}/{id}    -- 삭제 (204)
 9. /create-docs {feature}       -- AI 기술 문서 생성
 ```
 
-워크플로우 문서: `docs/workflows/{feature}/` (예: `1_{feature}_spec.md` ~ `9_{feature}_technical_doc.md`)
-
-템플릿: `.claude/workflow/templates/` / 슬래시 커맨드: `.claude/commands/`
+산출물: `docs/workflows/{feature}/1_{feature}_spec.md` ~ `9_{feature}_technical_doc.md`
 
 ## 중요: 한글 문서 인코딩
 
@@ -152,6 +179,15 @@ cat << 'EOF' > docs/workflows/{feature}/1_{feature}_spec.md
 내용...
 EOF
 ```
+
+## 프로젝트 문서
+
+| 문서 | 내용 |
+|------|------|
+| `docs/ARCHITECTURE.md` | 전체 아키텍처 다이어그램 |
+| `docs/INSTALL.md` | 로컬 PC 개발 환경 설치 가이드 |
+| `docs/GIT_GUIDE.md` | Git 브랜치 전략 및 작업 가이드 |
+| `docs/DEPLOY.md` | Docker 이미지 빌드 및 서버 배포 가이드 |
 
 ## 프로덕션 아키텍처
 
