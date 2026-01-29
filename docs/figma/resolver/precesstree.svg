@@ -1,0 +1,42 @@
+<svg width="1000" height="500" viewBox="0 0 1000 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="500" fill="#0F172A" rx="16"/>
+
+  <path d="M210 100 C 250 100, 250 200, 290 200" stroke="#475569" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+  <path d="M460 200 C 500 200, 500 300, 540 300" stroke="#F43F5E" stroke-width="2" fill="none"/>
+  <path d="M710 300 C 750 300, 750 150, 790 150" stroke="#F43F5E" stroke-width="2" fill="none"/>
+
+  <g id="node-explorer">
+    <rect x="50" y="70" width="160" height="65" rx="4" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
+    <rect x="50" y="70" width="160" height="20" rx="4" fill="#38BDF8"/>
+    <text x="58" y="85" fill="#0F172A" font-family="Inter, sans-serif" font-size="10" font-weight="bold">RUNNING</text>
+    <text x="60" y="110" fill="#F8FAFC" font-family="Inter, sans-serif" font-size="13" font-weight="600">explorer.exe</text>
+    <text x="60" y="125" fill="#94A3B8" font-family="Inter, sans-serif" font-size="9">PID: 1402 | User: Admin</text>
+  </g>
+
+  <g id="node-control">
+    <rect x="300" y="170" width="160" height="65" rx="4" fill="#1E293B" stroke="#94A3B8" stroke-width="1"/>
+    <text x="310" y="195" fill="#94A3B8" font-family="Inter, sans-serif" font-size="10">TERMINATED</text>
+    <text x="310" y="215" fill="#F8FAFC" font-family="Inter, sans-serif" font-size="13">control.exe</text>
+    <text x="400" y="195" fill="#38BDF8" font-family="Inter, sans-serif" font-size="9">62ms</text>
+  </g>
+
+  <g id="node-rundll">
+    <rect x="550" y="270" width="160" height="65" rx="4" fill="#1E293B" stroke="#F43F5E" stroke-width="2"/>
+    <text x="560" y="295" fill="#FB7185" font-family="Inter, sans-serif" font-size="10" font-weight="bold">⚠️ ANALYZED</text>
+    <text x="560" y="315" fill="#F8FAFC" font-family="Inter, sans-serif" font-size="13">rundll32.exe</text>
+    <circle cx="700" cy="280" r="8" fill="#F43F5E"/>
+    <text x="697" y="284" fill="white" font-family="Inter, sans-serif" font-size="10" font-weight="bold">!</text>
+  </g>
+
+  <g id="node-powershell">
+    <rect x="800" y="120" width="180" height="80" rx="4" fill="#451225" stroke="#F43F5E" stroke-width="2"/>
+    <text x="810" y="145" fill="#FDA4AF" font-family="Inter, sans-serif" font-size="10" font-weight="bold">MALICIOUS MACRO</text>
+    <text x="810" y="165" fill="#F8FAFC" font-family="Inter, sans-serif" font-size="13" font-weight="600">powershell.exe</text>
+    <text x="810" y="185" fill="#FB7185" font-family="Inter, sans-serif" font-size="9">sc stop WinDefend</text>
+  </g>
+
+  <g transform="translate(480, 230)">
+    <rect width="50" height="18" rx="9" fill="#334155"/>
+    <text x="10" y="13" fill="#CBD5E1" font-family="Inter, sans-serif" font-size="9">File (3)</text>
+  </g>
+</svg>

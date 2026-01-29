@@ -63,6 +63,7 @@ npm run dev
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 시스템 아키텍처 |
 | [GIT_GUIDE.md](docs/GIT_GUIDE.md) | Git 브랜치 전략 및 작업 가이드 |
 | [DEPLOY.md](docs/DEPLOY.md) | Docker 빌드 및 서버 배포 가이드 |
+| [ROADMAP.md](ROADMAP.md) | 기능 개발 로드맵 |
 | [CLAUDE.md](CLAUDE.md) | AI 개발 가이드 (Claude) |
 | [GEMINI.md](GEMINI.md) | AI 개발 가이드 (Gemini) |
 

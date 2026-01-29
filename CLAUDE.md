@@ -2,6 +2,12 @@
 
 이 파일은 Claude Code (claude.ai/code)가 이 저장소에서 작업할 때 참조하는 가이드입니다.
 
+## 언어 규칙
+
+- **모든 대화와 문서는 한글로 작성**
+- 코드 주석도 한글 사용 권장
+- 커밋 메시지도 한글 가능
+
 ## 프로젝트 개요
 
 SIEM (Security Information and Event Management) 웹 애플리케이션. 9단계 Claude Code 워크플로우 시스템을 통한 체계적 기능 개발.
@@ -12,6 +18,11 @@ SIEM (Security Information and Event Management) 웹 애플리케이션. 9단계
 - 데이터베이스: OpenSearch (로그/검색/저장)
 - 데이터 파이프라인: Kafka + Vector
 - 배포: Docker + Docker Compose, Nginx 리버스 프록시
+
+### 환경 설정
+- DB 서버 정보: `docs/INSTALL.md` 참조
+- 환경변수: `backend/.env`, `frontend/.env` (`.env.example` 복사 후 수정)
+- AI 개발툴은 CLAUDE와 GEMINI를 사용, 따라서 `CLAUDE.md`, `GEMINI.md`를 항상 같은 내용으로 갱신
 
 ## 빌드 및 실행 명령어
 
@@ -139,6 +150,97 @@ frontend/src/
 - **경로 별칭:** `@/` = `src/` (예: `import theme from "@/theme"`)
 - **테마:** 다크 모드 기본, `src/theme/index.ts`에서 관리
 
+### MUI (Material UI) 테마 및 공통 컴포넌트
+
+#### 테마 구조
+
+MUI ThemeProvider를 사용하여 라이트/다크 테마를 관리:
+- `src/theme/types.ts` - Palette 타입 확장 (`custom.bgTertiary`, `custom.borderColor`)
+- `src/theme/theme.ts` - `getTheme(mode)` 함수 (기존 CSS 변수 색상을 MUI palette에 매핑)
+- `src/theme/index.ts` - barrel export
+
+`App.tsx`에서 `useThemeStore().theme`을 읽어 `useMemo`로 MUI Theme를 생성하고, `<ThemeProvider>` + `<CssBaseline />`으로 래핑.
+
+#### 색상 매핑
+
+| 용도 | MUI palette | 라이트 | 다크 |
+|------|-------------|--------|------|
+| 액션 버튼 | `primary.main` | `#4A90D9` | `#5B9BD5` |
+| 로그인/확인 버튼 | `secondary.main` | `#4CAF50` | `#4CAF50` |
+| 기본 배경 | `background.default` | `#FAFAFA` | `#1A1A1A` |
+| 카드 배경 | `background.paper` | `#FFFFFF` | `#2D2D2D` |
+| 3차 배경 | `custom.bgTertiary` | `#F5F5F5` | `#3D3D3D` |
+| 기본 텍스트 | `text.primary` | `#1A1A1A` | `#FFFFFF` |
+| 보조 텍스트 | `text.secondary` | `#666666` | `#AAAAAA` |
+| 비활성 텍스트 | `text.disabled` | `#999999` | `#888888` |
+| 테두리 | `custom.borderColor` | `#CCCCCC` | `#444444` |
+| 구분선 | `divider` | `#E5E5E5` | `#3D3D3D` |
+
+#### 공통 레이아웃 컴포넌트
+
+| 컴포넌트 | 위치 | 역할 |
+|----------|------|------|
+| `AppLayout` | `components/layout/AppLayout.tsx` | 페이지 래퍼 (AppHeader + Container + 배경) |
+| `AppHeader` | `components/layout/AppHeader.tsx` | AppBar + Toolbar (타이틀, 뒤로가기, 언어/테마/로그아웃) |
+| `ThemeToggle` | `components/common/ThemeToggle.tsx` | 다크모드 토글 IconButton |
+| `LanguageSelect` | `components/common/LanguageSelect.tsx` | MUI Select 기반 언어 선택 |
+
+**사용법:**
+```tsx
+// 기본 페이지 레이아웃 (헤더 + 컨텐츠)
+<AppLayout title="페이지 제목">
+  <Paper elevation={1}>내용</Paper>
+</AppLayout>
+
+// 뒤로가기 버튼 포함
+<AppLayout title="상세" showBack backTo="/board">
+  <Paper>내용</Paper>
+</AppLayout>
+```
+
+`AppLayout`은 AppHeader(언어 선택, 다크모드 토글, 로그아웃 버튼 포함) + Container를 자동으로 구성하므로, 개별 페이지에서 헤더를 중복 구현할 필요가 없음.
+
+#### 모달 컴포넌트
+
+| 컴포넌트 | 위치 | 역할 |
+|----------|------|------|
+| `GuestModeModal` | `components/common/GuestModeModal.tsx` | MUI Dialog 기반 비회원 모드 안내 |
+| `LoginRequiredModal` | `components/common/LoginRequiredModal.tsx` | MUI Dialog 기반 로그인 필수 안내 |
+
+**새 모달 작성 시 패턴:**
+```tsx
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import Button from '@mui/material/Button'
+
+<Dialog open={isOpen} onClose={onClose} maxWidth="xs" fullWidth>
+  <DialogTitle>제목</DialogTitle>
+  <DialogContent>내용</DialogContent>
+  <DialogActions>
+    <Button variant="outlined" onClick={onClose}>취소</Button>
+    <Button variant="contained" color="secondary" onClick={onConfirm}>확인</Button>
+  </DialogActions>
+</Dialog>
+```
+
+#### MUI 컴포넌트 사용 규칙
+
+- **인라인 스타일 금지**: `style={{}}` 대신 MUI의 `sx` prop 사용
+- **색상 참조**: 하드코딩 대신 palette 참조 (예: `color="text.secondary"`, `sx={{ bgcolor: 'background.paper' }}`)
+- **버튼 색상 구분**: 일반 액션은 `color="primary"`, 로그인/확인 계열은 `color="secondary"`, 삭제는 `color="error"`
+- **카드/패널**: `Paper elevation={1}` 또는 `Card` 사용
+- **아이콘**: `@mui/icons-material`에서 개별 import (예: `import EditIcon from '@mui/icons-material/Edit'`)
+- **레이아웃**: 페이지는 `AppLayout`으로 감싸고, 내부는 `Box`, `Stack`, `Container` 활용
+
+### i18n (다국어 지원)
+
+- react-i18next 사용, 기본 언어: 한국어 (`ko`), 폴백: 영어 (`en`)
+- 네임스페이스: `common`, `auth`, `board` 등 기능별 분리
+- 번역 파일: `src/i18n/locales/{ko,en}/{namespace}.json`
+- 새 기능 추가 시 해당 네임스페이스 JSON 파일을 ko/en 모두 생성
+
 ## 9단계 개발 워크플로우
 
 > **필수:** 모든 기능 개발은 반드시 이 워크플로우를 따른다.
@@ -153,18 +255,23 @@ frontend/src/
 | `.claude/workflow/workflow_templates/` | 워크플로우 가이드 (WORKFLOW_GUIDE.md, WORKFLOW_README.md) |
 | `docs/workflows/{feature}/` | 기능별 워크플로우 산출물 저장 위치 |
 
-### 단계
+### 워크플로우 명령어
+
+| 명령어 | 설명 |
+|--------|------|
+| `/workflow-start {기능}` | 워크플로우 폴더 및 템플릿 생성 |
+| `/review-spec {기능}` | 기획서 검토 (2단계) |
+| `/finalize-spec {기능}` | 기획서 확정 (3단계) |
+| `/create-dev-plan {기능}` | 개발 계획 생성 (4단계) |
+| `/approve-dev-plan {기능}` | 개발 계획 승인 (5단계) |
+| `/develop {기능}` | 구현 실행 (6단계) |
+| `/test {기능}` | 테스트 실행 (7단계) |
+| `/create-docs {기능}` | 기술 문서 생성 (9단계) |
 
 ```
-1. /workflow-start {feature}    -- 워크플로우 문서 스캐폴드 생성
-2. /review-spec {feature}       -- AI 기획서 검토
-3. /finalize-spec {feature}     -- 기획서 확정 (대화형)
-4. /create-dev-plan {feature}   -- AI 개발 계획 생성
-5. /approve-dev-plan {feature}  -- 개발 계획 승인
-6. /develop {feature}           -- AI 코드 구현
-7. /test {feature}              -- AI 테스트 실행
-8. (수동 코드 리뷰)
-9. /create-docs {feature}       -- AI 기술 문서 생성
+1.기획서작성(사람) → 2.AI검토 → 3.기획확정 → 4.개발계획(AI) → 5.계획승인
+                                                                    ↓
+                        9.문서화 ← 8.코드리뷰(사람) ← 7.테스트 ← 6.개발실행
 ```
 
 산출물: `docs/workflows/{feature}/1_{feature}_spec.md` ~ `9_{feature}_technical_doc.md`
@@ -188,6 +295,7 @@ EOF
 | `docs/INSTALL.md` | 로컬 PC 개발 환경 설치 가이드 |
 | `docs/GIT_GUIDE.md` | Git 브랜치 전략 및 작업 가이드 |
 | `docs/DEPLOY.md` | Docker 이미지 빌드 및 서버 배포 가이드 |
+| `ROADMAP.md` | 기능 개발 로드맵 및 진행 체크리스트 |
 
 ## 프로덕션 아키텍처
 
