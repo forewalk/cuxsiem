@@ -3,6 +3,18 @@
 이 파일은 AI 어시스턴트(Claude, Gemini 등)가 이 저장소에서 작업할 때 참조하는 공통 가이드입니다.
 각 도구별 설정 파일(`CLAUDE.md`, `GEMINI.md`)에서 이 파일을 참조합니다.
 
+## 필수 행동 강령
+
+### 원격 Git Push 시 HISTORY.md 기록 의무
+
+> **원격 Git에 Push할 때 반드시 `HISTORY.md`에 이력을 남길 것. 예외 없음.**
+>
+> - 작업 유형: `배포`
+> - 내용에 브랜치명 명시 (예: `origin/develop push`, `origin/main push`)
+> - Push 직전에 `HISTORY.md`에 기록을 추가한 후 함께 커밋하여 Push
+> - 날짜 형식: `YYYY-MM-DD HH:MM`
+> - 예시: `| 2026-01-29 21:42 | 김장훈 | 배포 | origin/develop push (ROADMAP, 문서 동기화) |`
+
 ## 언어 규칙
 
 - **모든 대화와 문서는 한글로 작성**
