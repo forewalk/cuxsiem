@@ -2,6 +2,12 @@
 
 이 파일은 Gemini가 이 저장소에서 작업할 때 참조하는 가이드입니다.
 
+## 언어 규칙
+
+- **모든 대화와 문서는 한글로 작성**
+- 코드 주석도 한글 사용 권장
+- 커밋 메시지도 한글 가능
+
 ## 프로젝트 개요
 
 SIEM (Security Information and Event Management) 웹 애플리케이션. 9단계 워크플로우 시스템을 통한 체계적 기능 개발.
@@ -12,6 +18,11 @@ SIEM (Security Information and Event Management) 웹 애플리케이션. 9단계
 - 데이터베이스: OpenSearch (로그/검색/저장)
 - 데이터 파이프라인: Kafka + Vector
 - 배포: Docker + Docker Compose, Nginx 리버스 프록시
+
+### 환경 설정
+- DB 서버 정보: `docs/INSTALL.md` 참조
+- 환경변수: `backend/.env`, `frontend/.env` (`.env.example` 복사 후 수정)
+- AI 개발툴은 CLAUDE와 GEMINI를 사용, 따라서 `CLAUDE.md`, `GEMINI.md`를 항상 같은 내용으로 갱신
 
 ## 빌드 및 실행 명령어
 
@@ -267,7 +278,7 @@ import Button from '@mui/material/Button'
 
 ## 중요: 한글 문서 인코딩
 
-한글 마크다운 문서 생성 시 **반드시 Bash heredoc 문법 사용**:
+한글 마크다운 문서 생성 시 **반드시 Bash heredoc 문법 사용** (Write 도구 대신):
 
 ```bash
 cat << 'EOF' > docs/workflows/{feature}/1_{feature}_spec.md

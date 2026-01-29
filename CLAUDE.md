@@ -10,7 +10,7 @@
 
 ## 프로젝트 개요
 
-SIEM (Security Information and Event Management) 웹 애플리케이션. 9단계 Claude Code 워크플로우 시스템을 통한 체계적 기능 개발.
+SIEM (Security Information and Event Management) 웹 애플리케이션. 9단계 워크플로우 시스템을 통한 체계적 기능 개발.
 
 **기술 스택:**
 - 백엔드: FastAPI + Python 3.11 + opensearch-py
