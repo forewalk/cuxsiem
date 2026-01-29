@@ -25,6 +25,10 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-01-29 22:50 | 김장훈 | 배포 | origin/develop push (HISTORY 규칙 강화, README 갱신, push 이력 의무화) |
+| 2026-01-29 22:50 | 김장훈 | 수정 | README.md 문서 테이블에 ASSISTANT.md 추가, CLAUDE.md/GEMINI.md 설명 갱신 |
+| 2026-01-29 22:48 | 김장훈 | 수정 | HISTORY.md 날짜+시간 형식 변경, 원격 Git Push 이력 기록 의무화 |
+| 2026-01-29 22:48 | 김장훈 | 수정 | ASSISTANT.md 필수 행동 강령 추가 (Push 시 HISTORY.md 기록 의무) |
 | 2026-01-29 22:32 | 김장훈 | 수정 | CLAUDE.md/GEMINI.md에 ASSISTANT.md 외 내용 추가 금지 명시 |
 | 2026-01-29 22:31 | 김장훈 | 리팩터 | ASSISTANT.md 신규 생성, CLAUDE.md/GEMINI.md 공통 가이드 분리 |
 | 2026-01-29 22:31 | 김장훈 | 배포 | origin/develop push (ASSISTANT.md 생성, CLAUDE.md/GEMINI.md 분리) |
