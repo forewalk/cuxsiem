@@ -12,7 +12,10 @@
       "Bash(git branch:*)",
       "Bash(git add:*)",
       "Bash(git rm:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nchore: .gitattributes, .editorconfig 추가 \\(LF 개행 통일\\)\n\n- .gitattributes: 모든 텍스트 파일 LF 강제, 바이너리 파일 보호\n- .editorconfig: charset utf-8, indent/개행 규칙 통일\n- 기존 파일 개행 정규화 \\(renormalize\\)\n- Windows/macOS/Linux 간 빌드 오류 방지\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)"
     ]
   }
 }
