@@ -10,7 +10,9 @@
       "Bash(conda init:*)",
       "Bash(source:*)",
       "Bash(git branch:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)"
     ]
   }
 }

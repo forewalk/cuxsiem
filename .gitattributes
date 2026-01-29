@@ -1,0 +1,55 @@
+# 모든 텍스트 파일: Git 저장소 내부는 LF, checkout 시 OS에 맞게 자동 변환
+* text=auto eol=lf
+
+# 소스 코드
+*.py        text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.json      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.toml      text eol=lf
+*.cfg       text eol=lf
+*.ini       text eol=lf
+*.env       text eol=lf
+
+# 마크다운 / 문서
+*.md        text eol=lf
+*.txt       text eol=lf
+*.rst       text eol=lf
+
+# 설정 파일
+*.xml       text eol=lf
+*.csv       text eol=lf
+*.sql       text eol=lf
+*.sh        text eol=lf
+*.bash      text eol=lf
+Dockerfile  text eol=lf
+*.dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+Makefile    text eol=lf
+.gitignore  text eol=lf
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+
+# 바이너리 (변환하지 않음)
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.svg       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+*.tar.gz    binary
+*.zip       binary
+*.pdf       binary
+
+# lock 파일 (diff 비활성)
+package-lock.json text eol=lf -diff
