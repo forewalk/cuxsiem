@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git config:*)",
+      "Bash(conda create:*)",
+      "Bash(conda tos accept:*)",
+      "Bash(conda activate cruxsiem)",
+      "Bash(conda init:*)",
+      "Bash(source:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
