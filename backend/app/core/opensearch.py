@@ -9,8 +9,16 @@ def get_opensearch_client() -> OpenSearch:
     global _client
     if _client is None:
         _client = OpenSearch(
-            hosts=[{"host": settings.OPENSEARCH_HOST, "port": settings.OPENSEARCH_PORT}],
-            http_auth=(settings.OPENSEARCH_USER, settings.OPENSEARCH_PASSWORD)
+            hosts=[
+                {
+                    "host": settings.OPENSEARCH_HOST,
+                    "port": settings.OPENSEARCH_PORT,
+                }
+            ],
+            http_auth=(
+                settings.OPENSEARCH_USER,
+                settings.OPENSEARCH_PASSWORD,
+            )
             if settings.OPENSEARCH_USER
             else None,
             use_ssl=settings.OPENSEARCH_USE_SSL,

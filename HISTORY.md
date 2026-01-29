@@ -16,6 +16,9 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-01-29 | 김경수 | 설정 | OpenSearch 구성 및 셋팅 |
+| 2026-01-29 | 김장훈 | 설정 | 개발서버 2대 구성 (DB, AP) |
+| 2026-01-29 | 김경인 | 추가 | `docs/figma/login/login.svg` 파일 생성 |
 | 2026-01-29 | 김장훈 | 설정 | CLAUDE.md, GEMINI.md, HISTORY.md 생성 및 템플릿 파일 정리 |
 | 2026-01-29 | 김장훈 | 추가 | 백엔드 기본 구조 (FastAPI + opensearch-py), PostgreSQL/SQLAlchemy/Alembic 제거 |
 | 2026-01-29 | 김장훈 | 추가 | 프론트엔드 기본 구조 (React 18 + TypeScript + Vite + MUI) |
