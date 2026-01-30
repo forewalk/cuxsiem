@@ -36,12 +36,15 @@ class UserRepository:
                 }
             )
             hits = result.get("hits", {}).get("hits", [])
-            return hits[0]["_source"] if hits else None
+            if hits:
+                return hits[0]["_id"], hits[0]["_source"]
+            return None
 
         try:
-            user_data = await loop.run_in_executor(None, search)
-            if user_data:
-                return self._dict_to_user(user_data)
+            result = await loop.run_in_executor(None, search)
+            if result:
+                doc_id, user_data = result
+                return self._dict_to_user(user_data, doc_id)
         except Exception:
             pass
 
@@ -78,10 +81,10 @@ class UserRepository:
 
         await loop.run_in_executor(None, update)
 
-    def _dict_to_user(self, data: dict) -> User:
+    def _dict_to_user(self, data: dict, doc_id: str = None) -> User:
         """딕셔너리를 User 객체로 변환"""
         return User(
-            id=data["id"],
+            id=doc_id or data.get("id", ""),
             email=data["email"],
             password_hash=data["password_hash"],
             name=data["name"],

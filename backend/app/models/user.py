@@ -21,7 +21,6 @@ class User:
     def to_dict(self) -> dict:
         """OpenSearch 문서로 변환"""
         return {
-            "id": self.id,
             "email": self.email,
             "password_hash": self.password_hash,
             "name": self.name,
@@ -49,7 +48,6 @@ class Session:
     def to_dict(self) -> dict:
         """OpenSearch 문서로 변환"""
         return {
-            "id": self.id,
             "user_id": self.user_id,
             "token_hash": self.token_hash,
             "ip_address": self.ip_address,
@@ -73,7 +71,6 @@ class LoginAttempt:
     def to_dict(self) -> dict:
         """OpenSearch 문서로 변환"""
         return {
-            "id": self.id,
             "email": self.email,
             "success": self.success,
             "attempted_at": self.attempted_at.isoformat(),
