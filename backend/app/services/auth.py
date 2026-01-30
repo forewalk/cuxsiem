@@ -113,7 +113,8 @@ class AuthService:
 
     async def logout(self, user_id: str, session_id: str) -> None:
         """로그아웃"""
-        await self.session_repo.invalidate(session_id)
+        if session_id:
+            await self.session_repo.invalidate(session_id)
 
     async def get_user(self, user_id: str) -> UserResponse:
         """사용자 정보 조회"""
