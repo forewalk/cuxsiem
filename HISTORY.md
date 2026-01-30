@@ -25,6 +25,12 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-01-30 19:11 | Claude | 배포 | origin/feature/login push (로그인 기능 완성, Figma 디자인 적용, 다국어 지원, UI 개선) |
+| 2026-01-30 19:11 | Claude | 수정 | frontend/src/pages/LoginPage.tsx Figma 디자인 기반 스타일 적용 및 헤더 리디자인 |
+| 2026-01-30 19:11 | Claude | 수정 | frontend/src/services/api.ts 로그인 페이지에서 401 에러 메시지 표시 처리 |
+| 2026-01-30 19:11 | Claude | 추가 | frontend/src/locales/ 다국어 지원 파일 (ko.json, en.json, ja.json) |
+| 2026-01-30 19:11 | Claude | 수정 | backend/app/core/security.py bcrypt 직접 사용으로 passlib 호환성 문제 해결 |
+| 2026-01-30 19:11 | Claude | 수정 | 프로젝트명 CruxSIEM → cruxSIEM 표기 통일 |
 | 2026-01-30 15:30 | Claude | 배포 | origin/develop push (OpenSearch 접속 설정 및 테스트, 인덱스 명명 규칙 변경) |
 | 2026-01-30 15:30 | Claude | 추가 | backend/test_opensearch_connection.py OpenSearch 접속 테스트 스크립트 |
 | 2026-01-30 15:30 | Claude | 수정 | backend/.env.example OPENSEARCH_USE_SSL=false 변경 (SSL 미사용) |
