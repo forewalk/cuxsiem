@@ -113,7 +113,7 @@ tests/test_api/test_{feature}.py
 - `{Feature}Response` -- 응답용 (id + timestamps), `from_attributes = True`
 
 ### OpenSearch 인덱스 규칙
-- **인덱스명:** snake_case, 복수형 (`users`, `log_events`)
+- **인덱스명:** `cs_` 접두사 + snake_case, 복수형 (`cs_users`, `cs_log_events`)
 - **필드명:** snake_case (`created_at`, `user_id`)
 - **타임스탬프:** `created_at`, `updated_at`, `deleted_at` (nullable)
 - **Soft delete:** `deleted_at` 필드 사용, 조회 시 삭제된 문서 필터링
