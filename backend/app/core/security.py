@@ -3,16 +3,13 @@ from datetime import datetime, timedelta
 from typing import Optional
 import hashlib
 import hmac
+import bcrypt
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 
 from app.core.config import settings
-
-# 비밀번호 해싱 설정
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # HTTP Bearer 토큰 인증
 security = HTTPBearer()
@@ -20,12 +17,17 @@ security = HTTPBearer()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """평문 비밀번호와 해시된 비밀번호 비교"""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:
     """비밀번호를 해싱하여 반환"""
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt(rounds=12)
+    hashed = bcrypt.hashpw(password.encode(), salt)
+    return hashed.decode()
 
 
 def create_access_token(user_id: str, remember_me: bool = False) -> tuple[str, int]:

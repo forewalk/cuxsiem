@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "CruxSIEM"
+    APP_NAME: str = "cruxSIEM"
     DEBUG: bool = False
 
     OPENSEARCH_HOST: str = ""

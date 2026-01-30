@@ -1,0 +1,15 @@
+{
+  "loginTitle": "Sign In",
+  "email": "Email",
+  "password": "Password",
+  "rememberMe": "Remember me",
+  "loginBtn": "Sign In",
+  "copyright": "© 2026 cruxSIEM. All rights reserved.",
+  "emailInvalid": "Enter a valid email",
+  "emailRequired": "Email is required",
+  "passwordRequired": "Password is required",
+  "passwordMin": "Password must be at least 8 characters",
+  "passwordChar": "Password must contain letters",
+  "passwordDigit": "Password must contain numbers",
+  "passwordPlaceholder": "Min 8 chars, letters + numbers"
+}

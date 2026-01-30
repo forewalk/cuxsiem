@@ -7,8 +7,8 @@ import os
 import sys
 from datetime import datetime
 from dotenv import load_dotenv
-import bcrypt
 import uuid
+import bcrypt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -46,7 +46,8 @@ try:
     if response["hits"]["total"]["value"] == 0:
         # Hash password with bcrypt
         password = "password123"
-        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+        salt = bcrypt.gensalt(rounds=12)
+        password_hash = bcrypt.hashpw(password.encode(), salt).decode()
 
         admin_user = {
             "id": str(uuid.uuid4()),

@@ -1,0 +1,15 @@
+{
+  "loginTitle": "로그인",
+  "email": "이메일",
+  "password": "비밀번호",
+  "rememberMe": "로그인 유지",
+  "loginBtn": "로그인",
+  "copyright": "© 2026 cruxSIEM. All rights reserved.",
+  "emailInvalid": "유효한 이메일을 입력하세요",
+  "emailRequired": "이메일은 필수입니다",
+  "passwordRequired": "비밀번호는 필수입니다",
+  "passwordMin": "비밀번호는 최소 8자 이상이어야 합니다",
+  "passwordChar": "비밀번호에는 영문자가 포함되어야 합니다",
+  "passwordDigit": "비밀번호에는 숫자가 포함되어야 합니다",
+  "passwordPlaceholder": "최소 8자, 영문+숫자"
+}

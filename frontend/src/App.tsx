@@ -47,7 +47,7 @@ function App() {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            CruxSIEM
+            cruxSIEM
           </Typography>
           <Typography variant="body2" sx={{ mr: 2 }}>
             {user?.name} ({user?.role})

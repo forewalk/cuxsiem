@@ -1,0 +1,15 @@
+{
+  "loginTitle": "ログイン",
+  "email": "メール",
+  "password": "パスワード",
+  "rememberMe": "ログイン状態を保持",
+  "loginBtn": "ログイン",
+  "copyright": "© 2026 cruxSIEM. All rights reserved.",
+  "emailInvalid": "有効なメールアドレスを入力してください",
+  "emailRequired": "メールは必須です",
+  "passwordRequired": "パスワードは必須です",
+  "passwordMin": "パスワードは8文字以上である必要があります",
+  "passwordChar": "パスワードには文字が含まれている必要があります",
+  "passwordDigit": "パスワードには数字が含まれている必要があります",
+  "passwordPlaceholder": "最小8文字、文字+数字"
+}

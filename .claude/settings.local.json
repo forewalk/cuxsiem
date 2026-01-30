@@ -22,7 +22,8 @@
       "Bash(git checkout:*)",
       "Bash(pip install:*)",
       "Bash(tee:*)",
-      "Bash(set:*)"
+      "Bash(set:*)",
+      "WebFetch(domain:)"
     ]
   }
 }
