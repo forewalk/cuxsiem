@@ -26,8 +26,10 @@ class UserRepository:
                     "query": {
                         "bool": {
                             "must": [
-                                {"term": {"email": email.lower()}},
-                                {"range": {"deleted_at": {"gte": "now"}}}
+                                {"term": {"email": email.lower()}}
+                            ],
+                            "must_not": [
+                                {"exists": {"field": "deleted_at"}}
                             ]
                         }
                     }

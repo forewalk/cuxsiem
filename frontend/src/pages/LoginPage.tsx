@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -13,10 +13,20 @@ import {
   Container,
   InputAdornment,
   IconButton,
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
+  Select,
+  MenuItem,
+  Snackbar,
+  AppBar,
+  Toolbar,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useAuth } from "../hooks/useAuth";
 
 export const LoginPage: React.FC = () => {
@@ -31,31 +41,91 @@ export const LoginPage: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
+  const [darkMode, setDarkMode] = useState(false);
+  const [language, setLanguage] = useState("ko");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+
+  const theme = createTheme({
+    palette: {
+      mode: darkMode ? "dark" : "light",
+      primary: {
+        main: "#1976d2",
+      },
+    },
+  });
+
+  const translations: Record<string, Record<string, string>> = {
+    ko: {
+      loginTitle: "로그인",
+      email: "이메일",
+      password: "비밀번호",
+      rememberMe: "로그인 유지",
+      loginBtn: "로그인",
+      copyright: "© 2026 CruxSIEM. All rights reserved.",
+      emailInvalid: "유효한 이메일을 입력하세요",
+      emailRequired: "이메일은 필수입니다",
+      passwordRequired: "비밀번호는 필수입니다",
+      passwordMin: "비밀번호는 최소 8자 이상이어야 합니다",
+      passwordChar: "비밀번호에는 영문자가 포함되어야 합니다",
+      passwordDigit: "비밀번호에는 숫자가 포함되어야 합니다",
+      passwordPlaceholder: "최소 8자, 영문+숫자",
+    },
+    en: {
+      loginTitle: "Sign In",
+      email: "Email",
+      password: "Password",
+      rememberMe: "Remember me",
+      loginBtn: "Sign In",
+      copyright: "© 2026 CruxSIEM. All rights reserved.",
+      emailInvalid: "Enter a valid email",
+      emailRequired: "Email is required",
+      passwordRequired: "Password is required",
+      passwordMin: "Password must be at least 8 characters",
+      passwordChar: "Password must contain letters",
+      passwordDigit: "Password must contain numbers",
+      passwordPlaceholder: "Min 8 chars, letters + numbers",
+    },
+    ja: {
+      loginTitle: "ログイン",
+      email: "メール",
+      password: "パスワード",
+      rememberMe: "ログイン状態を保持",
+      loginBtn: "ログイン",
+      copyright: "© 2026 CruxSIEM. All rights reserved.",
+      emailInvalid: "有効なメールアドレスを入力してください",
+      emailRequired: "メールは必須です",
+      passwordRequired: "パスワードは必須です",
+      passwordMin: "パスワードは8文字以上である必要があります",
+      passwordChar: "パスワードには文字が含まれている必要があります",
+      passwordDigit: "パスワードには数字が含まれている必要があります",
+      passwordPlaceholder: "最小8文字、文字+数字",
+    },
+  };
+
+  const t = (key: string) => translations[language]?.[key] || key;
 
   const validateForm = useCallback((): boolean => {
     const errors: Record<string, string> = {};
 
-    // 이메일 검증
     if (!email) {
-      errors.email = "이메일은 필수입니다";
+      errors.email = t("emailRequired");
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = "유효한 이메일을 입력하세요";
+      errors.email = t("emailInvalid");
     }
 
-    // 비밀번호 검증
     if (!password) {
-      errors.password = "비밀번호는 필수입니다";
+      errors.password = t("passwordRequired");
     } else if (password.length < 8) {
-      errors.password = "비밀번호는 최소 8자 이상이어야 합니다";
+      errors.password = t("passwordMin");
     } else if (!/[a-zA-Z]/.test(password)) {
-      errors.password = "비밀번호에는 영문자가 포함되어야 합니다";
+      errors.password = t("passwordChar");
     } else if (!/\d/.test(password)) {
-      errors.password = "비밀번호에는 숫자가 포함되어야 합니다";
+      errors.password = t("passwordDigit");
     }
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [email, password]);
+  }, [email, password, language]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -75,19 +145,49 @@ export const LoginPage: React.FC = () => {
           err.message ||
           "로그인에 실패했습니다";
         setError(errorMessage);
+        setOpenSnackbar(true);
       }
     },
-    [email, password, rememberMe, validateForm, login, navigate]
+    [email, password, rememberMe, validateForm, login, navigate, language]
   );
 
+  useEffect(() => {
+    if (error) {
+      setOpenSnackbar(true);
+    }
+  }, [error]);
+
   return (
-    <Container maxWidth="sm">
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            CruxSIEM
+          </Typography>
+          <Select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            sx={{ mr: 2, color: "white" }}
+            size="small"
+          >
+            <MenuItem value="ko">한국어</MenuItem>
+            <MenuItem value="en">English</MenuItem>
+            <MenuItem value="ja">日本語</MenuItem>
+          </Select>
+          <IconButton onClick={() => setDarkMode(!darkMode)} color="inherit">
+            {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="sm">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="calc(100vh - 64px)"
+        >
         <Card
           sx={{
             width: "100%",
@@ -119,20 +219,14 @@ export const LoginPage: React.FC = () => {
               CruxSIEM
             </Typography>
             <Typography variant="body2" color="textSecondary" mt={1}>
-              로그인
+              {t("loginTitle")}
             </Typography>
           </Box>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
 
           <Box component="form" onSubmit={handleSubmit} noValidate>
             <TextField
               fullWidth
-              label="이메일"
+              label={t("email")}
               type="email"
               value={email}
               onChange={(e) => {
@@ -148,7 +242,7 @@ export const LoginPage: React.FC = () => {
 
             <TextField
               fullWidth
-              label="비밀번호"
+              label={t("password")}
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => {
@@ -158,7 +252,7 @@ export const LoginPage: React.FC = () => {
               error={!!validationErrors.password}
               helperText={validationErrors.password}
               margin="normal"
-              placeholder="최소 8자, 영문+숫자"
+              placeholder={t("passwordPlaceholder")}
               disabled={isLoading}
               InputProps={{
                 endAdornment: (
@@ -183,7 +277,7 @@ export const LoginPage: React.FC = () => {
                   disabled={isLoading}
                 />
               }
-              label="로그인 유지"
+              label={t("rememberMe")}
               sx={{ mt: 1 }}
             />
 
@@ -197,7 +291,7 @@ export const LoginPage: React.FC = () => {
               {isLoading ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
-                "로그인"
+                t("loginBtn")
               )}
             </Button>
           </Box>
@@ -209,10 +303,26 @@ export const LoginPage: React.FC = () => {
             color="textSecondary"
             mt={3}
           >
-            © 2026 CruxSIEM. All rights reserved.
+            {t("copyright")}
           </Typography>
         </Card>
       </Box>
+
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <Alert
+          onClose={() => setOpenSnackbar(false)}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {error}
+        </Alert>
+      </Snackbar>
     </Container>
+    </ThemeProvider>
   );
 };
