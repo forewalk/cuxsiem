@@ -164,6 +164,55 @@ frontend/src/
 - **경로 별칭:** `@/` = `src/` (예: `import theme from "@/theme"`)
 - **테마:** 다크 모드 기본, `src/theme/index.ts`에서 관리
 
+### i18n (다국어) - 필수 규칙
+**프론트엔드의 모든 텍스트는 하드코딩 금지. 반드시 `frontend/src/locales/*.json` 파일에서 로드할 것.**
+
+#### 파일 구조
+```
+frontend/src/locales/
+├── ko.json    # 한국어
+├── en.json    # 영어
+└── ja.json    # 일본어
+```
+
+#### 사용 방법
+1. **JSON 파일에 텍스트 추가**
+   ```json
+   {
+     "main": "Main",
+     "welcome": "환영합니다!",
+     "userInfo": "사용자 정보"
+   }
+   ```
+
+2. **컴포넌트에서 JSON 임포트**
+   ```typescript
+   import koMessages from "../locales/ko.json";
+   import enMessages from "../locales/en.json";
+   import jaMessages from "../locales/ja.json";
+
+   const translations = { ko: koMessages, en: enMessages, ja: jaMessages };
+   ```
+
+3. **번역 함수 사용**
+   ```typescript
+   const t = (key: string, params?: Record<string, string>) => {
+     let text = translations[language]?.[key] || key;
+     if (params) {
+       Object.entries(params).forEach(([key, value]) => {
+         text = text.replace(`{${key}}`, value);
+       });
+     }
+     return text;
+   };
+   ```
+
+#### 주의사항
+- ❌ 하드코딩 금지: `<Typography>{t("welcome")}</Typography>`
+- ✅ JSON 참고: `frontend/src/locales/` 파일에서만 텍스트 정의
+- 파라미터 지원: `{name}`, `{count}` 등 동적 값 치환 가능
+- 새 텍스트 추가 시 모든 언어 JSON 파일 동시 수정
+
 ### MUI (Material UI) 테마 및 공통 컴포넌트
 
 #### 테마 구조

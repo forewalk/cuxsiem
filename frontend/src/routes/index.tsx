@@ -9,7 +9,7 @@ const router = createBrowserRouter([
     element: <LoginPage />,
   },
   {
-    path: "/dashboard",
+    path: "/main",
     element: (
       <PrivateRoute>
         <App />

@@ -2,7 +2,6 @@
   "loginTitle": "Sign In",
   "email": "Email",
   "password": "Password",
-  "rememberMe": "Remember me",
   "loginBtn": "Sign In",
   "copyright": "© 2026 cruxSIEM. All rights reserved.",
   "emailInvalid": "Enter a valid email",
@@ -11,5 +10,15 @@
   "passwordMin": "Password must be at least 8 characters",
   "passwordChar": "Password must contain letters",
   "passwordDigit": "Password must contain numbers",
-  "passwordPlaceholder": "Min 8 chars, letters + numbers"
+  "passwordPlaceholder": "Min 8 chars, letters + numbers",
+  "forgotPassword": "Forgot Password?",
+  "signup": "Sign Up",
+  "notImplemented": "Currently under development. Coming soon!",
+  "logout": "Logout",
+  "main": "Main",
+  "welcome": "Welcome! 👋",
+  "loginSuccess": "You are logged in to cruxSIEM, {name}.",
+  "implementationComplete": "Login functionality has been successfully implemented.",
+  "userInfo": "User Information",
+  "role": "Role"
 }

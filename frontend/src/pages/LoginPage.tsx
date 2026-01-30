@@ -37,16 +37,35 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
-  const [darkMode, setDarkMode] = useState(false);
-  const [language, setLanguage] = useState("ko");
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    // localStorage에서 저장된 다크모드 읽기, 없으면 false
+    const saved = localStorage.getItem("appDarkMode");
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [language, setLanguage] = useState<string>(() => {
+    // localStorage에서 저장된 언어 읽기, 없으면 "ko"
+    return localStorage.getItem("appLanguage") || "ko";
+  });
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [notImplementedMessage, setNotImplementedMessage] = useState("");
   const [showNotImplemented, setShowNotImplemented] = useState(false);
+
+  // 다크모드 변경 시 localStorage에 저장
+  const handleDarkModeChange = useCallback(() => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem("appDarkMode", JSON.stringify(newDarkMode));
+  }, [darkMode]);
+
+  // 언어 변경 시 localStorage에 저장
+  const handleLanguageChange = useCallback((newLanguage: string) => {
+    setLanguage(newLanguage);
+    localStorage.setItem("appLanguage", newLanguage);
+  }, []);
 
   // Figma 디자인 색상
   const FIGMA_COLORS = {
@@ -161,8 +180,8 @@ export const LoginPage: React.FC = () => {
       }
 
       try {
-        await login(email, password, rememberMe);
-        navigate("/dashboard");
+        await login(email, password, false);
+        navigate("/main");
       } catch (err: any) {
         const errorMessage =
           err.response?.data?.detail ||
@@ -172,7 +191,7 @@ export const LoginPage: React.FC = () => {
         setOpenSnackbar(true);
       }
     },
-    [email, password, rememberMe, validateForm, login, navigate, language]
+    [email, password, validateForm, login, navigate, language]
   );
 
   useEffect(() => {
@@ -189,15 +208,36 @@ export const LoginPage: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppBar position="static" sx={{ backgroundColor: "#ffffff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
-        <Toolbar sx={{ justifyContent: "flex-end", gap: 1 }}>
+      <AppBar
+        position="static"
+        sx={{
+          backgroundColor: darkMode ? "#1e1e1e" : "#ffffff",
+          boxShadow: "none",
+          borderBottom: `1px solid ${darkMode ? "#2a2a2a" : "#f0f0f0"}`,
+        }}
+      >
+        <Toolbar
+          sx={{
+            justifyContent: "flex-end",
+            gap: 1,
+            px: 3,
+            py: 1.5,
+          }}
+        >
           <Select
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) => handleLanguageChange(e.target.value)}
             sx={{
-              color: "#333",
+              color: darkMode ? "#b0b0b0" : "#333",
+              fontSize: "13px",
               "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: "#d0d0d0",
+                borderColor: darkMode ? "#404040" : "#d0d0d0",
+              },
+              "&:hover .MuiOutlinedInput-notchedOutline": {
+                borderColor: darkMode ? "#505050" : "#b0b0b0",
+              },
+              "& .MuiSvgIcon-root": {
+                color: darkMode ? "#b0b0b0" : "#333",
               },
             }}
             size="small"
@@ -206,7 +246,15 @@ export const LoginPage: React.FC = () => {
             <MenuItem value="en">English</MenuItem>
             <MenuItem value="ja">日本語</MenuItem>
           </Select>
-          <IconButton onClick={() => setDarkMode(!darkMode)} sx={{ color: "#333" }}>
+          <IconButton
+            onClick={handleDarkModeChange}
+            sx={{
+              color: darkMode ? "#b0b0b0" : "#333",
+              "&:hover": {
+                backgroundColor: darkMode ? "#2a2a2a" : "#f5f5f5",
+              },
+            }}
+          >
             {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
         </Toolbar>
@@ -226,12 +274,13 @@ export const LoginPage: React.FC = () => {
             borderRadius: "8px",
             boxShadow: `0 8px 24px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05)`,
             overflow: "hidden",
+            backgroundColor: darkMode ? "#1e1e1e" : "#ffffff",
           }}
         >
           {/* Figma 스타일 헤더 */}
           <Box
             sx={{
-              background: FIGMA_COLORS.labelBg,
+              background: darkMode ? "#2a2a2a" : FIGMA_COLORS.labelBg,
               padding: "32px 24px",
               display: "flex",
               flexDirection: "column",
@@ -252,19 +301,31 @@ export const LoginPage: React.FC = () => {
             >
               <LockOutlinedIcon sx={{ color: "white", fontSize: 32 }} />
             </Box>
-            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: "18px" }}>
+            <Typography
+              variant="h6"
+              fontWeight="bold"
+              sx={{ fontSize: "18px", color: darkMode ? "#ffffff" : "#333" }}
+            >
               cruxSIEM
             </Typography>
             <Typography
               variant="body2"
-              sx={{ color: FIGMA_COLORS.darkGray, fontSize: "14px" }}
+              sx={{
+                color: darkMode ? "#b0b0b0" : FIGMA_COLORS.darkGray,
+                fontSize: "14px",
+              }}
             >
               {t("loginTitle")}
             </Typography>
           </Box>
 
           {/* 폼 영역 */}
-          <Box sx={{ padding: "32px 24px" }}>
+          <Box
+            sx={{
+              padding: "32px 24px",
+              backgroundColor: darkMode ? "#1e1e1e" : "#ffffff",
+            }}
+          >
             <Box component="form" onSubmit={handleSubmit} noValidate>
               <TextField
                 fullWidth
@@ -331,18 +392,6 @@ export const LoginPage: React.FC = () => {
                     </InputAdornment>
                   ),
                 }}
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    disabled={isLoading}
-                  />
-                }
-                label={t("rememberMe")}
-                sx={{ mt: 1 }}
               />
 
               <Button
@@ -441,7 +490,7 @@ export const LoginPage: React.FC = () => {
                 variant="caption"
                 display="block"
                 textAlign="center"
-                color="textSecondary"
+                sx={{ color: darkMode ? "#888888" : "#999999" }}
               >
                 {t("copyright")}
               </Typography>

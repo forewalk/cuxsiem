@@ -2,7 +2,6 @@
   "loginTitle": "ログイン",
   "email": "メール",
   "password": "パスワード",
-  "rememberMe": "ログイン状態を保持",
   "loginBtn": "ログイン",
   "copyright": "© 2026 cruxSIEM. All rights reserved.",
   "emailInvalid": "有効なメールアドレスを入力してください",
@@ -11,5 +10,15 @@
   "passwordMin": "パスワードは8文字以上である必要があります",
   "passwordChar": "パスワードには文字が含まれている必要があります",
   "passwordDigit": "パスワードには数字が含まれている必要があります",
-  "passwordPlaceholder": "最小8文字、文字+数字"
+  "passwordPlaceholder": "最小8文字、文字+数字",
+  "forgotPassword": "パスワードをお忘れの方",
+  "signup": "アカウント申請",
+  "notImplemented": "現在実装中です。近日中にサポート予定です。",
+  "logout": "ログアウト",
+  "main": "メイン",
+  "welcome": "ようこそ! 👋",
+  "loginSuccess": "{name}様、cruxSIEMにログインしました。",
+  "implementationComplete": "ログイン機能が正常に実装されました。",
+  "userInfo": "ユーザー情報",
+  "role": "役割"
 }

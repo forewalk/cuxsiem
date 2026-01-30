@@ -65,7 +65,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
-      await authService.logout();
+      try {
+        await authService.logout();
+      } catch (error) {
+        // 로그아웃 요청 실패해도 로컬 상태는 초기화
+        console.error("로그아웃 요청 실패:", error);
+      }
       setUser(null);
       setIsAuthenticated(false);
     } finally {
