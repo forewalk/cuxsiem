@@ -9,10 +9,6 @@ const router = createBrowserRouter([
     element: <LoginPage />,
   },
   {
-    path: "/",
-    element: <App />,
-  },
-  {
     path: "/dashboard",
     element: (
       <PrivateRoute>
@@ -21,8 +17,12 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: "/",
+    element: <Navigate to="/login" replace />,
+  },
+  {
     path: "*",
-    element: <Navigate to="/" replace />,
+    element: <Navigate to="/login" replace />,
   },
 ]);
 

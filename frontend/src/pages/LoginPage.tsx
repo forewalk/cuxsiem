@@ -11,8 +11,12 @@ import {
   FormControlLabel,
   Checkbox,
   Container,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { useAuth } from "../hooks/useAuth";
 
 export const LoginPage: React.FC = () => {
@@ -21,6 +25,7 @@ export const LoginPage: React.FC = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState<
@@ -144,7 +149,7 @@ export const LoginPage: React.FC = () => {
             <TextField
               fullWidth
               label="비밀번호"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -155,6 +160,19 @@ export const LoginPage: React.FC = () => {
               margin="normal"
               placeholder="최소 8자, 영문+숫자"
               disabled={isLoading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
 
             <FormControlLabel
