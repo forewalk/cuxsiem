@@ -1,0 +1,60 @@
+# 개발 서버 로그 및 PID 파일
+docs/sh/*.log
+docs/sh/*.pid
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 가상 환경
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 환경 변수 파일 (로컬 설정)
+.env
+.env.local
+.env.*.local
+
+# 의존성
+node_modules/
+package-lock.json
+
+# OS
+Thumbs.db
+.DS_Store
+
+# 임시 파일
+*.tmp
+*.temp
+.cache/
+
+# IDE/Editor 특정 파일
+.claude/settings.local.json
