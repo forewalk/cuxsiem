@@ -80,6 +80,9 @@ try:
     print("\nTest Account:")
     print("    Email: admin@example.com")
     print("    Password: password123\n")
+    print("Test Account:")
+    print("    Email: user@example.com")
+    print("    Password: password123\n")
 
 except Exception as e:
     print(f"[-] Error: {e}")

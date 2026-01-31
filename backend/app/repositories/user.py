@@ -50,6 +50,26 @@ class UserRepository:
 
         return None
 
+    async def get_by_id(self, user_id: str) -> Optional[User]:
+        """ID로 사용자 조회"""
+        loop = asyncio.get_event_loop()
+
+        def get():
+            try:
+                result = self.client.get(index=self.index, id=user_id)
+                return result["_source"]
+            except Exception:
+                return None
+
+        try:
+            user_data = await loop.run_in_executor(None, get)
+            if user_data:
+                return self._dict_to_user(user_data, user_id)
+        except Exception:
+            pass
+            
+        return None
+
     async def create(self, user: User) -> User:
         """사용자 생성"""
         loop = asyncio.get_event_loop()

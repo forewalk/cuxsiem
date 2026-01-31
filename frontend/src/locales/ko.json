@@ -20,5 +20,6 @@
   "loginSuccess": "{name}님, cruxSIEM에 로그인되셨습니다.",
   "implementationComplete": "로그인 기능이 성공적으로 구현되었습니다.",
   "userInfo": "사용자 정보",
-  "role": "역할"
+  "role": "역할",
+  "loginFailed": "이메일 또는 비밀번호가 올바르지 않습니다"
 }

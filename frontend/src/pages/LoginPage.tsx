@@ -145,7 +145,15 @@ export const LoginPage: React.FC = () => {
     },
   };
 
-  const t = (key: string) => translations[language]?.[key] || key;
+  const t = (key: string, params?: Record<string, string>): string => {
+    let text = translations[language]?.[key] || (params?.fallback || key);
+    if (params) {
+      Object.entries(params).forEach(([paramKey, value]) => {
+        text = text.replace(`{${paramKey}}`, value);
+      });
+    }
+    return text;
+  };
 
   const validateForm = useCallback((): boolean => {
     const errors: Record<string, string> = {};
@@ -183,10 +191,27 @@ export const LoginPage: React.FC = () => {
         await login(email, password, false);
         navigate("/main");
       } catch (err: any) {
-        const errorMessage =
-          err.response?.data?.detail ||
-          err.message ||
-          "로그인에 실패했습니다";
+        // 모든 로그인 관련 에러는 일반적인 메시지로 처리
+        let errorMessage = t("loginFailed");
+
+        // 개발 중 디버깅을 위해 콘솔에 실제 에러를 로깅
+        console.error("Login Error:", err);
+        // 번역 객체도 한번 로깅하여 확인
+        console.log("Translations object in LoginPage:", translations);
+
+        // 상세 에러 메시지가 필요한 경우 (예: 백엔드 500 에러 등 예상치 못한 에러)
+        // if (err.response && err.response.data && err.response.data.detail) {
+        //   if (typeof err.response.data.detail === 'string') {
+        //     errorMessage = t("loginFailed", { fallback: err.response.data.detail });
+        //   } else if (Array.isArray(err.response.data.detail)) {
+        //     errorMessage = t("loginFailed", { fallback: err.response.data.detail.map((errorDetail: any) => errorDetail.msg).join(', ') });
+        //   } else if (typeof err.response.data.detail === 'object' && err.response.data.detail !== null) {
+        //     errorMessage = t("loginFailed", { fallback: JSON.stringify(err.response.data.detail) });
+        //   }
+        // } else if (err.message) {
+        //   errorMessage = t("loginFailed", { fallback: err.message });
+        // }
+        
         setError(errorMessage);
         setOpenSnackbar(true);
       }

@@ -34,7 +34,7 @@ class AuthService:
             )
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="로그인 시도 횟수를 초과했습니다. 10분 후 다시 시도하세요."
+                detail="로그인 시도 횟수 초과"
             )
 
         # 사용자 조회
@@ -118,8 +118,19 @@ class AuthService:
 
     async def get_user(self, user_id: str) -> UserResponse:
         """사용자 정보 조회"""
-        # 실제로는 user_id로 조회해야 하지만, 현재는 간단하게 구현
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="인증되지 않은 사용자"
+        user = await self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="사용자를 찾을 수 없습니다"
+            )
+        
+        return UserResponse(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            role=user.role,
+            is_active=user.is_active,
+            created_at=user.created_at,
+            last_login_at=user.last_login_at,
         )

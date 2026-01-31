@@ -20,5 +20,6 @@
   "loginSuccess": "You are logged in to cruxSIEM, {name}.",
   "implementationComplete": "Login functionality has been successfully implemented.",
   "userInfo": "User Information",
-  "role": "Role"
+  "role": "Role",
+  "loginFailed": "Invalid email or password"
 }
