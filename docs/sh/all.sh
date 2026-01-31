@@ -3,7 +3,10 @@
 # 디렉토리 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$SCRIPT_DIR"
-LOG_FILE="$LOG_DIR/all.log"
+LOG_FILE="$LOG_DIR/all_$(date '+%Y-%m-%d').log"
+
+# 환경 변수 설정
+export VITE_API_URL="http://localhost:8000/api/v1"
 
 # 로그 함수
 log_message() {
