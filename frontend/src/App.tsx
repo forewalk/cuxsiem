@@ -19,6 +19,10 @@ import enMessages from "./locales/en.json";
 import jaMessages from "./locales/ja.json";
 import AdminSidemenu from "./components/AdminSidemenu"; // AdminSidemenu import
 
+const drawerWidth = 240;
+const collapsedWidth = 72;
+
+
 // Figma 디자인 색상
 const FIGMA_COLORS = {
   buttonBg: "#4A5568",
@@ -40,6 +44,7 @@ function App() {
     // localStorage에서 저장된 언어 읽기, 없으면 "ko"
     return localStorage.getItem("appLanguage") || "ko";
   });
+  const [drawerOpen, setDrawerOpen] = useState(false); // AdminSidemenu의 open 상태를 App에서 관리
 
   // 다크모드 변경 시 localStorage에 저장
   const handleDarkModeChange = useCallback(() => {
@@ -99,6 +104,10 @@ function App() {
     }
   }, [logout, navigate]);
 
+  const handleDrawerToggle = () => { // Drawer 토글 함수를 App.tsx에서 관리
+    setDrawerOpen(!drawerOpen);
+  };
+
   if (isLoading) {
     return (
       <ThemeProvider theme={theme}>
@@ -135,109 +144,118 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}> {/* Flex 컨테이너로 변경 */}
-        {/* 헤더 */}
-        <AppBar
-          position="fixed" // 헤더 고정
-          elevation={0}
-          sx={{
-            zIndex: (theme) => theme.zIndex.drawer + 1, // Drawer 위에 오도록 zIndex 설정
-            backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
-            borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`
-          }}
-        >
-          <Toolbar
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}> {/* 최상위 Flex 컨테이너 */}
+        <AdminSidemenu darkMode={darkMode} t={t} userRole={user?.role} drawerOpen={drawerOpen} handleDrawerToggle={handleDrawerToggle} /> {/* AdminSidemenu는 첫 번째 Flex 아이템 */}
+
+        <Box sx={{ flexGrow: 1, position: 'relative' }}> {/* AppBar와 main content를 감싸는 FlexGrow Box */}
+          {/* 헤더 */}
+          <AppBar
+            position="fixed" // 헤더 고정
+            elevation={0}
             sx={{
-              justifyContent: "space-between",
-              px: 3,
-              py: 1.5,
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+              borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
+              left: drawerOpen ? drawerWidth : collapsedWidth, // Drawer 너비만큼 왼쪽에서 시작
+              width: `calc(100% - ${drawerOpen ? drawerWidth : collapsedWidth}px)`, // Drawer 제외한 나머지 너비
+              transition: (theme) => theme.transitions.create(['width', 'left'], { // 너비와 left 속성 전환 효과
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
             }}
           >
-            {/* 왼쪽: 사용자 정보 및 로그아웃 */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: darkMode ? "#b0b0b0" : "#333", // 라이트 모드 가독성 개선
-                }}
-              >
-                {String(user?.name)} ({String(user?.role)})
-              </Typography>
-              <Button
-                onClick={handleLogout}
-                sx={{
-                  color: FIGMA_COLORS.buttonBg,
-                  textTransform: "none",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  border: `1px solid ${
-                    darkMode ? "#404040" : FIGMA_COLORS.inputBorder
-                  }`,
-                  borderRadius: "3px",
-                  padding: "6px 12px",
-                  backgroundColor: darkMode ? "#2a2a2a" : "transparent",
-                  "&:hover": {
-                    backgroundColor: darkMode ? "#333" : FIGMA_COLORS.labelBg,
-                  },
-                }}
-              >
-                {t("logout")}
-              </Button>
-            </Box>
+            <Toolbar
+              sx={{
+                justifyContent: "space-between",
+                px: 3,
+                py: 1.5,
+              }}
+            >
+              {/* 왼쪽: 사용자 정보 및 로그아웃 */}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: darkMode ? "#b0b0b0" : "#333", // 라이트 모드 가독성 개선
+                  }}
+                >
+                  {String(user?.name)} ({String(user?.role)})
+                </Typography>
+                <Button
+                  onClick={handleLogout}
+                  sx={{
+                    color: FIGMA_COLORS.buttonBg,
+                    textTransform: "none",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    border: `1px solid ${
+                      darkMode ? "#404040" : FIGMA_COLORS.inputBorder
+                    }`,
+                    borderRadius: "3px",
+                    padding: "6px 12px",
+                    backgroundColor: darkMode ? "#2a2a2a" : "transparent",
+                    "&:hover": {
+                      backgroundColor: darkMode ? "#333" : FIGMA_COLORS.labelBg,
+                    },
+                  }}
+                >
+                  {t("logout")}
+                </Button>
+              </Box>
 
-            {/* 오른쪽: 언어 선택 + 다크모드 (항상 같은 위치) */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Select
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                sx={{
-                  color: darkMode ? "#b0b0b0" : "#333",
-                  fontSize: "13px",
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: darkMode ? "#404040" : "#d0d0d0",
-                  },
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: darkMode ? "#505050" : "#b0b0b0",
-                  },
-                  "& .MuiSvgIcon-root": {
+              {/* 오른쪽: 언어 선택 + 다크모드 (항상 같은 위치) */}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Select
+                  value={language}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  sx={{
                     color: darkMode ? "#b0b0b0" : "#333",
-                  },
-                }}
-                size="small"
-              >
-                <MenuItem value="ko">한국어</MenuItem>
-                <MenuItem value="en">English</MenuItem>
-                <MenuItem value="ja">日本語</MenuItem>
-              </Select>
-              <IconButton
-                onClick={handleDarkModeChange}
-                sx={{
-                  color: darkMode ? "#b0b0b0" : "#333",
-                  "&:hover": {
-                    backgroundColor: darkMode ? "#2a2a2a" : "#f5f5f5",
-                  },
-                }}
-              >
-                {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton>
-            </Box>
-          </Toolbar>
-        </AppBar>
+                    fontSize: "13px",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: darkMode ? "#404040" : "#d0d0d0",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: darkMode ? "#505050" : "#b0b0b0",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      color: darkMode ? "#b0b0b0" : "#333",
+                    },
+                  }}
+                  size="small"
+                >
+                  <MenuItem value="ko">한국어</MenuItem>
+                  <MenuItem value="en">English</MenuItem>
+                  <MenuItem value="ja">日本語</MenuItem>
+                </Select>
+                <IconButton
+                  onClick={handleDarkModeChange}
+                  sx={{
+                    color: darkMode ? "#b0b0b0" : "#333",
+                    "&:hover": {
+                      backgroundColor: darkMode ? "#2a2a2a" : "#f5f5f5",
+                    },
+                  }}
+                >
+                  {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton>
+              </Box>
+            </Toolbar>
+          </AppBar>
 
-        {user?.role === 'admin' && <AdminSidemenu darkMode={darkMode} t={t} />} {/* AdminSidemenu 조건부 렌더링 */}
-
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            p: 3,
-            mt: 8, // Fixed AppBar 높이 고려
-            ml: user?.role === 'admin' ? 7 : 0, // AdminSidemenu 접힌 너비만큼 좌측 마진 (나중에 동적으로 조정)
-            height: 'calc(100vh - 64px)', // AppBar 높이 제외
-            overflow: 'auto', // 스크롤 가능
-          }}
-        >
-          <Outlet /> {/* 자식 라우트 콘텐츠 렌더링 */}
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              p: 3,
+              mt: 8, // Fixed AppBar 높이 고려
+              height: 'calc(100vh - 64px)', // AppBar 높이 제외
+              overflow: 'auto', // 스크롤 가능
+              // ml 속성은 AppBar에서 처리하므로 여기서는 제거
+              // width는 부모 flexGrow:1 Box에 의해 자동으로 채워짐
+            }}
+          >
+            <Outlet /> {/* 자식 라우트 콘텐츠 렌더링 */}
+          </Box>
         </Box>
       </Box>
     </ThemeProvider>
