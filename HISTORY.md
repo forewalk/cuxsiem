@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-01-31 23:56 | 김장훈 | 배포 | origin/feature/admin push (feature/login 브랜치 기반 생성 및 스크립트 수정사항 반영) |
 | 2026-01-30 19:40 | 김장훈 | 배포 | origin/feature/login push (RememberMe 제거, i18n 추가, 헤더 통합, 다크모드/언어 지속성) |
 | 2026-01-30 19:35 | 김장훈 | 삭제 | RememberMe 기능 제거 (LoginPage.tsx, 다국어 파일 업데이트) |
 | 2026-01-30 19:11 | 김장훈 | 배포 | origin/feature/login push (로그인 기능 완성, Figma 디자인 적용, 다국어 지원, UI 개선) |
