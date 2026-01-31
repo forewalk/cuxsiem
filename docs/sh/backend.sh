@@ -6,7 +6,7 @@ LOG_DIR="$SCRIPT_DIR/../../logs" # 프로젝트 루트의 logs 디렉토리로 �
 
 # 로그 디렉토리 생성 (없으면)
 mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/backend.log"
+LOG_FILE="$LOG_DIR/backend_$(date '+%Y-%m-%d').log"
 PID_FILE="$LOG_DIR/backend.pid"
 BACKEND_DIR="$SCRIPT_DIR/../../backend"
 
