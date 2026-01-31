@@ -2,7 +2,10 @@
 
 # 디렉토리 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_DIR="$SCRIPT_DIR"
+LOG_DIR="$SCRIPT_DIR/../../logs" # 프로젝트 루트의 logs 디렉토리로 변경
+
+# 로그 디렉토리 생성 (없으면)
+mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/all_$(date '+%Y-%m-%d').log"
 
 # 환경 변수 설정
