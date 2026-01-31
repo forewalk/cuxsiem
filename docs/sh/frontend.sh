@@ -41,14 +41,22 @@ start() {
             log_message "  $line"
         done
         log_message ""
-        log_message "Current git status:"
-        git status
-        log_message ""
-        read -p "Continue? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_message "Frontend startup cancelled"
-            return 1
+
+        # Interactive 모드 체크
+        if [ -t 0 ]; then
+            # 터미널이 있으면 사용자에게 물어봄
+            log_message "Current git status:"
+            git status
+            log_message ""
+            read -p "Continue? (y/n) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                log_message "Frontend startup cancelled"
+                return 1
+            fi
+        else
+            # 터미널이 없으면 자동으로 진행
+            log_message "⚠️  (non-interactive mode, continuing...)"
         fi
     else
         log_message "✅ Git status: clean"
