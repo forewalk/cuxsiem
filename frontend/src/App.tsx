@@ -130,10 +130,10 @@ function App() {
         {/* 헤더 - 본문과 일체감 있는 디자인 */}
         <AppBar
           position="static"
+          elevation={0}
           sx={{
-            backgroundColor: darkMode ? "#1e1e1e" : "#ffffff",
+            backgroundColor: "transparent",
             boxShadow: "none",
-            borderBottom: `1px solid ${darkMode ? "#2a2a2a" : "#f0f0f0"}`,
           }}
         >
           <Toolbar
