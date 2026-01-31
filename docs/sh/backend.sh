@@ -19,11 +19,58 @@ start() {
         return 1
     fi
 
+    log_message "=========================================="
+    log_message "Pre-flight checks before starting Backend"
+    log_message "=========================================="
+
+    # 1. Conda 환경 확인
+    if ! command -v conda &> /dev/null; then
+        log_message "❌ ERROR: conda not found"
+        log_message "Please install Anaconda/Miniconda first"
+        return 1
+    fi
+
+    CURRENT_ENV=$(echo $CONDA_DEFAULT_ENV 2>/dev/null || echo "")
+    if [ "$CURRENT_ENV" != "cruxsiem" ]; then
+        log_message "⚠️  WARNING: Current conda env is '$CURRENT_ENV' (not 'cruxsiem')"
+        log_message "Please activate conda environment first:"
+        log_message "  conda activate cruxsiem"
+        return 1
+    fi
+    log_message "✅ Conda environment: cruxsiem (active)"
+
+    # 2. Git status 확인
+    cd "$SCRIPT_DIR/../../"
+    GIT_STATUS=$(git status --porcelain 2>/dev/null)
+
+    if [ -n "$GIT_STATUS" ]; then
+        log_message "⚠️  WARNING: Git has uncommitted changes:"
+        echo "$GIT_STATUS" | while read line; do
+            log_message "  $line"
+        done
+        log_message ""
+        log_message "Current git status:"
+        git status
+        log_message ""
+        read -p "Continue? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_message "Backend startup cancelled"
+            return 1
+        fi
+    else
+        log_message "✅ Git status: clean"
+    fi
+
+    log_message "=========================================="
     log_message "Starting Backend..."
+    log_message "=========================================="
+
     cd "$BACKEND_DIR"
     nohup python -m uvicorn app.main:app --reload --port 8000 >> "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     log_message "Backend started (PID: $(cat $PID_FILE))"
+    log_message "Backend available at: http://localhost:8000"
 }
 
 # stop 함수

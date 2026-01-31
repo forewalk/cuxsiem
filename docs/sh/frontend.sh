@@ -19,12 +19,50 @@ start() {
         return 1
     fi
 
+    log_message "=========================================="
+    log_message "Pre-flight checks before starting Frontend"
+    log_message "=========================================="
+
+    # 1. Node.js/npm 확인
+    if ! command -v npm &> /dev/null; then
+        log_message "❌ ERROR: npm not found"
+        log_message "Please install Node.js first"
+        return 1
+    fi
+    log_message "✅ npm is available"
+
+    # 2. Git status 확인
+    cd "$SCRIPT_DIR/../../"
+    GIT_STATUS=$(git status --porcelain 2>/dev/null)
+
+    if [ -n "$GIT_STATUS" ]; then
+        log_message "⚠️  WARNING: Git has uncommitted changes:"
+        echo "$GIT_STATUS" | while read line; do
+            log_message "  $line"
+        done
+        log_message ""
+        log_message "Current git status:"
+        git status
+        log_message ""
+        read -p "Continue? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_message "Frontend startup cancelled"
+            return 1
+        fi
+    else
+        log_message "✅ Git status: clean"
+    fi
+
+    log_message "=========================================="
     log_message "Starting Frontend..."
+    log_message "=========================================="
+
     cd "$FRONTEND_DIR"
     nohup npm run dev >> "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     log_message "Frontend started (PID: $(cat $PID_FILE))"
-    log_message "Frontend will be available at http://localhost:5173/"
+    log_message "Frontend available at: http://localhost:5173/"
 }
 
 # stop 함수
