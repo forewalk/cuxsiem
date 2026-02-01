@@ -55,6 +55,22 @@ cp .env.example .env
 npm run dev
 ```
 
+## 배포 전략 (오프라인 환경)
+
+이 프로젝트는 인터넷이 차단된 **오프라인 서버 환경**에 배포되는 것을 전제로 합니다.
+따라서 로컬 개발 환경이나 CI/CD 서버에서 Docker 이미지를 빌드한 후, `docker save`로 `.tar` 파일로 압축하여 서버로 전달하는 방식을 사용합니다.
+
+### Docker 빌드 필수
+
+Client PC(개발자 PC)의 OS 환경(Windows, macOS 등)에 따른 줄바꿈 문자(CRLF/LF) 문제나 라이브러리 호환성 문제를 방지하기 위해, **모든 빌드 및 패키징은 Docker 컨테이너 내부에서 수행**하는 것을 원칙으로 합니다.
+
+```bash
+# 예시: 오프라인 배포용 이미지 저장
+docker compose build
+docker save cruxsiem-backend:latest | gzip > cruxsiem-backend.tar.gz
+docker save cruxsiem-frontend:latest | gzip > cruxsiem-frontend.tar.gz
+```
+
 ## 문서
 
 | 문서 | 내용 |

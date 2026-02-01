@@ -371,3 +371,10 @@ EOF
 - **시각화:** OpenSearch Dashboard
 - **Git 전략:** `feature/*` -> `develop` -> `main` (`hotfix/*`는 긴급 수정용)
 - **CI/CD:** Docker Build -> Test -> Image Push -> Deploy (`main` 푸시 시 트리거)
+
+### 오프라인 배포 정책
+
+1. **Docker 이미지 전달:** 인터넷이 없는 폐쇄망 환경을 고려하여, Docker 이미지를 `.tar` 파일로 export하여 전달한다.
+2. **빌드 환경 통일:** Windows/Mac 등 로컬 OS 차이(특히 LF/CRLF 문제)로 인한 빌드 오류를 방지하기 위해, **반드시 Docker 환경 내에서 빌드**를 수행해야 한다.
+   - `.gitattributes` 설정을 통해 텍스트 파일의 LF 강제 변환을 유지한다.
+   - 빌드 스크립트는 Dockerfile 내부에서 실행되도록 작성한다.
