@@ -8,8 +8,6 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  FormControlLabel,
-  Checkbox,
   Container,
   InputAdornment,
   IconButton,
@@ -146,7 +144,8 @@ export const LoginPage: React.FC = () => {
   };
 
   const t = (key: string, params?: Record<string, string>): string => {
-    let text = translations[language]?.[key] || (params?.fallback || key);
+    const currentTranslations = translations[language] || translations["ko"] || {};
+    let text = currentTranslations[key] || (params?.fallback || key);
     if (params) {
       Object.entries(params).forEach(([paramKey, value]) => {
         text = text.replace(`{${paramKey}}`, value);
@@ -225,7 +224,7 @@ export const LoginPage: React.FC = () => {
     }
   }, [error]);
 
-  const handleNotImplemented = (feature: string) => {
+  const handleNotImplemented = () => {
     setNotImplementedMessage(t("notImplemented"));
     setShowNotImplemented(true);
   };
@@ -458,7 +457,7 @@ export const LoginPage: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
-                    handleNotImplemented("forgotPassword");
+                    handleNotImplemented();
                   }}
                   sx={{
                     flex: 1,
@@ -485,7 +484,7 @@ export const LoginPage: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
-                    handleNotImplemented("signup");
+                    handleNotImplemented();
                   }}
                   sx={{
                     flex: 1,

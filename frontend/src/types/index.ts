@@ -34,6 +34,27 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface UserCreate {
+  email: string;
+  name: string;
+  role: string;
+  is_active: boolean;
+  password?: string;
+}
+
+export interface UserUpdate {
+  email?: string;
+  name?: string;
+  role?: string;
+  is_active?: boolean;
+  password?: string;
+}
+
+export interface UserListResponse {
+  total: number;
+  users: User[];
+}
+
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;

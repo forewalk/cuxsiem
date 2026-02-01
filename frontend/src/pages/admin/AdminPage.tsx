@@ -1,11 +1,11 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
+import TabManager from './components/TabManager';
 
 const AdminPage: React.FC = () => {
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4">Admin Page Placeholder</Typography>
-      <Typography>This is the admin page content.</Typography>
+    <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+      <TabManager />
     </Box>
   );
 };

@@ -25,6 +25,9 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-01-31 23:56 | 김장훈 | 배포 | origin/feature/admin push (feature/login 브랜치 기반 생성 및 스크립트 수정사항 반영) |
+| 2026-02-01 18:35 | Gemini | 배포 | origin/feature/admin push (사용자 관리 및 패스워드 정책 관리 기능 구현) |
+| 2026-02-01 18:00 | Gemini | 추가 | 사용자 관리 및 패스워드 정책 관리 기능 구현 (백엔드 CRUD 및 프론트엔드 UI) |
 | 2026-02-01 15:30 | Gemini | 배포 | origin/feature/admin push (AdminSidemenu 통합 및 UI/UX 개선) |
 | 2026-01-30 19:40 | 김장훈 | 배포 | origin/feature/login push (RememberMe 제거, i18n 추가, 헤더 통합, 다크모드/언어 지속성) |
 | 2026-01-30 19:35 | 김장훈 | 삭제 | RememberMe 기능 제거 (LoginPage.tsx, 다국어 파일 업데이트) |

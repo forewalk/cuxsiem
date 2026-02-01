@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom"; // Outlet, useLocation 추가
+import { useState, useCallback, useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom"; // Outlet 추가
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import AppBar from "@mui/material/AppBar";
@@ -19,7 +19,7 @@ import enMessages from "./locales/en.json";
 import jaMessages from "./locales/ja.json";
 import AdminSidemenu from "./components/AdminSidemenu"; // AdminSidemenu import
 
-const drawerWidth = 240;
+const drawerWidth = 273;
 const collapsedWidth = 72;
 
 
@@ -29,12 +29,19 @@ const FIGMA_COLORS = {
   inputBorder: "#D1DBE8",
   labelBg: "#EFF2F6",
   darkGray: "#5B6B7F",
+  headerBg: "#121212",
+  sidebarBg: "#1A1A1A",
+  contentBg: "#F4F5F7",
 };
 
 function App() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation(); // useLocation 추가
+  
+  useEffect(() => {
+    console.log("App.tsx: Auth State:", { isAuthenticated, isLoading, user });
+  }, [isAuthenticated, isLoading, user]);
+
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     // localStorage에서 저장된 다크모드 읽기, 없으면 false
     const saved = localStorage.getItem("appDarkMode");
@@ -67,7 +74,8 @@ function App() {
   };
 
   const t = (key: string, params?: Record<string, string>): string => { // t 함수 시그니처 변경
-    let text = translations[language]?.[key] || (params?.fallback || key);
+    const currentTranslations = translations[language] || translations["ko"] || {};
+    let text = currentTranslations[key] || (params?.fallback || key);
     if (params) {
       Object.entries(params).forEach(([paramKey, value]) => {
         text = text.replace(`{${paramKey}}`, value);
@@ -83,7 +91,7 @@ function App() {
         main: FIGMA_COLORS.buttonBg,
       },
       background: {
-        default: darkMode ? "#121212" : "#ffffff",
+        default: darkMode ? "#121212" : FIGMA_COLORS.contentBg,
       },
     },
   });
@@ -154,8 +162,8 @@ function App() {
             elevation={0}
             sx={{
               zIndex: (theme) => theme.zIndex.drawer + 1,
-              backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
-              borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
+              backgroundColor: darkMode ? '#1e1e1e' : FIGMA_COLORS.headerBg,
+              borderBottom: `1px solid ${darkMode ? '#333' : '#222'}`,
               left: drawerOpen ? drawerWidth : collapsedWidth, // Drawer 너비만큼 왼쪽에서 시작
               width: `calc(100% - ${drawerOpen ? drawerWidth : collapsedWidth}px)`, // Drawer 제외한 나머지 너비
               transition: (theme) => theme.transitions.create(['width', 'left'], { // 너비와 left 속성 전환 효과
@@ -246,12 +254,12 @@ function App() {
             component="main"
             sx={{
               flexGrow: 1,
-              p: 3,
+              p: 0, // AdminPage handles padding
               mt: 8, // Fixed AppBar 높이 고려
               height: 'calc(100vh - 64px)', // AppBar 높이 제외
-              overflow: 'auto', // 스크롤 가능
-              // ml 속성은 AppBar에서 처리하므로 여기서는 제거
-              // width는 부모 flexGrow:1 Box에 의해 자동으로 채워짐
+              overflow: 'hidden', // AdminPage handles overflow
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             <Outlet /> {/* 자식 라우트 콘텐츠 렌더링 */}

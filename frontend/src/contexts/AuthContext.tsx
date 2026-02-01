@@ -16,26 +16,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 앱 시작 시 저장된 인증 정보 복구
   useEffect(() => {
     const initAuth = async () => {
+      console.log("AuthContext: Initializing...");
       try {
         authService.initializeAuth();
 
         const storedUser = authService.getStoredUser();
-        if (storedUser && authService.getToken()) {
+        const token = authService.getToken();
+        console.log("AuthContext: Stored state:", { storedUser, hasToken: !!token });
+
+        if (storedUser && token) {
           setUser(storedUser);
           setIsAuthenticated(true);
 
           // 백엔드에서 최신 사용자 정보 확인 (선택사항)
           try {
             const currentUser = await authService.getCurrentUser();
+            console.log("AuthContext: Current user from API:", currentUser);
             setUser(currentUser);
           } catch (error) {
+            console.error("AuthContext: Failed to fetch current user:", error);
             // 토큰이 만료되었거나 유효하지 않음
             authService.logout();
             setUser(null);
             setIsAuthenticated(false);
           }
         }
+      } catch (err) {
+        console.error("AuthContext: Initialization error:", err);
       } finally {
+        console.log("AuthContext: Loading finished.");
         setIsLoading(false);
       }
     };

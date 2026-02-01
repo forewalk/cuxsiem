@@ -85,6 +85,78 @@ class UserRepository:
 
         return await loop.run_in_executor(None, insert)
 
+    async def list(self, skip: int = 0, limit: int = 100) -> tuple[int, list[User]]:
+        """사용자 목록 조회"""
+        loop = asyncio.get_event_loop()
+
+        def search():
+            result = self.client.search(
+                index=self.index,
+                body={
+                    "from": skip,
+                    "size": limit,
+                    "query": {
+                        "bool": {
+                            "must_not": [
+                                {"exists": {"field": "deleted_at"}}
+                            ]
+                        }
+                    },
+                    "sort": [{"created_at": {"order": "desc"}}]
+                }
+            )
+            total = result.get("hits", {}).get("total", {}).get("value", 0)
+            hits = result.get("hits", {}).get("hits", [])
+            users = [self._dict_to_user(hit["_source"], hit["_id"]) for hit in hits]
+            return total, users
+
+        return await loop.run_in_executor(None, search)
+
+    async def update(self, user_id: str, data: dict) -> Optional[User]:
+        """사용자 정보 수정"""
+        loop = asyncio.get_event_loop()
+        data["updated_at"] = datetime.utcnow().isoformat()
+
+        def update_doc():
+            try:
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={"doc": data},
+                    refresh=True
+                )
+                return True
+            except Exception:
+                return False
+
+        success = await loop.run_in_executor(None, update_doc)
+        if success:
+            return await self.get_by_id(user_id)
+        return None
+
+    async def delete(self, user_id: str) -> bool:
+        """사용자 삭제 (Soft Delete)"""
+        loop = asyncio.get_event_loop()
+
+        def soft_delete():
+            try:
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={
+                        "doc": {
+                            "deleted_at": datetime.utcnow().isoformat(),
+                            "is_active": False
+                        }
+                    },
+                    refresh=True
+                )
+                return True
+            except Exception:
+                return False
+
+        return await loop.run_in_executor(None, soft_delete)
+
     async def update_last_login(self, user_id: str) -> None:
         """마지막 로그인 시간 업데이트"""
         loop = asyncio.get_event_loop()
