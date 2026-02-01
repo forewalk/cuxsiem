@@ -53,9 +53,11 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, dr
     }
   };
 
-  const menuBg = darkMode ? '#1A1A1A' : FIGMA_COLORS.sidebarBg;
-  const itemHoverBg = darkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
-  const selectedBg = FIGMA_COLORS.selectedItemBg;
+  const menuBg = theme.palette.mode === 'dark' ? '#1A1A1A' : theme.palette.background.paper;
+  const textColor = theme.palette.text.primary;
+  const itemHoverBg = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
+  const selectedBg = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.16)' : FIGMA_COLORS.selectedItemBg;
+  const selectedTextColor = theme.palette.mode === 'dark' ? '#FFFFFF' : FIGMA_COLORS.activeText;
 
   const isAnyAdminSubMenuActive = location.pathname === '/main/admin';
 
@@ -82,10 +84,11 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, dr
           width: drawerOpen ? drawerWidth : collapsedWidth,
           boxSizing: 'border-box',
           bgcolor: menuBg,
-          color: '#FFFFFF', // Text is mostly white in dark sidebar
+          color: textColor,
           overflowX: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          borderRight: `1px solid ${theme.palette.divider}`,
           transition: (theme) => theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
@@ -96,12 +99,12 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, dr
       <Toolbar sx={{ justifyContent: 'space-between', px: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
           {drawerOpen && (
-            <Typography variant="h6" noWrap component="div" sx={{ ml: 1, color: '#FFFFFF', fontWeight: 'bold' }}>
+            <Typography variant="h6" noWrap component="div" sx={{ ml: 1, fontWeight: 'bold', color: textColor }}>
               cruxSIEM
             </Typography>
           )}
         </Box>
-        <IconButton onClick={handleDrawerToggle} sx={{ color: '#FFFFFF' }}>
+        <IconButton onClick={handleDrawerToggle} sx={{ color: textColor }}>
           {drawerOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
         </IconButton>
       </Toolbar>
@@ -116,11 +119,11 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, dr
                 minHeight: listItemHeight,
                 justifyContent: drawerOpen ? 'initial' : 'center',
                 px: 2.5,
-                color: '#FFFFFF',
+                color: textColor,
                 '&.Mui-selected': {
                   bgcolor: selectedBg,
-                  color: FIGMA_COLORS.activeText,
-                  '& .MuiListItemIcon-root': { color: FIGMA_COLORS.activeText },
+                  color: selectedTextColor,
+                  '& .MuiListItemIcon-root': { color: selectedTextColor },
                 },
                 '&:hover': {
                   bgcolor: itemHoverBg,
@@ -137,7 +140,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, dr
       </Box>
 
       {userRole === 'admin' && (
-        <Box sx={{ mt: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <Box sx={{ mt: 'auto', borderTop: `1px solid ${theme.palette.divider}` }}>
           <List>
             <ListItem disablePadding sx={{ display: 'block' }}>
               <ListItemButton
@@ -146,8 +149,8 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, dr
                   minHeight: listItemHeight,
                   justifyContent: drawerOpen ? 'initial' : 'center',
                   px: 2.5,
-                  color: '#FFFFFF',
-                  bgcolor: (openAdminMenu && drawerOpen) || isAnyAdminSubMenuActive ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: textColor,
+                  bgcolor: (openAdminMenu && drawerOpen) || isAnyAdminSubMenuActive ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)') : 'transparent',
                   '&:hover': {
                     bgcolor: itemHoverBg,
                   },
@@ -161,12 +164,12 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, dr
               </ListItemButton>
             </ListItem>
             <Collapse in={openAdminMenu && drawerOpen} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding sx={{ bgcolor: 'rgba(0,0,0,0.2)' }}>
+              <List component="div" disablePadding sx={{ bgcolor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)' }}>
                 <ListItemButton
                   sx={{ 
                     pl: 4, 
                     minHeight: listItemHeight,
-                    color: '#FFFFFF',
+                    color: textColor,
                     '&:hover': { bgcolor: itemHoverBg }
                   }}
                   onClick={() => handleAdminSubMenuClick(t('userManagement'), 'UserManagementTab')}
@@ -178,7 +181,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, dr
                   sx={{ 
                     pl: 4, 
                     minHeight: listItemHeight,
-                    color: '#FFFFFF',
+                    color: textColor,
                     '&:hover': { bgcolor: itemHoverBg }
                   }}
                   onClick={() => handleAdminSubMenuClick(t('passwordPolicy'), 'PasswordPolicyTab')}

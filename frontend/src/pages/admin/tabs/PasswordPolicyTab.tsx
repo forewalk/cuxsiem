@@ -42,11 +42,11 @@ const PasswordPolicyTab: React.FC = () => {
       setPolicy(data);
     } catch (error) {
       console.error('Failed to load password policy:', error);
-      setSnackbar({ open: true, message: '정책을 불러오는데 실패했습니다.', severity: 'error' });
+      setSnackbar({ open: true, message: t('loadPolicyFailed'), severity: 'error' });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadPolicy();
@@ -61,7 +61,7 @@ const PasswordPolicyTab: React.FC = () => {
       setSnackbar({ open: true, message: t('saveSuccess'), severity: 'success' });
     } catch (error) {
       console.error('Failed to save password policy:', error);
-      setSnackbar({ open: true, message: '저장에 실패했습니다.', severity: 'error' });
+      setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
     } finally {
       setSaving(false);
     }
@@ -91,7 +91,7 @@ const PasswordPolicyTab: React.FC = () => {
             onClick={loadPolicy}
             disabled={saving}
           >
-            새로고침
+            {t('refresh')}
           </Button>
           <Button
             variant="contained"
@@ -106,9 +106,9 @@ const PasswordPolicyTab: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* 복잡성 규칙 */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>복잡성 규칙</Typography>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>{t('complexityRules')}</Typography>
             <Divider sx={{ mb: 2 }} />
             <Stack spacing={2}>
               <TextField
@@ -160,9 +160,9 @@ const PasswordPolicyTab: React.FC = () => {
         </Grid>
 
         {/* 만료 및 이력 */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>만료 및 보안 설정</Typography>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>{t('expirationSecurity')}</Typography>
             <Divider sx={{ mb: 2 }} />
             <Stack spacing={3}>
               <TextField
@@ -171,7 +171,7 @@ const PasswordPolicyTab: React.FC = () => {
                 size="small"
                 value={policy?.max_password_age_days || 90}
                 onChange={(e) => handleChange('max_password_age_days', parseInt(e.target.value))}
-                helperText="0으로 설정 시 만료 없음"
+                helperText={t('passwordAgeHelper')}
                 fullWidth
               />
               <TextField
@@ -180,7 +180,7 @@ const PasswordPolicyTab: React.FC = () => {
                 size="small"
                 value={policy?.password_history_count || 3}
                 onChange={(e) => handleChange('password_history_count', parseInt(e.target.value))}
-                helperText="재사용이 제한되는 이전 비밀번호 개수"
+                helperText={t('passwordHistoryHelper')}
                 fullWidth
               />
               <TextField
@@ -189,7 +189,7 @@ const PasswordPolicyTab: React.FC = () => {
                 size="small"
                 value={policy?.lockout_threshold || 5}
                 onChange={(e) => handleChange('lockout_threshold', parseInt(e.target.value))}
-                helperText="로그인 실패 허용 횟수"
+                helperText={t('lockoutThresholdHelper')}
                 fullWidth
               />
               <TextField

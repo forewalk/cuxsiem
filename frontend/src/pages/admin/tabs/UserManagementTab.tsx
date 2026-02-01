@@ -224,7 +224,7 @@ const UserManagementTab: React.FC = () => {
             startIcon={<RefreshIcon />}
             onClick={() => loadUsers()}
           >
-            새로고침
+            {t('refresh')}
           </Button>
           <Button
             variant="contained"

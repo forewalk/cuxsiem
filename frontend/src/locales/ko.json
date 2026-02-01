@@ -54,6 +54,17 @@
     "lockoutDuration": "계정 잠금 기간 (분)",
     "days": "일",
     "count": "개",
-    "minutes": "분"
+    "minutes": "분",
+    "complexityRules": "복잡성 규칙",
+    "expirationSecurity": "만료 및 보안 설정",
+    "refresh": "새로고침",
+    "tooManyAttempts": "로그인 시도 횟수가 초과되었습니다. 잠시 후 다시 시도해주세요.",
+    "accountDisabled": "계정이 비활성화되었습니다. 관리자에게 문의하세요.",
+    "checkEmailPassword": "이메일 또는 비밀번호를 확인해주세요.",
+    "passwordAgeHelper": "0으로 설정 시 만료 없음",
+    "passwordHistoryHelper": "재사용이 제한되는 이전 비밀번호 개수",
+    "lockoutThresholdHelper": "로그인 실패 허용 횟수",
+    "loadPolicyFailed": "정책을 불러오는데 실패했습니다.",
+    "saveFailed": "저장에 실패했습니다."
   }
   

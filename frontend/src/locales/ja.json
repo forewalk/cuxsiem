@@ -48,12 +48,23 @@
     "requireLowercase": "小文字必須",
     "requireNumbers": "数字必須",
     "requireSpecialChars": "特殊文字必須",
-    "maxPasswordAge": "パスワード有効期限 (日)",
+    "maxPasswordAge": "パスワード有効期限（日）",
     "passwordHistory": "パスワード履歴制限",
-    "lockoutThreshold": "アカウントロックアウトしきい値",
-    "lockoutDuration": "アカウントロックアウト期間 (分)",
+    "lockoutThreshold": "アカウントロックアウト閾値",
+    "lockoutDuration": "アカウントロックアウト期間（分）",
     "days": "日",
-    "count": "個",
-    "minutes": "分"
+    "count": "回",
+    "minutes": "分",
+    "complexityRules": "複雑性ルール",
+    "expirationSecurity": "有効期限とセキュリティ設定",
+    "refresh": "更新",
+    "tooManyAttempts": "ログイン試行回数が超過しました。しばらくしてから再試行してください。",
+    "accountDisabled": "アカウントが無効化されています。管理者に連絡してください。",
+    "checkEmailPassword": "メールアドレスまたはパスワードを確認してください。",
+    "passwordAgeHelper": "0に設定すると有効期限なし",
+    "passwordHistoryHelper": "再利用が制限される以前のパスワード数",
+    "lockoutThresholdHelper": "ログイン失敗の許容回数",
+    "loadPolicyFailed": "ポリシーの読み込みに失敗しました。",
+    "saveFailed": "保存に失敗しました。"
   }
   

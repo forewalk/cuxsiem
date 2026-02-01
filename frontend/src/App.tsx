@@ -162,8 +162,9 @@ function App() {
             elevation={0}
             sx={{
               zIndex: (theme) => theme.zIndex.drawer + 1,
-              backgroundColor: darkMode ? '#1e1e1e' : FIGMA_COLORS.headerBg,
-              borderBottom: `1px solid ${darkMode ? '#333' : '#222'}`,
+              backgroundColor: theme.palette.background.paper, // 테마 배경색 사용
+              borderBottom: `1px solid ${theme.palette.divider}`, // 테마 구분선 색상 사용
+              color: theme.palette.text.primary, // 텍스트 색상
               left: drawerOpen ? drawerWidth : collapsedWidth, // Drawer 너비만큼 왼쪽에서 시작
               width: `calc(100% - ${drawerOpen ? drawerWidth : collapsedWidth}px)`, // Drawer 제외한 나머지 너비
               transition: (theme) => theme.transitions.create(['width', 'left'], { // 너비와 left 속성 전환 효과
@@ -179,54 +180,55 @@ function App() {
                 py: 1.5,
               }}
             >
-              {/* 왼쪽: 사용자 정보 및 로그아웃 */}
+              {/* 왼쪽: 사용자 정보 */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Typography
                   variant="body2"
                   sx={{
-                    color: darkMode ? "#b0b0b0" : "#333", // 라이트 모드 가독성 개선
+                    color: theme.palette.text.primary,
+                    fontWeight: 500,
                   }}
                 >
-                  {String(user?.name)} ({String(user?.role)})
+                  {user?.name ? `${user.name} (${user.role})` : ''}
                 </Typography>
-                <Button
+              </Box>
+
+              {/* 오른쪽: 로그아웃 + 언어 선택 + 다크모드 */}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                 <Button
                   onClick={handleLogout}
                   sx={{
-                    color: FIGMA_COLORS.buttonBg,
+                    color: theme.palette.text.primary,
                     textTransform: "none",
                     fontSize: "13px",
                     fontWeight: 500,
-                    border: `1px solid ${
-                      darkMode ? "#404040" : FIGMA_COLORS.inputBorder
-                    }`,
+                    border: `1px solid ${theme.palette.divider}`,
                     borderRadius: "3px",
                     padding: "6px 12px",
-                    backgroundColor: darkMode ? "#2a2a2a" : "transparent",
+                    backgroundColor: "transparent",
                     "&:hover": {
-                      backgroundColor: darkMode ? "#333" : FIGMA_COLORS.labelBg,
+                      backgroundColor: theme.palette.action.hover,
                     },
+                    mr: 1, // 언어 선택과 간격
                   }}
                 >
                   {t("logout")}
                 </Button>
-              </Box>
 
-              {/* 오른쪽: 언어 선택 + 다크모드 (항상 같은 위치) */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Select
                   value={language}
                   onChange={(e) => handleLanguageChange(e.target.value)}
                   sx={{
-                    color: darkMode ? "#b0b0b0" : "#333",
+                    color: theme.palette.text.primary,
                     fontSize: "13px",
                     "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: darkMode ? "#404040" : "#d0d0d0",
+                      borderColor: theme.palette.divider,
                     },
-                    "&:hover fieldset": {
-                      borderColor: darkMode ? "#505050" : "#b0b0b0",
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: theme.palette.text.secondary,
                     },
                     "& .MuiSvgIcon-root": {
-                      color: darkMode ? "#b0b0b0" : "#333",
+                      color: theme.palette.text.secondary,
                     },
                   }}
                   size="small"
@@ -238,9 +240,9 @@ function App() {
                 <IconButton
                   onClick={handleDarkModeChange}
                   sx={{
-                    color: darkMode ? "#b0b0b0" : "#333",
+                    color: theme.palette.text.primary,
                     "&:hover": {
-                      backgroundColor: darkMode ? "#2a2a2a" : "#f5f5f5",
+                      backgroundColor: theme.palette.action.hover,
                     },
                   }}
                 >

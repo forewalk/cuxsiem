@@ -28,6 +28,10 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useAuth } from "../hooks/useAuth";
 
+import koMessages from "../locales/ko.json";
+import enMessages from "../locales/en.json";
+import jaMessages from "../locales/ja.json";
+
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
@@ -86,61 +90,10 @@ export const LoginPage: React.FC = () => {
     },
   });
 
-  const translations: Record<string, Record<string, string>> = {
-    ko: {
-      loginTitle: "로그인",
-      email: "이메일",
-      password: "비밀번호",
-      rememberMe: "로그인 유지",
-      loginBtn: "로그인",
-      forgotPassword: "비밀번호 재설정",
-      signup: "계정신청",
-      copyright: "© 2026 cruxSIEM. All rights reserved.",
-      emailInvalid: "유효한 이메일을 입력하세요",
-      emailRequired: "이메일은 필수입니다",
-      passwordRequired: "비밀번호는 필수입니다",
-      passwordMin: "비밀번호는 최소 8자 이상이어야 합니다",
-      passwordChar: "비밀번호에는 영문자가 포함되어야 합니다",
-      passwordDigit: "비밀번호에는 숫자가 포함되어야 합니다",
-      passwordPlaceholder: "최소 8자, 영문+숫자",
-      notImplemented: "현재 구현 중입니다. 곧 지원 예정입니다.",
-    },
-    en: {
-      loginTitle: "Sign In",
-      email: "Email",
-      password: "Password",
-      rememberMe: "Remember me",
-      loginBtn: "Sign In",
-      forgotPassword: "Forgot Password?",
-      signup: "Sign Up",
-      copyright: "© 2026 cruxSIEM. All rights reserved.",
-      emailInvalid: "Enter a valid email",
-      emailRequired: "Email is required",
-      passwordRequired: "Password is required",
-      passwordMin: "Password must be at least 8 characters",
-      passwordChar: "Password must contain letters",
-      passwordDigit: "Password must contain numbers",
-      passwordPlaceholder: "Min 8 chars, letters + numbers",
-      notImplemented: "Currently under development. Coming soon!",
-    },
-    ja: {
-      loginTitle: "ログイン",
-      email: "メール",
-      password: "パスワード",
-      rememberMe: "ログイン状態を保持",
-      loginBtn: "ログイン",
-      forgotPassword: "パスワードをお忘れの方",
-      signup: "アカウント申請",
-      copyright: "© 2026 cruxSIEM. All rights reserved.",
-      emailInvalid: "有効なメールアドレスを入力してください",
-      emailRequired: "メールは必須です",
-      passwordRequired: "パスワードは必須です",
-      passwordMin: "パスワードは8文字以上である必要があります",
-      passwordChar: "パスワードには文字が含まれている必要があります",
-      passwordDigit: "パスワードには数字が含まれている必要があります",
-      passwordPlaceholder: "最小8文字、文字+数字",
-      notImplemented: "現在実装中です。近日中にサポート予定です。",
-    },
+  const translations: Record<string, any> = {
+    ko: koMessages,
+    en: enMessages,
+    ja: jaMessages,
   };
 
   const t = (key: string, params?: Record<string, string>): string => {
@@ -190,26 +143,33 @@ export const LoginPage: React.FC = () => {
         await login(email, password, false);
         navigate("/main");
       } catch (err: any) {
-        // 모든 로그인 관련 에러는 일반적인 메시지로 처리
+        console.error("Login Error:", err);
+        
         let errorMessage = t("loginFailed");
 
-        // 개발 중 디버깅을 위해 콘솔에 실제 에러를 로깅
-        console.error("Login Error:", err);
-        // 번역 객체도 한번 로깅하여 확인
-        console.log("Translations object in LoginPage:", translations);
-
-        // 상세 에러 메시지가 필요한 경우 (예: 백엔드 500 에러 등 예상치 못한 에러)
-        // if (err.response && err.response.data && err.response.data.detail) {
-        //   if (typeof err.response.data.detail === 'string') {
-        //     errorMessage = t("loginFailed", { fallback: err.response.data.detail });
-        //   } else if (Array.isArray(err.response.data.detail)) {
-        //     errorMessage = t("loginFailed", { fallback: err.response.data.detail.map((errorDetail: any) => errorDetail.msg).join(', ') });
-        //   } else if (typeof err.response.data.detail === 'object' && err.response.data.detail !== null) {
-        //     errorMessage = t("loginFailed", { fallback: JSON.stringify(err.response.data.detail) });
-        //   }
-        // } else if (err.message) {
-        //   errorMessage = t("loginFailed", { fallback: err.message });
-        // }
+        if (err.response) {
+          switch (err.response.status) {
+            case 401:
+              // 이메일 또는 비밀번호 불일치
+              errorMessage = t("checkEmailPassword");
+              break;
+            case 403:
+              // 계정 비활성화
+              errorMessage = t("accountDisabled");
+              break;
+            case 429:
+              // 시도 횟수 초과
+              errorMessage = t("tooManyAttempts");
+              break;
+            default:
+              // 기타 에러 (백엔드 메시지가 있다면 참고하되 기본은 loginFailed)
+               if (err.response.data && err.response.data.detail && typeof err.response.data.detail === 'string') {
+                 // 필요시 백엔드 메시지를 직접 보여줄 수 있음
+                 // errorMessage = err.response.data.detail; 
+               }
+              break;
+          }
+        }
         
         setError(errorMessage);
         setOpenSnackbar(true);

@@ -10,7 +10,7 @@
 - [x] 프론트엔드 기본 구조 (React + TypeScript + Vite + MUI)
 - [x] OpenSearch 개발서버 연동
 - [x] 프로젝트 문서 정비 (INSTALL, GIT_GUIDE, DEPLOY, ARCHITECTURE)
-- [ ] 로그인/인증 기능
+- [x] 로그인/인증 기능
 
 ## Phase 2: 핵심 기능
 

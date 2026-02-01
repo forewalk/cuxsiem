@@ -163,6 +163,10 @@ frontend/src/
 - **HTTP 클라이언트:** axios (`src/services/api.ts`)
 - **경로 별칭:** `@/` = `src/` (예: `import theme from "@/theme"`)
 - **테마:** 다크 모드 기본, `src/theme/index.ts`에서 관리
+- **레이아웃 규칙:**
+  - **헤더(AppBar):** 배경색은 `theme.palette.background.paper`를 사용하여 모드 대응 (하드코딩 금지).
+  - **헤더 구성:** 왼쪽(사용자 정보/타이틀), 오른쪽(언어/다크모드/로그아웃 등 글로벌 액션).
+  - **사이드바(Drawer):** `theme` 색상 참조하여 모드 대응.
 
 ### i18n (다국어) - 필수 규칙
 **프론트엔드의 모든 텍스트는 하드코딩 금지. 반드시 `frontend/src/locales/*.json` 파일에서 로드할 것.**
