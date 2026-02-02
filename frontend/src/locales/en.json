@@ -65,6 +65,16 @@
     "passwordHistoryHelper": "Number of previous passwords restricted",
     "lockoutThresholdHelper": "Allowed login failure attempts",
     "loadPolicyFailed": "Failed to load policy.",
-    "saveFailed": "Failed to save."
+    "saveFailed": "Failed to save.",
+    "resetPassword": "Reset Password",
+    "resetPasswordDesc": "Enter your User ID to receive a temporary password.",
+    "id": "ID",
+    "idOrEmail": "ID (Email)",
+    "reset": "Reset",
+    "close": "Close",
+    "tempPasswordIssued": "Temporary password has been issued.",
+    "copyPasswordDesc": "Please copy the password above to log in.",
+    "resetFailed": "Password reset failed. Please check your ID.",
+    "idRequired": "ID is required"
   }
   

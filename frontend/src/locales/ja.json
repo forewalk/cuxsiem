@@ -65,6 +65,16 @@
     "passwordHistoryHelper": "再利用が制限される以前のパスワード数",
     "lockoutThresholdHelper": "ログイン失敗の許容回数",
     "loadPolicyFailed": "ポリシーの読み込みに失敗しました。",
-    "saveFailed": "保存に失敗しました。"
+    "saveFailed": "保存に失敗しました。",
+    "resetPassword": "パスワード初期化",
+    "resetPasswordDesc": "ユーザーIDを入力すると、仮パスワードが発行されます。",
+    "id": "ID",
+    "idOrEmail": "ID (メール)",
+    "reset": "初期化",
+    "close": "閉じる",
+    "tempPasswordIssued": "仮パスワードが発行されました。",
+    "copyPasswordDesc": "上記のパスワードをコピーしてログインしてください。",
+    "resetFailed": "パスワードの初期化に失敗しました。IDを確認してください。",
+    "idRequired": "IDは必須です"
   }
   
