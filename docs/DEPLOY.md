@@ -118,8 +118,8 @@ vi .env.production
 ### 3-3. 배포 실행
 
 ```bash
-chmod +x deploy.sh
-./deploy.sh
+sudo chmod +x deploy.sh
+sudo ./deploy.sh
 ```
 
 또는 수동으로:
@@ -138,14 +138,11 @@ docker compose up -d
 # 컨테이너 상태 확인
 docker compose ps
 
+# DB 연결 테스트 (중요)
+docker compose exec backend python test_db.py
+
 # 로그 확인
 docker compose logs -f
-
-# 헬스체크
-curl http://localhost:8000/health
-
-# 프론트엔드 접속 확인
-curl -I http://localhost
 ```
 
 ---

@@ -3,7 +3,6 @@ import {
   Box, Typography, Button, Paper, Stack, TextField, Switch,
   FormControlLabel, Divider, Alert, Snackbar, CircularProgress
 } from '@mui/material';
-import Grid from '@mui/material/Grid2';
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { passwordPolicyService } from '../../../services/passwordPolicyService';
 import type { PasswordPolicy } from '../../../services/passwordPolicyService';
@@ -105,9 +104,9 @@ const PasswordPolicyTab: React.FC = () => {
         </Stack>
       </Stack>
 
-      <Grid container spacing={3}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
         {/* 복잡성 규칙 */}
-        <Grid xs={12} md={6}>
+        <Box flex={1}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>{t('complexityRules')}</Typography>
             <Divider sx={{ mb: 2 }} />
@@ -158,10 +157,10 @@ const PasswordPolicyTab: React.FC = () => {
               />
             </Stack>
           </Paper>
-        </Grid>
+        </Box>
 
         {/* 만료 및 이력 */}
-        <Grid xs={12} md={6}>
+        <Box flex={1}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>{t('expirationSecurity')}</Typography>
             <Divider sx={{ mb: 2 }} />
@@ -203,8 +202,8 @@ const PasswordPolicyTab: React.FC = () => {
               />
             </Stack>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Stack>
 
       <Snackbar
         open={snackbar.open}

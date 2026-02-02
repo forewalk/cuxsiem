@@ -29,6 +29,13 @@ if [ ! -f .env.production ]; then
     fi
 fi
 
+# Load environment variables (to make TAG available for docker-compose.yml substitution)
+echo "Loading environment variables from .env.production..."
+# Using 'set -a' to automatically export all variables
+set -a
+source .env.production
+set +a
+
 # 3. Start services
 echo "Starting services with Docker Compose..."
 docker compose down 2>/dev/null || true
@@ -38,4 +45,11 @@ echo "----------------------------------------"
 echo "Deployment completed successfully."
 echo "Frontend: http://localhost"
 echo "Backend:  http://localhost:8000/docs"
+echo ""
+echo "[Admin Account Info]"
+echo "Username: admin"
+echo "Password: (If not changed) admin1234!"
+echo ""
+echo "If you need to reset/initialize admin password:"
+echo "Run: docker compose exec backend python reset_admin.py"
 echo "----------------------------------------"
