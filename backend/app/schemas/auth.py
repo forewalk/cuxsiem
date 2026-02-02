@@ -51,7 +51,7 @@ class TokenPayload(BaseModel):
 
 class PasswordResetRequest(BaseModel):
     """비밀번호 초기화 요청"""
-    email: EmailStr
+    username: str
 
 
 class PasswordResetResponse(BaseModel):

@@ -52,7 +52,7 @@ class AuthService:
         # 비활성 계정 확인
         if not user.is_active:
             await self.login_attempt_repo.record(
-                email, False, ip_address, "비활성 계정"
+                username, False, ip_address, "비활성 계정"
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -62,11 +62,11 @@ class AuthService:
         # 비밀번호 검증
         if not verify_password(request.password, user.password_hash):
             await self.login_attempt_repo.record(
-                email, False, ip_address, "비밀번호 불일치"
+                username, False, ip_address, "비밀번호 불일치"
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="이메일 또는 비밀번호가 올바르지 않습니다"
+                detail="아이디 또는 비밀번호가 올바르지 않습니다"
             )
 
         # 마지막 로그인 시간 업데이트
@@ -95,7 +95,7 @@ class AuthService:
         await self.session_repo.create(session)
 
         # 로그인 성공 기록
-        await self.login_attempt_repo.record(email, True, ip_address)
+        await self.login_attempt_repo.record(username, True, ip_address)
 
         return LoginResponse(
             access_token=token,
@@ -126,84 +126,41 @@ class AuthService:
                 detail="사용자를 찾을 수 없습니다"
             )
         
-                
+        return UserResponse(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            role=user.role,
+            is_active=user.is_active,
+            created_at=user.created_at,
+            last_login_at=user.last_login_at,
+        )
+
+    async def reset_password(self, username: str) -> str:
+        """비밀번호 초기화 (임시 비밀번호 발급)"""
+        import secrets
+        import string
+
+        # 사용자 조회 (ID로 검색)
+        user = await self.user_repo.get_by_id(username)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="사용자를 찾을 수 없습니다"
+            )
+            
+        # 임시 비밀번호 생성 (12자리 영문+숫자+특수문자)
+        alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+        temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
         
-                return UserResponse(
+        # 비밀번호 업데이트
+        hashed_password = get_password_hash(temp_password)
+        updated = await self.user_repo.update(user.id, {"password_hash": hashed_password})
         
-                    id=user.id,
-        
-                    email=user.email,
-        
-                    name=user.name,
-        
-                    role=user.role,
-        
-                    is_active=user.is_active,
-        
-                    created_at=user.created_at,
-        
-                    last_login_at=user.last_login_at,
-        
-                )
-        
-        
-        
-            async def reset_password(self, email: str) -> str:
-        
-                """비밀번호 초기화 (임시 비밀번호 발급)"""
-        
-                import secrets
-        
-                        import string
-        
-                
-        
-                        # 사용자 조회 (이메일로 검색)
-        
-                        user = await self.user_repo.get_by_email(email.lower())
-        
-                        if not user:
-        
-                             raise HTTPException(
-        
-                
-        
-                        status_code=status.HTTP_404_NOT_FOUND,
-        
-                        detail="사용자를 찾을 수 없습니다"
-        
-                    )
-        
-                    
-        
-                # 임시 비밀번호 생성 (12자리 영문+숫자+특수문자)
-        
-                alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-        
-                temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
-        
-                
-        
-                # 비밀번호 업데이트
-        
-                hashed_password = get_password_hash(temp_password)
-        
-                updated = await self.user_repo.update(user.id, {"password_hash": hashed_password})
-        
-                
-        
-                if not updated:
-        
-                     raise HTTPException(
-        
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        
-                        detail="비밀번호 업데이트 실패"
-        
-                    )
-        
-                    
-        
-                return temp_password
-        
-        
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="비밀번호 업데이트 실패"
+            )
+            
+        return temp_password

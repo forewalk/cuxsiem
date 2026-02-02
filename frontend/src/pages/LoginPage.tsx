@@ -195,25 +195,25 @@ export const LoginPage: React.FC = () => {
 
   // 비밀번호 초기화 관련 상태
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
+  const [resetId, setResetId] = useState("");
   const [tempPassword, setTempPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
 
   const handleForgotPassword = () => {
-    setResetEmail("");
+    setResetId("");
     setTempPassword("");
     setResetDialogOpen(true);
   };
 
   const handleResetPassword = async () => {
-    if (!resetEmail) return;
+    if (!resetId) return;
     setResetLoading(true);
     try {
-      const pwd = await authService.resetPassword(resetEmail);
+      const pwd = await authService.resetPassword(resetId);
       setTempPassword(pwd);
     } catch (err: any) {
       console.error(err);
-      setError(t("resetFailed", { fallback: "비밀번호 초기화에 실패했습니다. 이메일을 확인해주세요." })); 
+      setError(t("resetFailed", { fallback: "비밀번호 초기화에 실패했습니다. 아이디를 확인해주세요." })); 
       setOpenSnackbar(true);
     } finally {
       setResetLoading(false);
@@ -569,17 +569,17 @@ export const LoginPage: React.FC = () => {
           {!tempPassword ? (
             <>
               <DialogContentText sx={{ mb: 2 }}>
-                {t("resetPasswordDesc", { fallback: "가입된 이메일 주소를 입력하면 임시 비밀번호를 발급해 드립니다." })}
+                {t("resetPasswordDesc", { fallback: "사용자 아이디를 입력하면 임시 비밀번호를 발급해 드립니다." })}
               </DialogContentText>
               <TextField
                 autoFocus
                 margin="dense"
-                label={t("email")}
-                type="email"
+                label={t("id", { fallback: "아이디" })}
+                type="text"
                 fullWidth
                 variant="outlined"
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
+                value={resetId}
+                onChange={(e) => setResetId(e.target.value)}
               />
             </>
           ) : (
@@ -610,7 +610,7 @@ export const LoginPage: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setResetDialogOpen(false)}>{t("close", { fallback: "닫기" })}</Button>
           {!tempPassword && (
-            <Button onClick={handleResetPassword} disabled={resetLoading || !resetEmail} variant="contained" color="primary">
+            <Button onClick={handleResetPassword} disabled={resetLoading || !resetId} variant="contained" color="primary">
               {resetLoading ? <CircularProgress size={20} color="inherit" /> : t("reset", { fallback: "초기화" })}
             </Button>
           )}

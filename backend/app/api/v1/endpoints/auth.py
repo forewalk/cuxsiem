@@ -15,11 +15,11 @@ async def reset_password(request: PasswordResetRequest):
     """
     비밀번호 초기화 (임시 비밀번호 발급)
     
-    이메일(사용자ID)을 입력받아 비밀번호를 초기화하고 임시 비밀번호를 반환합니다.
+    사용자 ID를 입력받아 비밀번호를 초기화하고 임시 비밀번호를 반환합니다.
     (관리자용 기능이 아니며, 본인 인증이 어려운 폐쇄망 환경에서 제한적으로 사용)
     """
     service = AuthService()
-    temp_password = await service.reset_password(request.email)
+    temp_password = await service.reset_password(request.username)
     return PasswordResetResponse(password=temp_password)
 
 
