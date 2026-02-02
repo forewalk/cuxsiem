@@ -24,9 +24,8 @@ mkdir -p "$DIST_DIR"
 # 2. Build Docker Images
 echo "Building Backend Image (cruxsiem/backend:$VERSION)..."
 cp scripts/test_db.py backend/
-cp scripts/reset_admin.py backend/
 docker build -t cruxsiem/backend:"$VERSION" ./backend
-rm backend/test_db.py backend/reset_admin.py
+rm backend/test_db.py
 
 echo "Checking frontend dependencies..."
 if [ ! -f "./frontend/package-lock.json" ]; then
@@ -69,10 +68,6 @@ chmod +x "$DIST_DIR/deploy.sh"
 # Copy DB test script
 cp scripts/test_db.py "$DIST_DIR/"
 chmod +x "$DIST_DIR/test_db.py"
-
-# Copy Admin Reset script
-cp scripts/reset_admin.py "$DIST_DIR/"
-chmod +x "$DIST_DIR/reset_admin.py"
 
 echo "========================================"
 echo "Build Complete!"

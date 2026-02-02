@@ -21,7 +21,6 @@ COPY . .
 
 # Copy test script (will be placed in backend dir by build.sh)
 COPY test_db.py ./test_db.py
-COPY reset_admin.py ./reset_admin.py
 
 # Expose port
 EXPOSE 8000
