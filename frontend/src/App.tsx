@@ -153,7 +153,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ display: 'flex', minHeight: '100vh' }}> {/* 최상위 Flex 컨테이너 */}
-        <AdminSidemenu darkMode={darkMode} t={t} userRole={user?.role} drawerOpen={drawerOpen} handleDrawerToggle={handleDrawerToggle} /> {/* AdminSidemenu는 첫 번째 Flex 아이템 */}
+        <AdminSidemenu t={t} userRole={user?.role} drawerOpen={drawerOpen} handleDrawerToggle={handleDrawerToggle} /> {/* AdminSidemenu는 첫 번째 Flex 아이템 */}
 
         <Box sx={{ flexGrow: 1, position: 'relative' }}> {/* AppBar와 main content를 감싸는 FlexGrow Box */}
           {/* 헤더 */}

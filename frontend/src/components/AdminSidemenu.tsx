@@ -11,7 +11,6 @@ import {
 import useTabStore from '../pages/admin/stores/tabStore';
 
 interface AdminSidemenuProps {
-  darkMode: boolean;
   t: (key: string, params?: Record<string, string>) => string;
   userRole: string | undefined;
   drawerOpen: boolean;
@@ -29,7 +28,7 @@ const FIGMA_COLORS = {
   activeText: "#000000",
 };
 
-const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ darkMode, t, userRole, drawerOpen, handleDrawerToggle }) => {
+const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
   const [openAdminMenu, setOpenAdminMenu] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();

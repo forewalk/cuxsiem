@@ -106,7 +106,7 @@ const PasswordPolicyTab: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* 복잡성 규칙 */}
-        <Grid item xs={12} md={6}>
+        <Grid xs={12} md={6}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>{t('complexityRules')}</Typography>
             <Divider sx={{ mb: 2 }} />
@@ -160,7 +160,7 @@ const PasswordPolicyTab: React.FC = () => {
         </Grid>
 
         {/* 만료 및 이력 */}
-        <Grid item xs={12} md={6}>
+        <Grid xs={12} md={6}>
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>{t('expirationSecurity')}</Typography>
             <Divider sx={{ mb: 2 }} />
