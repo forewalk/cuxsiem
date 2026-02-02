@@ -22,69 +22,60 @@ async def reset_admin():
     admin_password = "admin1234!" # 초기 비밀번호
     
     try:
-        # Search for admin user by email or username
-        response = client.search(
+        # 1. Cleanup: Delete existing admin users that have UUIDs (not 'admin' ID)
+        cleanup_response = client.search(
             index="cs_users",
             body={
                 "query": {
                     "bool": {
-                        "should": [
-                            {"term": {"username.keyword": admin_username}},
-                            {"term": {"email.keyword": "admin@example.com"}}
-                        ]
+                        "must": [{"term": {"email.keyword": "admin@example.com"}}],
+                        "must_not": [{"ids": {"values": ["admin"]}}]
                     }
                 }
             }
         )
         
-        hits = response['hits']['hits']
-        
+        for hit in cleanup_response['hits']['hits']:
+            print(f"Deleting legacy admin user (ID: {hit['_id']})...")
+            client.delete(index="cs_users", id=hit['_id'])
+
+        # 2. Create or Update the correct admin user (ID='admin')
+        admin_username = "admin"
+        admin_email = "admin@example.com"
         hashed_pw = get_password_hash(admin_password)
-        
-        
-        if hits:
-            # Update existing admin
-            user_id = hits[0]['_id']
-            source = hits[0]['_source']
-            print(f"Found existing admin user (ID: {user_id}). Updating password...")
+
+        if client.exists(index="cs_users", id=admin_username):
+            print(f"Found admin user (ID: {admin_username}). Updating password...")
             
-            # Use existing field names (password_hash vs hashed_password)
+            # Fetch current source to check field names
+            source = client.get(index="cs_users", id=admin_username)['_source']
             pw_field = "password_hash" if "password_hash" in source else "hashed_password"
-            
+
             doc = {
                 pw_field: hashed_pw,
                 "is_active": True,
-                "updated_at": "2026-02-02T19:40:00"
+                "updated_at": "2026-02-02T20:30:00"
             }
-            
-            client.update(index="cs_users", id=user_id, body={"doc": doc})
-            print(f"Admin password updated successfully using field: {pw_field}")
+            client.update(index="cs_users", id=admin_username, body={"doc": doc})
+            print("Admin password updated successfully.")
             
         else:
-            # Create new admin
-            print("Admin user not found. Creating new admin...")
-            
-            admin_email = "admin@example.com"
+            print("Creating new admin user (ID: admin)...")
             new_user = {
                 "username": admin_username,
                 "email": admin_email,
                 "name": "Admin",
                 "full_name": "System Administrator",
-                "password_hash": hashed_pw, # Standard field name
+                "password_hash": hashed_pw,
                 "role": "admin",
                 "is_active": True,
                 "is_superuser": True,
-                "created_at": "2026-02-02T19:40:00",
-                "updated_at": "2026-02-02T19:40:00"
+                "created_at": "2026-02-02T20:30:00",
+                "updated_at": "2026-02-02T20:30:00"
             }
-            
-            # Use username as Document ID
             client.index(index="cs_users", id=admin_username, body=new_user, refresh=True)
             print("Admin user created successfully.")
 
-        print("-" * 40)
-        print(f"Username : {admin_username}")
-        print(f"Password : {admin_password}")
         print("-" * 40)
             
     except Exception as e:

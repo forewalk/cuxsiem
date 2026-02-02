@@ -117,9 +117,7 @@ export const LoginPage: React.FC = () => {
     const errors: Record<string, string> = {};
 
     if (!email) {
-      errors.email = t("emailRequired");
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = t("emailInvalid");
+      errors.email = t("idRequired", { fallback: "아이디를 입력해주세요" });
     }
 
     if (!password) {
@@ -346,8 +344,8 @@ export const LoginPage: React.FC = () => {
             <Box component="form" onSubmit={handleSubmit} noValidate>
               <TextField
                 fullWidth
-                label={t("email")}
-                type="email"
+                label={t("idOrEmail", { fallback: "아이디" })}
+                type="text"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -356,7 +354,7 @@ export const LoginPage: React.FC = () => {
                 error={!!validationErrors.email}
                 helperText={validationErrors.email}
                 margin="normal"
-                placeholder="admin@example.com"
+                placeholder="admin"
                 disabled={isLoading}
                 sx={{
                   "& .MuiOutlinedInput-root": {

@@ -6,7 +6,7 @@ from datetime import datetime
 
 class LoginRequest(BaseModel):
     """로그인 요청"""
-    email: EmailStr
+    email: str  # 이메일 또는 사용자 ID (username)
     password: str = Field(..., min_length=8, max_length=128)
     remember_me: bool = False
 

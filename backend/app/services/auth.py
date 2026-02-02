@@ -24,28 +24,29 @@ class AuthService:
 
     async def login(self, request: LoginRequest, ip_address: str = None) -> LoginResponse:
         """로그인"""
-        email = request.email.lower()
+        # email 필드에 username이 들어올 수 있음
+        username = request.email
 
         # 로그인 실패 제한 확인 (5회/10분)
-        failed_count = await self.login_attempt_repo.count_failed_attempts(email, minutes=10)
+        failed_count = await self.login_attempt_repo.count_failed_attempts(username, minutes=10)
         if failed_count >= 5:
             await self.login_attempt_repo.record(
-                email, False, ip_address, "로그인 시도 횟수 초과"
+                username, False, ip_address, "로그인 시도 횟수 초과"
             )
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="로그인 시도 횟수 초과"
             )
 
-        # 사용자 조회
-        user = await self.user_repo.get_by_email(email)
+        # 사용자 조회 (ID로 조회)
+        user = await self.user_repo.get_by_id(username)
         if not user:
             await self.login_attempt_repo.record(
-                email, False, ip_address, "사용자 없음"
+                username, False, ip_address, "사용자 없음"
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="이메일 또는 비밀번호가 올바르지 않습니다"
+                detail="아이디 또는 비밀번호가 올바르지 않습니다"
             )
 
         # 비활성 계정 확인
