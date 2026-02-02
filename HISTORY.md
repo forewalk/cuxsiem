@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-02 20:45 | 김장훈 | 설정 | origin/cicd push (전체 사용자 마이그레이션 스크립트로 개선: UUID -> Username ID 변환) |
 | 2026-02-02 20:30 | 김장훈 | 배포 | origin/cicd push (ID 로그인 지원 및 Admin 계정 마이그레이션 스크립트 수정) |
 | 2026-02-02 20:15 | 김장훈 | 설정 | origin/cicd push (User ID 정책 변경: Email Local-part 사용 및 비밀번호 초기화 로직 연동) |
 | 2026-02-02 19:30 | 김장훈 | 수리 | origin/cicd push (관리자 초기화 스크립트 수정: passlib -> bcrypt 직접 사용) |
