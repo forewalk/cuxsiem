@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Ensure execution from project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 VERSION=${1:-latest}
 DIST_DIR="dist"
 
@@ -19,6 +24,14 @@ mkdir -p "$DIST_DIR"
 # 2. Build Docker Images
 echo "Building Backend Image (cruxsiem/backend:$VERSION)..."
 docker build -t cruxsiem/backend:"$VERSION" ./backend
+
+echo "Checking frontend dependencies..."
+if [ ! -f "./frontend/package-lock.json" ]; then
+    echo "Warning: package-lock.json not found in frontend directory."
+    echo "Generating package-lock.json..."
+    # Use subshell to avoid changing current directory of the script permanently
+    (cd frontend && npm install --package-lock-only)
+fi
 
 echo "Building Frontend Image (cruxsiem/frontend:$VERSION)..."
 docker build -t cruxsiem/frontend:"$VERSION" ./frontend
