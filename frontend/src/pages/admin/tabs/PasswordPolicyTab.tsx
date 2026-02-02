@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Button, Paper, Stack, TextField, Switch,
-  FormControlLabel, Grid, Divider, Alert, Snackbar, CircularProgress
+  FormControlLabel, Divider, Alert, Snackbar, CircularProgress
 } from '@mui/material';
+import Grid from '@mui/material/Grid2';
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { passwordPolicyService } from '../../../services/passwordPolicyService';
 import type { PasswordPolicy } from '../../../services/passwordPolicyService';
