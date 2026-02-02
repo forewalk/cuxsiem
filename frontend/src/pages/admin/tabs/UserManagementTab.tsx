@@ -1,0 +1,339 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Box, Typography, Button, Paper, IconButton, Dialog, DialogTitle,
+  DialogContent, DialogActions, TextField, MenuItem, Switch, FormControlLabel,
+  Stack, Alert, Snackbar
+} from '@mui/material';
+import {
+  DataGrid, GridToolbar
+} from '@mui/x-data-grid';
+import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import {
+  Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
+  Refresh as RefreshIcon
+} from '@mui/icons-material';
+import dayjs from 'dayjs';
+import { userService } from '../../../services/userService';
+import type { User, UserCreate, UserUpdate } from '../../../types';
+
+// i18n: JSON 파일에서 번역 로드
+import koMessages from "../../../locales/ko.json";
+import enMessages from "../../../locales/en.json";
+import jaMessages from "../../../locales/ja.json";
+
+const UserManagementTab: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [paginationModel, setPaginationModel] = useState({
+    pageSize: 10,
+    page: 0,
+  });
+
+  // 다이얼로그 상태
+  const [open, setOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState<UserCreate>({
+    email: '',
+    name: '',
+    role: 'user',
+    is_active: true,
+    password: '',
+  });
+
+  // 삭제 확인 다이얼로그
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // 스낵바 상태
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+
+  // i18n 지원
+  const savedLanguage = localStorage.getItem("appLanguage") || "ko";
+  const translations: Record<string, Record<string, string>> = {
+    ko: koMessages,
+    en: enMessages,
+    ja: jaMessages,
+  };
+
+  const t = useCallback((key: string): string => {
+    const currentTranslations = translations[savedLanguage] || translations["ko"] || {};
+    return currentTranslations[key] || key;
+  }, [savedLanguage]);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const skip = paginationModel.page * paginationModel.pageSize;
+      const response = await userService.getUsers(skip, paginationModel.pageSize);
+      setUsers(response.users);
+      setTotal(response.total);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      setSnackbar({ open: true, message: '사용자 목록을 불러오는데 실패했습니다.', severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  }, [paginationModel]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const handleOpenDialog = (user: User | null = null) => {
+    if (user) {
+      setEditingUser(user);
+      setFormData({
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        is_active: user.is_active,
+        password: '',
+      });
+    } else {
+      setEditingUser(null);
+      setFormData({
+        email: '',
+        name: '',
+        role: 'user',
+        is_active: true,
+        password: '',
+      });
+    }
+    setOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpen(false);
+    setEditingUser(null);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (editingUser) {
+        const updateData: UserUpdate = {
+          email: formData.email,
+          name: formData.name,
+          role: formData.role,
+          is_active: formData.is_active,
+        };
+        if (formData.password) {
+          updateData.password = formData.password;
+        }
+        await userService.updateUser(editingUser.id, updateData);
+      } else {
+        await userService.createUser(formData);
+      }
+      setSnackbar({ open: true, message: t('saveSuccess'), severity: 'success' });
+      handleCloseDialog();
+      loadUsers();
+    } catch (error: any) {
+      const detail = error.response?.data?.detail || '저장에 실패했습니다.';
+      setSnackbar({ open: true, message: detail, severity: 'error' });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await userService.deleteUser(deleteId);
+      setSnackbar({ open: true, message: t('deleteSuccess'), severity: 'success' });
+      setDeleteId(null);
+      loadUsers();
+    } catch (error) {
+      setSnackbar({ open: true, message: '삭제에 실패했습니다.', severity: 'error' });
+    }
+  };
+
+  const columns: GridColDef[] = [
+    { field: 'name', headerName: t('name'), flex: 1 },
+    { field: 'email', headerName: t('email'), flex: 1.5 },
+    {
+      field: 'role',
+      headerName: t('role'),
+      flex: 0.8,
+      renderCell: (params: GridRenderCellParams) => (
+        params.value === 'admin' ? t('userRoleAdmin') : t('userRoleUser')
+      )
+    },
+    {
+      field: 'is_active',
+      headerName: t('status'),
+      flex: 0.8,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box
+          sx={{
+            color: params.value ? 'success.main' : 'error.main',
+            fontWeight: 'bold',
+          }}
+        >
+          {params.value ? t('active') : t('inactive')}
+        </Box>
+      )
+    },
+    {
+      field: 'last_login_at',
+      headerName: t('lastLogin'),
+      flex: 1.2,
+      valueFormatter: (value) => {
+        if (!value) return '-';
+        return dayjs(value).format('YYYY-MM-DD HH:mm');
+      }
+    },
+    {
+      field: 'created_at',
+      headerName: t('createdAt'),
+      flex: 1.2,
+      valueFormatter: (value) => {
+        return dayjs(value).format('YYYY-MM-DD HH:mm');
+      }
+    },
+    {
+      field: 'actions',
+      headerName: t('actions'),
+      flex: 0.8,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams) => (
+        <Stack direction="row" spacing={1}>
+          <IconButton size="small" onClick={() => handleOpenDialog(params.row as User)}>
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => setDeleteId(params.row.id)}
+            disabled={params.row.role === 'admin'}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      )
+    },
+  ];
+
+  return (
+    <Box sx={{ height: '100%', width: '100%' }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('userManagement')}</Typography>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => loadUsers()}
+          >
+            {t('refresh')}
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+          >
+            {t('addUser')}
+          </Button>
+        </Stack>
+      </Stack>
+
+      <Paper sx={{ height: 'calc(100% - 60px)', width: '100%' }}>
+        <DataGrid
+          rows={users}
+          columns={columns}
+          loading={loading}
+          rowCount={total}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          paginationMode="server"
+          pageSizeOptions={[10, 25, 50]}
+          disableRowSelectionOnClick
+          slots={{ toolbar: GridToolbar }}
+          sx={{
+            border: 'none',
+            '& .MuiDataGrid-cell:focus': { outline: 'none' },
+          }}
+        />
+      </Paper>
+
+      {/* 추가/수정 다이얼로그 */}
+      <Dialog open={open} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>{editingUser ? t('editUser') : t('addUser')}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label={t('email')}
+              fullWidth
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={!!editingUser}
+            />
+            <TextField
+              label={t('name')}
+              fullWidth
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+            <TextField
+              select
+              label={t('role')}
+              fullWidth
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            >
+              <MenuItem value="user">{t('userRoleUser')}</MenuItem>
+              <MenuItem value="admin">{t('userRoleAdmin')}</MenuItem>
+            </TextField>
+            <TextField
+              label={t('password')}
+              type="password"
+              fullWidth
+              placeholder={editingUser ? '변경 시에만 입력' : t('passwordPlaceholder')}
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                />
+              }
+              label={t('status')}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={handleCloseDialog}>{t('cancel')}</Button>
+          <Button variant="contained" color="secondary" onClick={handleSubmit}>{t('save')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
+        <DialogTitle>{t('deleteUser')}</DialogTitle>
+        <DialogContent>
+          <Typography>{t('confirmDelete')}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setDeleteId(null)}>{t('cancel')}</Button>
+          <Button variant="contained" color="error" onClick={handleDelete}>{t('deleteUser')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 알림 메시지 */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+export default UserManagementTab;

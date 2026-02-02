@@ -163,6 +163,59 @@ frontend/src/
 - **HTTP 클라이언트:** axios (`src/services/api.ts`)
 - **경로 별칭:** `@/` = `src/` (예: `import theme from "@/theme"`)
 - **테마:** 다크 모드 기본, `src/theme/index.ts`에서 관리
+- **레이아웃 규칙:**
+  - **헤더(AppBar):** 배경색은 `theme.palette.background.paper`를 사용하여 모드 대응 (하드코딩 금지).
+  - **헤더 구성:** 왼쪽(사용자 정보/타이틀), 오른쪽(언어/다크모드/로그아웃 등 글로벌 액션).
+  - **사이드바(Drawer):** `theme` 색상 참조하여 모드 대응.
+
+### i18n (다국어) - 필수 규칙
+**프론트엔드의 모든 텍스트는 하드코딩 금지. 반드시 `frontend/src/locales/*.json` 파일에서 로드할 것.**
+
+#### 파일 구조
+```
+frontend/src/locales/
+├── ko.json    # 한국어
+├── en.json    # 영어
+└── ja.json    # 일본어
+```
+
+#### 사용 방법
+1. **JSON 파일에 텍스트 추가**
+   ```json
+   {
+     "main": "Main",
+     "welcome": "환영합니다!",
+     "userInfo": "사용자 정보"
+   }
+   ```
+
+2. **컴포넌트에서 JSON 임포트**
+   ```typescript
+   import koMessages from "../locales/ko.json";
+   import enMessages from "../locales/en.json";
+   import jaMessages from "../locales/ja.json";
+
+   const translations = { ko: koMessages, en: enMessages, ja: jaMessages };
+   ```
+
+3. **번역 함수 사용**
+   ```typescript
+   const t = (key: string, params?: Record<string, string>) => {
+     let text = translations[language]?.[key] || key;
+     if (params) {
+       Object.entries(params).forEach(([key, value]) => {
+         text = text.replace(`{${key}}`, value);
+       });
+     }
+     return text;
+   };
+   ```
+
+#### 주의사항
+- ❌ 하드코딩 금지: `<Typography>{t("welcome")}</Typography>`
+- ✅ JSON 참고: `frontend/src/locales/` 파일에서만 텍스트 정의
+- 파라미터 지원: `{name}`, `{count}` 등 동적 값 치환 가능
+- 새 텍스트 추가 시 모든 언어 JSON 파일 동시 수정
 
 ### MUI (Material UI) 테마 및 공통 컴포넌트
 
@@ -318,3 +371,10 @@ EOF
 - **시각화:** OpenSearch Dashboard
 - **Git 전략:** `feature/*` -> `develop` -> `main` (`hotfix/*`는 긴급 수정용)
 - **CI/CD:** Docker Build -> Test -> Image Push -> Deploy (`main` 푸시 시 트리거)
+
+### 오프라인 배포 정책
+
+1. **Docker 이미지 전달:** 인터넷이 없는 폐쇄망 환경을 고려하여, Docker 이미지를 `.tar` 파일로 export하여 전달한다.
+2. **빌드 환경 통일:** Windows/Mac 등 로컬 OS 차이(특히 LF/CRLF 문제)로 인한 빌드 오류를 방지하기 위해, **반드시 Docker 환경 내에서 빌드**를 수행해야 한다.
+   - `.gitattributes` 설정을 통해 텍스트 파일의 LF 강제 변환을 유지한다.
+   - 빌드 스크립트는 Dockerfile 내부에서 실행되도록 작성한다.
