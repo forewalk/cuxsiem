@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-02 13:23 | 김장훈 | 배포 | origin/develop push (준비) |
 | 2026-02-02 10:22 | 김장훈 | 배포 | origin/feature/admin push (프로젝트 시작 준비) |
 | 2026-02-01 19:15 | 김장훈 | 배포 | origin/feature/admin push (로그인 UI/UX 개선, i18n 적용, 비밀번호 정책 관리 완성) |
 | 2026-01-31 23:56 | 김장훈 | 배포 | origin/feature/admin push (feature/login 브랜치 기반 생성 및 스크립트 수정사항 반영) |
