@@ -244,3 +244,42 @@ sudo ss -tlnp | grep :80
 # docker-compose.yml에서 포트 변경
 # ports: - "8080:80"  # 80 대신 8080 사용
 ```
+
+---
+
+## 6. 심화: 네트워크 아키텍처 (Reverse Proxy)
+
+CruxSIEM은 Nginx를 **리버스 프록시(Reverse Proxy)**로 사용하여 보안성과 편의성을 높였습니다.
+
+### 동작 원리
+
+```mermaid
+sequenceDiagram
+    participant User as 사용자 (Browser)
+    participant Nginx as Frontend (Nginx:80)
+    participant Backend as Backend (Uvicorn:8000)
+    
+    Note over User, Nginx: 외부망 / 사용자 PC
+    Note over Nginx, Backend: Docker 내부 네트워크
+
+    User->>Nginx: 1. 웹 접속 요청 (http://host/)
+    Nginx-->>User: 2. React 정적 파일 응답 (index.html, JS, CSS)
+    
+    User->>Nginx: 3. API 요청 (http://host/api/login)
+    Nginx->>Backend: 4. 내부 전달 (http://backend:8000/api/login)
+    Backend-->>Nginx: 5. JSON 응답
+    Nginx-->>User: 6. 응답 전달
+```
+
+### 장점
+
+1.  **단일 진입점 (Single Entry Point):**
+    -   사용자는 **80 포트(HTTP)** 하나만 알면 됩니다. 백엔드 포트(8000)를 따로 알거나 방화벽을 열 필요가 없습니다.
+    -   클라이언트(사용자 PC) 입장에서 프론트엔드와 백엔드는 같은 도메인/포트를 사용하는 것처럼 보입니다.
+
+2.  **보안 강화:**
+    -   백엔드 컨테이너(`backend:8000`)는 외부 인터넷에 직접 노출되지 않고, 오직 내부 Docker 네트워크(`cruxsiem-net`)를 통해서만 접근 가능합니다.
+    -   외부 공격자가 백엔드 API 서버에 직접 접근하는 것을 차단합니다.
+
+3.  **CORS 문제 해결:**
+    -   브라우저는 프론트엔드(`http://host`)와 백엔드 API(`http://host/api/...`)를 같은 출처(Origin)로 인식하므로, 복잡한 CORS(Cross-Origin Resource Sharing) 설정 없이도 통신이 원활합니다.
