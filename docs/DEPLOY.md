@@ -32,7 +32,8 @@ CruxSIEM 애플리케이션을 Docker 이미지로 빌드하여, 인터넷이 �
 
 - Docker Engine 20.10 이상
 - Docker Compose v2 이상
-- Git
+- Git (Windows의 경우 Git Bash 사용 권장)
+- **주의:** 빌드 스크립트(`*.sh`)는 반드시 **LF (Line Feed)** 줄바꿈 형식을 유지해야 합니다. Windows에서 작업 시 Git 설정(`core.autocrlf`)이나 `.gitattributes`가 올바르게 설정되어 있는지 확인하세요.
 
 ### 배포 서버 (대상 환경)
 
@@ -150,6 +151,21 @@ curl -I http://localhost
 ---
 
 ## 4. 운영
+
+### 환경 변수 및 DB 연결 관리
+
+서버마다 달라지는 설정(DB 주소, 비밀번호 등)은 **이미지를 새로 빌드할 필요 없이** 배포 서버의 `.env.production` 파일만 수정하면 됩니다.
+
+1. `.env.production` 파일 수정
+   ```bash
+   vi /opt/cruxsiem/.env.production
+   ```
+2. 컨테이너 재시작으로 변경 사항 적용
+   ```bash
+   docker compose down
+   docker compose up -d
+   ```
+   > **Note:** `docker compose restart`만으로는 환경변수 변경이 적용되지 않을 수 있으므로 `down` 후 `up`을 권장합니다.
 
 ### 서비스 관리
 

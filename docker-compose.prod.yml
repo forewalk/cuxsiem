@@ -1,0 +1,26 @@
+services:
+  backend:
+    image: cruxsiem/backend:${TAG:-latest}
+    restart: always
+    env_file:
+      - .env.production
+    ports:
+      - "8000:8000"
+    networks:
+      - cruxsiem-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    image: cruxsiem/frontend:${TAG:-latest}
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - cruxsiem-net
+
+networks:
+  cruxsiem-net:
+    driver: bridge
