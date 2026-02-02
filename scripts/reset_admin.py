@@ -4,15 +4,15 @@ import sys
 # Add /app to sys.path to ensure modules can be imported
 sys.path.append('/app')
 
-from passlib.context import CryptContext
+import bcrypt
 from app.core.opensearch import get_opensearch_client
 from app.models.user import User
 
-# Password hashing context (must match app configuration)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    # Use bcrypt directly instead of passlib to avoid compatibility issues
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
 
 async def reset_admin():
     print("Connecting to OpenSearch...")
