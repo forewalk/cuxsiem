@@ -22,54 +22,64 @@ async def reset_admin():
     admin_password = "admin1234!" # 초기 비밀번호
     
     try:
-        # Check if index exists
-        if not client.indices.exists(index="cs_users"):
-            print("Index 'cs_users' does not exist. Creating...")
-            # Here we assume the app will create it, or we create a basic one.
-            # Usually app creates it on startup if logic exists.
-            
-        # Search for admin user
+        # Search for admin user by email or username
         response = client.search(
             index="cs_users",
-            body={"query": {"term": {"username.keyword": admin_username}}}
+            body={
+                "query": {
+                    "bool": {
+                        "should": [
+                            {"term": {"username.keyword": admin_username}},
+                            {"term": {"email.keyword": "admin@example.com"}}
+                        ]
+                    }
+                }
+            }
         )
         
         hits = response['hits']['hits']
         
         hashed_pw = get_password_hash(admin_password)
         
+        
         if hits:
             # Update existing admin
             user_id = hits[0]['_id']
+            source = hits[0]['_source']
             print(f"Found existing admin user (ID: {user_id}). Updating password...")
             
+            # Use existing field names (password_hash vs hashed_password)
+            pw_field = "password_hash" if "password_hash" in source else "hashed_password"
+            
             doc = {
-                "hashed_password": hashed_pw,
+                pw_field: hashed_pw,
                 "is_active": True,
-                "is_superuser": True,
-                # Ensure other required fields if schema changed
+                "updated_at": "2026-02-02T19:40:00"
             }
             
             client.update(index="cs_users", id=user_id, body={"doc": doc})
-            print("Admin password updated successfully.")
+            print(f"Admin password updated successfully using field: {pw_field}")
             
         else:
             # Create new admin
             print("Admin user not found. Creating new admin...")
             
+            admin_email = "admin@example.com"
             new_user = {
                 "username": admin_username,
-                "email": "admin@example.com",
+                "email": admin_email,
+                "name": "Admin",
                 "full_name": "System Administrator",
-                "hashed_password": hashed_pw,
+                "password_hash": hashed_pw, # Standard field name
+                "role": "admin",
                 "is_active": True,
                 "is_superuser": True,
-                "role": "admin",
-                "created_at": "2026-02-02T00:00:00",
-                "updated_at": "2026-02-02T00:00:00"
+                "created_at": "2026-02-02T19:40:00",
+                "updated_at": "2026-02-02T19:40:00"
             }
             
-            client.index(index="cs_users", body=new_user, refresh=True)
+            # Use username as Document ID
+            client.index(index="cs_users", id=admin_username, body=new_user, refresh=True)
             print("Admin user created successfully.")
 
         print("-" * 40)

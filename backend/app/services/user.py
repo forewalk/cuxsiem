@@ -29,8 +29,12 @@ class UserService:
             )
 
         now = datetime.utcnow()
+        # Use email local-part (before @) as the document ID
+        # e.g., admin@example.com -> admin
+        user_id = request.email.split("@")[0].lower()
+        
         user = User(
-            id=str(uuid.uuid4()),
+            id=user_id,
             email=request.email.lower(),
             password_hash=get_password_hash(request.password),
             name=request.name,

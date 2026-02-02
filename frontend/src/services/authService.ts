@@ -51,6 +51,16 @@ export const authService = {
   },
 
   /**
+   * 비밀번호 초기화 (임시 비밀번호 발급)
+   */
+  async resetPassword(email: string): Promise<string> {
+    const response = await api.post<{ password: string }>("/api/v1/auth/reset-password", {
+      email,
+    });
+    return response.data.password;
+  },
+
+  /**
    * 저장된 토큰 가져오기
    */
   getToken(): string | null {

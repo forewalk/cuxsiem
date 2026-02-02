@@ -20,6 +20,11 @@ import {
   AppBar,
   Toolbar,
   Link,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -27,6 +32,7 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useAuth } from "../hooks/useAuth";
+import { authService } from "../services/authService";
 
 import koMessages from "../locales/ko.json";
 import enMessages from "../locales/en.json";
@@ -187,6 +193,33 @@ export const LoginPage: React.FC = () => {
   const handleNotImplemented = () => {
     setNotImplementedMessage(t("notImplemented"));
     setShowNotImplemented(true);
+  };
+
+  // 비밀번호 초기화 관련 상태
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [tempPassword, setTempPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleForgotPassword = () => {
+    setResetEmail("");
+    setTempPassword("");
+    setResetDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetEmail) return;
+    setResetLoading(true);
+    try {
+      const pwd = await authService.resetPassword(resetEmail);
+      setTempPassword(pwd);
+    } catch (err: any) {
+      console.error(err);
+      setError(t("resetFailed", { fallback: "비밀번호 초기화에 실패했습니다. 이메일을 확인해주세요." })); 
+      setOpenSnackbar(true);
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   return (
@@ -417,7 +450,7 @@ export const LoginPage: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
-                    handleNotImplemented();
+                    handleForgotPassword();
                   }}
                   sx={{
                     flex: 1,
@@ -530,6 +563,61 @@ export const LoginPage: React.FC = () => {
           {notImplementedMessage}
         </Alert>
       </Snackbar>
+
+      {/* 비밀번호 초기화 다이얼로그 */}
+      <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
+        <DialogTitle>{t("resetPassword", { fallback: "비밀번호 초기화" })}</DialogTitle>
+        <DialogContent>
+          {!tempPassword ? (
+            <>
+              <DialogContentText sx={{ mb: 2 }}>
+                {t("resetPasswordDesc", { fallback: "가입된 이메일 주소를 입력하면 임시 비밀번호를 발급해 드립니다." })}
+              </DialogContentText>
+              <TextField
+                autoFocus
+                margin="dense"
+                label={t("email")}
+                type="email"
+                fullWidth
+                variant="outlined"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+              />
+            </>
+          ) : (
+            <>
+              <DialogContentText sx={{ mb: 2 }}>
+                {t("tempPasswordIssued", { fallback: "임시 비밀번호가 발급되었습니다." })}
+              </DialogContentText>
+              <Box
+                sx={{
+                  p: 2,
+                  bgcolor: darkMode ? "#333" : "#f5f5f5",
+                  borderRadius: 1,
+                  textAlign: "center",
+                  fontWeight: "bold",
+                  fontSize: "1.2rem",
+                  userSelect: "all",
+                  border: "1px dashed #ccc"
+                }}
+              >
+                {tempPassword}
+              </Box>
+              <DialogContentText sx={{ mt: 2, fontSize: "0.875rem" }}>
+                {t("copyPasswordDesc", { fallback: "위 비밀번호를 복사하여 로그인하세요." })}
+              </DialogContentText>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetDialogOpen(false)}>{t("close", { fallback: "닫기" })}</Button>
+          {!tempPassword && (
+            <Button onClick={handleResetPassword} disabled={resetLoading || !resetEmail} variant="contained" color="primary">
+              {resetLoading ? <CircularProgress size={20} color="inherit" /> : t("reset", { fallback: "초기화" })}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Container>
     </ThemeProvider>
   );
