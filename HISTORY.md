@@ -39,6 +39,7 @@
 | 2026-02-08 19:15 | 김장훈 | 배포 | origin/develop push (OpenSearch SSL CA 지원 및 docker-compose 볼륨 마운트 설정) |
 | 2026-02-08 16:20 | 최지호 | 수정 | origin/feature/dashboard push (위협현황 대시보드 틀 구성 완료) |
 | 2026-02-06 18:00 | 최지호 | 수정 | origin/feature/dashboard push (threat 대시보드 일부 구성) |
+| 2026-02-04 15:11 | 김경수 | 수정 | feature/reallog push (로그 스트리밍 기능 초안 구현) |
 | 2026-02-06 16:30 | 김장훈 | 배포 | origin/develop push (MUI v7 Grid 표준 적용 및 빌드 오류 수정) |
 | 2026-02-06 14:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 병합 및 최신화) |
 | 2026-02-03 17:10 | 최지호 | 추가 | origin/feature/dashboard push (메인 대시보드 초안 구현) |
