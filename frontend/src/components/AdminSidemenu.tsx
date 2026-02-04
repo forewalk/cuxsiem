@@ -7,7 +7,7 @@ import {
 import {
   ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Settings as SettingsIcon,
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
-  ShowChart as ThreatsIcon,
+  ShowChart as ThreatsIcon, Terminal as TerminalIcon,
 } from '@mui/icons-material';
 import useTabStore from '../stores/tabStore';
 
@@ -28,7 +28,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const [openDashboardMenu, setOpenDashboardMenu] = useState(true); // 기본적으로 열림
   const theme = useTheme();
   const navigate = useNavigate();
-  const addTab = useTabStore((state) => state.addTab);
+  const { addTab, activeTabId } = useTabStore();
 
   // 사이드바가 닫힐 때 하위 메뉴를 강제로 닫지 않고, UI에서만 숨기도록 제어합니다.
   // 텍스트와 아이콘 배치는 Drawer의 open 상태에 따라 결정됩니다.
@@ -61,6 +61,9 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
   const menuBg = theme.palette.mode === 'dark' ? '#1A1A1A' : theme.palette.background.paper;
   const textColor = theme.palette.text.primary;
+  const itemHoverBg = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
+  
+  const isLogStreamingActive = activeTabId === 'LogStreamingTab';
 
   const listItemTextStyle = {
     opacity: drawerOpen ? 1 : 0,
@@ -104,6 +107,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
       
       <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
         <List>
+          {/* Dashboard Menu */}
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton onClick={handleDashboardMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
               <ListItemIcon sx={{ minWidth: iconMinWidth, mr: drawerOpen ? 3 : 'auto' }}><DashboardIcon /></ListItemIcon>
@@ -123,6 +127,23 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               </ListItemButton>
             </List>
           </Collapse>
+
+          {/* Log Streaming Menu */}
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={() => handleMenuTabClick(t('logStreaming'), 'LogStreamingTab', 'logStreaming')}
+              selected={isLogStreamingActive}
+              sx={{
+                minHeight: listItemHeight,
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: drawerOpen ? 3 : 'auto' }}>
+                <TerminalIcon />
+              </ListItemIcon>
+              <ListItemText primary={t('logStreaming')} sx={listItemTextStyle} />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Box>
 
