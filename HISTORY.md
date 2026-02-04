@@ -42,6 +42,7 @@
 | 2026-02-06 16:30 | 김장훈 | 배포 | origin/develop push (MUI v7 Grid 표준 적용 및 빌드 오류 수정) |
 | 2026-02-06 14:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 병합 및 최신화) |
 | 2026-02-03 17:10 | 최지호 | 추가 | origin/feature/dashboard push (메인 대시보드 초안 구현) |
+| 2026-02-02 23:45 | 김경수 | 수정 | feature/reallog push (로그 스트리밍 기능 초안 구현) |
 | 2026-02-02 23:45 | 김장훈 | 배포 | origin/develop push (cicd 브랜치 병합: 배포 자동화 및 초기화 기능 통합) |
 | 2026-02-02 23:30 | 김장훈 | 문서화 | origin/cicd push (배포 가이드에 리버스 프록시 아키텍처 설명 추가) |
 | 2026-02-02 13:28 | 김장훈 | 설정 | origin/develop push (mockup 폴더 제외 처리) |
