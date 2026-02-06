@@ -53,11 +53,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string, rememberMe = false) => {
+    async (username: string, password: string, rememberMe = false) => {
       setIsLoading(true);
       try {
         const response = await authService.login({
-          email,
+          username,
           password,
           remember_me: rememberMe,
         });

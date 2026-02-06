@@ -13,6 +13,7 @@ export interface PaginatedResponse<T> {
 // Auth types
 export interface User {
   id: string;
+  username: string;
   email: string;
   name: string;
   role: string;
@@ -22,7 +23,7 @@ export interface User {
 }
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
   remember_me?: boolean;
 }
@@ -35,6 +36,8 @@ export interface LoginResponse {
 }
 
 export interface UserCreate {
+  id: string;
+  username: string;
   email: string;
   name: string;
   role: string;
@@ -59,7 +62,7 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   getCurrentUser: () => Promise<void>;
 }

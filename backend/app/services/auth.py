@@ -24,8 +24,8 @@ class AuthService:
 
     async def login(self, request: LoginRequest, ip_address: str = None) -> LoginResponse:
         """로그인"""
-        # email 필드에 username이 들어올 수 있음
-        username = request.email
+        # 사용자 ID로 로그인
+        username = request.username
 
         # 로그인 실패 제한 확인 (5회/10분)
         failed_count = await self.login_attempt_repo.count_failed_attempts(username, minutes=10)
@@ -103,6 +103,7 @@ class AuthService:
             expires_in=expires_in,
             user=UserResponse(
                 id=user.id,
+                username=user.id,  # username은 id와 동일
                 email=user.email,
                 name=user.name,
                 role=user.role,
@@ -128,6 +129,7 @@ class AuthService:
         
         return UserResponse(
             id=user.id,
+            username=user.id,
             email=user.email,
             name=user.name,
             role=user.role,

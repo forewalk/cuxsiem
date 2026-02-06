@@ -42,7 +42,7 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -116,8 +116,8 @@ export const LoginPage: React.FC = () => {
   const validateForm = useCallback((): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!email) {
-      errors.email = t("idRequired", { fallback: "아이디를 입력해주세요" });
+    if (!username) {
+      errors.username = t("idRequired", { fallback: "아이디를 입력해주세요" });
     }
 
     if (!password) {
@@ -132,7 +132,7 @@ export const LoginPage: React.FC = () => {
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [email, password, language]);
+  }, [username, password, language]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -144,7 +144,7 @@ export const LoginPage: React.FC = () => {
       }
 
       try {
-        await login(email, password, false);
+        await login(username, password, false);
         navigate("/main");
       } catch (err: any) {
         console.error("Login Error:", err);
@@ -179,7 +179,7 @@ export const LoginPage: React.FC = () => {
         setOpenSnackbar(true);
       }
     },
-    [email, password, validateForm, login, navigate, language]
+    [username, password, validateForm, login, navigate, language]
   );
 
   useEffect(() => {
@@ -344,15 +344,15 @@ export const LoginPage: React.FC = () => {
             <Box component="form" onSubmit={handleSubmit} noValidate>
               <TextField
                 fullWidth
-                label={t("idOrEmail", { fallback: "아이디" })}
+                label={t("id", { fallback: "아이디" })}
                 type="text"
-                value={email}
+                value={username}
                 onChange={(e) => {
-                  setEmail(e.target.value);
-                  setValidationErrors((prev) => ({ ...prev, email: "" }));
+                  setUsername(e.target.value);
+                  setValidationErrors((prev) => ({ ...prev, username: "" }));
                 }}
-                error={!!validationErrors.email}
-                helperText={validationErrors.email}
+                error={!!validationErrors.username}
+                helperText={validationErrors.username}
                 margin="normal"
                 placeholder="admin"
                 disabled={isLoading}

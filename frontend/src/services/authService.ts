@@ -10,7 +10,7 @@ export const authService = {
    */
   async login(loginData: LoginRequest): Promise<LoginResponse> {
     const response = await api.post<LoginResponse>("/api/v1/auth/login", {
-      email: loginData.email,
+      username: loginData.username,
       password: loginData.password,
       remember_me: loginData.remember_me || false,
     });

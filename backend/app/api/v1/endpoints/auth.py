@@ -28,7 +28,7 @@ async def login(request: LoginRequest, req: Request):
     """
     로그인
 
-    - **email**: 이메일 주소
+    - **username**: 사용자 ID
     - **password**: 비밀번호 (최소 8자, 영문+숫자 필수)
     - **remember_me**: 로그인 유지 (기본: false)
     """

@@ -38,22 +38,27 @@ try:
 
     # Check/Create admin user
     print("[*] Checking admin user...")
-    response = client.search(
-        index="cs_users",
-        body={"query": {"match": {"email": "admin@example.com"}}},
-    )
-
-    if response["hits"]["total"]["value"] == 0:
+    
+    # Check if admin exists by ID
+    admin_id = "admin"
+    try:
+        client.get(index="cs_users", id=admin_id)
+        print(f"[*] Admin user already exists (ID: {admin_id})\n")
+    except Exception:
+        # Admin does not exist, create one
+        print(f"[*] Creating admin user (ID: {admin_id})...")
+        
         # Hash password with bcrypt
         password = "password123"
         salt = bcrypt.gensalt(rounds=12)
         password_hash = bcrypt.hashpw(password.encode(), salt).decode()
 
         admin_user = {
-            "id": str(uuid.uuid4()),
-            "email": "admin@example.com",
+            "id": admin_id,
+            "username": "admin",  # Explicit username field
+            "email": "admin@cruxdata.co.kr", # Email is just a profile field now
             "password_hash": password_hash,
-            "name": "Admin",
+            "name": "Administrator",
             "role": "admin",
             "is_active": True,
             "created_at": datetime.utcnow().isoformat(),
@@ -64,24 +69,51 @@ try:
 
         client.index(
             index="cs_users",
-            id=admin_user["id"],
+            id=admin_id,
             body=admin_user,
             refresh=True,
         )
         print(f"[+] Admin user created")
-        print(f"    Email: admin@example.com")
+        print(f"    ID: admin")
         print(f"    Password: password123\n")
-    else:
-        print(f"[*] Admin user already exists\n")
+
+    # Check/Create default password policy
+    print("[*] Checking password policy...")
+    policy_id = "default"
+    try:
+        client.get(index="cs_password_policies", id=policy_id)
+        print(f"[*] Default password policy already exists\n")
+    except Exception:
+        print(f"[*] Creating default password policy...")
+        default_policy = {
+            "id": policy_id,
+            "name": "기본 정책",
+            "min_length": 9,
+            "require_uppercase": True,
+            "require_lowercase": True,
+            "require_numbers": True,
+            "require_special_chars": True,
+            "expiry_days": 90,
+            "history_count": 3,
+            "max_login_attempts": 5,
+            "lockout_minutes": 10,
+            "is_active": True,
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        client.index(
+            index="cs_password_policies",
+            id=policy_id,
+            body=default_policy,
+            refresh=True
+        )
+        print(f"[+] Default password policy created\n")
 
     print("=" * 60)
     print("[+] OpenSearch initialization completed!")
     print("=" * 60)
-    print("\nTest Account:")
-    print("    Email: admin@example.com")
-    print("    Password: password123\n")
-    print("Test Account:")
-    print("    Email: user@example.com")
+    print("\n[Login Info]")
+    print("    ID: admin")
     print("    Password: password123\n")
 
 except Exception as e:
