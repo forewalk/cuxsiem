@@ -7,6 +7,7 @@ import {
 import {
   ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Settings as SettingsIcon,
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
+  ShowChart as ThreatsIcon,
 } from '@mui/icons-material';
 import useTabStore from '../pages/admin/stores/tabStore';
 
@@ -30,6 +31,7 @@ const FIGMA_COLORS = {
 
 const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
   const [openAdminMenu, setOpenAdminMenu] = useState(false);
+  const [openDashboardMenu, setOpenDashboardMenu] = useState(true); // 대시보드 메뉴 기본 열림
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -38,11 +40,21 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   useEffect(() => {
     if (!drawerOpen) {
       setOpenAdminMenu(false);
+      setOpenDashboardMenu(false);
+    } else {
+      // 대시보드 하위 경로에 있으면 메뉴 열기
+      if (location.pathname.startsWith('/main/dashboard')) {
+        setOpenDashboardMenu(true);
+      }
     }
-  }, [drawerOpen]);
+  }, [drawerOpen, location.pathname]);
 
   const handleAdminMenuClick = () => {
     setOpenAdminMenu(!openAdminMenu);
+  };
+
+  const handleDashboardMenuClick = () => {
+    setOpenDashboardMenu(!openDashboardMenu);
   };
 
   const handleAdminSubMenuClick = (label: string, component: string) => {
@@ -59,6 +71,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const selectedTextColor = theme.palette.mode === 'dark' ? '#FFFFFF' : FIGMA_COLORS.activeText;
 
   const isAnyAdminSubMenuActive = location.pathname === '/main/admin';
+  const isDashboardActive = location.pathname.startsWith('/main/dashboard');
 
   const listItemTextStyle = {
     opacity: drawerOpen ? 1 : 0,
@@ -110,20 +123,16 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
       
       <Box sx={{ overflowY: 'auto', overflowX: 'hidden', flexGrow: 1 }}>
         <List>
+          {/* Dashboard Menu Group */}
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
-              onClick={() => navigate('/main')}
-              selected={location.pathname === '/main'}
+              onClick={handleDashboardMenuClick}
               sx={{
                 minHeight: listItemHeight,
                 justifyContent: drawerOpen ? 'initial' : 'center',
                 px: 2.5,
                 color: textColor,
-                '&.Mui-selected': {
-                  bgcolor: selectedBg,
-                  color: selectedTextColor,
-                  '& .MuiListItemIcon-root': { color: selectedTextColor },
-                },
+                bgcolor: (openDashboardMenu && drawerOpen) || isDashboardActive ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)') : 'transparent',
                 '&:hover': {
                   bgcolor: itemHoverBg,
                 },
@@ -133,8 +142,34 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                 <DashboardIcon />
               </ListItemIcon>
               <ListItemText primary={t('dashboard')} sx={listItemTextStyle} />
+              {drawerOpen && (openDashboardMenu ? <ExpandLess /> : <ExpandMore />)}
             </ListItemButton>
           </ListItem>
+          
+          <Collapse in={openDashboardMenu && drawerOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding sx={{ bgcolor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)' }}>
+              <ListItemButton
+                selected={location.pathname === '/main/dashboard/threats'}
+                sx={{ 
+                  pl: 4, 
+                  minHeight: listItemHeight,
+                  color: textColor,
+                  '&.Mui-selected': {
+                    bgcolor: selectedBg,
+                    color: selectedTextColor,
+                    '& .MuiListItemIcon-root': { color: selectedTextColor },
+                  },
+                  '&:hover': { bgcolor: itemHoverBg }
+                }}
+                onClick={() => navigate('/main/dashboard/threats')}
+              >
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2, justifyContent: 'center', color: 'inherit' }}>
+                  <ThreatsIcon />
+                </ListItemIcon>
+                <ListItemText primary={t('threats')} sx={listItemTextStyle} />
+              </ListItemButton>
+            </List>
+          </Collapse>
         </List>
       </Box>
 

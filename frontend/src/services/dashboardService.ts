@@ -12,8 +12,13 @@ export interface SeverityStat {
 
 export interface DashboardSummary {
   total_logs: number;
-  critical_logs: number;
-  warning_logs: number;
+  total_threats: number;
+  resolved_threats: number;
+  unresolved_threats: number;
+  active_threats: number;
+  blocked_threats: number;
+  mitigated_threats: number;
+  suspicious_threats: number;
 }
 
 export interface DashboardStatsResponse {
@@ -29,12 +34,16 @@ export const getDashboardIndices = async (): Promise<string[]> => {
 };
 
 export const getDashboardStats = async (
-  indexName?: string, 
-  timeRange: string = "15m",
+  fromValue: number = 15,
+  fromUnit: string = "m",
+  toValue?: number,
+  toUnit?: string,
   query?: string
 ): Promise<DashboardStatsResponse> => {
-  let url = `/api/v1/dashboard/stats?time_range=${timeRange}`;
-  if (indexName) url += `&index_name=${indexName}`;
+  let url = `/api/v1/dashboard/stats?from_value=${fromValue}&from_unit=${fromUnit}`;
+  if (toValue !== undefined && toUnit) {
+    url += `&to_value=${toValue}&to_unit=${toUnit}`;
+  }
   if (query) url += `&q=${encodeURIComponent(query)}`;
   
   const response = await api.get<DashboardStatsResponse>(url);
