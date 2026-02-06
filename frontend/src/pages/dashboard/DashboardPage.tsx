@@ -85,7 +85,7 @@ const DashboardPage: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Summary Card */}
-        <Grid item xs={12}>
+        <Grid xs={12}>
           <Paper sx={{ p: 2, display: "flex", flexDirection: "column", height: 100, justifyContent: 'center' }}>
             <Typography color="text.secondary" gutterBottom variant="subtitle2">Total Logs (Filtered)</Typography>
             <Typography variant="h3" sx={{ fontWeight: 'bold' }}>{data?.summary?.total_logs?.toLocaleString() ?? 0}</Typography>
@@ -93,7 +93,7 @@ const DashboardPage: React.FC = () => {
         </Grid>
 
         {/* Main Chart Area */}
-        <Grid item xs={12}>
+        <Grid xs={12}>
           <Paper sx={{ p: 2, height: 400 }}>
             <BarChartWidget data={data?.histogram || []} height={350} />
           </Paper>
