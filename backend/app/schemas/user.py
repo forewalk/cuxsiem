@@ -14,6 +14,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """사용자 생성 요청"""
+    username: str = Field(..., min_length=4, max_length=50, description="사용자 ID")
     password: str = Field(..., min_length=8, max_length=128)
 
     @field_validator('password')
@@ -50,6 +51,7 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     """사용자 응답"""
     id: str
+    username: Optional[str] = None # 호환성을 위해 Optional
     created_at: datetime
     updated_at: datetime
     last_login_at: Optional[datetime] = None

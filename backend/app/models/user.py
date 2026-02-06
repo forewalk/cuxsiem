@@ -21,6 +21,7 @@ class User:
     def to_dict(self) -> dict:
         """OpenSearch 문서로 변환"""
         return {
+            "id": self.id,
             "email": self.email,
             "password_hash": self.password_hash,
             "name": self.name,

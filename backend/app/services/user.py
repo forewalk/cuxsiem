@@ -20,18 +20,26 @@ class UserService:
 
     async def create_user(self, request: UserCreate) -> UserResponse:
         """신규 사용자 생성"""
-        # 이메일 중복 확인
-        existing_user = await self.user_repo.get_by_email(request.email)
-        if existing_user:
+        # ID(username) 중복 확인
+        existing_user = await self.user_repo.get_by_id(request.username)
+        if existing_user and not existing_user.deleted_at:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="이미 사용 중인 이메일입니다"
+                status_code=status.HTTP_409_CONFLICT,
+                detail="이미 사용 중인 아이디입니다"
             )
 
+        # 이메일 중복 확인 (선택사항 - 필요한 경우 유지)
+        if request.email:
+            existing_email_user = await self.user_repo.get_by_email(request.email)
+            if existing_email_user and existing_email_user.id != request.username:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="이미 사용 중인 이메일입니다"
+                )
+
         now = datetime.utcnow()
-        # Use email local-part (before @) as the document ID
-        # e.g., admin@example.com -> admin
-        user_id = request.email.split("@")[0].lower()
+        # username을 Document ID로 사용
+        user_id = request.username
         
         user = User(
             id=user_id,
