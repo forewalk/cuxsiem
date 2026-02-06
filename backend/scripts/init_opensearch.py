@@ -55,7 +55,6 @@ try:
 
         admin_user = {
             "id": admin_id,
-            "username": "admin",  # Explicit username field
             "email": "admin@cruxdata.co.kr", # Email is just a profile field now
             "password_hash": password_hash,
             "name": "Administrator",
