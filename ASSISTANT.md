@@ -27,7 +27,7 @@ SIEM (Security Information and Event Management) 웹 애플리케이션. 9단계
 
 **기술 스택:**
 - 백엔드: FastAPI + Python 3.11 + opensearch-py
-- 프론트엔드: React 18 + TypeScript + Vite + MUI (Material UI)
+- 프론트엔드: React 18 + TypeScript + Vite + MUI (Material UI v7.3.7, Grid v2 사용 권장)
 - 데이터베이스: OpenSearch (로그/검색/저장)
 - 데이터 파이프라인: Kafka + Vector
 - 배포: Docker + Docker Compose, Nginx 리버스 프록시
