@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Grid, Paper, Typography, CircularProgress, Alert, LinearProgress } from "@mui/material";
+import { Box, Paper, Typography, CircularProgress, Alert, LinearProgress } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import ControlBar from "./components/ControlBar";
 import BarChartWidget from "./components/BarChartWidget";
 import { getDashboardStats, getDashboardIndices } from "../../services/dashboardService";
