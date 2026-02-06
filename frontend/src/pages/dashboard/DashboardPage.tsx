@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Grid, Paper, Typography, CircularProgress, Alert, LinearProgress } from "@mui/material";
+import { Box, Paper, Typography, CircularProgress, Alert, LinearProgress } from "@mui/material";
 import ControlBar from "./components/ControlBar";
 import BarChartWidget from "./components/BarChartWidget";
 import { getDashboardStats, getDashboardIndices } from "../../services/dashboardService";
@@ -83,22 +83,23 @@ const DashboardPage: React.FC = () => {
         <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
       )}
 
-      <Grid container spacing={3}>
+      {/* Grid 대신 Box 사용 */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Summary Card */}
-        <Grid xs={12}>
+        <Box sx={{ width: '100%' }}>
           <Paper sx={{ p: 2, display: "flex", flexDirection: "column", height: 100, justifyContent: 'center' }}>
             <Typography color="text.secondary" gutterBottom variant="subtitle2">Total Logs (Filtered)</Typography>
             <Typography variant="h3" sx={{ fontWeight: 'bold' }}>{data?.summary?.total_logs?.toLocaleString() ?? 0}</Typography>
           </Paper>
-        </Grid>
+        </Box>
 
         {/* Main Chart Area */}
-        <Grid xs={12}>
+        <Box sx={{ width: '100%' }}>
           <Paper sx={{ p: 2, height: 400 }}>
             <BarChartWidget data={data?.histogram || []} height={350} />
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 };
