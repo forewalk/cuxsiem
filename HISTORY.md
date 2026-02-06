@@ -25,22 +25,9 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-03 17:10 | 최지호 | 추가 | origin/feature/dashboard push (메인 대시보드 초안 구현) |
 | 2026-02-02 23:45 | 김장훈 | 배포 | origin/develop push (cicd 브랜치 병합: 배포 자동화 및 초기화 기능 통합) |
 | 2026-02-02 23:30 | 김장훈 | 문서화 | origin/cicd push (배포 가이드에 리버스 프록시 아키텍처 설명 추가) |
-| 2026-02-02 23:00 | 김장훈 | 수정 | origin/cicd push (프론트엔드 API baseURL 수정: 상대 경로 사용으로 CORS 및 네트워크 에러 해결) |
-| 2026-02-02 22:30 | 김장훈 | 수정 | origin/cicd push (배포 스크립트 메시지 정리) |
-| 2026-02-02 22:00 | 김장훈 | 정리 | origin/cicd push (배포 패키지 정리: reset_admin.py 제거 및 안내 문구 갱신) |
-| 2026-02-02 21:30 | 김장훈 | 추가 | origin/cicd push (비밀번호 초기화 관련 다국어 지원 추가) |
-| 2026-02-02 21:00 | 김장훈 | 배포 | origin/cicd push (간소화된 ID 기반 비밀번호 초기화 기능 및 백엔드 문법 오류 수정) |
-| 2026-02-02 20:45 | 김장훈 | 설정 | origin/cicd push (전체 사용자 마이그레이션 스크립트로 개선: UUID -> Username ID 변환) |
-| 2026-02-02 20:30 | 김장훈 | 배포 | origin/cicd push (ID 로그인 지원 및 Admin 계정 마이그레이션 스크립트 수정) |
-| 2026-02-02 20:15 | 김장훈 | 설정 | origin/cicd push (User ID 정책 변경: Email Local-part 사용 및 비밀번호 초기화 로직 연동) |
-| 2026-02-02 19:30 | 김장훈 | 수리 | origin/cicd push (관리자 초기화 스크립트 수정: passlib -> bcrypt 직접 사용) |
-| 2026-02-02 19:15 | 김장훈 | 배포 | origin/cicd push (DB 접속 테스트 및 관리자 초기화 스크립트 추가) |
-| 2026-02-02 18:45 | 김장훈 | 수리 | origin/cicd push (프론트엔드 빌드 수정: MUI Grid → Grid2 변경) |
-| 2026-02-02 18:35 | 김장훈 | 수리 | origin/cicd push (프론트엔드 빌드 에러 수정: 미사용 prop 제거 및 MUI Grid 문법 수정) |
-| 2026-02-02 18:20 | 김장훈 | 배포 | origin/cicd push (빌드 스크립트 보완 및 package-lock.json 추가) |
-| 2026-02-02 17:35 | 김장훈 | 배포 | origin/cicd push (폐쇄망 배포용 Docker 및 빌드/배포 스크립트 추가) |
 | 2026-02-02 13:28 | 김장훈 | 설정 | origin/develop push (mockup 폴더 제외 처리) |
 | 2026-02-02 13:23 | 김장훈 | 배포 | origin/develop push (준비) |
 | 2026-02-02 10:22 | 김장훈 | 배포 | origin/feature/admin push (프로젝트 시작 준비) |

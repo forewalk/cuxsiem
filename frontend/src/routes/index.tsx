@@ -4,7 +4,7 @@ import { LoginPage } from "../pages/LoginPage";
 import { PrivateRoute } from "../components/PrivateRoute";
 import AdminRoute from "../components/AdminRoute";
 import AdminPage from "../pages/admin/AdminPage";
-import MainDashboardContent from "../pages/MainDashboardContent";
+import DashboardPage from "../pages/dashboard/DashboardPage";
 
 const router = createBrowserRouter([
   {
@@ -21,7 +21,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <MainDashboardContent />,
+        element: <DashboardPage />,
       },
       {
         path: "admin",
