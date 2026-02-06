@@ -2,16 +2,16 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from app.core.opensearch import get_opensearch
 from app.schemas.log import LogStreamResponse
-from app.api.v1.deps import get_current_user
+from app.api.v1.deps import get_current_active_user
 from app.schemas.user import UserResponse
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
-@router.get("/stream", response_model=LogStreamResponse)
+@router.get("/stream", response_model=LogStreamResponse, response_model_by_alias=True)
 async def stream_logs(
     last_timestamp: Optional[str] = Query(None, description="마지막 로그의 타임스탬프 (ISO 형식)"),
     limit: int = Query(100, ge=1, le=1000, description="최대 조회 개수"),
-    current_user: UserResponse = Depends(get_current_user),
+    current_user: UserResponse = Depends(get_current_active_user),
     os_client=Depends(get_opensearch)
 ):
     """
@@ -24,7 +24,9 @@ async def stream_logs(
         "sort": [{"timestamp": {"order": "desc"}}],
         "query": {
             "bool": {
-                "must": []
+                "must": [
+                    {"exists": {"field": "timestamp"}}  # timestamp 필드가 있는 문서만 조회
+                ]
             }
         }
     }
@@ -37,17 +39,19 @@ async def stream_logs(
                 }
             }
         })
-    else:
-        query["query"]["bool"]["must"].append({
-            "match_all": {}
-        })
 
-    # 'activities' 인덱스가 없을 수 있으므로 와일드카드 또는 특정 인덱스 설정
-    # 기획서에 따라 'activities'를 우선적으로 보되, 유연하게 대응
-    index_name = "activities"
+    # 'activities' 인덱스를 우선적으로 보되, 와일드카드를 사용하여 유연하게 대응
+    index_name = "activities*"
     
-    response = os_client.search(index=index_name, body=query)
-    hits = response.get("hits", {}).get("hits", [])
+    try:
+        response = os_client.search(index=index_name, body=query)
+        hits = response.get("hits", {}).get("hits", [])
+    except Exception as e:
+        # 인덱스가 없거나 검색 오류 시 빈 리스트 반환
+        return {
+            "logs": [],
+            "last_timestamp": last_timestamp
+        }
     
     logs = []
     new_last_timestamp = last_timestamp
@@ -55,6 +59,11 @@ async def stream_logs(
     for hit in hits:
         source = hit.get("_source", {})
         ts = source.get("timestamp")
+        
+        # timestamp가 없는 문서는 이미 query에서 필터링되었겠지만, 안전을 위해 체크
+        if not ts:
+            continue
+
         logs.append({
             "_id": hit.get("_id"),
             "_index": hit.get("_index"),

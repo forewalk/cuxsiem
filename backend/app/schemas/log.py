@@ -9,9 +9,16 @@ class LogEntry(BaseModel):
     message: str
     source: dict = Field(..., alias="_source")
 
-    class Config:
-        populate_by_name = True
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }
 
 class LogStreamResponse(BaseModel):
     logs: List[LogEntry]
     last_timestamp: Optional[datetime] = None
+
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }

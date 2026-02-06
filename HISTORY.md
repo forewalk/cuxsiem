@@ -40,6 +40,7 @@
 | 2026-02-08 16:20 | 최지호 | 수정 | origin/feature/dashboard push (위협현황 대시보드 틀 구성 완료) |
 | 2026-02-06 18:00 | 최지호 | 수정 | origin/feature/dashboard push (threat 대시보드 일부 구성) |
 | 2026-02-06 16:30 | 김장훈 | 배포 | origin/develop push (MUI v7 Grid 표준 적용 및 빌드 오류 수정) |
+| 2026-02-06 16:15 | 박상현 | 수정 | 로그 스트리밍 백엔드 API 오류 수정 (인증 의존성, 타임스탬프 누락 대응 및 JSON Alias 적용) |
 | 2026-02-06 15:27 | 박상현 | 수정 | feature/reallog/main push (feature/reallog => feature/reallog/main 브랜치 이름 수정) |
 | 2026-02-06 14:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 병합 및 최신화) |
 | 2026-02-04 15:11 | 김경수 | 수정 | feature/reallog push (로그 스트리밍 기능 초안 구현) |
