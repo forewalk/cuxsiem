@@ -6,6 +6,8 @@ services:
       - .env.production
     ports:
       - "8000:8000"
+    volumes:
+      - /conf/certs/ca.crt:/conf/certs/ca.crt:ro
     networks:
       - cruxsiem-net
     extra_hosts:

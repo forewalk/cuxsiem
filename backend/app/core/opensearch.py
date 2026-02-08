@@ -23,6 +23,7 @@ def get_opensearch_client() -> OpenSearch:
             else None,
             use_ssl=settings.OPENSEARCH_USE_SSL,
             verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
+            ca_certs=settings.OPENSEARCH_CA_CERTS,
             ssl_show_warn=False,
         )
     return _client
