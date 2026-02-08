@@ -7,9 +7,10 @@ interface BarChartWidgetProps {
   data: HistogramItem[];
   height?: number;
   title?: string;
+  emptyMessage?: string;
 }
 
-const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, title }) => {
+const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, title, emptyMessage = "No data available" }) => {
   const theme = useTheme();
 
   // Find max value for scaling
@@ -55,7 +56,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
   if (!data || data.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column' }}>
-        <Typography color="text.disabled">No log trend data available</Typography>
+        <Typography color="text.disabled">{emptyMessage}</Typography>
       </Box>
     );
   }
@@ -129,13 +130,13 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
                   <title>{`${dayjs(item.timestamp).format("YYYY-MM-DD HH:mm")}: ${item.count} logs`}</title>
                 </rect>
                 
-                {/* X-axis labels (Optimized Step) */}
-                {i % Math.ceil(data.length / 10) === 0 && (
-                  <g transform={`translate(${x + barWidth / 2}, ${padding.top + chartHeight + 20})`}>
+                {/* X-axis labels (More compact) */}
+                {i % Math.ceil(data.length / 12) === 0 && (
+                  <g transform={`translate(${x + barWidth / 2}, ${padding.top + chartHeight + 18})`}>
                     {isMultiDay && (
                       <text
-                        y="-12"
-                        fontSize="10"
+                        y="-10"
+                        fontSize="9"
                         textAnchor="middle"
                         fill={theme.palette.text.disabled}
                       >
@@ -143,7 +144,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
                       </text>
                     )}
                     <text
-                      fontSize="11"
+                      fontSize="10"
                       textAnchor="middle"
                       fill={theme.palette.text.secondary}
                     >

@@ -76,10 +76,11 @@
   "tempPasswordIssued": "Temporary password has been issued.",
   "copyPasswordDesc": "Please copy the password above to log in.",
   "resetFailed": "Password reset failed. Please check your ID.",
-  "idRequired": "ID is required",
-  "last": "Last",
-  "unit_m": "Minutes",
-  "unit_h": "Hours",
+      "idRequired": "ID is required",
+          "last": "Last",
+          "apply": "Apply",
+          "indexTitle": "Index",
+          "unit_m": "Minutes",  "unit_h": "Hours",
   "unit_d": "Days",
   "searchPlaceholder": "Search logs (e.g. endpoint.os:windows)",
   "lastUpdated": "Last updated",
@@ -89,7 +90,8 @@
   "resolvedThreats": "Resolved Count",
   "unresolvedThreats": "Unresolved Count",
   "activeThreats": "Active Count",
-  "blockedThreats": "Total Blocked Threats",
-  "mitigatedThreats": "Total Mitigated Threats",
-  "suspiciousThreats": "Total Detected - Suspicious"
+  "blockedThreats": "Blocked Count",
+  "mitigatedThreats": "Action Required Panel",
+  "suspiciousThreats": "Action Required Panel 2",
+  "noLogs": "No Logs"
 }

@@ -10,6 +10,7 @@ class DashboardRepository:
 
     def __init__(self):
         self.client = get_opensearch_client()
+        # 기본 인덱스 설정
         self.fixed_index = "logs-sentinel_one.threats"
 
     async def get_indices(self) -> List[str]:
@@ -35,7 +36,7 @@ class DashboardRepository:
         time_field = "@timestamp"
         status_field = "threatInfo.incidentStatus"
         severity_field = "threatInfo.confidenceLevel"
-        mitigation_field = "mitigationStatus"
+        mitigation_field = "threatInfo.mitigationStatus"
 
         now = datetime.utcnow()
         start_time = now - self._parse_time(from_value, from_unit)
@@ -81,21 +82,40 @@ class DashboardRepository:
                             "extended_bounds": {"min": start_time.isoformat(), "max": end_time.isoformat()}
                         }
                     },
-                    "resolved_count": {"filter": {"terms": {status_field: ["resolved", "resolved"]}}},
-                    "unresolved_count": {"filter": {"terms": {status_field: ["unresolved", "unresolved"]}}},
+                    "resolved_count": {"filter": {"term": {status_field: "resolved"}}},
+                    "unresolved_count": {"filter": {"term": {status_field: "unresolved"}}},
                     "active_count": {
                         "filter": {
                             "bool": {
                                 "must": [
-                                    {"terms": {status_field: ["resolved", "resolved"]}},
-                                    {"terms": {"threatInfo.mitigationStatus": ["active", "active"]}}
+                                    {"term": {status_field: "resolved"}},
+                                    {"term": {mitigation_field: "active"}}
                                 ]
                             }
                         }
                     },
-                    "blocked_count": {"filter": {"terms": {mitigation_field: ["blocked", "blocked"]}}},
-                    "mitigated_count": {"filter": {"terms": {mitigation_field: ["mitigated", "mitigated"]}}},
-                    "suspicious_count": {"filter": {"terms": {severity_field: ["suspicious", "suspicious"]}}}
+                    # Row 2: Mitigation & Severity
+                    "blocked_count": {
+                        "filter": {
+                            "bool": {
+                                "must": [
+                                    {"term": {status_field: "unresolved"}},
+                                    {"term": {mitigation_field: "blocked"}}
+                                ]
+                            }
+                        }
+                    },
+                    "mitigated_count": {
+                        "filter": {
+                            "bool": {
+                                "must": [
+                                    {"term": {status_field: "unresolved"}},
+                                    {"term": {mitigation_field: "mitigated"}}
+                                ]
+                            }
+                        }
+                    },
+                    "suspicious_count": {"filter": {"term": {severity_field: "suspicious"}}}
                 }
             }
             
