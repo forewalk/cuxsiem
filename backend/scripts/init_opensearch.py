@@ -13,6 +13,7 @@ import bcrypt
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from opensearchpy import OpenSearch
+from opensearchpy.exceptions import NotFoundError
 
 load_dotenv()
 
@@ -35,46 +36,6 @@ client = OpenSearch(
 try:
     info = client.info()
     print(f"[+] OpenSearch connected: {info['version']['number']}\n")
-
-    # Check/Create admin user
-    print("[*] Checking admin user...")
-    
-    # Check if admin exists by ID
-    admin_id = "admin"
-    try:
-        client.get(index="cs_users", id=admin_id)
-        print(f"[*] Admin user already exists (ID: {admin_id})\n")
-    except Exception:
-        # Admin does not exist, create one
-        print(f"[*] Creating admin user (ID: {admin_id})...")
-        
-        # Hash password with bcrypt
-        password = "password123"
-        salt = bcrypt.gensalt(rounds=12)
-        password_hash = bcrypt.hashpw(password.encode(), salt).decode()
-
-        admin_user = {
-            "id": admin_id,
-            "email": "admin@cruxdata.co.kr", # Email is just a profile field now
-            "password_hash": password_hash,
-            "name": "Administrator",
-            "role": "admin",
-            "is_active": True,
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-            "deleted_at": None,
-            "last_login_at": None,
-        }
-
-        client.index(
-            index="cs_users",
-            id=admin_id,
-            body=admin_user,
-            refresh=True,
-        )
-        print(f"[+] Admin user created")
-        print(f"    ID: admin")
-        print(f"    Password: password123\n")
 
     # Check/Create default password policy
     print("[*] Checking password policy...")
@@ -111,9 +72,6 @@ try:
     print("=" * 60)
     print("[+] OpenSearch initialization completed!")
     print("=" * 60)
-    print("\n[Login Info]")
-    print("    ID: admin")
-    print("    Password: password123\n")
 
 except Exception as e:
     print(f"[-] Error: {e}")

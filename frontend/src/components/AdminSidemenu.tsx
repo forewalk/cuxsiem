@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,
   ListItemText, Collapse, IconButton, Toolbar, useTheme, Typography,
@@ -46,7 +46,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
   const menuBg = theme.palette.mode === 'dark' ? '#1A1A1A' : theme.palette.background.paper;
   const textColor = theme.palette.text.primary;
-  const itemHoverBg = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
 
   const listItemTextStyle = {
     opacity: drawerOpen ? 1 : 0,

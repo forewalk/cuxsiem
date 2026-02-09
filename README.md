@@ -55,6 +55,21 @@ cp .env.example .env
 npm run dev
 ```
 
+## 관리자 계정 생성
+
+초기 설치 시 관리자(admin) 계정은 자동으로 생성되지 않습니다. 백엔드 컨테이너 내부 또는 로컬 환경에서 별도의 스크립트를 실행하여 생성해야 합니다.
+
+```bash
+# 컨테이너 내부에서 실행 시 (추천)
+docker compose exec backend python scripts/create_admin.py
+
+# 또는 옵션과 함께 실행
+docker compose exec backend python scripts/create_admin.py --username myadmin --email admin@example.com
+
+# 로컬 환경에서 실행 시 (backend 디렉토리)
+python scripts/create_admin.py
+```
+
 ## 배포 전략 (오프라인 환경)
 
 이 프로젝트는 인터넷이 차단된 **오프라인 서버 환경**에 배포되는 것을 전제로 합니다.

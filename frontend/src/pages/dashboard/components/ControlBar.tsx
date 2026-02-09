@@ -10,8 +10,6 @@ import Popover from "@mui/material/Popover";
 import Divider from "@mui/material/Divider";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import Switch from "@mui/material/Switch";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import { useTheme } from "@mui/material/styles";
 import StorageIcon from "@mui/icons-material/Storage";
 import SearchIcon from "@mui/icons-material/Search";
@@ -46,7 +44,6 @@ interface ControlBarProps {
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   onRefresh: () => void;
-  lastUpdated?: string;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({ 
@@ -60,8 +57,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   onTimeChange,
   searchQuery,
   onSearchQueryChange,
-  onRefresh,
-  lastUpdated 
+  onRefresh
 }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
@@ -79,7 +75,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const [autoRefreshValue, setAutoRefreshValue] = useState(0);
   const [autoRefreshUnit, setAutoRefreshUnit] = useState<'seconds' | 'minutes'>('seconds');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshTimerRef = useRef<any>(null);
 
   useEffect(() => {
     setTempQuery(searchQuery);
