@@ -25,10 +25,13 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-02-09 13:50 | 김장훈 | 배포 | origin/develop push (프로젝트명 cruxSIEM 변경 및 브랜치 정리) |
-| 2026-02-09 13:51 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-09 13:52 | 김장훈 | 배포 | origin/feature/pipeline push (develop 기준 신규 브랜치 생성) |
+| 2026-02-09 13:51 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
+| 2026-02-09 13:50 | 김장훈 | 배포 | origin/develop push (프로젝트명 cruxSIEM 변경 및 브랜치 정리) |
+| 2026-02-09 13:00 | 최지호 | 수정 | origin/feature/dashboard push (i18n, 탭 적용) |
 | 2026-02-08 19:15 | 김장훈 | 배포 | origin/develop push (OpenSearch SSL CA 지원 및 docker-compose 볼륨 마운트 설정) |
+| 2026-02-08 16:20 | 최지호 | 수정 | origin/feature/dashboard push (위협현황 대시보드 틀 구성 완료) |
+| 2026-02-06 18:00 | 최지호 | 수정 | origin/feature/dashboard push (threat 대시보드 일부 구성) |
 | 2026-02-06 16:30 | 김장훈 | 배포 | origin/develop push (MUI v7 Grid 표준 적용 및 빌드 오류 수정) |
 | 2026-02-06 14:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 병합 및 최신화) |
 | 2026-02-03 17:10 | 최지호 | 추가 | origin/feature/dashboard push (메인 대시보드 초안 구현) |

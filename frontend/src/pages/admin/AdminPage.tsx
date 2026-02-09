@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import TabManager from './components/TabManager';
+import TabManager from '../../components/tabs/TabManager';
 
 const AdminPage: React.FC = () => {
   return (
