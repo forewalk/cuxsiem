@@ -92,13 +92,22 @@ const TabManager: React.FC = () => {
       <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
         {tabs.map((tab) => {
           const TabComponent = tabComponents[tab.component];
-          if (activeTabId !== tab.id) return null;
           return (
             <Box
               key={tab.id}
-              sx={{ height: '100%', overflow: 'auto' }}
+              sx={{ 
+                height: '100%', 
+                overflow: 'auto',
+                display: activeTabId === tab.id ? 'block' : 'none' // 활성 탭만 보여주고 나머지는 숨김
+              }}
             >
-              {TabComponent ? <TabComponent {...tab.props} /> : <Box sx={{p:2}}><Typography>Error: {tab.component}</Typography></Box>}
+              {TabComponent ? (
+                <TabComponent {...tab.props} />
+              ) : (
+                <Box sx={{ p: 2 }}>
+                  <Typography>Error: {tab.component}</Typography>
+                </Box>
+              )}
             </Box>
           );
         })}
