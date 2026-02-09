@@ -32,6 +32,7 @@
 | 2026-02-10 11:30 | 김장훈 | 추가 | 관리자 비밀번호 초기화 스크립트 및 README.md 가이드 추가 |
 | 2026-02-09 17:30 | 최지호 | 수정 | origin/feature/menu push (메뉴 팝업 형태 수정, 탭 이동시 캐시 저장) |
 | 2026-02-09 15:53 | 김장훈 | 배포 | origin/develop push (OpenSearch Admin 계정 수동 생성 전환, Nginx 443 포트 SSL 설정) |
+| 2026-02-09 15:11 | 김경수 | 수정 | feature/reallog/main push (develop rebase 충돌 해결) |
 | 2026-02-09 13:52 | 김장훈 | 배포 | origin/feature/pipeline push (develop 기준 신규 브랜치 생성) |
 | 2026-02-09 13:51 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-09 13:50 | 김장훈 | 배포 | origin/develop push (프로젝트명 cruxSIEM 변경 및 브랜치 정리) |
