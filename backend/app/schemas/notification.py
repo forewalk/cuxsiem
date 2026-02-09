@@ -45,23 +45,19 @@ class NotificationRuleResponse(NotificationRuleBase):
 
 class NotificationBase(BaseModel):
     rule_id: str
-    severity: str
     title: str
     message: str
     event_ref: str
     dedup_key: str
     receiver: Optional[Dict[str, Any]] = None
-    is_read: bool = False
     status: str = "created"
     error_message: Optional[str] = None
 
 class NotificationResponse(NotificationBase):
     id: str
+    severity: Optional[str] = None # Added to be populated from rule
     created_at: datetime
     sent_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
-
-class NotificationReadUpdate(BaseModel):
-    is_read: bool

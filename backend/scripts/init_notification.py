@@ -78,15 +78,14 @@ try:
             "properties": {
                 "id": {"type": "keyword"},
                 "rule_id": {"type": "keyword"},
-                "severity": {"type": "keyword"},
                 "title": {"type": "text"},
                 "message": {"type": "text"},
-                "event_ref": {"type": "keyword"},
-                "dedup_key": {"type": "keyword"},
-                "receiver": {"type": "object", "enabled": True},
-                "is_read": {"type": "boolean"},
-                "status": {"type": "keyword"},
-                "created_at": {"type": "date"},
+                                "event_ref": {"type": "keyword"},
+                                "dedup_key": {"type": "keyword"},
+                                "receiver": {"type": "object", "enabled": True},
+                                "status": {"type": "keyword"},
+                                "created_at": {"type": "date"},
+                ,
                 "sent_at": {"type": "date"},
                 "error_message": {"type": "text"}
             }

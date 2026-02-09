@@ -18,8 +18,8 @@ class NotificationService:
     async def get_rule(self, rule_id: str):
         return await self.repository.get_rule_by_id(rule_id)
 
-    async def list_rules(self, skip: int = 0, limit: int = 100):
-        return await self.repository.list_rules(skip, limit)
+    async def list_rules(self, skip: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc"):
+        return await self.repository.list_rules(skip, limit, sort_by, order)
 
     async def create_rule(self, rule_in: NotificationRuleCreate):
         return await self.repository.create_rule(rule_in.model_dump())
@@ -33,15 +33,20 @@ class NotificationService:
     # --- Notification Management ---
 
     async def list_notifications(self, **kwargs):
-        return await self.repository.list_notifications(**kwargs)
-
-    async def mark_as_read(self, notification_id: str, is_read: bool = True):
-        return await self.repository.mark_as_read(notification_id, is_read)
-
-    async def mark_all_as_read(self):
-        return await self.repository.mark_all_as_read()
-
-    # --- Detection Engine Core ---
+        total, notifications = await self.repository.list_notifications(**kwargs)
+        
+        # 각 알림에 해당하는 규칙의 최신 severity 정보를 가져와서 병합
+        rule_ids = list(set(n.get("rule_id") for n in notifications if n.get("rule_id")))
+        rules_cache = {}
+        for rid in rule_ids:
+            rule = await self.get_rule(rid)
+            if rule:
+                rules_cache[rid] = rule.get("severity", "info")
+        
+        for n in notifications:
+            n["severity"] = rules_cache.get(n.get("rule_id"), "info")
+            
+        return total, notifications
 
     async def run_detection_for_rule(self, rule: Dict[str, Any]):
         """특정 규칙에 대한 탐지 엔진 실행"""
@@ -90,13 +95,11 @@ class NotificationService:
                 
                 notification_data = {
                     "rule_id": rule_id,
-                    "severity": rule.get("severity", "info"),
                     "title": f"[Alert] {rule['name']}",
                     "message": f"Detected {total} events in the last {window_min} minutes.",
                     "event_ref": event_ref,
                     "dedup_key": f"{rule_id}_{event_ref}", # 임시 dedup
                     "receiver": rule.get("receiver"),
-                    "is_read": False,
                     "status": "created",
                     "created_at": now.isoformat()
                 }
