@@ -1,6 +1,6 @@
 # Git 작업 가이드
 
-이 문서는 CruxSIEM 프로젝트의 Git 작업 가이드입니다.
+이 문서는 cruxSIEM 프로젝트의 Git 작업 가이드입니다.
 
 ## Git 설정
 

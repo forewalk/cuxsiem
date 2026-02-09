@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     OPENSEARCH_PASSWORD: str = ""
     OPENSEARCH_USE_SSL: bool = True
     OPENSEARCH_VERIFY_CERTS: bool = False
+    OPENSEARCH_CA_CERTS: str | None = None
 
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
