@@ -1,75 +1,47 @@
-# 알림 시스템 (Notification System) 최종 기획서 (Final)
+# SIEM 알림 시스템 최종 데이터 명세 (Final)
 
 **확정일:** 2026-02-09
-**작성자:** Gemini CLI
-**버전:** 1.0 (Final)
-**상태:** 확정
+**상태:** 데이터 모델 확정
 
 ---
 
-## 1. 개요
+## 1. 인덱스 명세
 
-### 1.1 목적
-SIEM 내에서 발생하는 다양한 보안 이벤트 및 시스템 상태 변화를 사용자에게 즉각적이고 체계적으로 전달하여, 신속한 보안 사고 대응 및 시스템 관리를 지원함.
-
-### 1.2 배경
-- 특정 조건(임계치 초과, 위험 패턴 발생 등)에 대한 자동화된 알림 체계 필요.
-- 외부 시스템(Webhook) 연동을 통한 실시간 위협 전파 및 대응 체계 구축.
-
-### 1.3 범위
-- **포함:** 알림 규칙 CRUD, 규칙별 Webhook 설정, 배치 알림 엔진, 프론트엔드 UI(스낵바/목록), 알림 상태 관리.
-- **제외:** 중앙 모달 팝업, 별도 수신 그룹 인덱스, 알림음 지원.
-
----
-
-## 2. 요구사항
-
-### 2.1 기능 요구사항
-1. **알림 규칙 관리 (CRUD):** 
-   - 모니터링 대상, 조건(Count/Pattern), 배치 주기(1분 이상), 알림 등급 설정.
-   - 규칙별 Webhook URL 리스트 및 논리적 그룹명 지정.
-2. **배치 알림 엔진:** 
-   - 주기에 따른 OpenSearch 쿼리 수행 및 `cs_notifications` 생성.
-   - **알림 폭주 제어:** 동일 규칙에 대해 설정된 '쿨다운(Cooldown)' 시간 내에는 중복 알림 생성 억제.
-3. **Webhook 발송 및 재시도:** 
-   - 알림 발생 시 등록된 Webhook으로 비동기 전송.
-   - **재시도 로직:** 전송 실패 시 최대 3회 재시도 (지수 백오프 적용 권장).
-4. **UI 알림 및 목록:** 
-   - 하단 3초 스낵바 표시 (알림 목록 바로가기 포함).
-   - 알림 목록 페이지 제공 및 **'전체 읽음 처리'** 기능 포함.
-
-### 2.2 비기능 요구사항
-- **신뢰성:** Webhook 전송 결과(성공/실패)를 알림 내역에 기록.
-- **성능:** 1분 단위 배치가 시스템 전체 부하에 미치는 영향 최소화.
-
----
-
-## 3. 데이터 요구사항
-
-### 3.1 알림 규칙 (`cs_notification_rules`)
-| 필드 | 타입 | 설명 |
-|---|---|---|
-| `condition_config` | object | 필드명, 키워드, 임계치 등 |
-| `interval_min` | integer | 배치 주기 (최소 1) |
-| `cooldown_min` | integer | 중복 알림 방지 시간 (기본 5분) |
+### 1.1 알림 규칙 인덱스 (`cs_notification_rules`)
+| 필드명 | 타입 | 설명 |
+| :--- | :--- | :--- |
+| `id` | keyword | 규칙 고유 ID |
+| `name` | text | 규칙 명칭 |
+| `target_index` | keyword | 모니터링 대상 (기본: threats) |
+| `condition_type` | keyword | 탐지 유형 (dsl_query 등) |
+| `condition_config` | object | Query DSL 저장 |
+| `severity` | keyword | 위험도 (critical, warning, info) |
+| `interval_min` | integer | 실행 주기 (>= 1) |
+| `window_min` | integer | 조회 시간 범위 (>= interval) |
 | `webhooks` | keyword[] | 수신 URL 리스트 |
+| `receiver_group_name` | keyword | 수신처 그룹명 |
 | `is_active` | boolean | 활성화 여부 |
+| `created_at` | date | 생성일 |
+| `updated_at` | date | 수정일 |
 
-### 3.2 알림 내역 (`cs_notifications`)
-| 필드 | 타입 | 설명 |
-|---|---|---|
-| `is_read` | boolean | 읽음 여부 |
-| `delivery_status` | object | Webhook 발송 결과 (success/fail/retrying) |
-| `created_at` | date | 발생 시간 |
+### 1.2 알림 내역 인덱스 (`cs_notifications`)
+| 필드명 | 타입 | 설명 |
+| :--- | :--- | :--- |
+| `id` | keyword | 알림 고유 ID |
+| `rule_id` | keyword | 발생 규칙 ID |
+| `severity` | keyword | 알림 위험도 |
+| `title` | text | 알림 제목 |
+| `message` | text | 알림 본문 |
+| `event_ref` | keyword | 원본 이벤트 참조 (threatId 또는 _id) |
+| `dedup_key` | keyword | 중복 방지 키 |
+| `is_read` | boolean | 읽음 여부 (default: false) |
+| `status` | keyword | 상태 관리 (`created`, `sent`, `failed`) |
+| `created_at` | date | 탐지 및 생성 시간 |
+| `sent_at` | date | 발송 시간 (선택) |
+| `error_message` | text | 발송 실패 시 에러 메시지 (선택) |
 
 ---
 
-## 4. 성공 기준
-- [ ] 알림 규칙에 따른 정확한 조건 감지 및 알림 생성.
-- [ ] 전송 실패 시 재시도 로직 및 상태 기록 정상 작동.
-- [ ] UI에서 실시간 스낵바와 전체 읽음 처리가 원활히 동작함.
-
----
-
-## 변경 이력
-- 2026-02-09: v1.0 (Final) 확정 (Gemini CLI)
+## 2. 운영 로직
+- **Status 관리:** `created`(생성됨) -> `sent`(발송완료) 또는 `failed`(발송실패)로 전환됨으로써 발송 여부와 시스템 건전성을 동시에 파악.
+- **Dedup 로직:** `dedup_key`를 활용하여 동일 `event_ref`에 대한 중복 생성을 원천 차단.
