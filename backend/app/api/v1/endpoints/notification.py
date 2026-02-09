@@ -55,14 +55,16 @@ async def list_notifications(
     limit: int = Query(100, ge=1, le=1000),
     severity: Optional[str] = None,
     is_read: Optional[bool] = None,
-    receiver_group_name: Optional[str] = None
+    receiver_type: Optional[str] = None,
+    receiver_value: Optional[str] = None
 ):
     total, notifications = await service.list_notifications(
         skip=skip, 
         limit=limit, 
         severity=severity, 
         is_read=is_read, 
-        receiver_group_name=receiver_group_name
+        receiver_type=receiver_type,
+        receiver_value=receiver_value
     )
     return notifications
 

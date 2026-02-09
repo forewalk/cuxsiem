@@ -60,7 +60,7 @@ try:
                 "interval_min": {"type": "integer"},
                 "window_min": {"type": "integer"},
                 "webhooks": {"type": "keyword"},
-                "receiver_group_name": {"type": "keyword"},
+                "receiver": {"type": "object", "enabled": True},
                 "is_active": {"type": "boolean"},
                 "created_at": {"type": "date"},
                 "updated_at": {"type": "date"}
@@ -83,6 +83,7 @@ try:
                 "message": {"type": "text"},
                 "event_ref": {"type": "keyword"},
                 "dedup_key": {"type": "keyword"},
+                "receiver": {"type": "object", "enabled": True},
                 "is_read": {"type": "boolean"},
                 "status": {"type": "keyword"},
                 "created_at": {"type": "date"},

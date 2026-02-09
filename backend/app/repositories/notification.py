@@ -118,7 +118,8 @@ class NotificationRepository:
         limit: int = 100,
         severity: Optional[str] = None,
         is_read: Optional[bool] = None,
-        receiver_group_name: Optional[str] = None
+        receiver_type: Optional[str] = None,
+        receiver_value: Optional[str] = None
     ) -> Tuple[int, List[Dict[str, Any]]]:
         """알림 내역 조회 (필터 포함)"""
         loop = asyncio.get_event_loop()
@@ -129,8 +130,10 @@ class NotificationRepository:
                 must.append({"term": {"severity": severity}})
             if is_read is not None:
                 must.append({"term": {"is_read": is_read}})
-            if receiver_group_name:
-                must.append({"term": {"receiver_group_name": receiver_group_name}})
+            if receiver_type:
+                must.append({"term": {"receiver.type": receiver_type}})
+            if receiver_value:
+                must.append({"term": {"receiver.values": receiver_value}})
                 
             query = {"bool": {"must": must}} if must else {"match_all": {}}
             

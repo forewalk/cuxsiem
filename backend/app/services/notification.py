@@ -95,6 +95,7 @@ class NotificationService:
                     "message": f"Detected {total} events in the last {window_min} minutes.",
                     "event_ref": event_ref,
                     "dedup_key": f"{rule_id}_{event_ref}", # 임시 dedup
+                    "receiver": rule.get("receiver"),
                     "is_read": False,
                     "status": "created",
                     "created_at": now.isoformat()

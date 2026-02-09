@@ -19,7 +19,7 @@
 | `interval_min` | integer | 실행 주기 (>= 1) |
 | `window_min` | integer | 조회 시간 범위 (>= interval) |
 | `webhooks` | keyword[] | 수신 URL 리스트 |
-| `receiver_group_name` | keyword | 수신처 그룹명 |
+| `receiver` | object | 수신 대상 (`{type: role, values: [admin]}`) |
 | `is_active` | boolean | 활성화 여부 |
 | `created_at` | date | 생성일 |
 | `updated_at` | date | 수정일 |
@@ -34,6 +34,7 @@
 | `message` | text | 알림 본문 |
 | `event_ref` | keyword | 원본 이벤트 참조 (threatId 또는 _id) |
 | `dedup_key` | keyword | 중복 방지 키 |
+| `receiver` | object | 수신 대상 (Rule에서 복사) |
 | `is_read` | boolean | 읽음 여부 (default: false) |
 | `status` | keyword | 상태 관리 (`created`, `sent`, `failed`) |
 | `created_at` | date | 탐지 및 생성 시간 |

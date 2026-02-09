@@ -14,7 +14,7 @@ class NotificationRuleBase(BaseModel):
     window_min: int = Field(ge=1)
     dedup_ttl_min: Optional[int] = 30
     webhooks: List[str] = []
-    receiver_group_name: Optional[str] = None
+    receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})
     is_active: bool = True
 
 class NotificationRuleCreate(NotificationRuleBase):
@@ -30,7 +30,7 @@ class NotificationRuleUpdate(BaseModel):
     window_min: Optional[int] = Field(None, ge=1)
     dedup_ttl_min: Optional[int] = None
     webhooks: Optional[List[str]] = None
-    receiver_group_name: Optional[str] = None
+    receiver: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
 class NotificationRuleResponse(NotificationRuleBase):
@@ -50,6 +50,7 @@ class NotificationBase(BaseModel):
     message: str
     event_ref: str
     dedup_key: str
+    receiver: Optional[Dict[str, Any]] = None
     is_read: bool = False
     status: str = "created"
     error_message: Optional[str] = None

@@ -24,8 +24,9 @@
 ## 2. 데이터베이스 매핑 상세 (OpenSearch)
 
 ### 2.1 cs_notification_rules
-- SIEM 대응을 위해 `window_min`, `cooldown_min`, `dedup_fields` 필드 추가.
+- SIEM 대응을 위해 `window_min`, `cooldown_min`, `dedup_fields`, `receiver` 필드 추가.
 - `condition_config`는 DSL 쿼리 본문을 포함할 수 있도록 `object` 타입으로 설정.
+- `receiver`는 `{ "type": "role", "values": ["admin"] }` 형태의 객체로 설정.
 
 ### 2.2 cs_notifications
 - `status` 필드 필수화: `new`(초기), `ack`(확인), `resolved`(해결), `dismissed`(무시).

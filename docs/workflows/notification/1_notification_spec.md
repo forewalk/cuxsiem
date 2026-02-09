@@ -40,7 +40,7 @@ SIEM 내에서 발생하는 다양한 보안 이벤트 및 시스템 상태 변�
 1. **알림 규칙 관리 (CRUD):** 
    - 모니터링 대상 인덱스, 발생 조건(Count/필드 패턴), 알림 등급, 배치 주기(1분 이상) 설정.
    - **Webhook 관리:** 규칙 내에 수신 받을 Webhook URL 리스트를 직접 등록.
-   - **그룹화:** 규칙 관리를 용이하게 하기 위해 '수신 그룹명(receiver_group_name)' 필드를 제공하여 논리적으로 구분.
+   - **수신 대상 설정:** 규칙 관리를 용이하게 하기 위해 '수신 대상(receiver)' 필드를 제공하여 객체 형태로 관리 (예: `{ "type": "role", "values": ["admin"] }`).
 2. **배치 알림 엔진:** 
    - 설정된 주기(1분 이상)마다 OpenSearch 쿼리를 수행.
    - 조건 만족 시 `cs_notifications` 생성 및 해당 규칙에 등록된 모든 Webhook으로 데이터 전송.
@@ -50,7 +50,7 @@ SIEM 내에서 발생하는 다양한 보안 이벤트 및 시스템 상태 변�
    - 알림 발생 시간, 등급, 읽음 여부 등을 확인할 수 있는 인덱스 기반 목록 페이지.
 
 #### 선택 기능 (Should Have)
-1. **알림 필터링:** 등급별, 날짜별, 수신 그룹명별 알림 목록 필터링.
+1. **알림 필터링:** 등급별, 날짜별, 수신 대상별 알림 목록 필터링.
 2. **미확인 알림 뱃지:** 헤더에 미확인 알림 개수 표시.
 
 ---
@@ -68,7 +68,7 @@ SIEM 내에서 발생하는 다양한 보안 이벤트 및 시스템 상태 변�
 | `severity` | keyword | 필수 | info, warning, critical |
 | `interval_min` | integer | 필수 | 배치 실행 주기 (최소 1) |
 | `webhooks` | keyword[] | 필수 | 수신 받을 Webhook URL 리스트 |
-| `receiver_group_name` | keyword | 선택 | 수신처 그룹 식별용 명칭 (예: 보안팀, IT지원팀) |
+| `receiver` | object | 필수 | 수신 대상 (`{type: role, values: [admin]}`) |
 | `is_active` | boolean | 필수 | 활성화 여부 |
 
 ### 4.2 알림 인덱스 (`cs_notifications`)
@@ -76,11 +76,14 @@ SIEM 내에서 발생하는 다양한 보안 이벤트 및 시스템 상태 변�
 |------------|------|----------|------|
 | `id` | keyword | 필수 | 알림 고유 ID |
 | `rule_id` | keyword | 필수 | 발생 규칙 ID |
-| `type` | keyword | 필수 | info, warning, critical |
+| `severity` | keyword | 필수 | info, warning, critical |
 | `title` | text | 필수 | 알림 제목 |
 | `message` | text | 필수 | 상세 내용 |
+| `event_ref` | keyword | 필수 | 원본 이벤트 참조 |
+| `dedup_key` | keyword | 필수 | 중복 방지 키 |
+| `receiver` | object | 필수 | 수신 대상 (Rule에서 복사) |
 | `is_read` | boolean | 필수 | 읽음 여부 (default: false) |
-| `is_sent` | boolean | 필수 | 발송 완료 여부 (default: false) |
+| `status` | keyword | 필수 | 상태 관리 (`created`, `sent`, `failed`) |
 | `created_at` | date | 필수 | 발생 시간 |
 
 ---
