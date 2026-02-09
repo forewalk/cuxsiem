@@ -1,8 +1,8 @@
-# CruxSIEM 배포 가이드
+# cruxSIEM 배포 가이드
 
 ## 개요
 
-CruxSIEM 애플리케이션을 Docker 이미지로 빌드하여, 인터넷이 차단된 폐쇄망 온프레미스 서버에 배포하는 절차를 설명합니다.
+cruxSIEM 애플리케이션을 Docker 이미지로 빌드하여, 인터넷이 차단된 폐쇄망 온프레미스 서버에 배포하는 절차를 설명합니다.
 
 ### 아키텍처
 
@@ -249,7 +249,7 @@ sudo ss -tlnp | grep :80
 
 ## 6. 심화: 네트워크 아키텍처 (Reverse Proxy)
 
-CruxSIEM은 Nginx를 **리버스 프록시(Reverse Proxy)**로 사용하여 보안성과 편의성을 높였습니다.
+cruxSIEM은 Nginx를 **리버스 프록시(Reverse Proxy)**로 사용하여 보안성과 편의성을 높였습니다.
 
 ### 동작 원리
 

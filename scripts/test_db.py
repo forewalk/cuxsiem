@@ -33,7 +33,7 @@ def test_connection():
     verify_certs = os.getenv('OPENSEARCH_VERIFY_CERTS', 'false').lower() == 'true'
 
     print("=" * 60)
-    print(" CruxSIEM: OpenSearch Connection Test")
+    print(" cruxSIEM: OpenSearch Connection Test")
     print("=" * 60)
     print(f"Target: {host}:{port}")
     print(f"User  : {user}")

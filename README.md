@@ -1,4 +1,4 @@
-# CruxSIEM
+# cruxSIEM
 
 SIEM (Security Information and Event Management) 웹 애플리케이션.
 
