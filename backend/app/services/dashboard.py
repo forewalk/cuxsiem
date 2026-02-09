@@ -5,7 +5,6 @@ from app.repositories.dashboard import DashboardRepository
 from app.schemas.dashboard import (
     DashboardStatsResponse, 
     HistogramItem, 
-    SeverityStat, 
     DashboardSummary
 )
 
@@ -18,13 +17,15 @@ class DashboardService:
 
     async def get_dashboard_stats(
         self, 
-        from_value: int = 15, 
-        from_unit: str = "m",
+        from_value: Optional[int] = None, 
+        from_unit: Optional[str] = None,
         to_value: Optional[int] = None,
         to_unit: Optional[str] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
         query: str = None
     ) -> DashboardStatsResponse:
-        raw_data = await self.repository.get_stats(from_value, from_unit, to_value, to_unit, query)
+        raw_data = await self.repository.get_stats(from_value, from_unit, to_value, to_unit, from_date, to_date, query)
         aggs = raw_data.get("aggregations", {})
         total_hits = raw_data.get("hits", {}).get("total", {}).get("value", 0)
         

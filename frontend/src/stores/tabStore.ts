@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 
-interface TabInfo {
-  id: string; // 탭의 고유 ID (예: 'user-management', 'password-policy')
-  label: string; // 탭에 표시될 이름 (예: '사용자 관리')
-  component: string; // 탭에 렌더링될 컴포넌트의 키 (예: 'UserManagementTab')
-  props?: Record<string, any>; // 탭 컴포넌트에 전달될 추가 props
+export interface TabInfo {
+  id: string;
+  label: string;
+  labelKey?: string; // 실시간 i18n 적용을 위한 키
+  component: string;
+  props?: Record<string, any>;
 }
 
 interface TabState {
@@ -15,7 +16,7 @@ interface TabState {
   setActiveTab: (id: string) => void;
 }
 
-const MAX_TABS = 5;
+const MAX_TABS = 10; // 탭 개수 상향
 
 const useTabStore = create<TabState>((set, get) => ({
   tabs: [],
@@ -25,14 +26,12 @@ const useTabStore = create<TabState>((set, get) => ({
     const newTabId = generateId(tab);
     const { tabs } = get();
 
-    // 이미 열려있는 탭인지 확인
     const existingTab = tabs.find((t) => t.id === newTabId);
     if (existingTab) {
-      set({ activeTabId: newTabId }); // 이미 있으면 해당 탭 활성화
+      set({ activeTabId: newTabId });
       return;
     }
 
-    // 최대 탭 개수 확인
     if (tabs.length >= MAX_TABS) {
       alert(`탭은 최대 ${MAX_TABS}개까지 열 수 있습니다.`);
       return;
@@ -50,13 +49,11 @@ const useTabStore = create<TabState>((set, get) => ({
     const newTabs = tabs.filter((tab) => tab.id !== id);
 
     let newActiveTabId = activeTabId;
-    // 제거되는 탭이 활성 탭이었다면, 다른 탭을 활성화
     if (activeTabId === id) {
       if (newTabs.length > 0) {
-        // 남은 탭 중 첫 번째 탭을 활성화
-        newActiveTabId = newTabs[0].id;
+        newActiveTabId = newTabs[newTabs.length - 1].id;
       } else {
-        newActiveTabId = null; // 남은 탭이 없으면 활성 탭 없음
+        newActiveTabId = null;
       }
     }
 

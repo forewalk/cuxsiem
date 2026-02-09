@@ -9,7 +9,7 @@ import {
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
   ShowChart as ThreatsIcon,
 } from '@mui/icons-material';
-import useTabStore from '../pages/admin/stores/tabStore';
+import useTabStore from '../stores/tabStore';
 
 interface AdminSidemenuProps {
   t: (key: string, params?: Record<string, string>) => string;
@@ -23,55 +23,30 @@ const collapsedWidth = 72;
 const iconMinWidth = 48;
 const listItemHeight = 48;
 
-const FIGMA_COLORS = {
-  sidebarBg: "#1A1A1A",
-  selectedItemBg: "#E0E0E0",
-  activeText: "#000000",
-};
-
 const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
   const [openAdminMenu, setOpenAdminMenu] = useState(false);
-  const [openDashboardMenu, setOpenDashboardMenu] = useState(true); // 대시보드 메뉴 기본 열림
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [openDashboardMenu, setOpenDashboardMenu] = useState(true); // 기본적으로 열림
   const theme = useTheme();
+  const navigate = useNavigate();
   const addTab = useTabStore((state) => state.addTab);
 
-  useEffect(() => {
-    if (!drawerOpen) {
-      setOpenAdminMenu(false);
-      setOpenDashboardMenu(false);
-    } else {
-      // 대시보드 하위 경로에 있으면 메뉴 열기
-      if (location.pathname.startsWith('/main/dashboard')) {
-        setOpenDashboardMenu(true);
-      }
-    }
-  }, [drawerOpen, location.pathname]);
+  // 사이드바가 닫힐 때 하위 메뉴를 강제로 닫지 않고, UI에서만 숨기도록 제어합니다.
+  // 텍스트와 아이콘 배치는 Drawer의 open 상태에 따라 결정됩니다.
 
-  const handleAdminMenuClick = () => {
-    setOpenAdminMenu(!openAdminMenu);
-  };
+  const handleAdminMenuClick = () => setOpenAdminMenu(!openAdminMenu);
+  const handleDashboardMenuClick = () => setOpenDashboardMenu(!openDashboardMenu);
 
-  const handleDashboardMenuClick = () => {
-    setOpenDashboardMenu(!openDashboardMenu);
-  };
-
-  const handleAdminSubMenuClick = (label: string, component: string) => {
-    addTab({ label, component });
-    if (location.pathname !== '/main/admin') {
-      navigate('/main/admin');
+  const handleMenuTabClick = (label: string, component: string, labelKey?: string) => {
+    addTab({ label, component, labelKey });
+    // 모든 탭은 /main 내부에서 작동하므로 특별한 경로 이동이 필요 없음
+    if (window.location.pathname !== '/main') {
+      navigate('/main');
     }
   };
 
   const menuBg = theme.palette.mode === 'dark' ? '#1A1A1A' : theme.palette.background.paper;
   const textColor = theme.palette.text.primary;
   const itemHoverBg = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
-  const selectedBg = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.16)' : FIGMA_COLORS.selectedItemBg;
-  const selectedTextColor = theme.palette.mode === 'dark' ? '#FFFFFF' : FIGMA_COLORS.activeText;
-
-  const isAnyAdminSubMenuActive = location.pathname === '/main/admin';
-  const isDashboardActive = location.pathname.startsWith('/main/dashboard');
 
   const listItemTextStyle = {
     opacity: drawerOpen ? 1 : 0,
@@ -79,10 +54,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
     overflow: 'hidden',
     whiteSpace: 'nowrap',
     fontSize: '0.875rem',
-    transition: theme.transitions.create(['opacity', 'width'], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
   };
 
   return (
@@ -101,71 +72,39 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
           display: 'flex',
           flexDirection: 'column',
           borderRight: `1px solid ${theme.palette.divider}`,
-          transition: (theme) => theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
         },
       }}
     >
       <Toolbar sx={{ justifyContent: 'space-between', px: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {drawerOpen && (
-            <Typography variant="h6" noWrap component="div" sx={{ ml: 1, fontWeight: 'bold', color: textColor }}>
+            <Typography variant="h6" noWrap sx={{ ml: 1, fontWeight: 'bold' }}>
               cruxSIEM
             </Typography>
           )}
         </Box>
-        <IconButton onClick={handleDrawerToggle} sx={{ color: textColor }}>
+        <IconButton onClick={handleDrawerToggle}>
           {drawerOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
         </IconButton>
       </Toolbar>
       
-      <Box sx={{ overflowY: 'auto', overflowX: 'hidden', flexGrow: 1 }}>
+      <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
         <List>
-          {/* Dashboard Menu Group */}
           <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={handleDashboardMenuClick}
-              sx={{
-                minHeight: listItemHeight,
-                justifyContent: drawerOpen ? 'initial' : 'center',
-                px: 2.5,
-                color: textColor,
-                bgcolor: (openDashboardMenu && drawerOpen) || isDashboardActive ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)') : 'transparent',
-                '&:hover': {
-                  bgcolor: itemHoverBg,
-                },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: drawerOpen ? 3 : 'auto', justifyContent: 'center', color: 'inherit' }}>
-                <DashboardIcon />
-              </ListItemIcon>
+            <ListItemButton onClick={handleDashboardMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
+              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: drawerOpen ? 3 : 'auto' }}><DashboardIcon /></ListItemIcon>
               <ListItemText primary={t('dashboard')} sx={listItemTextStyle} />
               {drawerOpen && (openDashboardMenu ? <ExpandLess /> : <ExpandMore />)}
             </ListItemButton>
           </ListItem>
           
           <Collapse in={openDashboardMenu && drawerOpen} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding sx={{ bgcolor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)' }}>
+            <List component="div" disablePadding>
               <ListItemButton
-                selected={location.pathname === '/main/dashboard/threats'}
-                sx={{ 
-                  pl: 4, 
-                  minHeight: listItemHeight,
-                  color: textColor,
-                  '&.Mui-selected': {
-                    bgcolor: selectedBg,
-                    color: selectedTextColor,
-                    '& .MuiListItemIcon-root': { color: selectedTextColor },
-                  },
-                  '&:hover': { bgcolor: itemHoverBg }
-                }}
-                onClick={() => navigate('/main/dashboard/threats')}
+                sx={{ pl: 4, minHeight: listItemHeight }}
+                onClick={() => handleMenuTabClick(t('threats'), 'DashboardTab', 'threats')}
               >
-                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2, justifyContent: 'center', color: 'inherit' }}>
-                  <ThreatsIcon />
-                </ListItemIcon>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><ThreatsIcon /></ListItemIcon>
                 <ListItemText primary={t('threats')} sx={listItemTextStyle} />
               </ListItemButton>
             </List>
@@ -177,50 +116,26 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
         <Box sx={{ mt: 'auto', borderTop: `1px solid ${theme.palette.divider}` }}>
           <List>
             <ListItem disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                onClick={handleAdminMenuClick}
-                sx={{
-                  minHeight: listItemHeight,
-                  justifyContent: drawerOpen ? 'initial' : 'center',
-                  px: 2.5,
-                  color: textColor,
-                  bgcolor: (openAdminMenu && drawerOpen) || isAnyAdminSubMenuActive ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)') : 'transparent',
-                  '&:hover': {
-                    bgcolor: itemHoverBg,
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: drawerOpen ? 3 : 'auto', justifyContent: 'center', color: 'inherit' }}>
-                  <SettingsIcon />
-                </ListItemIcon>
+              <ListItemButton onClick={handleAdminMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: drawerOpen ? 3 : 'auto' }}><SettingsIcon /></ListItemIcon>
                 <ListItemText primary={t('adminMenu')} sx={listItemTextStyle} />
-                {drawerOpen && ((openAdminMenu || isAnyAdminSubMenuActive) ? <ExpandLess /> : <ExpandMore />)}
+                {drawerOpen && (openAdminMenu ? <ExpandLess /> : <ExpandMore />)}
               </ListItemButton>
             </ListItem>
             <Collapse in={openAdminMenu && drawerOpen} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding sx={{ bgcolor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)' }}>
+              <List component="div" disablePadding>
                 <ListItemButton
-                  sx={{ 
-                    pl: 4, 
-                    minHeight: listItemHeight,
-                    color: textColor,
-                    '&:hover': { bgcolor: itemHoverBg }
-                  }}
-                  onClick={() => handleAdminSubMenuClick(t('userManagement'), 'UserManagementTab')}
+                  sx={{ pl: 4, minHeight: listItemHeight }}
+                  onClick={() => handleMenuTabClick(t('userManagement'), 'UserManagementTab', 'userManagement')}
                 >
-                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2, justifyContent: 'center', color: 'inherit' }}><PeopleIcon /></ListItemIcon>
+                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><PeopleIcon /></ListItemIcon>
                   <ListItemText primary={t('userManagement')} sx={listItemTextStyle} />
                 </ListItemButton>
                 <ListItemButton
-                  sx={{ 
-                    pl: 4, 
-                    minHeight: listItemHeight,
-                    color: textColor,
-                    '&:hover': { bgcolor: itemHoverBg }
-                  }}
-                  onClick={() => handleAdminSubMenuClick(t('passwordPolicy'), 'PasswordPolicyTab')}
+                  sx={{ pl: 4, minHeight: listItemHeight }}
+                  onClick={() => handleMenuTabClick(t('passwordPolicy'), 'PasswordPolicyTab', 'passwordPolicy')}
                 >
-                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2, justifyContent: 'center', color: 'inherit' }}><LockIcon /></ListItemIcon>
+                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><LockIcon /></ListItemIcon>
                   <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
                 </ListItemButton>
               </List>

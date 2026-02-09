@@ -34,18 +34,25 @@ export const getDashboardIndices = async (): Promise<string[]> => {
 };
 
 export const getDashboardStats = async (
-  fromValue: number = 15,
-  fromUnit: string = "m",
+  fromValue?: number,
+  fromUnit?: string,
   toValue?: number,
   toUnit?: string,
+  fromDate?: string,
+  toDate?: string,
   query?: string
 ): Promise<DashboardStatsResponse> => {
-  let url = `/api/v1/dashboard/stats?from_value=${fromValue}&from_unit=${fromUnit}`;
-  if (toValue !== undefined && toUnit) {
-    url += `&to_value=${toValue}&to_unit=${toUnit}`;
-  }
-  if (query) url += `&q=${encodeURIComponent(query)}`;
+  let url = `/api/v1/dashboard/stats?`;
+  const params: string[] = [];
+  if (fromValue !== undefined) params.push(`from_value=${fromValue}`);
+  if (fromUnit) params.push(`from_unit=${fromUnit}`);
+  if (toValue !== undefined) params.push(`to_value=${toValue}`);
+  if (toUnit) params.push(`to_unit=${toUnit}`);
+  if (fromDate) params.push(`from_date=${fromDate}`);
+  if (toDate) params.push(`to_date=${toDate}`);
+  if (query) params.push(`q=${encodeURIComponent(query)}`);
   
+  url += params.join('&');
   const response = await api.get<DashboardStatsResponse>(url);
   return response.data;
 };

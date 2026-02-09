@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-09 13:00 | 최지호 | 수정 | origin/feature/dashboard push (i18n, 탭 적용) |
 | 2026-02-08 16:20 | 최지호 | 수정 | origin/feature/dashboard push (위협현황 대시보드 틀 구성 완료) |
 | 2026-02-06 18:00 | 최지호 | 수정 | origin/feature/dashboard push (threat 대시보드 일부 구성) |
 | 2026-02-06 16:30 | 김장훈 | 배포 | origin/develop push (MUI v7 Grid 표준 적용 및 빌드 오류 수정) |
