@@ -25,8 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|-----|------|------|
-| 2026-02-09 16:35 | Gemini | 추가 | 알림 시스템 백엔드 API 및 탐지 엔진 초기 구현 (Repository, Service, Endpoint) |
-| 2026-02-09 16:35 | Gemini | 수정 | OpenSearch 클라이언트 SSL 자동 감지 및 폴백 로직 개선 |
+| 2026-02-09 16:35 | 박지은 | 추가 | 알림 시스템 백엔드 API 및 탐지 엔진 초기 구현 (Repository, Service, Endpoint) |
 | 2026-02-09 15:50 | 박지은 | 추가 | 알림 시스템 기획 및 상세 설계 완료 (워크플로우 1-5단계) |
 | 2026-02-08 19:15 | 김장훈 | 배포 | origin/develop push (OpenSearch SSL CA 지원 및 docker-compose 볼륨 마운트 설정) |
 | 2026-02-06 16:30 | 김장훈 | 배포 | origin/develop push (MUI v7 Grid 표준 적용 및 빌드 오류 수정) |
