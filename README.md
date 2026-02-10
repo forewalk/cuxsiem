@@ -70,6 +70,21 @@ docker compose exec backend python scripts/create_admin.py --username myadmin --
 python scripts/create_admin.py
 ```
 
+## 관리자 비밀번호 초기화
+
+관리자 계정의 비밀번호를 잊어버렸거나 초기화가 필요한 경우, 다음 스크립트를 사용하여 안전하게 비밀번호를 변경할 수 있습니다.
+
+```bash
+# 컨테이너 내부에서 실행 시
+docker compose exec backend python scripts/reset_password.py --username admin
+
+# 비밀번호를 인자로 직접 전달 (비추천)
+docker compose exec backend python scripts/reset_password.py --username admin --password "new_password_here"
+
+# 로컬 환경에서 실행 시 (backend 디렉토리)
+python scripts/reset_password.py --username admin
+```
+
 ## 배포 전략 (오프라인 환경)
 
 이 프로젝트는 인터넷이 차단된 **오프라인 서버 환경**에 배포되는 것을 전제로 합니다.
