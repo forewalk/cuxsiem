@@ -40,8 +40,7 @@ def create_index(index_name, body):
 
 try:
     info = client.info()
-    print(f"[+] OpenSearch connected: {info['version']['number']}
-")
+    print(f"[+] OpenSearch connected: {info['version']['number']}")
 
     # 1. cs_notification_rules mapping
     rules_mapping = {
@@ -84,7 +83,7 @@ try:
                                 "dedup_key": {"type": "keyword"},
                                 "receiver": {"type": "object", "enabled": True},
                                 "status": {"type": "keyword"},
-                                "created_at": {"type": "date"},
+                                "created_at": {"type": "date"}
                 ,
                 "sent_at": {"type": "date"},
                 "error_message": {"type": "text"}
@@ -95,8 +94,7 @@ try:
     create_index("cs_notification_rules", rules_mapping)
     create_index("cs_notifications", notifications_mapping)
 
-    print("
-" + "=" * 60)
+    print("" + "=" * 60)
     print("[+] Notification indices initialization completed!")
     print("=" * 60)
 

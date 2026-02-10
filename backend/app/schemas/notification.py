@@ -6,7 +6,7 @@ from datetime import datetime
 
 class NotificationRuleBase(BaseModel):
     name: str
-    target_index: str = "threats"
+    target_index: str = "logs-sentinel_one.threats"
     condition_type: str = "dsl_query"
     condition_config: Dict[str, Any]
     severity: str
@@ -16,9 +16,6 @@ class NotificationRuleBase(BaseModel):
     webhooks: List[str] = []
     receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})
     is_active: bool = True
-
-class NotificationRuleCreate(NotificationRuleBase):
-    id: str
 
 class NotificationRuleUpdate(BaseModel):
     name: Optional[str] = None

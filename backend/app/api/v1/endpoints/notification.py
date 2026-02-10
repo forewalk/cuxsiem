@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.services.notification import NotificationService
 from app.schemas.notification import (
-    NotificationRuleCreate, 
-    NotificationRuleUpdate, 
+    NotificationRuleBase,
+    NotificationRuleUpdate,
     NotificationRuleResponse,
     NotificationResponse
 )
@@ -25,7 +25,7 @@ async def list_rules(
     return rules
 
 @router.post("/rules", response_model=NotificationRuleResponse, status_code=status.HTTP_201_CREATED)
-async def create_rule(rule_in: NotificationRuleCreate):
+async def create_rule(rule_in: NotificationRuleBase):
     return await service.create_rule(rule_in)
 
 @router.get("/rules/{rule_id}", response_model=NotificationRuleResponse)
@@ -58,21 +58,9 @@ async def list_notifications(
     receiver_value: Optional[str] = None
 ):
     total, notifications = await service.list_notifications(
-        skip=skip, 
-        limit=limit, 
+        skip=skip,
+        limit=limit,
         receiver_type=receiver_type,
         receiver_value=receiver_value
     )
     return notifications
-
-@router.post("/rules/{rule_id}/test")
-async def test_rule_detection(rule_id: str):
-    """특정 규칙에 대한 탐지를 즉시 테스트 실행"""
-    rule = await service.get_rule(rule_id)
-    if not rule:
-        raise HTTPException(status_code=404, detail="Rule not found")
-    
-    result = await service.run_detection_for_rule(rule)
-    if result:
-        return {"status": "success", "notification": result}
-    return {"status": "no_threats_found"}

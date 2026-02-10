@@ -5,7 +5,7 @@ import asyncio
 import logging
 
 from app.repositories.notification import NotificationRepository
-from app.schemas.notification import NotificationRuleCreate, NotificationRuleUpdate
+from app.schemas.notification import NotificationRuleBase, NotificationRuleUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class NotificationService:
     async def list_rules(self, skip: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc"):
         return await self.repository.list_rules(skip, limit, sort_by, order)
 
-    async def create_rule(self, rule_in: NotificationRuleCreate):
+    async def create_rule(self, rule_in: NotificationRuleBase):
         return await self.repository.create_rule(rule_in.model_dump())
 
     async def update_rule(self, rule_id: str, rule_in: NotificationRuleUpdate):
@@ -34,7 +34,7 @@ class NotificationService:
 
     async def list_notifications(self, **kwargs):
         total, notifications = await self.repository.list_notifications(**kwargs)
-        
+
         # 각 알림에 해당하는 규칙의 최신 severity 정보를 가져와서 병합
         rule_ids = list(set(n.get("rule_id") for n in notifications if n.get("rule_id")))
         rules_cache = {}
@@ -42,10 +42,10 @@ class NotificationService:
             rule = await self.get_rule(rid)
             if rule:
                 rules_cache[rid] = rule.get("severity", "info")
-        
+
         for n in notifications:
             n["severity"] = rules_cache.get(n.get("rule_id"), "info")
-            
+
         return total, notifications
 
     async def run_detection_for_rule(self, rule: Dict[str, Any]):
@@ -54,22 +54,22 @@ class NotificationService:
             return
 
         rule_id = rule["id"]
-        target_index = rule.get("target_index", "threats")
+        target_index = rule.get("target_index", "logs-sentinel_one.threats")
         condition_config = rule.get("condition_config", {})
         window_min = rule.get("window_min", 5)
 
         # 1. 쿼리 시간 범위 설정 (window_min)
         now = datetime.utcnow()
         start_time = (now - timedelta(minutes=window_min)).isoformat()
-        
+
         # 2. Query DSL 구성
         # 룰에 정의된 DSL을 기반으로 시간 범위 필터 추가
         query = condition_config.get("query", {"match_all": {}})
-        
+
         # SIEM 환경에서는 보통 @timestamp 또는 created_at을 기준으로 필터링
-        # 여기서는 threats 인덱스의 표준 필터를 가정하거나 condition_config 내에 포함된 것으로 처리
+        # 여기서는 logs-sentinel_one.threats 인덱스의 표준 필터를 가정하거나 condition_config 내에 포함된 것으로 처리
         # (간단한 구현을 위해 룰의 DSL을 그대로 사용하되 필요시 엔진에서 래핑)
-        
+
         search_body = {
             "query": query,
             "size": 10, # 에비던스용 샘플 데이터
@@ -80,10 +80,10 @@ class NotificationService:
         try:
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
-                None, 
+                None,
                 lambda: self.repository.client.search(index=target_index, body=search_body)
             )
-            
+
             hits = result.get("hits", {}).get("hits", [])
             total = result.get("hits", {}).get("total", {}).get("value", 0)
 
@@ -92,7 +92,7 @@ class NotificationService:
                 # 여기서는 가장 최근의 이벤트를 참조값으로 사용
                 first_hit = hits[0]
                 event_ref = first_hit.get("_id")
-                
+
                 notification_data = {
                     "rule_id": rule_id,
                     "title": f"[Alert] {rule['name']}",
@@ -103,12 +103,12 @@ class NotificationService:
                     "status": "created",
                     "created_at": now.isoformat()
                 }
-                
+
                 created_notif = await self.repository.create_notification(notification_data)
-                
+
                 # 5. Webhook 발송 (비동기)
                 asyncio.create_task(self.send_webhooks(rule.get("webhooks", []), created_notif))
-                
+
                 return created_notif
         except Exception as e:
             logger.error(f"Error running detection for rule {rule_id}: {e}")
@@ -127,14 +127,14 @@ class NotificationService:
                         await self.repository.mark_as_sent(notification["id"], status="sent")
                     else:
                         await self.repository.mark_as_sent(
-                            notification["id"], 
-                            status="failed", 
+                            notification["id"],
+                            status="failed",
                             error=f"HTTP {response.status_code}"
                         )
                 except Exception as e:
                     await self.repository.mark_as_sent(
-                        notification["id"], 
-                        status="failed", 
+                        notification["id"],
+                        status="failed",
                         error=str(e)
                     )
 
