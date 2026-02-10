@@ -45,6 +45,13 @@ export interface UserCreate {
   password?: string;
 }
 
+export interface UserApply {
+  username: string;
+  email: string;
+  name: string;
+  password: string;
+}
+
 export interface UserUpdate {
   email?: string;
   name?: string;

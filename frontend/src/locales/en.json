@@ -136,5 +136,11 @@
   "top10FileExtension": "Top 10 File Extension",
   "top10ThreatTechniques": "Top 10 Threat Techniques",
   "threatsByInfectedAgents": "Distribution of Threats by Infected Agents",
-  "threatsByMitigationStatusDetail": "Distribution of Threats by Mitigation Status"
+  "threatsByMitigationStatusDetail": "Distribution of Threats by Mitigation Status",
+  "applyAccount": "Account Application",
+  "applySuccess": "Account application completed. You can use it after administrator approval.",
+  "confirmPassword": "Confirm Password",
+  "passwordMismatch": "Passwords do not match.",
+  "idAvailable": "ID is available.",
+  "idAlreadyExists": "ID already exists."
 }

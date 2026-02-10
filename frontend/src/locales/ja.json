@@ -137,5 +137,11 @@
   "top10FileExtension": "トップ10ファイル拡張子",
   "top10ThreatTechniques": "トップ10脅威テクニック",
   "threatsByInfectedAgents": "感染エージェント別脅威分布",
-  "threatsByMitigationStatusDetail": "緩和状態別脅威詳細分布"
+  "threatsByMitigationStatusDetail": "緩和状態別脅威詳細分布",
+  "applyAccount": "アカウント申請",
+  "applySuccess": "アカウント申請が完了しました。管理者の承認後に利用可能です。",
+  "confirmPassword": "パスワード確認",
+  "passwordMismatch": "パスワードが一致しません。",
+  "idAvailable": "使用可能なIDです。",
+  "idAlreadyExists": "既に使用されているIDです。"
 }
