@@ -5,6 +5,7 @@ from app.repositories.dashboard import DashboardRepository
 from app.schemas.dashboard import (
     DashboardStatsResponse, 
     HistogramItem, 
+    SeverityStat,
     DashboardSummary
 )
 
@@ -47,9 +48,33 @@ class DashboardService:
             suspicious_threats=aggs.get("suspicious_count", {}).get("doc_count", 0)
         )
 
+        detection_stats = []
+        for bucket in aggs.get("detection_engines", {}).get("buckets", []):
+            detection_stats.append(SeverityStat(
+                label=bucket["key"],
+                value=bucket["doc_count"]
+            ))
+
+        prevalent_threats = []
+        for bucket in aggs.get("prevalent_threats", {}).get("buckets", []):
+            prevalent_threats.append(SeverityStat(
+                label=bucket["key"],
+                value=bucket["doc_count"]
+            ))
+
+        mitigation_stats = []
+        for bucket in aggs.get("mitigation_status_dist", {}).get("buckets", []):
+            mitigation_stats.append(SeverityStat(
+                label=bucket["key"],
+                value=bucket["doc_count"]
+            ))
+
         return DashboardStatsResponse(
             summary=summary,
             histogram=histogram,
             severity_stats=[],
+            detection_stats=detection_stats,
+            prevalent_threats=prevalent_threats,
+            mitigation_stats=mitigation_stats,
             last_updated=datetime.utcnow()
         )
