@@ -14,9 +14,9 @@ async def get_indices():
 @router.get("/stats", response_model=DashboardStatsResponse)
 async def get_stats(
     from_value: Optional[int] = Query(None, description="조회 시작 기간 값"),
-    from_unit: Optional[str] = Query(None, regex="^(m|h|d)$", description="조회 시작 기간 단위"),
+    from_unit: Optional[str] = Query(None, pattern="^(m|h|d)$", description="조회 시작 기간 단위"),
     to_value: Optional[int] = Query(None, description="조회 종료 기간 값"),
-    to_unit: Optional[str] = Query(None, regex="^(m|h|d)$", description="조회 종료 기간 단위"),
+    to_unit: Optional[str] = Query(None, pattern="^(m|h|d)$", description="조회 종료 기간 단위"),
     from_date: Optional[str] = Query(None, description="절대 시작 시간 (ISO)"),
     to_date: Optional[str] = Query(None, description="절대 종료 시간 (ISO)"),
     q: Optional[str] = Query(None, description="검색 쿼리")
