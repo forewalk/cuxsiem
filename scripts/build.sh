@@ -55,6 +55,22 @@ cp docker-compose.prod.yml "$DIST_DIR/docker-compose.yml"
 # Copy env example and update TAG
 cp .env.production.example "$DIST_DIR/.env.production.example"
 
+# If .env.production exists, copy it to dist and update TAG
+if [ -f ".env.production" ]; then
+    echo "Found existing .env.production, copying to dist..."
+    cp .env.production "$DIST_DIR/.env.production"
+    
+    # Update TAG in the copied .env.production
+    if [ "$VERSION" != "latest" ]; then
+        # Check if TAG exists, if so replace it, otherwise append it
+        if grep -q "^TAG=" "$DIST_DIR/.env.production"; then
+            sed -i "s/^TAG=.*/TAG=$VERSION/" "$DIST_DIR/.env.production"
+        else
+            echo "TAG=$VERSION" >> "$DIST_DIR/.env.production"
+        fi
+    fi
+fi
+
 # On Linux/Mac sed usage is slightly different, trying portable way or assuming GNU sed (Git Bash usually has GNU sed)
 # We want to replace TAG=latest with TAG=$VERSION in the example file
 if [ "$VERSION" != "latest" ]; then

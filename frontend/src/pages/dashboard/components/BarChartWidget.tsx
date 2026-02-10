@@ -97,7 +97,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
         ))}
 
         <Box sx={{ position: 'absolute', top: padding.top, left: padding.left, right: padding.right, bottom: padding.bottom }}>
-          {gridLines.map((line, i) => (
+          {gridLines.map((_, i) => (
             <Box key={i} sx={{ position: 'absolute', top: `${((gridLines.length - 1 - i) / (gridLines.length - 1)) * 100}%`, left: 0, right: 0, height: '1px', bgcolor: theme.palette.divider, pointerEvents: 'none' }} />
           ))}
 

@@ -8,7 +8,6 @@ import EditableTitle from "../components/EditableTitle";
 import { getDashboardStats } from "../../../services/dashboardService";
 import type { DashboardStatsResponse } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
-import dayjs from "dayjs";
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../../locales/ko.json";
@@ -157,7 +156,6 @@ const DashboardTab: React.FC = () => {
         fromDate={fromDate} toDate={toDate}
         onTimeChange={handleTimeChange}
         searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={fetchData}
-        lastUpdated={data?.last_updated ? dayjs(data.last_updated).format("HH:mm:ss") : undefined}
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
