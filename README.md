@@ -55,33 +55,27 @@ cp .env.example .env
 npm run dev
 ```
 
-## 관리자 계정 생성
+## 관리자 계정 관리
 
-초기 설치 시 관리자(admin) 계정은 자동으로 생성되지 않습니다. 백엔드 컨테이너 내부 또는 로컬 환경에서 별도의 스크립트를 실행하여 생성해야 합니다.
+초기 설치 시 관리자(admin) 계정은 자동으로 생성되지 않습니다. 또한 비밀번호를 분실한 경우 아래 스크립트를 통해 초기화할 수 있습니다.
+
+### 관리자 계정 생성 (최초 설치 시)
 
 ```bash
-# 컨테이너 내부에서 실행 시 (추천)
-docker compose exec backend python scripts/create_admin.py
+# 컨테이너 내부에서 실행 (추천)
+docker compose exec backend python scripts/create_admin.py --username admin --email admin@example.com
 
-# 또는 옵션과 함께 실행
-docker compose exec backend python scripts/create_admin.py --username myadmin --email admin@example.com
-
-# 로컬 환경에서 실행 시 (backend 디렉토리)
+# 로컬 환경에서 실행 (backend 디렉토리)
 python scripts/create_admin.py
 ```
 
-## 관리자 비밀번호 초기화
-
-관리자 계정의 비밀번호를 잊어버렸거나 초기화가 필요한 경우, 다음 스크립트를 사용하여 안전하게 비밀번호를 변경할 수 있습니다.
+### 관리자 비밀번호 초기화
 
 ```bash
-# 컨테이너 내부에서 실행 시
+# 컨테이너 내부에서 실행
 docker compose exec backend python scripts/reset_password.py --username admin
 
-# 비밀번호를 인자로 직접 전달 (비추천)
-docker compose exec backend python scripts/reset_password.py --username admin --password "new_password_here"
-
-# 로컬 환경에서 실행 시 (backend 디렉토리)
+# 로컬 환경에서 실행 (backend 디렉토리)
 python scripts/reset_password.py --username admin
 ```
 

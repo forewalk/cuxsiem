@@ -24,6 +24,8 @@ def create_admin_user(username, password, email, name):
     opensearch_user = os.getenv("OPENSEARCH_USER", "admin")
     opensearch_password = os.getenv("OPENSEARCH_PASSWORD", "admin")
     opensearch_use_ssl = os.getenv("OPENSEARCH_USE_SSL", "false").lower() == "true"
+    opensearch_verify_certs = os.getenv("OPENSEARCH_VERIFY_CERTS", "false").lower() == "true"
+    opensearch_ca_certs = os.getenv("OPENSEARCH_CA_CERTS")
 
     print(f"[*] Connecting to OpenSearch: {opensearch_host}:{opensearch_port}")
 
@@ -31,7 +33,8 @@ def create_admin_user(username, password, email, name):
         hosts=[{"host": opensearch_host, "port": opensearch_port}],
         http_auth=(opensearch_user, opensearch_password),
         use_ssl=opensearch_use_ssl,
-        verify_certs=False,
+        verify_certs=opensearch_verify_certs,
+        ca_certs=opensearch_ca_certs,
         ssl_show_warn=False,
     )
 
