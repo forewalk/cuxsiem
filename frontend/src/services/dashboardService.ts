@@ -25,6 +25,9 @@ export interface DashboardStatsResponse {
   summary: DashboardSummary;
   histogram: HistogramItem[];
   severity_stats: SeverityStat[];
+  detection_stats: SeverityStat[];
+  prevalent_threats: SeverityStat[];
+  mitigation_stats: SeverityStat[];
   last_updated: string;
 }
 

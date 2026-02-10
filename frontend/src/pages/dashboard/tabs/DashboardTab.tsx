@@ -2,9 +2,13 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Box, Paper, Typography, CircularProgress, Alert, LinearProgress, Divider } from "@mui/material";
 import ControlBar from "../components/ControlBar";
 import BarChartWidget from "../components/BarChartWidget";
+import PieChartWidget from "../components/PieChartWidget";
+import CategoryBarChartWidget from "../components/CategoryBarChartWidget";
+import EditableTitle from "../components/EditableTitle";
 import { getDashboardStats } from "../../../services/dashboardService";
 import type { DashboardStatsResponse } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
+import dayjs from "dayjs";
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../../locales/ko.json";
@@ -84,11 +88,9 @@ const DashboardTab: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  const StatPanel = ({ title, value, color }: { title: string, value: number, color?: string }) => (
+  const StatPanel = ({ id, title, value, color }: { id: string, title: string, value: number, color?: string }) => (
     <Paper elevation={1} sx={{ p: 2, height: 140, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', mb: 1, height: 40 }}>
-        {title}
-      </Typography>
+      <EditableTitle panelId={id} defaultTitle={title} variant="caption" />
       <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Typography variant="h3" sx={{ fontWeight: 'bold', color: color || 'text.primary' }}>
           {value.toLocaleString()}
@@ -100,11 +102,9 @@ const DashboardTab: React.FC = () => {
     </Paper>
   );
 
-  const ChartPlaceholder = ({ title, type = 'bar' }: { title: string, type?: 'bar' | 'pie' | 'list' }) => (
-    <Paper elevation={1} sx={{ p: 2, height: 350, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.secondary', mb: 2 }}>
-        {title}
-      </Typography>
+  const ChartPlaceholder = ({ id, title, type = 'bar' }: { id: string, title: string, type?: 'bar' | 'pie' | 'list' }) => (
+    <Paper elevation={1} sx={{ p: 2.5, height: 380, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+      <EditableTitle panelId={id} defaultTitle={title} />
       <Box sx={{ 
         flexGrow: 1, 
         display: 'flex', 
@@ -113,7 +113,8 @@ const DashboardTab: React.FC = () => {
         bgcolor: 'action.hover', 
         borderRadius: 1,
         border: '1px dashed',
-        borderColor: 'divider'
+        borderColor: 'divider',
+        mt: 1
       }}>
         <Box sx={{ textAlign: 'center' }}>
           {type === 'pie' ? (
@@ -132,7 +133,7 @@ const DashboardTab: React.FC = () => {
               {[40, 70, 30, 90, 50].map((h, i) => <Box key={i} sx={{ width: 15, height: `${h}%`, bgcolor: 'primary.light', opacity: 0.3, borderRadius: '2px 2px 0 0' }} />)}
             </Box>
           )}
-          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>No results found</Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>{t('noResults')}</Typography>
         </Box>
       </Box>
     </Paper>
@@ -156,6 +157,7 @@ const DashboardTab: React.FC = () => {
         fromDate={fromDate} toDate={toDate}
         onTimeChange={handleTimeChange}
         searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={fetchData}
+        lastUpdated={data?.last_updated ? dayjs(data.last_updated).format("HH:mm:ss") : undefined}
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -163,10 +165,12 @@ const DashboardTab: React.FC = () => {
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
         {/* Main Log Trend Chart */}
         <Paper elevation={1} sx={{ p: 3, height: 450, width: '100%', borderRadius: 2 }}>
+          <Box sx={{ mb: 1 }}>
+            <EditableTitle panelId="main-trend" defaultTitle={t('logActivityTrend')} variant="subtitle2" />
+          </Box>
           <BarChartWidget 
             data={data?.histogram || []} 
             height={380} 
-            title={t('logActivityTrend')} 
             emptyMessage={t('noLogs')}
           />
         </Paper>
@@ -174,46 +178,70 @@ const DashboardTab: React.FC = () => {
         {/* Summary Panels */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
-            <StatPanel title={t('totalThreats')} value={data?.summary.total_threats ?? 0} />
-            <StatPanel title={t('unresolvedThreats')} value={data?.summary.unresolved_threats ?? 0} color="warning.main" />
-            <StatPanel title={t('resolvedThreats')} value={data?.summary.resolved_threats ?? 0} color="success.main" />
-            <StatPanel title={t('activeThreats')} value={data?.summary.active_threats ?? 0} color="error.main" />
+            <StatPanel id="total-threats" title={t('totalThreats')} value={data?.summary.total_threats ?? 0} />
+            <StatPanel id="unresolved-count" title={t('unresolvedThreats')} value={data?.summary.unresolved_threats ?? 0} color="warning.main" />
+            <StatPanel id="resolved-count" title={t('resolvedThreats')} value={data?.summary.resolved_threats ?? 0} color="success.main" />
+            <StatPanel id="active-count" title={t('activeThreats')} value={data?.summary.active_threats ?? 0} color="error.main" />
           </Box>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
-            <StatPanel title={t('blockedThreats')} value={data?.summary.blocked_threats ?? 0} color="info.main" />
-            <StatPanel title={t('mitigatedThreats')} value={data?.summary.mitigated_threats ?? 0} color="primary.main" />
-            <StatPanel title={t('suspiciousThreats')} value={0} color="secondary.main" />
+            <StatPanel id="blocked-count" title={t('blockedThreats')} value={data?.summary.blocked_threats ?? 0} color="info.main" />
+            <StatPanel id="mitigated-count" title={t('mitigatedThreats')} value={data?.summary.mitigated_threats ?? 0} color="primary.main" />
+            <StatPanel id="suspicious-count" title={t('suspiciousThreats')} value={0} color="secondary.main" />
           </Box>
         </Box>
 
         <Divider />
 
-        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary', px: 1 }}>Detections & Prevalent Threats</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
-          <ChartPlaceholder title="Distribution of Detections by Engine [Logs SentinelOne]" type="pie" />
-          <ChartPlaceholder title="Most Prevalent Threats [Logs SentinelOne]" type="bar" />
-          <ChartPlaceholder title="Distribution of Threats by Agent Status 2 [Logs SentinelOne]" type="pie" />
-          <ChartPlaceholder title="Distribution of Threats by Mitigation Status Action 2 [Logs SentinelOne]" type="bar" />
+          <Paper elevation={1} sx={{ p: 2.5, height: 380, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+            <EditableTitle panelId="detection-engine" defaultTitle={t('detectionEngine')} />
+            <Box sx={{ mt: 1, flexGrow: 1 }}>
+              <PieChartWidget 
+                data={data?.detection_stats || []} 
+                height={320}
+                emptyMessage={t('noResults')}
+              />
+            </Box>
+          </Paper>
+          <Paper elevation={1} sx={{ p: 2.5, height: 380, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+            <EditableTitle panelId="prevalent-threats" defaultTitle={t('prevalentThreats')} />
+            <Box sx={{ mt: 1, flexGrow: 1 }}>
+              <CategoryBarChartWidget 
+                data={data?.prevalent_threats || []} 
+                height={320}
+                emptyMessage={t('noResults')}
+              />
+            </Box>
+          </Paper>
+          <ChartPlaceholder id="agent-status" title={t('threatsByAgentStatus')} type="pie" />
+          <Paper elevation={1} sx={{ p: 2.5, height: 380, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+            <EditableTitle panelId="mitigation-status" defaultTitle={t('threatsByMitigationStatus')} />
+            <Box sx={{ mt: 1, flexGrow: 1 }}>
+              <CategoryBarChartWidget 
+                data={data?.mitigation_stats || []} 
+                height={320}
+                emptyMessage={t('noResults')}
+              />
+            </Box>
+          </Paper>
         </Box>
 
         <Divider />
 
-        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary', px: 1 }}>Threat Distribution Analysis</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
-          <ChartPlaceholder title="Distribution of Threats by Agent Mitigation Mode [Logs SentinelOne]" type="bar" />
-          <ChartPlaceholder title="Distribution of Threats by Confidence Level [Logs SentinelOne]" type="bar" />
-          <ChartPlaceholder title="Distribution of Threats by File Extension Type [Logs SentinelOne]" type="bar" />
-          <ChartPlaceholder title="Distribution of Threats by Incident Status [Logs SentinelOne]" type="bar" />
+          <ChartPlaceholder id="mitigation-mode" title={t('threatsByAgentMitigationMode')} type="bar" />
+          <ChartPlaceholder id="confidence-level" title={t('threatsByConfidenceLevel')} type="bar" />
+          <ChartPlaceholder id="file-extension-type" title={t('threatsByFileExtensionType')} type="bar" />
+          <ChartPlaceholder id="incident-status" title={t('threatsByIncidentStatus')} type="bar" />
         </Box>
 
         <Divider />
 
-        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary', px: 1 }}>Top Techniques & Infected Agents</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
-          <ChartPlaceholder title="Top 10 File Extension [Logs SentinelOne]" type="list" />
-          <ChartPlaceholder title="Top 10 Threat Techniques [Logs SentinelOne]" type="list" />
-          <ChartPlaceholder title="Distribution of Threats by Infected Agents [Logs SentinelOne]" type="pie" />
-          <ChartPlaceholder title="Distribution of Threats by Mitigation Status [Logs SentinelOne]" type="pie" />
+          <ChartPlaceholder id="top-file-ext" title={t('top10FileExtension')} type="list" />
+          <ChartPlaceholder id="top-threat-tech" title={t('top10ThreatTechniques')} type="list" />
+          <ChartPlaceholder id="infected-agents" title={t('threatsByInfectedAgents')} type="pie" />
+          <ChartPlaceholder id="mitigation-status-detail" title={t('threatsByMitigationStatusDetail')} type="pie" />
         </Box>
       </Box>
     </Box>

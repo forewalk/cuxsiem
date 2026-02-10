@@ -33,8 +33,23 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   // 사이드바가 닫힐 때 하위 메뉴를 강제로 닫지 않고, UI에서만 숨기도록 제어합니다.
   // 텍스트와 아이콘 배치는 Drawer의 open 상태에 따라 결정됩니다.
 
-  const handleAdminMenuClick = () => setOpenAdminMenu(!openAdminMenu);
-  const handleDashboardMenuClick = () => setOpenDashboardMenu(!openDashboardMenu);
+  const handleAdminMenuClick = () => {
+    if (!drawerOpen) {
+      handleDrawerToggle();
+      setOpenAdminMenu(true);
+    } else {
+      setOpenAdminMenu(!openAdminMenu);
+    }
+  };
+
+  const handleDashboardMenuClick = () => {
+    if (!drawerOpen) {
+      handleDrawerToggle();
+      setOpenDashboardMenu(true);
+    } else {
+      setOpenDashboardMenu(!openDashboardMenu);
+    }
+  };
 
   const handleMenuTabClick = (label: string, component: string, labelKey?: string) => {
     addTab({ label, component, labelKey });

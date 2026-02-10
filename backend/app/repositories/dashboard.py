@@ -146,7 +146,25 @@ class DashboardRepository:
                             }
                         }
                     },
-                    "suspicious_count": {"filter": {"term": {severity_field: "suspicious"}}}
+                    "suspicious_count": {"filter": {"term": {severity_field: "suspicious"}}},
+                    "detection_engines": {
+                        "terms": {
+                            "field": "threatInfo.detectionEngines.title",
+                            "size": 10
+                        }
+                    },
+                    "prevalent_threats": {
+                        "terms": {
+                            "field": "threatInfo.threatName",
+                            "size": 10
+                        }
+                    },
+                    "mitigation_status_dist": {
+                        "terms": {
+                            "field": "threatInfo.mitigationStatus",
+                            "size": 10
+                        }
+                    }
                 }
             }
             

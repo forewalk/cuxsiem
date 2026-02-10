@@ -26,4 +26,7 @@ class DashboardStatsResponse(BaseModel):
     summary: DashboardSummary
     histogram: List[HistogramItem]
     severity_stats: List[SeverityStat]
+    detection_stats: List[SeverityStat] = []
+    prevalent_threats: List[SeverityStat] = []
+    mitigation_stats: List[SeverityStat] = []
     last_updated: datetime
