@@ -79,3 +79,29 @@ export interface LogStreamResponse {
   logs: LogEntry[];
   last_timestamp: string;
 }
+
+
+// 규칙
+export interface NotificationRule {
+  id: string;
+  name: string;
+  target_index: string;
+  condition_type: string;
+  condition_config: never;
+  severity: string;
+  interval_min: number;
+  window_min: number;
+  dedup_ttl_min: number;
+  dedup_key_template: string;
+  channels: never;
+  receiver: never;
+  is_active: boolean;
+  last_run_at?: string;
+  last_success_at?: string;
+  last_triggered_at?: string;
+  last_error?: string;
+  error_count: number;
+  total_alerts_count: number;
+  created_at: string;
+  updated_at: string;
+}

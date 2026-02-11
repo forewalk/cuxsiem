@@ -1,58 +1,44 @@
 import api from './api';
+import type { NotificationRule } from '../types';
 
-export interface NotificationRule {
-  id: string;
-  name: string;
-  target_index: string;
-  condition_type: string;
-  condition_config: never;
-  severity: string;
-  interval_min: number;
-  window_min: number;
-  dedup_ttl_min: number;
-  dedup_key_template: string;
-  channels: never;
-  receiver: never;
-  is_active: boolean;
-  last_run_at?: string;
-  last_success_at?: string;
-  last_triggered_at?: string;
-  last_error?: string;
-  error_count: number;
-  total_alerts_count: number;
-  created_at: string;
-  updated_at: string;
-}
+
+
 
 export const notificationService = {
+
+
+
+  /* 알림 규칙 목록 조회 */
+
+
   getRules: async (skip: number = 0, limit: number = 100) => {
-    const response = await api.get<NotificationRule[]>('/api/v1/notification/rules', {
-      params: { skip, limit }
+    const response = await api.get<NotificationRule[]>('/api/v1/notifications/rules', {
+      params: { skip, limit  }
     });
     return response.data;
   },
 
   getRule: async (id: string) => {
-    const response = await api.get<NotificationRule>(`/api/v1/notification/rules/${id}`);
+    const response = await api.get<NotificationRule>(`/api/v1/notifications/rules/${id}`);
     return response.data;
   },
 
   createRule: async (rule: never) => {
-    const response = await api.post<NotificationRule>('/api/v1/notification/rules', rule);
+    const response = await api.post<NotificationRule>('/api/v1/notifications/rules', rule);
     return response.data;
   },
 
   updateRule: async (id: string, rule: never) => {
-    const response = await api.put<NotificationRule>(`/api/v1/notification/rules/${id}`, rule);
+    const response = await api.put<NotificationRule>(`/api/v1/notifications/rules/${id}`, rule);
     return response.data;
   },
 
   deleteRule: async (id: string) => {
-    await api.delete(`/api/v1/notification/rules/${id}`);
+    await api.delete(`/api/v1/notifications/rules/${id}`);
   },
 
   getNotifications: async (skip: number = 0, limit: number = 100) => {
-    const response = await api.get<never[]>('/api/v1/notification/', {
+    const response = await api.get<never[]>('/api/v1/notifications/', {
       params: { skip, limit }
     });
     return response.data;

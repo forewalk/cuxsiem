@@ -13,13 +13,21 @@ import {
   Refresh as RefreshIcon, Search as SearchIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import { notificationService, type NotificationRule } from '@/services/notificationService.ts';
+import { notificationService } from '@/services/notificationService.ts';
+import type { NotificationRule} from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
+
+// 컴포넌트 외부에 선언하여 리렌더링 시 재생성 방지
+const translations: Record<string, Record<string, string>> = {
+  ko: koMessages,
+  en: enMessages,
+  ja: jaMessages,
+};
 
 const NotificationRuleListTab: React.FC = () => {
   const [rules, setRules] = useState<NotificationRule[]>([]);
@@ -38,13 +46,6 @@ const NotificationRuleListTab: React.FC = () => {
     message: '',
     severity: 'success',
   });
-
-  // i18n 지원
-  const translations: Record<string, Record<string, string>> = {
-    ko: koMessages,
-    en: enMessages,
-    ja: jaMessages,
-  };
 
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
