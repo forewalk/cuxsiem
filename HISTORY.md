@@ -25,6 +25,8 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-11 11:30 | 김장훈 | 배포 | origin/develop push (feature/reallog/main 병합) |
+| 2026-02-11 11:25 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-11 10:45 | 김경수 | 배포 | origin/feature/reallog/main push (로그 스트리밍 UI 개선) |
 | 2026-02-11 10:40 | 김경수 | 수정 | 로그 스트리밍 UI 개선 (ControlBar 통합, 필드 헤더 추가, 레이아웃 최적화) |
 | 2026-02-10 14:10 | 김장훈 | 배포 | origin/develop push (빌드 스크립트 .env 유지 로직 추가 및 프론트엔드 빌드 오류 수정) |
