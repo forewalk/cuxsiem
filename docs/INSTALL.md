@@ -97,7 +97,7 @@ npm run dev
 |------|-----|
 | 호스트 | ns1.cruxdata.co.kr |
 | 포트 | 11723 |
-| 인증 | admin / admin |
+| 인증 | administrator / admin |
 | SSL | 사용 (인증서 검증 비활성) |
 
 ### Git (GitLab)

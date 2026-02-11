@@ -108,7 +108,7 @@ vi .env.production
 |------|------|------|
 | `OPENSEARCH_HOST` | OpenSearch 호스트 | `host.docker.internal` 또는 서버 IP |
 | `OPENSEARCH_PORT` | OpenSearch 포트 | `9200` |
-| `OPENSEARCH_USER` | OpenSearch 인증 사용자 | `admin` |
+| `OPENSEARCH_USER` | OpenSearch 인증 사용자 | `admin` (또는 `administrator`) |
 | `OPENSEARCH_PASSWORD` | OpenSearch 인증 비밀번호 | (설정한 비밀번호) |
 | `OPENSEARCH_USE_SSL` | SSL 사용 여부 | `true` |
 

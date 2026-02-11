@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-11 13:25 | 김장훈 | 배포 | origin/develop push (기본 관리자 계정명 administrator 변경 및 가이드 최신화) |
 | 2026-02-11 11:30 | 김장훈 | 배포 | origin/develop push (feature/reallog/main 병합) |
 | 2026-02-11 11:25 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-11 10:45 | 김경수 | 배포 | origin/feature/reallog/main push (로그 스트리밍 UI 개선) |

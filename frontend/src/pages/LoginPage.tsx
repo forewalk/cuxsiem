@@ -354,7 +354,7 @@ export const LoginPage: React.FC = () => {
                 error={!!validationErrors.username}
                 helperText={validationErrors.username}
                 margin="normal"
-                placeholder="admin"
+                placeholder="administrator"
                 disabled={isLoading}
                 sx={{
                   "& .MuiOutlinedInput-root": {
