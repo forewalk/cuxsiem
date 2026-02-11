@@ -79,8 +79,8 @@ def create_admin_user(username, password, email, name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create a new admin user for cruxSIEM")
-    parser.add_argument("--username", help="Admin username", default="admin")
-    parser.add_argument("--email", help="Admin email", default="admin@cruxdata.co.kr")
+    parser.add_argument("--username", help="Admin username", default="administrator")
+    parser.add_argument("--email", help="Admin email", default="administrator@cruxdata.co.kr")
     parser.add_argument("--name", help="Admin full name", default="Administrator")
     parser.add_argument("--password", help="Admin password (if not provided, will prompt)")
 
