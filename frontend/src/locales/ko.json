@@ -142,5 +142,8 @@
   "pause": "일시중지",
   "clearLogs": "로그 지우기",
   "autoScroll": "자동 스크롤",
-  "waitingForLogs": "로그를 기다리는 중..."
+  "waitingForLogs": "로그를 기다리는 중...",
+  "notificationCenter": "알림 센터",
+  "notificationRuleList": "알림 규칙 목록",
+  "notificationHistory": "알림 내역"
 }

@@ -142,5 +142,8 @@
   "pause": "Pause",
   "clearLogs": "Clear Logs",
   "autoScroll": "Auto Scroll",
-  "waitingForLogs": "Waiting for logs..."
+  "waitingForLogs": "Waiting for logs...",
+  "notificationCenter": "Notification Center",
+  "notificationRuleList": "Notification Rule List",
+  "notificationHistory": "Notification History"
 }

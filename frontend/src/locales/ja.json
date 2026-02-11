@@ -142,5 +142,8 @@
   "pause": "一時停止",
   "clearLogs": "ログ消去",
   "autoScroll": "自動スクロール",
-  "waitingForLogs": "ログを待機中..."
+  "waitingForLogs": "ログを待機中...",
+  "notificationCenter": "通知センター",
+  "notificationRuleList": "通知ルール一覧",
+  "notificationHistory": "通知履歴"
 }
