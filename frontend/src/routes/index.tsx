@@ -2,9 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import App from "../App";
 import { LoginPage } from "../pages/LoginPage";
 import { PrivateRoute } from "../components/PrivateRoute";
-import AdminRoute from "../components/AdminRoute";
-import AdminPage from "../pages/admin/AdminPage";
-import DashboardPage from "../pages/dashboard/DashboardPage";
+import WorkspacePage from "../pages/WorkspacePage";
 
 const router = createBrowserRouter([
   {
@@ -21,16 +19,12 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <DashboardPage />,
+        element: <WorkspacePage />,
       },
       {
-        path: "admin",
-        element: (
-          <AdminRoute>
-            <AdminPage />
-          </AdminRoute>
-        ),
-      },
+        path: "*",
+        element: <WorkspacePage />,
+      }
     ],
   },
   {

@@ -1,140 +1,397 @@
-import React, { useState } from "react";
-import IconButton from "@mui/material/IconButton";
-import Typography from "@mui/material/Typography";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import Tooltip from "@mui/material/Tooltip";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
-import TextField from "@mui/material/TextField";
-import InputAdornment from "@mui/material/InputAdornment";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import Button from "@mui/material/Button";
+import Popover from "@mui/material/Popover";
+import Divider from "@mui/material/Divider";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import { useTheme } from "@mui/material/styles";
+import StorageIcon from "@mui/icons-material/Storage";
 import SearchIcon from "@mui/icons-material/Search";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { useLanguageStore } from "../../../stores/useLanguageStore";
+import dayjs, { Dayjs } from "dayjs";
+
+// dayjs 로케일 임포트
+import 'dayjs/locale/ko';
+import 'dayjs/locale/ja';
+import 'dayjs/locale/en';
 
 interface ControlBarProps {
-  indices: string[];
-  selectedIndex: string;
-  onIndexChange: (index: string) => void;
-  timeRange: string;
-  onTimeRangeChange: (range: string) => void;
+  t: (key: string, params?: Record<string, string>) => string;
+  fromValue: number | null;
+  fromUnit: string;
+  toValue: number | null;
+  toUnit: string;
+  fromDate: string | null;
+  toDate: string | null;
+  onTimeChange: (fromVal: number | null, fromUnit: string, toVal: number | null, toUnit: string, fDate: string | null, tDate: string | null) => void;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   onRefresh: () => void;
-  lastUpdated?: string;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({ 
-  indices,
-  selectedIndex,
-  onIndexChange,
-  timeRange, 
-  onTimeRangeChange,
+  t,
+  fromValue,
+  fromUnit,
+  toValue,
+  toUnit,
+  fromDate,
+  toDate,
+  onTimeChange,
   searchQuery,
   onSearchQueryChange,
-  onRefresh,
-  lastUpdated 
+  onRefresh
 }) => {
+  const theme = useTheme();
+  const { language } = useLanguageStore();
   const [tempQuery, setTempQuery] = useState(searchQuery);
+  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
+  const [popoverType, setPopoverType] = useState<'quick' | 'detailed'>('quick');
+  const [editingPoint, setEditingPoint] = useState<'from' | 'to'>('from');
+  const [tabValue, setTabValue] = useState(1);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const [popoverVal, setPopoverVal] = useState(fromValue || 15);
+  const [popoverUnit, setPopoverUnit] = useState(fromUnit);
+  const [popoverDate, setPopoverDate] = useState<Dayjs>(dayjs());
+  const [popoverTime, setPopoverTime] = useState("12:00");
+
+  const [autoRefreshValue, setAutoRefreshValue] = useState(0);
+  const [autoRefreshUnit, setAutoRefreshUnit] = useState<'seconds' | 'minutes'>('seconds');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshTimerRef = useRef<any>(null);
+
+  useEffect(() => {
+    setTempQuery(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (isRefreshing && autoRefreshValue > 0) {
+      const intervalMs = autoRefreshUnit === 'seconds' ? autoRefreshValue * 1000 : autoRefreshValue * 60 * 1000;
+      refreshTimerRef.current = setInterval(() => { onRefresh(); }, intervalMs);
+    } else if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+    }
+    return () => { if (refreshTimerRef.current) clearInterval(refreshTimerRef.current); };
+  }, [isRefreshing, autoRefreshValue, autoRefreshUnit, onRefresh]);
+
+  const toggleAutoRefresh = () => {
+    if (autoRefreshValue > 0) setIsRefreshing(!isRefreshing);
+    else setIsRefreshing(false);
+  };
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     onSearchQueryChange(tempQuery);
   };
 
+  const handleQuickClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    setPopoverType('quick');
+    setAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
+  };
+
+  const handleFromClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    setPopoverType('detailed');
+    setEditingPoint('from');
+    if (fromDate) {
+      const d = dayjs(fromDate);
+      setPopoverDate(d);
+      setPopoverTime(d.format("HH:mm"));
+      setTabValue(0);
+    } else {
+      setPopoverVal(fromValue || 15);
+      setPopoverUnit(fromUnit);
+      setTabValue(1);
+    }
+    setAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
+  };
+
+  const handleToClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    setPopoverType('detailed');
+    setEditingPoint('to');
+    if (toDate) {
+      const d = dayjs(toDate);
+      setPopoverDate(d);
+      setPopoverTime(d.format("HH:mm"));
+      setTabValue(0);
+    } else if (toValue !== null) {
+      setPopoverVal(toValue);
+      setPopoverUnit(toUnit);
+      setTabValue(1);
+    } else {
+      setTabValue(2);
+    }
+    setAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
+  };
+
+  const handleClose = () => { setAnchorEl(null); };
+
+  const handleApplyTime = () => {
+    let finalFVal = fromValue;
+    let finalFUnit = fromUnit;
+    let finalTVal = toValue;
+    let finalTUnit = toUnit;
+    let finalFDate = fromDate;
+    let finalTDate = toDate;
+
+    const absoluteISO = popoverDate.hour(parseInt(popoverTime.split(":")[0])).minute(parseInt(popoverTime.split(":")[1])).second(0).toISOString();
+
+    if (editingPoint === 'from') {
+      if (tabValue === 0) {
+        finalFDate = absoluteISO;
+        finalFVal = null;
+      } else if (tabValue === 1) {
+        finalFVal = popoverVal;
+        finalFUnit = popoverUnit;
+        finalFDate = null;
+      } else {
+        finalFDate = dayjs().toISOString();
+        finalFVal = null;
+      }
+    } else {
+      if (tabValue === 0) {
+        finalTDate = absoluteISO;
+        finalTVal = null;
+      } else if (tabValue === 1) {
+        finalTVal = popoverVal;
+        finalTUnit = popoverUnit;
+        finalTDate = null;
+      } else {
+        finalTDate = null;
+        finalTVal = null;
+      }
+    }
+
+    onTimeChange(finalFVal, finalFUnit, finalTVal, finalTUnit, finalFDate, finalTDate);
+    handleClose();
+  };
+
+  const handleCommonClick = (val: number, unit: string) => {
+    onTimeChange(val, unit, null, "m", null, null);
+    handleClose();
+  };
+
+  const KIBANA_TEAL = "#005a5e";
+  const BORDER_COLOR = theme.palette.divider;
+  const BG_COLOR = theme.palette.mode === 'dark' ? theme.palette.background.paper : "#f5f7fa";
+  const TEXT_COLOR = theme.palette.text.primary;
+  const open = Boolean(anchorEl);
+
+  const unitTextMap: Record<string, string> = { 'm': t('minutesAgo'), 'h': t('hoursAgo'), 'd': t('daysAgo') };
+
+  const formatPoint = (val: number | null, unit: string, date: string | null, isTo: boolean) => {
+    if (isTo && val === null && date === null) return t('now');
+    if (date) return dayjs(date).locale(language).format("MMM D, YYYY @ HH:mm");
+    return `~ ${val} ${unitTextMap[unit]}`;
+  };
+
+  const CommonRange = ({ label, val, unit }: { label: string, val: number, unit: string }) => (
+    <Typography variant="body2" onClick={() => handleCommonClick(val, unit)} sx={{ color: KIBANA_TEAL, fontWeight: 'bold', cursor: 'pointer', '&:hover': { textDecoration: 'underline' }, py: 0.5 }}>{label}</Typography>
+  );
+
+  const timeOptions = useMemo(() => {
+    const times = [];
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        times.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+      }
+    }
+    return times;
+  }, []);
+
   return (
-    <Paper 
-      elevation={0} 
-      sx={{ 
-        p: 1.5, 
-        mb: 2, 
-        display: "flex", 
-        flexDirection: { xs: 'column', md: 'row' },
-        alignItems: { xs: 'stretch', md: 'center' }, 
-        justifyContent: "space-between",
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        bgcolor: "background.paper",
-        gap: 2
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: 'wrap' }}>
-        <Typography variant="h6" sx={{ fontWeight: "bold", mr: 1, display: { xs: 'none', lg: 'block' } }}>
-          Dashboard
-        </Typography>
-        
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Index Pattern</InputLabel>
-          <Select
-            value={selectedIndex}
-            label="Index Pattern"
-            onChange={(e) => onIndexChange(e.target.value)}
-          >
-            <MenuItem value=""><em>All Indices</em></MenuItem>
-            {indices.map((idx) => (
-              <MenuItem key={idx} value={idx}>{idx}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Range</InputLabel>
-          <Select
-            value={timeRange}
-            label="Range"
-            onChange={(e) => onTimeRangeChange(e.target.value)}
-          >
-            <MenuItem value="15m">15m</MenuItem>
-            <MenuItem value="1h">1h</MenuItem>
-            <MenuItem value="24h">24h</MenuItem>
-            <MenuItem value="48h">48h</MenuItem>
-          </Select>
-        </FormControl>
-
-        {/* Search Query Input */}
-        <Box component="form" onSubmit={handleSearchSubmit} sx={{ minWidth: { md: 300, lg: 450 }, display: 'flex', gap: 1 }}>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="Search logs (e.g. endpoint.os:windows)"
-            value={tempQuery}
-            onChange={(e) => setTempQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton 
-                    type="submit" 
-                    size="small" 
-                    sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' }, borderRadius: 1 }}
-                  >
-                    <SearchIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-          />
+    <Box sx={{ display: "flex", alignItems: "stretch", gap: 1, mb: 3, width: '100%' }}>
+      
+      {/* 1. Index Info */}
+      <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${BORDER_COLOR}`, borderRadius: 1, px: 1.5, gap: 1, minWidth: 'fit-content' }}>
+        <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
+        <Box>
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', display: 'block', lineHeight: 1, mb: 0.2 }}>{t('indexTitle')}</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 'bold', color: TEXT_COLOR, fontSize: '0.8rem' }}>logs-sentinel_one.threats</Typography>
         </Box>
       </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: 'flex-end', gap: 1 }}>
-        {lastUpdated && (
-          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-            Last updated: {lastUpdated}
-          </Typography>
-        )}
-        <Tooltip title="Refresh">
-          <IconButton onClick={onRefresh} size="small">
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+      {/* 2. Search Section */}
+      <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${BORDER_COLOR}`, borderRadius: 1, flexGrow: 1, overflow: 'hidden' }}>
+        <Box sx={{ px: 1.5, display: 'flex', alignItems: 'center', height: '100%' }}><SearchIcon sx={{ color: KIBANA_TEAL, fontSize: 20 }} /></Box>
+        <Box component="form" onSubmit={handleSearchSubmit} sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+          <TextField fullWidth size="small" placeholder={t('search')} value={tempQuery} onChange={(e) => setTempQuery(e.target.value)} sx={{ "& .MuiOutlinedInput-notchedOutline": { border: 'none' }, "& .MuiInputBase-input": { py: 1, px: 1, fontSize: '0.9rem', color: TEXT_COLOR } }} />
+        </Box>
       </Box>
-    </Paper>
+
+      {/* 3. Splitted Time Picker Section */}
+      <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${open ? KIBANA_TEAL : BORDER_COLOR}`, borderRadius: 1, minWidth: 320, overflow: 'hidden' }}>
+        <Box onClick={handleQuickClick} sx={{ px: 1, borderRight: `1px solid ${BORDER_COLOR}`, display: 'flex', alignItems: 'center', height: '100%', gap: 0.5, cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover } }}>
+          <CalendarMonthIcon sx={{ color: KIBANA_TEAL, fontSize: 20 }} />
+          {isRefreshing && <Box sx={{ width: 6, height: 6, bgcolor: 'success.main', borderRadius: '50%', position: 'absolute', ml: 2, mb: 2 }} />}
+          <KeyboardArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
+        </Box>
+
+        <Box onClick={handleFromClick} sx={{ px: 1.5, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover }, borderBottom: `2px solid ${open && popoverType === 'detailed' && editingPoint === 'from' ? KIBANA_TEAL : 'transparent'}` }}>
+          <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>{formatPoint(fromValue, fromUnit, fromDate, false)}</Typography>
+        </Box>
+
+        <ArrowForwardIcon sx={{ fontSize: 14, color: theme.palette.text.disabled }} />
+
+        <Box onClick={handleToClick} sx={{ px: 1.5, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover }, borderBottom: `2px solid ${open && popoverType === 'detailed' && editingPoint === 'to' ? KIBANA_TEAL : 'transparent'}` }}>
+          <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>{formatPoint(toValue, toUnit, toDate, true)}</Typography>
+        </Box>
+      </Box>
+
+      <Button variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: 20 }} />} onClick={onRefresh} sx={{ borderColor: BORDER_COLOR, color: KIBANA_TEAL, textTransform: 'none', fontWeight: 'bold', px: 2, bgcolor: theme.palette.background.paper, '&:hover': { borderColor: KIBANA_TEAL, bgcolor: theme.palette.action.hover } }}>{t('refresh')}</Button>
+
+      <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }} PaperProps={{ sx: { width: popoverType === 'quick' ? 450 : 480, mt: 1, borderRadius: 1, boxShadow: theme.shadows[10], bgcolor: theme.palette.background.paper, overflow: 'hidden' } }}>
+        {popoverType === 'quick' ? (
+          <Box sx={{ p: 2 }}>
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: TEXT_COLOR }}>{t('quickSelect')}</Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}><ChevronLeftIcon sx={{ fontSize: 20, color: theme.palette.text.secondary }} /><ChevronRightIcon sx={{ fontSize: 20, color: theme.palette.text.secondary }} /></Box>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl size="small" sx={{ width: 100 }}><Select value="Last" sx={{ height: 32, fontSize: '0.85rem', bgcolor: BG_COLOR, color: TEXT_COLOR }}><MenuItem value="Last">Last</MenuItem></Select></FormControl>
+                <TextField size="small" type="number" value={popoverVal} onChange={(e) => setPopoverVal(Number(e.target.value))} sx={{ width: 80, "& .MuiInputBase-input": { height: 16, fontSize: '0.85rem', bgcolor: BG_COLOR, color: TEXT_COLOR } }} />
+                <FormControl size="small" sx={{ flexGrow: 1 }}><Select value={popoverUnit} onChange={(e) => setPopoverUnit(e.target.value)} sx={{ height: 32, fontSize: '0.85rem', bgcolor: BG_COLOR, color: TEXT_COLOR }}><MenuItem value="m">{t('unit_m')}</MenuItem><MenuItem value="h">{t('unit_h')}</MenuItem><MenuItem value="d">{t('unit_d')}</MenuItem></Select></FormControl>
+                <Button variant="outlined" size="small" onClick={handleApplyTime} sx={{ borderColor: KIBANA_TEAL, color: KIBANA_TEAL, height: 32, fontWeight: 'bold', textTransform: 'none' }}>{t('apply')}</Button>
+              </Box>
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: theme.palette.text.secondary, display: 'block', mb: 1 }}>{t('commonlyUsed')}</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                <CommonRange label={t('today')} val={1} unit="d" /><CommonRange label={t('last24h')} val={24} unit="h" />
+                <CommonRange label={t('thisWeek')} val={7} unit="d" /><CommonRange label={t('last7d')} val={7} unit="d" />
+                <CommonRange label={t('last15m')} val={15} unit="m" /><CommonRange label={t('last30d')} val={30} unit="d" />
+              </Box>
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: theme.palette.text.secondary, display: 'block', mb: 1 }}>{t('refreshEvery')}</Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField size="small" type="number" value={autoRefreshValue} onChange={(e) => setAutoRefreshValue(Number(e.target.value))} disabled={isRefreshing} sx={{ width: 80, "& .MuiInputBase-input": { height: 16, fontSize: '0.85rem', bgcolor: BG_COLOR, color: TEXT_COLOR } }} />
+                <FormControl size="small" sx={{ flexGrow: 1 }}>
+                  <Select value={autoRefreshUnit} onChange={(e) => setAutoRefreshUnit(e.target.value as any)} disabled={isRefreshing} sx={{ height: 32, fontSize: '0.85rem', bgcolor: BG_COLOR, color: TEXT_COLOR }}>
+                    <MenuItem value="seconds">{t('seconds')}</MenuItem>
+                    <MenuItem value="minutes">{t('minutes')}</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button variant="contained" size="small" startIcon={isRefreshing ? <StopIcon /> : <PlayArrowIcon />} onClick={toggleAutoRefresh} disabled={autoRefreshValue <= 0} sx={{ bgcolor: isRefreshing ? 'error.main' : KIBANA_TEAL, color: 'white', height: 32, textTransform: 'none', '&:hover': { bgcolor: isRefreshing ? 'error.dark' : '#004a4d' } }}>{isRefreshing ? 'Stop' : t('start')}</Button>
+              </Box>
+            </Box>
+          </Box>
+        ) : (
+          <Box>
+            <Box sx={{ borderBottom: 1, borderColor: BORDER_COLOR, bgcolor: BG_COLOR, p: 1, textAlign: 'center' }}>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: KIBANA_TEAL }}>{editingPoint === 'from' ? t('setStartPoint') : t('setEndPoint')}</Typography>
+            </Box>
+            <Box sx={{ borderBottom: 1, borderColor: BORDER_COLOR }}>
+              <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} variant="fullWidth" sx={{ "& .MuiTab-root": { textTransform: 'none', fontWeight: 'bold', minHeight: 48, color: theme.palette.text.secondary }, "& .MuiTabs-indicator": { backgroundColor: KIBANA_TEAL, height: 3 }, "& .Mui-selected": { color: `${KIBANA_TEAL} !important` } }}>
+                <Tab label={t('absolute')} /><Tab label={t('relative')} /><Tab label={t('now')} />
+              </Tabs>
+            </Box>
+            <Box sx={{ p: 2 }}>
+              {tabValue === 0 && (
+                <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={language}>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ flexGrow: 1 }}>
+                      <DateCalendar 
+                        value={popoverDate} 
+                        onChange={(newValue) => newValue && setPopoverDate(newValue)}
+                        sx={{ 
+                          width: '100%', 
+                          maxHeight: 280,
+                          "& .MuiPickersDay-root.Mui-selected": { bgcolor: KIBANA_TEAL },
+                          "& .MuiPickersDay-root:hover": { bgcolor: `${KIBANA_TEAL}22` }
+                        }}
+                      />
+                    </Box>
+                    <Box sx={{ width: 100, borderLeft: `1px solid ${BORDER_COLOR}`, pl: 1, maxHeight: 280, overflowY: 'auto' }}>
+                      {timeOptions.map(time => (
+                        <Typography 
+                          key={time} 
+                          variant="caption" 
+                          onClick={() => setPopoverTime(time)}
+                          sx={{ 
+                            display: 'block', p: 0.8, cursor: 'pointer', borderRadius: 0.5, textAlign: 'center',
+                            bgcolor: popoverTime === time ? `${KIBANA_TEAL}22` : 'transparent',
+                            color: popoverTime === time ? KIBANA_TEAL : 'inherit',
+                            fontWeight: popoverTime === time ? 'bold' : 'normal',
+                            '&:hover': { bgcolor: theme.palette.action.hover }
+                          }}
+                        >
+                          {time}
+                        </Typography>
+                      ))}
+                    </Box>
+                  </Box>
+                </LocalizationProvider>
+              )}
+              {tabValue === 1 && (
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <TextField size="small" type="number" value={popoverVal} onChange={(e) => setPopoverVal(Number(e.target.value))} sx={{ width: 150, "& .MuiInputBase-root": { bgcolor: BG_COLOR, color: TEXT_COLOR } }} />
+                  <FormControl size="small" sx={{ flexGrow: 1 }}>
+                    <Select value={popoverUnit} onChange={(e) => setPopoverUnit(e.target.value)} sx={{ bgcolor: BG_COLOR, color: TEXT_COLOR }}>
+                      <MenuItem value="m">{t('unit_m')}</MenuItem><MenuItem value="h">{t('unit_h')}</MenuItem><MenuItem value="d">{t('unit_d')}</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              )}
+              {tabValue === 2 && (
+                <Box sx={{ py: 2, textAlign: 'center' }}>
+                  <Button 
+                    fullWidth 
+                    variant="contained" 
+                    onClick={() => { setTabValue(2); handleApplyTime(); }} 
+                    sx={{ 
+                      bgcolor: KIBANA_TEAL, 
+                      color: 'white', 
+                      textTransform: 'none', 
+                      fontWeight: 'bold',
+                      '&:hover': { bgcolor: '#004a4d' }
+                    }}
+                  >
+                    {t('setToNow')}
+                  </Button>
+                </Box>
+              )}
+            </Box>
+            {tabValue !== 2 && (
+              <Box sx={{ p: 1.5, bgcolor: BG_COLOR, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', border: `1px solid ${BORDER_COLOR}`, borderRadius: 1, overflow: 'hidden', bgcolor: theme.palette.background.paper }}>
+                  <Box sx={{ px: 1, py: 0.5, bgcolor: theme.palette.action.selected, borderRight: `1px solid ${BORDER_COLOR}` }}>
+                    <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{editingPoint === 'from' ? t('startDate') : t('endDate')}</Typography>
+                  </Box>
+                  <Typography variant="caption" sx={{ px: 1.5 }}>
+                    {tabValue === 0 
+                      ? popoverDate.locale(language).hour(parseInt(popoverTime.split(":")[0])).minute(parseInt(popoverTime.split(":")[1])).format("MMM D, YYYY @ HH:mm:ss")
+                      : dayjs().locale(language).format("MMM D, YYYY @ HH:mm:ss")
+                    }
+                  </Typography>
+                </Box>
+                <Button size="small" variant="contained" onClick={handleApplyTime} sx={{ bgcolor: KIBANA_TEAL, fontWeight: 'bold', textTransform: 'none', '&:hover': { bgcolor: '#004a4d' } }}>{t('apply')}</Button>
+              </Box>
+            )}
+          </Box>
+        )}
+      </Popover>
+    </Box>
   );
 };
 

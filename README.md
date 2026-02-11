@@ -1,4 +1,4 @@
-# CruxSIEM
+# cruxSIEM
 
 SIEM (Security Information and Event Management) 웹 애플리케이션.
 
@@ -53,6 +53,30 @@ cd frontend
 npm install
 cp .env.example .env
 npm run dev
+```
+
+## 관리자 계정 관리
+
+초기 설치 시 관리자(admin) 계정은 자동으로 생성되지 않습니다. 또한 비밀번호를 분실한 경우 아래 스크립트를 통해 초기화할 수 있습니다.
+
+### 관리자 계정 생성 (최초 설치 시)
+
+```bash
+# 컨테이너 내부에서 실행 (추천)
+docker compose exec backend python scripts/create_admin.py --username admin --email admin@example.com
+
+# 로컬 환경에서 실행 (backend 디렉토리)
+python scripts/create_admin.py
+```
+
+### 관리자 비밀번호 초기화
+
+```bash
+# 컨테이너 내부에서 실행
+docker compose exec backend python scripts/reset_password.py --username admin
+
+# 로컬 환경에서 실행 (backend 디렉토리)
+python scripts/reset_password.py --username admin
 ```
 
 ## 배포 전략 (오프라인 환경)
