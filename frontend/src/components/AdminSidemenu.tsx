@@ -73,7 +73,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
   const menuBg = theme.palette.mode === 'dark' ? '#1A1A1A' : theme.palette.background.paper;
   const textColor = theme.palette.text.primary;
-  const itemHoverBg = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
   
   const isLogStreamingActive = activeTabId === 'LogStreamingTab';
 

@@ -1,5 +1,5 @@
 import api from "./api";
-import type { LoginRequest, LoginResponse, User } from "../types";
+import type { LoginRequest, LoginResponse, User, UserApply } from "../types";
 
 const AUTH_TOKEN_KEY = "access_token";
 const AUTH_USER_KEY = "user";
@@ -23,6 +23,14 @@ export const authService = {
     // API 요청에 토큰 추가
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
+    return response.data;
+  },
+
+  /**
+   * 계정 신청
+   */
+  async applyAccount(applyData: UserApply): Promise<User> {
+    const response = await api.post<User>("/api/v1/auth/apply", applyData);
     return response.data;
   },
 

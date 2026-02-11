@@ -49,7 +49,7 @@ const LogStreamingTab: React.FC = () => {
   const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages };
   
   // 표시할 필드 리스트 상태
-  const [visibleFields, setVisibleFields] = useState<string[]>(['timestamp', '_index', 'message']);
+  const [visibleFields] = useState<string[]>(['timestamp', '_index', 'message']);
 
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};

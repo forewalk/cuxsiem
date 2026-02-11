@@ -25,10 +25,16 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-11 14:35 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
+| 2026-02-11 14:35 | 김장훈 | 배포 | origin/feature/logs push (develop 기준 신규 브랜치 생성) |
+| 2026-02-11 14:10 | 김장훈 | 배포 | origin/develop push (feature/account 병합) |
+| 2026-02-11 13:51 | 박재현 | 수정 | 계정 신청 모달: 이메일 유효성/비밀번호 정책 UI 개선 및 정책 조회 API Public 전환 |
+| 2026-02-11 13:25 | 김장훈 | 배포 | origin/develop push (기본 관리자 계정명 administrator 변경 및 가이드 최신화) |
 | 2026-02-11 11:30 | 김장훈 | 배포 | origin/develop push (feature/reallog/main 병합) |
 | 2026-02-11 11:25 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-11 10:45 | 김경수 | 배포 | origin/feature/reallog/main push (로그 스트리밍 UI 개선) |
 | 2026-02-11 10:40 | 김경수 | 수정 | 로그 스트리밍 UI 개선 (ControlBar 통합, 필드 헤더 추가, 레이아웃 최적화) |
+| 2026-02-10 16:00 | 박재현 | 추가 | 계정 신청 기능 (백엔드 API, 프론트엔드 모달 및 로그인 연동) |
 | 2026-02-10 14:10 | 김장훈 | 배포 | origin/develop push (빌드 스크립트 .env 유지 로직 추가 및 프론트엔드 빌드 오류 수정) |
 | 2026-02-10 13:45 | 최지호 | 수정 | origin/feature/menu push (패널 4개 구현, 패널 이름 수정 구현) |
 | 2026-02-10 12:05 | 김장훈 | 수리 | FastAPI Deprecation 경고 수정 (regex -> pattern) |

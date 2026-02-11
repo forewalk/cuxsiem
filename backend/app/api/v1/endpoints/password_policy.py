@@ -10,10 +10,8 @@ router = APIRouter(prefix="/password-policy", tags=["password-policy"])
 
 
 @router.get("", response_model=PasswordPolicyResponse)
-async def get_password_policy(
-    current_admin: UserResponse = Depends(get_current_admin_user)
-):
-    """패스워드 정책 조회 (관리자 전용)"""
+async def get_password_policy():
+    """패스워드 정책 조회 (공개 - 계정 신청 시 필요)"""
     service = PasswordPolicyService()
     return await service.get_current_policy()
 

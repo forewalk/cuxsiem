@@ -63,7 +63,7 @@ npm run dev
 
 ```bash
 # 컨테이너 내부에서 실행 (추천)
-docker compose exec backend python scripts/create_admin.py --username admin --email admin@example.com
+docker compose exec backend python scripts/create_admin.py --username administrator --email administrator@example.com
 
 # 로컬 환경에서 실행 (backend 디렉토리)
 python scripts/create_admin.py
@@ -73,10 +73,10 @@ python scripts/create_admin.py
 
 ```bash
 # 컨테이너 내부에서 실행
-docker compose exec backend python scripts/reset_password.py --username admin
+docker compose exec backend python scripts/reset_password.py --username administrator
 
 # 로컬 환경에서 실행 (backend 디렉토리)
-python scripts/reset_password.py --username admin
+python scripts/reset_password.py --username administrator
 ```
 
 ## 배포 전략 (오프라인 환경)

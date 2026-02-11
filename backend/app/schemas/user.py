@@ -28,6 +28,24 @@ class UserCreate(UserBase):
         return v
 
 
+class UserApply(BaseModel):
+    """계정 신청 요청"""
+    username: str = Field(..., min_length=4, max_length=50, description="사용자 ID")
+    email: EmailStr
+    name: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        """비밀번호 정책 검증: 영문+숫자 필수"""
+        if not any(c.isalpha() for c in v):
+            raise ValueError('비밀번호는 최소 1개의 영문을 포함해야 합니다')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('비밀번호는 최소 1개의 숫자를 포함해야 합니다')
+        return v
+
+
 class UserUpdate(BaseModel):
     """사용자 수정 요청"""
     email: Optional[EmailStr] = None
