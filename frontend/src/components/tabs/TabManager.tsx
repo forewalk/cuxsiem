@@ -12,6 +12,7 @@ import LogStreamingTab from '../../pages/admin/tabs/LogStreamingTab';
 import koMessages from "../../locales/ko.json";
 import enMessages from "../../locales/en.json";
 import jaMessages from "../../locales/ja.json";
+import cnMessages from "../../locales/cn.json";
 
 const tabComponents: { [key: string]: React.ComponentType<any> } = {
   UserManagementTab: UserManagementTab,
@@ -26,7 +27,12 @@ const TabManager: React.FC = () => {
   const theme = useTheme();
 
   // i18n 지원
-  const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages };
+  const translations: Record<string, Record<string, string>> = { 
+    ko: koMessages, 
+    en: enMessages, 
+    ja: jaMessages,
+    cn: cnMessages
+  };
   const t = useMemo(() => (key: string): string => {
     const currentTranslations = translations[language] || translations["ko"];
     return currentTranslations[key] || key;

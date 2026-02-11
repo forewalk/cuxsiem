@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from app.core.security import get_password_hash
 from app.models.user import User
 from app.repositories.user import UserRepository
+from app.services.password_policy import PasswordPolicyService
 from app.schemas.user import (
     UserCreate, UserUpdate, UserResponse, UserListResponse
 )
@@ -17,9 +18,19 @@ class UserService:
 
     def __init__(self):
         self.user_repo = UserRepository()
+        self.policy_service = PasswordPolicyService()
 
     async def create_user(self, request: UserCreate) -> UserResponse:
         """신규 사용자 생성"""
+        # 동적 비밀번호 정책 검증
+        try:
+            await self.policy_service.validate_password(request.password)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+
         # ID(username) 중복 확인
         existing_user = await self.user_repo.get_by_id(request.username)
         if existing_user and not existing_user.deleted_at:
@@ -88,8 +99,17 @@ class UserService:
 
         update_data = request.model_dump(exclude_unset=True)
 
-        # 비밀번호 변경 시 해싱
+        # 비밀번호 변경 시
         if "password" in update_data:
+            # 동적 비밀번호 정책 검증
+            try:
+                await self.policy_service.validate_password(update_data["password"])
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=str(e)
+                )
+            
             update_data["password_hash"] = get_password_hash(
                 update_data.pop("password")
             )

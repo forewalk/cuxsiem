@@ -11,6 +11,7 @@ import type { PasswordPolicy } from '../../../services/passwordPolicyService';
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
+import cnMessages from "../../../locales/cn.json";
 
 const PasswordPolicyTab: React.FC = () => {
   const [policy, setPolicy] = useState<PasswordPolicy | null>(null);
@@ -28,6 +29,7 @@ const PasswordPolicyTab: React.FC = () => {
     ko: koMessages,
     en: enMessages,
     ja: jaMessages,
+    cn: cnMessages,
   };
 
   const t = useCallback((key: string): string => {

@@ -13,6 +13,7 @@ import { useLanguageStore } from "../../../stores/useLanguageStore";
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
+import cnMessages from "../../../locales/cn.json";
 
 const DashboardTab: React.FC = () => {
   const [fromValue, setFromValue] = useState<number | null>(15);
@@ -32,6 +33,7 @@ const DashboardTab: React.FC = () => {
     ko: koMessages,
     en: enMessages,
     ja: jaMessages,
+    cn: cnMessages,
   };
 
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {

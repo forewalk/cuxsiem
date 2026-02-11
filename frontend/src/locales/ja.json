@@ -44,6 +44,8 @@
   "saveSuccess": "ユーザーが保存されました。",
   "userRoleAdmin": "管理者",
   "userRoleUser": "ユーザー",
+  "userRoleMonitoring": "モニタリング",
+  "userRoleApprover": "承認者",
   "minLength": "最小長さ",
   "requireUppercase": "大文字必須",
   "requireLowercase": "小文字必須",

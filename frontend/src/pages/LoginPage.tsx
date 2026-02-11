@@ -26,7 +26,6 @@ import {
   DialogContentText,
   DialogActions,
 } from "@mui/material";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
@@ -38,6 +37,7 @@ import AccountApplyModal from "../components/auth/AccountApplyModal";
 import koMessages from "../locales/ko.json";
 import enMessages from "../locales/en.json";
 import jaMessages from "../locales/ja.json";
+import cnMessages from "../locales/cn.json";
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -100,6 +100,7 @@ export const LoginPage: React.FC = () => {
     ko: koMessages,
     en: enMessages,
     ja: jaMessages,
+    cn: cnMessages,
   };
 
   const t = (key: string, params?: Record<string, string>): string => {
@@ -255,6 +256,7 @@ export const LoginPage: React.FC = () => {
             <MenuItem value="ko">한국어</MenuItem>
             <MenuItem value="en">English</MenuItem>
             <MenuItem value="ja">日本語</MenuItem>
+            <MenuItem value="cn">简体中文</MenuItem>
           </Select>
           <IconButton
             onClick={handleDarkModeChange}
@@ -303,13 +305,17 @@ export const LoginPage: React.FC = () => {
                 width: 56,
                 height: 56,
                 borderRadius: "50%",
-                backgroundColor: FIGMA_COLORS.buttonBg,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                overflow: "hidden"
               }}
             >
-              <LockOutlinedIcon sx={{ color: "white", fontSize: 32 }} />
+              <img 
+                src="/CRUXDATA_icon.png" 
+                alt="Logo" 
+                style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+              />
             </Box>
             <Typography
               variant="h6"
@@ -349,7 +355,6 @@ export const LoginPage: React.FC = () => {
                 error={!!validationErrors.username}
                 helperText={validationErrors.username}
                 margin="normal"
-                placeholder="admin"
                 disabled={isLoading}
                 sx={{
                   "& .MuiOutlinedInput-root": {
@@ -376,7 +381,6 @@ export const LoginPage: React.FC = () => {
                 error={!!validationErrors.password}
                 helperText={validationErrors.password}
                 margin="normal"
-                placeholder={t("passwordPlaceholder")}
                 disabled={isLoading}
                 sx={{
                   "& .MuiOutlinedInput-root": {

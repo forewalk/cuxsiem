@@ -25,7 +25,8 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-02-11 13:51 | 박재현 | 수정 | 계정 신청 모달: 이메일 유효성/비밀번호 정책 UI 개선 및 정책 조회 API Public 전환 |
+| 2026-02-11 15:30 | 박재현 | 추가 | origin/feature/account push 사용자 역할(모니터링, 결재자) 추가, 중국어(간체) 지원, 백엔드 동적 정책 검증 및 로그인 UI 개선 |
+| 2026-02-11 13:51 | 박재현 | 수정 | origin/feature/account push (계정 신청 이메일 유효성/비밀번호 정책 UI 개선 및 정책 조회 API Public 전환) |
 | 2026-02-11 11:30 | 김장훈 | 배포 | origin/develop push (feature/reallog/main 병합) |
 | 2026-02-11 11:25 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-11 10:45 | 김경수 | 배포 | origin/feature/reallog/main push (로그 스트리밍 UI 개선) |

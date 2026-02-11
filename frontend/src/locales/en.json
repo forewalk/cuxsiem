@@ -44,6 +44,8 @@
   "saveSuccess": "User saved successfully.",
   "userRoleAdmin": "Admin",
   "userRoleUser": "User",
+  "userRoleMonitoring": "Monitoring",
+  "userRoleApprover": "Approver",
   "minLength": "Minimum Length",
   "requireUppercase": "Require Uppercase",
   "requireLowercase": "Require Lowercase",
