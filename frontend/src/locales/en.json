@@ -142,5 +142,7 @@
   "confirmPassword": "Confirm Password",
   "passwordMismatch": "Passwords do not match.",
   "idAvailable": "ID is available.",
-  "idAlreadyExists": "ID already exists."
+  "idAlreadyExists": "ID already exists.",
+  "emailFormatError": "Please include an '@' in the email address.",
+  "request": "Apply"
 }

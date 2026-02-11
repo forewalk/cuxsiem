@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   Button, Stack, Typography, Alert, InputAdornment,
-  Box, List, ListItem, ListItemIcon, ListItemText,
-  IconButton
+  Box, List, ListItem, ListItemIcon, ListItemText, IconButton
 } from '@mui/material';
 import {
-  CheckCircle as CheckCircleIcon,
-  ErrorOutline as ErrorOutlineIcon,
   Visibility,
-  VisibilityOff
+  VisibilityOff,
+  CheckCircle as CheckCircleIcon,
+  ErrorOutline as ErrorOutlineIcon
 } from '@mui/icons-material';
 import { authService } from '../../services/authService';
 import { passwordPolicyService } from '../../services/passwordPolicyService';
@@ -67,29 +66,54 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
     }
   }, [open]);
 
-  // 비밀번호 검증 로직
-  const checkPolicy = () => {
-    if (!policy) return { allMet: true, requirements: [] };
+  // 비밀번호 검증 로직 (useMemo로 실시간 반응성 확보)
+  const requirements = useMemo(() => {
+    if (!policy) return [];
 
     const pwd = formData.password;
-    const requirements = [
-      { label: t('minLength') + `: ${policy.min_length}`, met: pwd.length >= policy.min_length },
-      { label: t('requireUppercase'), met: !policy.require_uppercase || /[A-Z]/.test(pwd) },
-      { label: t('requireLowercase'), met: !policy.require_lowercase || /[a-z]/.test(pwd) },
-      { label: t('requireNumbers'), met: !policy.require_numbers || /[0-9]/.test(pwd) },
-      { label: t('requireSpecialChars'), met: !policy.require_special_chars || /[!@#$%^&*(),.?":{}|<>]/.test(pwd) },
+    const reqs = [
+      { 
+        label: t('minLength') + `: ${policy.min_length}`, 
+        met: pwd.length >= policy.min_length,
+        show: true // 길이는 항상 표시
+      },
+      { 
+        label: t('requireUppercase'), 
+        met: /[A-Z]/.test(pwd),
+        show: policy.require_uppercase
+      },
+      { 
+        label: t('requireLowercase'), 
+        met: /[a-z]/.test(pwd),
+        show: policy.require_lowercase
+      },
+      { 
+        label: t('requireNumbers'), 
+        met: /[0-9]/.test(pwd),
+        show: policy.require_numbers
+      },
+      { 
+        label: t('requireSpecialChars'), 
+        met: /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
+        show: policy.require_special_chars
+      },
     ];
 
-    const allMet = requirements.every(r => r.met);
-    return { allMet, requirements };
-  };
+    return reqs.filter(r => r.show);
+  }, [policy, formData.password, t]);
 
-  const { allMet, requirements } = checkPolicy();
+  const allMet = requirements.length > 0 && requirements.every(r => r.met);
   const passwordsMatch = formData.password === confirmPassword;
   const isFormValid = formData.username && formData.email && formData.name && allMet && passwordsMatch && confirmPassword;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
+
+    // 이메일 형식 추가 검증 (@ 포함 여부)
+    if (!formData.email.includes('@')) {
+      setError(t('emailFormatError'));
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -104,7 +128,13 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
       // detail이 객체이거나 배열인 경우 문자열로 변환
       if (typeof detail === 'object') {
           if (Array.isArray(detail)) {
-              detail = detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+              // Pydantic의 이메일 에러인 경우 한글 메시지로 치환
+              const hasEmailError = detail.some((e: any) => e.loc?.includes('email') || e.type?.includes('email'));
+              if (hasEmailError) {
+                detail = t('emailFormatError');
+              } else {
+                detail = detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+              }
           } else {
               detail = JSON.stringify(detail);
           }
@@ -171,30 +201,37 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
           
           {/* 비밀번호 정책 실시간 표시 */}
           {formData.password && (
-            <Box sx={{ bgcolor: 'background.default', p: 1, borderRadius: 1 }}>
-              <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+            <Box sx={{ bgcolor: 'background.default', p: 1.5, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="caption" color="text.secondary" gutterBottom display="block" sx={{ fontWeight: 'bold', mb: 1 }}>
                 {t('complexityRules')}
               </Typography>
-              <List disablePadding>
-                {requirements.map((req, idx) => (
-                  <ListItem key={idx} disablePadding sx={{ py: 0.2 }}>
-                    <ListItemIcon sx={{ minWidth: 24 }}>
-                      {req.met ? (
-                        <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                      ) : (
-                        <ErrorOutlineIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
-                      )}
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={req.label} 
-                      primaryTypographyProps={{ 
-                        variant: 'caption', 
-                        color: req.met ? 'success.main' : 'text.secondary' 
-                      }} 
-                    />
-                  </ListItem>
-                ))}
-              </List>
+              {!policy ? (
+                <Typography variant="caption" color="text.disabled">
+                  Loading policy...
+                </Typography>
+              ) : (
+                <List disablePadding>
+                  {requirements.map((req, idx) => (
+                    <ListItem key={idx} disablePadding sx={{ py: 0.2 }}>
+                      <ListItemIcon sx={{ minWidth: 24 }}>
+                        {req.met ? (
+                          <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                        ) : (
+                          <ErrorOutlineIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                        )}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={req.label} 
+                        primaryTypographyProps={{ 
+                          variant: 'caption', 
+                          color: req.met ? 'success.main' : 'error.main',
+                          fontWeight: req.met ? 'normal' : '600'
+                        }} 
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </Box>
           )}
 
@@ -221,7 +258,7 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
           disabled={!isFormValid || loading}
           sx={{ minWidth: 80 }}
         >
-          {loading ? t('save') + '...' : t('apply')}
+          {loading ? t('save') + '...' : t('request')}
         </Button>
       </DialogActions>
     </Dialog>
