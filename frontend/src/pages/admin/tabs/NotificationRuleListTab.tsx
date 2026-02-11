@@ -3,7 +3,7 @@ import {
   Box, Typography, Button, Paper, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField,
   Stack, Alert, Snackbar, Chip, MenuItem, Switch, FormControlLabel,
-  Divider, Grid as Grid
+  Divider, Grid as Grid, LinearProgress
 } from '@mui/material';
 import {
   DataGrid, GridToolbar
@@ -11,20 +11,20 @@ import {
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
-  Refresh as RefreshIcon, Search as SearchIcon,
-  DeleteOutline as DeleteOutlineIcon
+  DeleteOutline as DeleteOutlineIcon,
+  NotificationsActive as NotificationsActiveIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationRule, NotificationRuleCreate, NotificationChannels } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
+import ControlBar from "../../dashboard/components/ControlBar";
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
 
-// 컴포넌트 외부에 선언하여 리렌더링 시 재생성 방지
 const translations: Record<string, Record<string, string>> = {
   ko: koMessages,
   en: enMessages,
@@ -55,8 +55,16 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
 const NotificationRuleListTab: React.FC = () => {
   const [rules, setRules] = useState<NotificationRule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const { language } = useLanguageStore();
+
+  // ControlBar states
+  const [fromValue, setFromValue] = useState<number | null>(15);
+  const [fromUnit, setFromUnit] = useState("m");
+  const [toValue, setToValue] = useState<number | null>(null);
+  const [toUnit, setToUnit] = useState("m");
+  const [fromDate, setFromDate] = useState<string | null>(null);
+  const [toDate, setToDate] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // 다이얼로그 상태
   const [open, setOpen] = useState(false);
@@ -86,6 +94,22 @@ const NotificationRuleListTab: React.FC = () => {
     return text;
   }, [language]);
 
+  const handleTimeChange = (
+    fVal: number | null,
+    fUnit: string,
+    tVal: number | null,
+    tUnit: string,
+    fDate: string | null = null,
+    tDate: string | null = null
+  ) => {
+    setFromValue(fVal);
+    setFromUnit(fUnit);
+    setToValue(tVal);
+    setToUnit(tUnit);
+    setFromDate(fDate);
+    setToDate(tDate);
+  };
+
   const loadRules = useCallback(async () => {
     setLoading(true);
     try {
@@ -106,7 +130,6 @@ const NotificationRuleListTab: React.FC = () => {
   const handleOpenDialog = (rule: NotificationRule | null = null) => {
     if (rule) {
       setEditingRule(rule);
-      // 필수 필드 보장하며 데이터 복사
       const data: NotificationRuleCreate = {
         name: rule.name,
         target_index: rule.target_index,
@@ -208,26 +231,11 @@ const NotificationRuleListTab: React.FC = () => {
     let label = severity;
 
     switch (severity.toLowerCase()) {
-      case 'critical':
-        color = "error";
-        label = t('severityCritical');
-        break;
-      case 'high':
-        color = "warning";
-        label = t('severityHigh');
-        break;
-      case 'medium':
-        color = "info";
-        label = t('severityMedium');
-        break;
-      case 'low':
-        color = "success";
-        label = t('severityLow');
-        break;
-      case 'info':
-        color = "default";
-        label = t('severityInfo');
-        break;
+      case 'critical': color = "error"; label = t('severityCritical'); break;
+      case 'high': color = "warning"; label = t('severityHigh'); break;
+      case 'medium': color = "info"; label = t('severityMedium'); break;
+      case 'low': color = "success"; label = t('severityLow'); break;
+      case 'info': color = "default"; label = t('severityInfo'); break;
     }
 
     return <Chip label={label} color={color} size="small" variant="outlined" />;
@@ -286,58 +294,56 @@ const NotificationRuleListTab: React.FC = () => {
   ];
 
   const filteredRules = rules.filter(rule =>
-    rule.name.toLowerCase().includes(searchTerm.toLowerCase())
+    rule.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-<Box sx={{ height: '100%', width: '100%', p: 3, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('notificationRuleList')}</Typography>
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={() => loadRules()}
-            sx={{ borderColor: 'divider', color: 'text.primary' }}
-          >
-            {t('refresh')}
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            {t('addRule')}
-          </Button>
+    <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
+      {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
+
+      <ControlBar
+        t={t}
+        fromValue={fromValue} fromUnit={fromUnit}
+        toValue={toValue} toUnit={toUnit}
+        fromDate={fromDate} toDate={toDate}
+        onTimeChange={handleTimeChange}
+        searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={() => loadRules()}
+      />
+
+      <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsActiveIcon color="primary" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationRuleList')}</Typography>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{ borderRadius: 1.5, textTransform: 'none' }}
+            >
+              {t('addRule')}
+            </Button>
+          </Stack>
         </Stack>
-      </Stack>
 
-      <Paper sx={{ mb: 2, p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <TextField
-          size="small"
-          placeholder={t('search')}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ color: 'text.disabled', mr: 1 }} fontSize="small" />,
-          }}
-          sx={{ width: 300 }}
-        />
-      </Paper>
+        <Divider sx={{ mb: 2 }} />
 
-      <Paper sx={{ flexGrow: 1, width: '100%' }}>
-        <DataGrid
-          rows={filteredRules}
-          columns={columns}
-          loading={loading}
-          disableRowSelectionOnClick
-          slots={{ toolbar: GridToolbar }}
-          sx={{
-            border: 'none',
-            '& .MuiDataGrid-cell:focus': { outline: 'none' },
-          }}
-        />
+        <Box sx={{ flexGrow: 1, width: '100%' }}>
+          <DataGrid
+            rows={filteredRules}
+            columns={columns}
+            loading={loading}
+            disableRowSelectionOnClick
+            slots={{ toolbar: GridToolbar }}
+            sx={{
+              border: 'none',
+              '& .MuiDataGrid-cell:focus': { outline: 'none' },
+            }}
+          />
+        </Box>
       </Paper>
 
       {/* 삭제 확인 다이얼로그 */}
