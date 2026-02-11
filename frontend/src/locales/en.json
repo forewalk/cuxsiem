@@ -173,5 +173,20 @@
   "severityHigh": "High",
   "severityMedium": "Medium",
   "severityLow": "Low",
-  "severityInfo": "Info"
+  "severityInfo": "Info",
+  "ruleDescription": "Rule Description",
+  "dedupTtl": "Deduplication TTL",
+  "dedupKeyTemplate": "Deduplication Key Template",
+  "channels": "Notification Channels",
+  "addChannel": "Add Channel",
+  "slackChannel": "Slack Channel",
+  "webhookUrl": "Webhook URL",
+  "webhookMethod": "Webhook Method",
+  "emailRecipients": "Email Recipients",
+  "invalidJson": "Invalid JSON format.",
+  "ruleSaveSuccess": "Notification rule saved successfully.",
+  "ruleDeleteSuccess": "Notification rule deleted successfully.",
+  "conditionConfig": "Detection Condition (DSL Query)",
+  "intervalMin": "Detection Interval (min)",
+  "windowMin": "Detection Window (min)"
 }

@@ -172,5 +172,20 @@
   "severityHigh": "높음",
   "severityMedium": "중간",
   "severityLow": "낮음",
-  "severityInfo": "정보"
+  "severityInfo": "정보",
+  "ruleDescription": "규칙 설명",
+  "dedupTtl": "중복 제거 주기",
+  "dedupKeyTemplate": "중복 제거 키 템플릿",
+  "channels": "알림 채널",
+  "addChannel": "채널 추가",
+  "slackChannel": "슬랙 채널",
+  "webhookUrl": "웹훅 URL",
+  "webhookMethod": "웹훅 메서드",
+  "emailRecipients": "이메일 수신자",
+  "invalidJson": "유효하지 않은 JSON 형식입니다.",
+  "ruleSaveSuccess": "알림 규칙이 저장되었습니다.",
+  "ruleDeleteSuccess": "알림 규칙이 삭제되었습니다.",
+  "conditionConfig": "탐지 조건 (DSL 쿼리)",
+  "intervalMin": "탐지 실행 주기 (분)",
+  "windowMin": "탐지 데이터 조회 범위 (분)"
 }
