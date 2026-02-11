@@ -3,11 +3,34 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
 
 from app.schemas.auth import LoginRequest, LoginResponse, PasswordResetRequest, PasswordResetResponse
+from app.schemas.user import UserApply, UserResponse, UserCreate
 from app.services.auth import AuthService
+from app.services.user import UserService
 from app.core.security import decode_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
+
+
+@router.post("/apply", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def apply_account(request: UserApply):
+    """
+    계정 신청
+    
+    사용자로부터 정보를 입력받아 비활성 계정을 생성합니다.
+    역할은 'user', 상태는 'inactive'로 강제 설정됩니다.
+    """
+    user_service = UserService()
+    # UserApply를 UserCreate로 변환하면서 role과 is_active를 강제로 설정
+    create_request = UserCreate(
+        username=request.username,
+        email=request.email,
+        name=request.name,
+        password=request.password,
+        role="user",
+        is_active=False
+    )
+    return await user_service.create_user(create_request)
 
 
 @router.post("/reset-password", response_model=PasswordResetResponse)

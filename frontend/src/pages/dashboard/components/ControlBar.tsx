@@ -44,6 +44,7 @@ interface ControlBarProps {
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   onRefresh: () => void;
+  lastUpdated?: string;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({ 
@@ -57,7 +58,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
   onTimeChange,
   searchQuery,
   onSearchQueryChange,
-  onRefresh
+  onRefresh,
+  lastUpdated
 }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
@@ -256,6 +258,14 @@ const ControlBar: React.FC<ControlBarProps> = ({
       </Box>
 
       <Button variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: 20 }} />} onClick={onRefresh} sx={{ borderColor: BORDER_COLOR, color: KIBANA_TEAL, textTransform: 'none', fontWeight: 'bold', px: 2, bgcolor: theme.palette.background.paper, '&:hover': { borderColor: KIBANA_TEAL, bgcolor: theme.palette.action.hover } }}>{t('refresh')}</Button>
+
+      {lastUpdated && (
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+            {t('lastUpdated')}: {lastUpdated}
+          </Typography>
+        </Box>
+      )}
 
       <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }} PaperProps={{ sx: { width: popoverType === 'quick' ? 450 : 480, mt: 1, borderRadius: 1, boxShadow: theme.shadows[10], bgcolor: theme.palette.background.paper, overflow: 'hidden' } }}>
         {popoverType === 'quick' ? (

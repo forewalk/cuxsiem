@@ -33,6 +33,7 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useAuth } from "../hooks/useAuth";
 import { authService } from "../services/authService";
+import AccountApplyModal from "../components/auth/AccountApplyModal";
 
 import koMessages from "../locales/ko.json";
 import enMessages from "../locales/en.json";
@@ -59,8 +60,7 @@ export const LoginPage: React.FC = () => {
     return localStorage.getItem("appLanguage") || "ko";
   });
   const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [notImplementedMessage, setNotImplementedMessage] = useState("");
-  const [showNotImplemented, setShowNotImplemented] = useState(false);
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
 
   // 다크모드 변경 시 localStorage에 저장
   const handleDarkModeChange = useCallback(() => {
@@ -187,11 +187,6 @@ export const LoginPage: React.FC = () => {
       setOpenSnackbar(true);
     }
   }, [error]);
-
-  const handleNotImplemented = () => {
-    setNotImplementedMessage(t("notImplemented"));
-    setShowNotImplemented(true);
-  };
 
   // 비밀번호 초기화 관련 상태
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
@@ -475,7 +470,7 @@ export const LoginPage: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
-                    handleNotImplemented();
+                    setApplyModalOpen(true);
                   }}
                   sx={{
                     flex: 1,
@@ -538,30 +533,6 @@ export const LoginPage: React.FC = () => {
         </Alert>
       </Snackbar>
 
-      <Snackbar
-        open={showNotImplemented}
-        autoHideDuration={5000}
-        onClose={() => setShowNotImplemented(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setShowNotImplemented(false)}
-          severity="warning"
-          sx={{
-            width: "100%",
-            backgroundColor: "#ff9800",
-            color: "white",
-            fontSize: "15px",
-            fontWeight: 600,
-            "& .MuiAlert-icon": {
-              color: "white",
-            },
-          }}
-        >
-          {notImplementedMessage}
-        </Alert>
-      </Snackbar>
-
       {/* 비밀번호 초기화 다이얼로그 */}
       <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
         <DialogTitle>{t("resetPassword", { fallback: "비밀번호 초기화" })}</DialogTitle>
@@ -616,6 +587,11 @@ export const LoginPage: React.FC = () => {
           )}
         </DialogActions>
       </Dialog>
+
+      <AccountApplyModal 
+        open={applyModalOpen} 
+        onClose={() => setApplyModalOpen(false)} 
+      />
     </Container>
     </ThemeProvider>
   );
