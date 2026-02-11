@@ -25,7 +25,11 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-02-11 11:30 | 박재현 | 수정 | 계정 신청 모달: 이메일 유효성/비밀번호 정책 UI 개선 및 정책 조회 API Public 전환 |
+| 2026-02-11 13:51 | 박재현 | 수정 | 계정 신청 모달: 이메일 유효성/비밀번호 정책 UI 개선 및 정책 조회 API Public 전환 |
+| 2026-02-11 11:30 | 김장훈 | 배포 | origin/develop push (feature/reallog/main 병합) |
+| 2026-02-11 11:25 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
+| 2026-02-11 10:45 | 김경수 | 배포 | origin/feature/reallog/main push (로그 스트리밍 UI 개선) |
+| 2026-02-11 10:40 | 김경수 | 수정 | 로그 스트리밍 UI 개선 (ControlBar 통합, 필드 헤더 추가, 레이아웃 최적화) |
 | 2026-02-10 16:00 | 박재현 | 추가 | 계정 신청 기능 (백엔드 API, 프론트엔드 모달 및 로그인 연동) |
 | 2026-02-10 14:10 | 김장훈 | 배포 | origin/develop push (빌드 스크립트 .env 유지 로직 추가 및 프론트엔드 빌드 오류 수정) |
 | 2026-02-10 13:45 | 최지호 | 수정 | origin/feature/menu push (패널 4개 구현, 패널 이름 수정 구현) |
@@ -34,6 +38,7 @@
 | 2026-02-10 11:30 | 김장훈 | 추가 | 관리자 비밀번호 초기화 스크립트 및 README.md 가이드 추가 |
 | 2026-02-09 17:30 | 최지호 | 수정 | origin/feature/menu push (메뉴 팝업 형태 수정, 탭 이동시 캐시 저장) |
 | 2026-02-09 15:53 | 김장훈 | 배포 | origin/develop push (OpenSearch Admin 계정 수동 생성 전환, Nginx 443 포트 SSL 설정) |
+| 2026-02-09 15:11 | 김경수 | 수정 | feature/reallog/main push (develop rebase 충돌 해결) |
 | 2026-02-09 13:52 | 김장훈 | 배포 | origin/feature/pipeline push (develop 기준 신규 브랜치 생성) |
 | 2026-02-09 13:51 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-09 13:50 | 김장훈 | 배포 | origin/develop push (프로젝트명 cruxSIEM 변경 및 브랜치 정리) |
@@ -42,8 +47,12 @@
 | 2026-02-08 16:20 | 최지호 | 수정 | origin/feature/dashboard push (위협현황 대시보드 틀 구성 완료) |
 | 2026-02-06 18:00 | 최지호 | 수정 | origin/feature/dashboard push (threat 대시보드 일부 구성) |
 | 2026-02-06 16:30 | 김장훈 | 배포 | origin/develop push (MUI v7 Grid 표준 적용 및 빌드 오류 수정) |
+| 2026-02-06 16:15 | 박상현 | 수정 | 로그 스트리밍 백엔드 API 오류 수정 (인증 의존성, 타임스탬프 누락 대응 및 JSON Alias 적용) |
+| 2026-02-06 15:27 | 박상현 | 수정 | feature/reallog/main push (feature/reallog => feature/reallog/main 브랜치 이름 수정) |
 | 2026-02-06 14:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 병합 및 최신화) |
+| 2026-02-04 15:11 | 김경수 | 수정 | feature/reallog push (로그 스트리밍 기능 초안 구현) |
 | 2026-02-03 17:10 | 최지호 | 추가 | origin/feature/dashboard push (메인 대시보드 초안 구현) |
+| 2026-02-02 23:45 | 김경수 | 수정 | feature/reallog push (로그 스트리밍 기능 초안 구현) |
 | 2026-02-02 23:45 | 김장훈 | 배포 | origin/develop push (cicd 브랜치 병합: 배포 자동화 및 초기화 기능 통합) |
 | 2026-02-02 23:30 | 김장훈 | 문서화 | origin/cicd push (배포 가이드에 리버스 프록시 아키텍처 설명 추가) |
 | 2026-02-02 13:28 | 김장훈 | 설정 | origin/develop push (mockup 폴더 제외 처리) |

@@ -73,3 +73,16 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   getCurrentUser: () => Promise<void>;
 }
+
+// Log types
+export interface LogEntry {
+  _id: string;
+  timestamp: string;
+  _index: string;
+  message: string;
+}
+
+export interface LogStreamResponse {
+  logs: LogEntry[];
+  last_timestamp: string;
+}

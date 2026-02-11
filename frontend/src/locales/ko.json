@@ -140,9 +140,15 @@
   "applyAccount": "계정 신청",
   "applySuccess": "계정 신청이 완료되었습니다. 관리자 승인 후 이용 가능합니다.",
   "confirmPassword": "비밀번호 확인",
-      "passwordMismatch": "비밀번호가 일치하지 않습니다.",
-      "idAvailable": "사용할 수 있는 아이디입니다.",
-      "idAlreadyExists": "이미 사용 중인 아이디입니다.",
-      "emailFormatError": "이메일 형식에 맞게 '@'를 포함하여 작성해주세요.",
-      "request": "신청"
-    }
+  "passwordMismatch": "비밀번호가 일치하지 않습니다.",
+  "idAvailable": "사용할 수 있는 아이디입니다.",
+  "idAlreadyExists": "이미 사용 중인 아이디입니다.",
+  "emailFormatError": "이메일 형식에 맞게 '@'를 포함하여 작성해주세요.",
+  "request": "신청",
+  "logStreaming": "로그 스트리밍",
+  "resume": "재개",
+  "pause": "일시중지",
+  "clearLogs": "로그 지우기",
+  "autoScroll": "자동 스크롤",
+  "waitingForLogs": "로그를 기다리는 중..."
+}
