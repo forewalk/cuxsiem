@@ -8,7 +8,7 @@ import {
   ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Settings as SettingsIcon,
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
   ShowChart as ThreatsIcon, Terminal as TerminalIcon, Notifications as NotificationsIcon,
-  ListAlt as ListAltIcon, History as HistoryIcon,
+  ListAlt as ListAltIcon, History as HistoryIcon, Tune as AdvancedIcon,
 } from '@mui/icons-material';
 import useTabStore from '../stores/tabStore';
 
@@ -196,7 +196,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                   <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
                   {drawerOpen && (openNotificationMenu ? <ExpandLess /> : <ExpandMore />)}
                 </ListItemButton>
-                
+
                 <Collapse in={openNotificationMenu && drawerOpen} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding>
                     <ListItemButton
@@ -219,6 +219,14 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                     </ListItemButton>
                   </List>
                 </Collapse>
+
+                <ListItemButton
+                  sx={{ pl: 4, minHeight: listItemHeight }}
+                  onClick={() => handleMenuTabClick(t('advancedSettings'), 'AdvancedSettingsTab', 'advancedSettings')}
+                >
+                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><AdvancedIcon /></ListItemIcon>
+                  <ListItemText primary={t('advancedSettings')} sx={listItemTextStyle} />
+                </ListItemButton>
               </List>
             </Collapse>
           </List>

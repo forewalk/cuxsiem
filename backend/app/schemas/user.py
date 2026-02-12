@@ -15,17 +15,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """사용자 생성 요청"""
     username: str = Field(..., min_length=4, max_length=50, description="사용자 ID")
-    password: str = Field(..., min_length=8, max_length=128)
-
-    @field_validator('password')
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        """비밀번호 정책 검증: 영문+숫자 필수"""
-        if not any(c.isalpha() for c in v):
-            raise ValueError('비밀번호는 최소 1개의 영문을 포함해야 합니다')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('비밀번호는 최소 1개의 숫자를 포함해야 합니다')
-        return v
+    password: str = Field(..., min_length=4, max_length=128)
 
 
 class UserApply(BaseModel):
@@ -33,17 +23,7 @@ class UserApply(BaseModel):
     username: str = Field(..., min_length=4, max_length=50, description="사용자 ID")
     email: EmailStr
     name: str = Field(..., min_length=1, max_length=50)
-    password: str = Field(..., min_length=8, max_length=128)
-
-    @field_validator('password')
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        """비밀번호 정책 검증: 영문+숫자 필수"""
-        if not any(c.isalpha() for c in v):
-            raise ValueError('비밀번호는 최소 1개의 영문을 포함해야 합니다')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('비밀번호는 최소 1개의 숫자를 포함해야 합니다')
-        return v
+    password: str = Field(..., min_length=4, max_length=128)
 
 
 class UserUpdate(BaseModel):
@@ -52,18 +32,7 @@ class UserUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=50)
     role: Optional[str] = None
     is_active: Optional[bool] = None
-    password: Optional[str] = Field(None, min_length=8, max_length=128)
-
-    @field_validator('password')
-    @classmethod
-    def validate_password(cls, v: Optional[str]) -> Optional[str]:
-        if v is None:
-            return v
-        if not any(c.isalpha() for c in v):
-            raise ValueError('비밀번호는 최소 1개의 영문을 포함해야 합니다')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('비밀번호는 최소 1개의 숫자를 포함해야 합니다')
-        return v
+    password: Optional[str] = Field(None, min_length=4, max_length=128)
 
 
 class UserResponse(UserBase):

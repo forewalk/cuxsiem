@@ -19,6 +19,7 @@ import { useLanguageStore } from "./stores/useLanguageStore";
 import koMessages from "./locales/ko.json";
 import enMessages from "./locales/en.json";
 import jaMessages from "./locales/ja.json";
+import cnMessages from "./locales/cn.json";
 import AdminSidemenu from "./components/AdminSidemenu";
 
 const drawerWidth = 273;
@@ -55,6 +56,7 @@ function App() {
     ko: koMessages,
     en: enMessages,
     ja: jaMessages,
+    cn: cnMessages,
   };
 
   // t 함수를 useMemo로 감싸서 언어 변경 시에만 재생성되도록 함
@@ -166,6 +168,7 @@ function App() {
                   <MenuItem value="ko">한국어</MenuItem>
                   <MenuItem value="en">English</MenuItem>
                   <MenuItem value="ja">日本語</MenuItem>
+                  <MenuItem value="cn">简体中文</MenuItem>
                 </Select>
                 <IconButton onClick={handleDarkModeChange} sx={{ color: theme.palette.text.primary }}>
                   {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}

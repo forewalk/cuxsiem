@@ -21,6 +21,7 @@ import dayjs from 'dayjs';
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
+import cnMessages from "../../../locales/cn.json";
 
 const MAX_LOGS = 1000;
 const POLL_INTERVAL = 10000; // 10초
@@ -46,7 +47,7 @@ const LogStreamingTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { language } = useLanguageStore();
-  const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages };
+  const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   
   // 표시할 필드 리스트 상태
   const [visibleFields] = useState<string[]>(['timestamp', '_index', 'message']);

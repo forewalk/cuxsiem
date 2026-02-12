@@ -9,11 +9,13 @@ import DashboardTab from '../../pages/dashboard/tabs/DashboardTab';
 import LogStreamingTab from '../../pages/admin/tabs/LogStreamingTab';
 import NotificationRuleListTab from '../../pages/admin/tabs/NotificationRuleListTab';
 import NotificationHistoryTab from '../../pages/admin/tabs/NotificationHistoryTab';
+import AdvancedSettingsTab from '../../pages/admin/tabs/AdvancedSettingsTab';
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../locales/ko.json";
 import enMessages from "../../locales/en.json";
 import jaMessages from "../../locales/ja.json";
+import cnMessages from "../../locales/cn.json";
 
 const tabComponents: { [key: string]: React.ComponentType<any> } = {
   UserManagementTab: UserManagementTab,
@@ -22,6 +24,7 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   LogStreamingTab: LogStreamingTab,
   NotificationRuleListTab: NotificationRuleListTab,
   NotificationHistoryTab: NotificationHistoryTab,
+  AdvancedSettingsTab: AdvancedSettingsTab,
 };
 
 const TabManager: React.FC = () => {
@@ -30,7 +33,12 @@ const TabManager: React.FC = () => {
   const theme = useTheme();
 
   // i18n 지원
-  const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages };
+  const translations: Record<string, Record<string, string>> = { 
+    ko: koMessages, 
+    en: enMessages, 
+    ja: jaMessages,
+    cn: cnMessages
+  };
   const t = useMemo(() => (key: string): string => {
     const currentTranslations = translations[language] || translations["ko"];
     return currentTranslations[key] || key;

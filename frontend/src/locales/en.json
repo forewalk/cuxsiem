@@ -44,6 +44,8 @@
   "saveSuccess": "User saved successfully.",
   "userRoleAdmin": "Admin",
   "userRoleUser": "User",
+  "userRoleMonitoring": "Monitoring",
+  "userRoleApprover": "Approver",
   "minLength": "Minimum Length",
   "requireUppercase": "Require Uppercase",
   "requireLowercase": "Require Lowercase",
@@ -188,5 +190,9 @@
   "ruleDeleteSuccess": "Notification rule deleted successfully.",
   "conditionConfig": "Detection Condition (DSL Query)",
   "intervalMin": "Detection Interval (min)",
-  "windowMin": "Detection Window (min)"
+  "windowMin": "Detection Window (min)",
+  "advancedSettings": "Advanced Settings",
+  "userRegistrationActivation": "User Registration Activation",
+  "loadFailed": "Load Failed",
+  "signupDisabled": "Account registration is disabled. Please contact the administrator."
 }

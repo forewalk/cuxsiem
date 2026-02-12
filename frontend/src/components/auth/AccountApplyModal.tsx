@@ -19,6 +19,7 @@ import type { UserApply } from '../../types';
 import koMessages from "../../locales/ko.json";
 import enMessages from "../../locales/en.json";
 import jaMessages from "../../locales/ja.json";
+import cnMessages from "../../locales/cn.json";
 
 interface AccountApplyModalProps {
   open: boolean;
@@ -44,6 +45,7 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
     ko: koMessages,
     en: enMessages,
     ja: jaMessages,
+    cn: cnMessages,
   };
 
   const t = useCallback((key: string, params?: Record<string, string>): string => {

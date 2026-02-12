@@ -44,6 +44,8 @@
   "saveSuccess": "ユーザーが保存されました。",
   "userRoleAdmin": "管理者",
   "userRoleUser": "ユーザー",
+  "userRoleMonitoring": "モニタリング",
+  "userRoleApprover": "承認者",
   "minLength": "最小長さ",
   "requireUppercase": "大文字必須",
   "requireLowercase": "小文字必須",
@@ -187,5 +189,9 @@
   "ruleDeleteSuccess": "通知ルールが削除されました。",
   "conditionConfig": "検知条件 (DSLクエリ)",
   "intervalMin": "検知実行周期 (分)",
-  "windowMin": "検知データ照会範囲 (分)"
+  "windowMin": "検知データ照会範囲 (分)",
+  "advancedSettings": "詳細設定",
+  "userRegistrationActivation": "ユーザー登録の有効化",
+  "loadFailed": "読み込みに失敗しました",
+  "signupDisabled": "アカウント登録は無効になっています。管理者に連絡してください。"
 }

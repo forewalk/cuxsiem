@@ -20,6 +20,7 @@ import type { User, UserCreate, UserUpdate } from '../../../types';
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
+import cnMessages from "../../../locales/cn.json";
 
 const UserManagementTab: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -59,6 +60,7 @@ const UserManagementTab: React.FC = () => {
     ko: koMessages,
     en: enMessages,
     ja: jaMessages,
+    cn: cnMessages,
   };
 
   const t = useCallback((key: string, params?: Record<string, string>): string => {
@@ -179,9 +181,14 @@ const UserManagementTab: React.FC = () => {
       field: 'role',
       headerName: t('role'),
       flex: 0.8,
-      renderCell: (params: GridRenderCellParams) => (
-        params.value === 'admin' ? t('userRoleAdmin') : t('userRoleUser')
-      )
+      renderCell: (params: GridRenderCellParams) => {
+        switch (params.value) {
+          case 'admin': return t('userRoleAdmin');
+          case 'monitoring': return t('userRoleMonitoring');
+          case 'approver': return t('userRoleApprover');
+          default: return t('userRoleUser');
+        }
+      }
     },
     {
       field: 'is_active',
@@ -312,6 +319,8 @@ const UserManagementTab: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
               <MenuItem value="user">{t('userRoleUser')}</MenuItem>
+              <MenuItem value="monitoring">{t('userRoleMonitoring')}</MenuItem>
+              <MenuItem value="approver">{t('userRoleApprover')}</MenuItem>
               <MenuItem value="admin">{t('userRoleAdmin')}</MenuItem>
             </TextField>
             <TextField

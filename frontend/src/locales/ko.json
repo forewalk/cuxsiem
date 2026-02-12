@@ -42,10 +42,11 @@
   "confirmDelete": "정말로 이 사용자를 삭제하시겠습니까?",
   "deleteSuccess": "사용자가 삭제되었습니다.",
   "saveSuccess": "사용자가 저장되었습니다.",
-  "userRoleAdmin": "관리자",
-  "userRoleUser": "사용자",
-  "minLength": "최소 길이",
-  "requireUppercase": "대문자 포함 필수",
+      "userRoleAdmin": "관리자",
+      "userRoleUser": "사용자",
+      "userRoleMonitoring": "모니터링",
+      "userRoleApprover": "결재자",
+      "minLength": "최소 길이",  "requireUppercase": "대문자 포함 필수",
   "requireLowercase": "소문자 포함 필수",
   "requireNumbers": "숫자 포함 필수",
   "requireSpecialChars": "특수문자 포함 필수",
@@ -187,5 +188,9 @@
   "ruleDeleteSuccess": "알림 규칙이 삭제되었습니다.",
   "conditionConfig": "탐지 조건 (DSL 쿼리)",
   "intervalMin": "탐지 실행 주기 (분)",
-  "windowMin": "탐지 데이터 조회 범위 (분)"
+  "windowMin": "탐지 데이터 조회 범위 (분)",
+  "advancedSettings": "고급 설정",
+  "userRegistrationActivation": "사용자 신청 활성화",
+  "loadFailed": "불러오기 실패",
+  "signupDisabled": "계정 신청이 불가능합니다. 관리자에게 문의해주세요."
 }

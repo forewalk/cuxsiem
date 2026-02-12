@@ -69,6 +69,26 @@ try:
         )
         print(f"[+] Default password policy created\n")
 
+    # Check/Create advanced settings
+    print("[*] Checking advanced settings...")
+    settings_id = "advanced_settings"
+    try:
+        client.get(index="cs_policies", id=settings_id)
+        print(f"[*] Advanced settings already exists\n")
+    except Exception:
+        print(f"[*] Creating default advanced settings...")
+        default_settings = {
+            "user_register": False,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        client.index(
+            index="cs_policies",
+            id=settings_id,
+            body=default_settings,
+            refresh=True
+        )
+        print(f"[+] Default advanced settings created\n")
+
     print("=" * 60)
     print("[+] OpenSearch initialization completed!")
     print("=" * 60)
