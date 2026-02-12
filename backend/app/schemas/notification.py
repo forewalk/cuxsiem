@@ -122,3 +122,7 @@ class NotificationResponse(NotificationBase):
 
     class Config:
         from_attributes = True
+
+class NotificationListResponse(BaseModel):
+    total: int
+    items: List[NotificationResponse]

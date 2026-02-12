@@ -67,8 +67,8 @@ class NotificationService:
         channels = rule.get("channels", {})
 
         now = datetime.utcnow()
-        # window_min 보다 넉넉하게 (2배) 잡아서 과거 데이터도 낚아챌 수 있게 함
-        start_time = now - timedelta(minutes=window_min * 2)
+        # 설정된 window_min을 정확히 따르되, 인덱싱 지연을 고려하여 10초의 미세 버퍼만 추가
+        start_time = now - timedelta(minutes=window_min, seconds=10)
         
         # OpenSearch 쿼리 실행
         try:

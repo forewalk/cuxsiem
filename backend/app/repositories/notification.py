@@ -123,29 +123,19 @@ class NotificationRepository:
     async def list_notifications(
         self,
         skip: int = 0,
-        limit: int = 100,
-        receiver_type: Optional[str] = None,
-        receiver_value: Optional[str] = None
+        limit: int = 100
     ) -> Tuple[int, List[Dict[str, Any]]]:
         
         """알림 로그 조회"""
         loop = asyncio.get_event_loop()
 
         def search():
-            must = []
-            if receiver_type:
-                must.append({"term": {"receiver.type": receiver_type}})
-            if receiver_value:
-                must.append({"term": {"receiver.values": receiver_value}})
-
-            query = {"bool": {"must": must}} if must else {"match_all": {}}
-
             result = self.client.search(
                 index=self.notifications_index,
                 body={
                     "from": skip,
                     "size": limit,
-                    "query": query,
+                    "query": {"match_all": {}},
                     "sort": [{"created_at": {"order": "desc"}}]
                 }
             )

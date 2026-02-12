@@ -6,7 +6,8 @@ from app.schemas.notification import (
     NotificationRuleBase,
     NotificationRuleUpdate,
     NotificationRuleResponse,
-    NotificationResponse
+    NotificationResponse,
+    NotificationListResponse
 )
 
 router = APIRouter()
@@ -50,17 +51,13 @@ async def delete_rule(rule_id: str):
 
 # --- 알림내역 조회 ---
 
-@router.get("/", response_model=List[NotificationResponse])
+@router.get("/", response_model=NotificationListResponse)
 async def list_notifications(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    receiver_type: Optional[str] = "role",
-    receiver_value: Optional[str] = "admin"
+    limit: int = Query(100, ge=1, le=1000)
 ):
     total, notifications = await service.list_notifications(
         skip=skip,
-        limit=limit,
-        receiver_type=receiver_type,
-        receiver_value=receiver_value
+        limit=limit
     )
-    return notifications
+    return {"total": total, "items": notifications}
