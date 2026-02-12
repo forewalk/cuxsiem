@@ -10,6 +10,7 @@ class DashboardRepository:
 
     def __init__(self):
         self.client = get_opensearch_client()
+        # 기본 인덱스 설정
         self.fixed_index = "logs-sentinel_one.threats"
 
     async def get_indices(self) -> List[str]:
@@ -32,7 +33,6 @@ class DashboardRepository:
         except Exception as e:
             try:
                 # 3. 실패 시 밀리초 등 복잡한 형식 대응을 위해 더 유연한 파싱 시도
-                # (fromisoformat이 실패하는 특정 패턴 대응)
                 import dateutil.parser
                 return dateutil.parser.isoparse(date_str)
             except:
@@ -54,14 +54,13 @@ class DashboardRepository:
         time_field = "@timestamp"
         status_field = "threatInfo.incidentStatus"
         severity_field = "threatInfo.confidenceLevel"
-        mitigation_field = "threatInfo.mitigationStatus"
+        mitigation_field = "mitigationStatus"
 
         now = datetime.utcnow()
         
         # 시작 시간 결정
         start_time = self._parse_iso_date(from_date)
         if start_time:
-            # 시간대 정보가 있으면 제거하여 naive UTC로 변환
             start_time = start_time.replace(tzinfo=None)
         else:
             if from_value is not None and from_unit:
@@ -72,7 +71,6 @@ class DashboardRepository:
         # 종료 시간 결정
         end_time = self._parse_iso_date(to_date)
         if end_time:
-            # 시간대 정보가 있으면 제거하여 naive UTC로 변환
             end_time = end_time.replace(tzinfo=None)
         else:
             if to_value is not None and to_unit:

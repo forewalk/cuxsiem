@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Box, Typography, useTheme, Tooltip } from "@mui/material";
 import type { HistogramItem } from "../../../services/dashboardService";
 import dayjs from "dayjs";
@@ -14,11 +14,19 @@ interface BarChartWidgetProps {
   height?: number;
   title?: string;
   emptyMessage?: string;
+  onBarClick?: (startTime: string, endTime: string) => void;
+  onRangeSelect?: (startTime: string, endTime: string) => void;
 }
 
-const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, title, emptyMessage }) => {
+const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, title, emptyMessage, onBarClick, onRangeSelect }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  // 드래그 선택 상태
+  const [isSelecting, setIsRefreshing] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<number | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
 
   // i18n 지원
   const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages };
@@ -57,11 +65,73 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
     });
   }, [maxValue, chartHeight, padding.top]);
 
+  // 마우스 좌표를 시간으로 변환
+  const getTimeFromX = (xPercent: number) => {
+    if (!data || data.length === 0) return null;
+    const totalPoints = data.length;
+    const index = Math.floor((xPercent / 100) * totalPoints);
+    const safeIndex = Math.max(0, Math.min(index, totalPoints - 1));
+    return dayjs(data[safeIndex].timestamp);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    setSelectionStart(xPct);
+    setSelectionEnd(xPct);
+    setIsRefreshing(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isSelecting || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    setSelectionEnd(Math.max(0, Math.min(xPct, 100)));
+  };
+
+  const handleMouseUp = () => {
+    if (!isSelecting || selectionStart === null || selectionEnd === null) {
+      setIsRefreshing(false);
+      return;
+    }
+
+    const start = Math.min(selectionStart, selectionEnd);
+    const end = Math.max(selectionStart, selectionEnd);
+
+    // 최소 드래그 범위 (예: 전체의 1% 이상일 때만 동작)
+    if (end - start > 1) {
+      const startTime = getTimeFromX(start);
+      const endTime = getTimeFromX(end);
+
+      if (startTime && endTime && onRangeSelect) {
+        onRangeSelect(startTime.toISOString(), endTime.toISOString());
+      }
+    }
+
+    setIsRefreshing(false);
+    setSelectionStart(null);
+    setSelectionEnd(null);
+  };
+
+  const handleRectClick = (item: HistogramItem, index: number) => {
+    if (!onBarClick) return;
+    const startTime = dayjs(item.timestamp);
+    let endTime: dayjs.Dayjs;
+    if (index < data.length - 1) {
+      endTime = dayjs(data[index + 1].timestamp);
+    } else if (data.length > 1) {
+      const diff = dayjs(data[1].timestamp).diff(dayjs(data[0].timestamp));
+      endTime = startTime.add(diff, 'ms');
+    } else {
+      endTime = startTime.add(1, 'minute');
+    }
+    onBarClick(startTime.toISOString(), endTime.toISOString());
+  };
+
   const CustomTooltip = ({ label, count }: { label: string, count: number }) => (
     <Box sx={{ p: 1, minWidth: 180 }}>
-      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5, color: '#fff' }}>
-        {label}
-      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5, color: '#fff' }}>{label}</Typography>
       <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.2)', pt: 1, mt: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box sx={{ width: 4, height: 16, bgcolor: theme.palette.primary.light, borderRadius: 0.5 }} />
@@ -74,14 +144,14 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
 
   if (!data || data.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: height, flexDirection: 'column' }}>
         <Typography color="text.disabled">{finalEmptyMessage}</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
       {title && (
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold", color: 'text.secondary' }}>
           {title}
@@ -89,7 +159,6 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
       )}
       
       <Box sx={{ flexGrow: 1, position: 'relative', width: '100%' }}>
-        {/* Y-axis Labels */}
         {gridLines.map((line, i) => (
           <Typography key={i} variant="caption" sx={{ position: 'absolute', top: line.top, left: 0, width: padding.left - 10, textAlign: 'right', transform: 'translateY(-50%)', color: 'text.secondary', fontSize: '11px', pointerEvents: 'none' }}>
             {line.value}
@@ -101,7 +170,33 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
             <Box key={i} sx={{ position: 'absolute', top: `${((gridLines.length - 1 - i) / (gridLines.length - 1)) * 100}%`, left: 0, right: 0, height: '1px', bgcolor: theme.palette.divider, pointerEvents: 'none' }} />
           ))}
 
-          <svg width="100%" height="100%" preserveAspectRatio="none" style={{ display: "block", overflow: 'visible' }}>
+          <svg 
+            ref={svgRef}
+            width="100%" height="100%" preserveAspectRatio="none" 
+            style={{ 
+              display: "block", 
+              overflow: 'visible',
+              cursor: 'crosshair' // 드래그 가능함을 알리는 십자선 커서
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          >
+            {/* Selection Overlay */}
+            {isSelecting && selectionStart !== null && selectionEnd !== null && (
+              <rect
+                x={`${Math.min(selectionStart, selectionEnd)}%`}
+                y="0"
+                width={`${Math.abs(selectionEnd - selectionStart)}%`}
+                height="100%"
+                fill={theme.palette.primary.main}
+                fillOpacity={0.15}
+                stroke={theme.palette.primary.main}
+                strokeWidth="1"
+              />
+            )}
+
             {data.map((item, i) => {
               const barCount = data.length;
               const barContainerWidthPct = 100 / barCount;
@@ -117,7 +212,16 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
                   placement="top"
                   componentsProps={{ tooltip: { sx: { bgcolor: 'rgba(38, 50, 56, 0.95)', color: '#fff', boxShadow: theme.shadows[4], borderRadius: 1.5, '& .MuiTooltip-arrow': { color: 'rgba(38, 50, 56, 0.95)' } } } }}
                 >
-                  <rect x={`${xPct}%`} y={`${100 - barHeightPct}%`} width={`${barWidthPct}%`} height={`${barHeightPct}%`} fill={theme.palette.primary.main} rx="1" style={{ cursor: 'pointer' }} />
+                  <rect
+                    x={`${xPct}%`}
+                    y={`${100 - barHeightPct}%`}
+                    width={`${barWidthPct}%`}
+                    height={`${barHeightPct}%`}
+                    fill={theme.palette.primary.main}
+                    rx="1"
+                    style={{ cursor: 'pointer' }}
+                    onClick={(e) => { e.stopPropagation(); handleRectClick(item, i); }}
+                  />
                 </Tooltip>
               );
             })}

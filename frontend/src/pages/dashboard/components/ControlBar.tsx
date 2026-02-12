@@ -10,6 +10,7 @@ import Popover from "@mui/material/Popover";
 import Divider from "@mui/material/Divider";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
+import IconButton from "@mui/material/IconButton";
 import { useTheme } from "@mui/material/styles";
 import StorageIcon from "@mui/icons-material/Storage";
 import SearchIcon from "@mui/icons-material/Search";
@@ -21,6 +22,9 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import SaveIcon from "@mui/icons-material/Save";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
+import CloseIcon from "@mui/icons-material/Close";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -63,7 +67,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
 }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
-  const [tempQuery, setTempQuery] = useState(searchQuery);
+  const [tempQuery, setTempQuery] = useState("");
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [popoverType, setPopoverType] = useState<'quick' | 'detailed'>('quick');
   const [editingPoint, setEditingPoint] = useState<'from' | 'to'>('from');
@@ -78,10 +82,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const [autoRefreshUnit, setAutoRefreshUnit] = useState<'seconds' | 'minutes'>('seconds');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshTimerRef = useRef<any>(null);
-
-  useEffect(() => {
-    setTempQuery(searchQuery);
-  }, [searchQuery]);
 
   useEffect(() => {
     if (isRefreshing && autoRefreshValue > 0) {
@@ -100,7 +100,18 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    onSearchQueryChange(tempQuery);
+    const trimmed = tempQuery.trim();
+    if (trimmed) {
+      const newQuery = searchQuery ? `${searchQuery} AND ${trimmed}` : trimmed;
+      onSearchQueryChange(newQuery);
+      setTempQuery("");
+    }
+  };
+
+  const handleRemoveFilter = (filterToRemove: string) => {
+    const filters = searchQuery.split(" AND ").map(s => s.trim());
+    const newFilters = filters.filter(f => f !== filterToRemove);
+    onSearchQueryChange(newFilters.join(" AND "));
   };
 
   const handleQuickClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -219,45 +230,84 @@ const ControlBar: React.FC<ControlBarProps> = ({
   }, []);
 
   return (
-    <Box sx={{ display: "flex", alignItems: "stretch", gap: 1, mb: 3, width: '100%' }}>
-      
-      {/* 1. Index Info */}
-      <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${BORDER_COLOR}`, borderRadius: 1, px: 1.5, gap: 1, minWidth: 'fit-content' }}>
-        <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
-        <Box>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', display: 'block', lineHeight: 1, mb: 0.2 }}>{t('indexTitle')}</Typography>
-          <Typography variant="body2" sx={{ fontWeight: 'bold', color: TEXT_COLOR, fontSize: '0.8rem' }}>logs-sentinel_one.threats</Typography>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 3, width: '100%' }}>
+      <Box sx={{ display: "flex", alignItems: "stretch", gap: 1, width: '100%' }}>
+        
+        {/* 1. Index Info */}
+        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${BORDER_COLOR}`, borderRadius: 1, px: 1.5, gap: 1, minWidth: 'fit-content' }}>
+          <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
+          <Box>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', display: 'block', lineHeight: 1, mb: 0.2 }}>{t('indexTitle')}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', color: TEXT_COLOR, fontSize: '0.8rem' }}>logs-sentinel_one.threats</Typography>
+          </Box>
         </Box>
+
+        {/* 2. Search Section */}
+        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${BORDER_COLOR}`, borderRadius: 1, flexGrow: 1, overflow: 'hidden' }}>
+          <Box sx={{ px: 1, borderRight: `1px solid ${BORDER_COLOR}`, display: 'flex', alignItems: 'center', height: '100%' }}>
+            <SaveIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
+          </Box>
+          <Box component="form" onSubmit={handleSearchSubmit} sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+            <TextField 
+              fullWidth 
+              size="small" 
+              placeholder={t('search')} 
+              value={tempQuery} 
+              onChange={(e) => setTempQuery(e.target.value)} 
+              sx={{ 
+                "& .MuiOutlinedInput-notchedOutline": { border: 'none' }, 
+                "& .MuiInputBase-input": { py: 1, px: 1.5, fontSize: '0.9rem', color: TEXT_COLOR } 
+              }} 
+            />
+          </Box>
+        </Box>
+
+        {/* 3. Splitted Time Picker Section */}
+        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${open ? KIBANA_TEAL : BORDER_COLOR}`, borderRadius: 1, minWidth: 320, overflow: 'hidden' }}>
+          <Box onClick={handleQuickClick} sx={{ px: 1, borderRight: `1px solid ${BORDER_COLOR}`, display: 'flex', alignItems: 'center', height: '100%', gap: 0.5, cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover } }}>
+            <CalendarMonthIcon sx={{ color: KIBANA_TEAL, fontSize: 20 }} />
+            {isRefreshing && <Box sx={{ width: 6, height: 6, bgcolor: 'success.main', borderRadius: '50%', position: 'absolute', ml: 2, mb: 2 }} />}
+            <KeyboardArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
+          </Box>
+
+          <Box onClick={handleFromClick} sx={{ px: 1.5, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover }, borderBottom: `2px solid ${open && popoverType === 'detailed' && editingPoint === 'from' ? KIBANA_TEAL : 'transparent'}` }}>
+            <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>{formatPoint(fromValue, fromUnit, fromDate, false)}</Typography>
+          </Box>
+
+          <ArrowForwardIcon sx={{ fontSize: 14, color: theme.palette.text.disabled }} />
+
+          <Box onClick={handleToClick} sx={{ px: 1.5, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover }, borderBottom: `2px solid ${open && popoverType === 'detailed' && editingPoint === 'to' ? KIBANA_TEAL : 'transparent'}` }}>
+            <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>{formatPoint(toValue, toUnit, toDate, true)}</Typography>
+          </Box>
+        </Box>
+
+        <Button variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: 20 }} />} onClick={onRefresh} sx={{ borderColor: BORDER_COLOR, color: KIBANA_TEAL, textTransform: 'none', fontWeight: 'bold', px: 2, bgcolor: theme.palette.background.paper, '&:hover': { borderColor: KIBANA_TEAL, bgcolor: theme.palette.action.hover } }}>{t('refresh')}</Button>
       </Box>
 
-      {/* 2. Search Section */}
-      <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${BORDER_COLOR}`, borderRadius: 1, flexGrow: 1, overflow: 'hidden' }}>
-        <Box sx={{ px: 1.5, display: 'flex', alignItems: 'center', height: '100%' }}><SearchIcon sx={{ color: KIBANA_TEAL, fontSize: 20 }} /></Box>
-        <Box component="form" onSubmit={handleSearchSubmit} sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-          <TextField fullWidth size="small" placeholder={t('search')} value={tempQuery} onChange={(e) => setTempQuery(e.target.value)} sx={{ "& .MuiOutlinedInput-notchedOutline": { border: 'none' }, "& .MuiInputBase-input": { py: 1, px: 1, fontSize: '0.9rem', color: TEXT_COLOR } }} />
+      {/* 4. Filter Tags Section */}
+      {searchQuery && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mt: 0.5 }}>
+          <FilterAltIcon sx={{ color: KIBANA_TEAL, fontSize: 20 }} />
+          {searchQuery.split(" AND ").map((filter, index) => (
+            <Box key={index} sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(0, 90, 94, 0.2)' : '#eef6f6', 
+              border: `1px solid ${KIBANA_TEAL}`, 
+              borderRadius: 0.5, 
+              px: 1,
+              py: 0.2
+            }}>
+              <Typography variant="body2" sx={{ color: TEXT_COLOR, fontSize: '0.85rem' }}>
+                {filter.trim()}
+              </Typography>
+              <IconButton size="small" onClick={() => handleRemoveFilter(filter.trim())} sx={{ ml: 1, p: 0.2, color: TEXT_COLOR }}>
+                <CloseIcon sx={{ fontSize: 14 }} />
+              </IconButton>
+            </Box>
+          ))}
         </Box>
-      </Box>
-
-      {/* 3. Splitted Time Picker Section */}
-      <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: BG_COLOR, border: `1px solid ${open ? KIBANA_TEAL : BORDER_COLOR}`, borderRadius: 1, minWidth: 320, overflow: 'hidden' }}>
-        <Box onClick={handleQuickClick} sx={{ px: 1, borderRight: `1px solid ${BORDER_COLOR}`, display: 'flex', alignItems: 'center', height: '100%', gap: 0.5, cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover } }}>
-          <CalendarMonthIcon sx={{ color: KIBANA_TEAL, fontSize: 20 }} />
-          {isRefreshing && <Box sx={{ width: 6, height: 6, bgcolor: 'success.main', borderRadius: '50%', position: 'absolute', ml: 2, mb: 2 }} />}
-          <KeyboardArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
-        </Box>
-
-        <Box onClick={handleFromClick} sx={{ px: 1.5, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover }, borderBottom: `2px solid ${open && popoverType === 'detailed' && editingPoint === 'from' ? KIBANA_TEAL : 'transparent'}` }}>
-          <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>{formatPoint(fromValue, fromUnit, fromDate, false)}</Typography>
-        </Box>
-
-        <ArrowForwardIcon sx={{ fontSize: 14, color: theme.palette.text.disabled }} />
-
-        <Box onClick={handleToClick} sx={{ px: 1.5, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: theme.palette.action.hover }, borderBottom: `2px solid ${open && popoverType === 'detailed' && editingPoint === 'to' ? KIBANA_TEAL : 'transparent'}` }}>
-          <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>{formatPoint(toValue, toUnit, toDate, true)}</Typography>
-        </Box>
-      </Box>
-
-      <Button variant="outlined" startIcon={<RefreshIcon sx={{ fontSize: 20 }} />} onClick={onRefresh} sx={{ borderColor: BORDER_COLOR, color: KIBANA_TEAL, textTransform: 'none', fontWeight: 'bold', px: 2, bgcolor: theme.palette.background.paper, '&:hover': { borderColor: KIBANA_TEAL, bgcolor: theme.palette.action.hover } }}>{t('refresh')}</Button>
+      )}
 
       {lastUpdated && (
         <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
