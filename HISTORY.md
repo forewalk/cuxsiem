@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-12 15:05 | 김장훈 | 배포 | origin/develop push (feature/account 병합, /conda·/env 슬래시 커맨드 추가) |
 | 2026-02-12 10:45 | 박재현 | 추가 | origin/feature/account push 고급 설정 기능 구현 (사용자 신청 활성화 제어 및 OpenSearch cs_policies 인덱스 연동) |
 | 2026-02-12 09:10 | 최지호 | 수정 | origin/feature/dashboard push (시계열 그래프 시간이동, 검색 필터 추가) |
 | 2026-02-11 15:30 | 박재현 | 추가 | origin/feature/account push 사용자 역할(모니터링, 결재자) 추가, 중국어(간체) 지원, 백엔드 동적 정책 검증 및 로그인 UI 개선 |
