@@ -31,22 +31,22 @@ class NotificationRuleBase(BaseModel):
     condition_type: str = "dsl_query"
     condition_config: Dict[str, Any]
     severity: str
-    
+
     # 주기 및 범위 설정
     interval_min: int = Field(ge=1, description="탐지 실행 주기(분)")
     window_min: int = Field(ge=1, description="탐지 데이터 조회 범위(분)")
-    
+
     # 중복 제거 설정
     dedup_ttl_min: int = Field(default=30, ge=0)
     dedup_key_template: str = Field(
-        default="{{rule_id}}", 
+        default="{{rule_id}}",
         description="중복 키 생성을 위한 템플릿 (예: {{rule_id}}_{{source_ip}})"
     )
-    
+
     # 발송 채널 및 수신 설정
     channels: NotificationChannels = Field(default_factory=NotificationChannels)
     receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})
-    
+
     is_active: bool = True
 
     @model_validator(mode='after')
@@ -78,15 +78,15 @@ class NotificationRuleUpdate(BaseModel):
 
 class NotificationRuleResponse(NotificationRuleBase):
     id: str
-    
+
     # 운영 관리 필드
     last_run_at: Optional[datetime] = None
     last_success_at: Optional[datetime] = None
-    last_triggered_at: Optional[datetime] = None 
+    last_triggered_at: Optional[datetime] = None
     last_error: Optional[str] = None
     error_count: int = 0
     total_alerts_count: int = 0
-    
+
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
@@ -94,7 +94,7 @@ class NotificationRuleResponse(NotificationRuleBase):
     class Config:
         from_attributes = True
 
-# --- Notification Log Schemas ---
+# --- 알림 내역 ---
 
 class NotificationBase(BaseModel):
     rule_id: str
@@ -103,12 +103,20 @@ class NotificationBase(BaseModel):
     event_ref: str
     dedup_key: str
     receiver: Optional[Dict[str, Any]] = None
-    status: str = "created" 
+    status: str = "created"
     error_message: Optional[str] = None
+    
+    # 발송 증적 필드
+    channel: Optional[str] = None
+    endpoint: Optional[str] = None
+    request_headers: Optional[Dict[str, Any]] = None
+    outgoing_payload: Optional[Dict[str, Any]] = None
+    response_status_code: Optional[int] = None
+    response_body: Optional[str] = None
 
 class NotificationResponse(NotificationBase):
     id: str
-    severity: Optional[str] = None 
+    severity: Optional[str] = None
     created_at: datetime
     sent_at: Optional[datetime] = None
 

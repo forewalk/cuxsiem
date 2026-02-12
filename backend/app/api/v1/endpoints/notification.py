@@ -48,7 +48,7 @@ async def delete_rule(rule_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Rule not found")
 
-# --- Notification Logs ---
+# --- 알림내역 조회 ---
 
 @router.get("/", response_model=List[NotificationResponse])
 async def list_notifications(

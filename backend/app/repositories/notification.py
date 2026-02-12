@@ -154,25 +154,80 @@ class NotificationRepository:
             return total, notifications
         return await loop.run_in_executor(None, search)
 
-    async def mark_as_sent(self, notification_id: str, status: str, error: str = None) -> bool:
-        """알림 발송 상태 업데이트"""
-        loop = asyncio.get_event_loop()
-        data = {
-            "status": status,
-            "sent_at": datetime.utcnow().isoformat()
-        }
-        if error:
-            data["error_message"] = error
+        async def mark_as_sent(
 
-        def update():
-            try:
-                self.client.update(
-                    index=self.notifications_index,
-                    id=notification_id,
-                    body={"doc": data},
-                    refresh=True
-                )
-                return True
-            except Exception as e:
-                return False
-        return await loop.run_in_executor(None, update)
+            self, 
+
+            notification_id: str, 
+
+            status: str, 
+
+            error: str = None,
+
+            channel: str = None,
+
+            endpoint: str = None,
+
+            request_headers: Dict[str, Any] = None,
+
+            outgoing_payload: Dict[str, Any] = None,
+
+            response_status_code: int = None,
+
+            response_body: str = None
+
+        ) -> bool:
+
+            """알림 발송 상세 결과 및 증적 업데이트"""
+
+            loop = asyncio.get_event_loop()
+
+            data = {
+
+                "status": status,
+
+                "sent_at": datetime.utcnow().isoformat()
+
+            }
+
+            if error: data["error_message"] = error
+
+            if channel: data["channel"] = channel
+
+            if endpoint: data["endpoint"] = endpoint
+
+            if request_headers: data["request_headers"] = request_headers
+
+            if outgoing_payload: data["outgoing_payload"] = outgoing_payload
+
+            if response_status_code: data["response_status_code"] = response_status_code
+
+            if response_body: data["response_body"] = response_body
+
+    
+
+            def update():
+
+                try:
+
+                    self.client.update(
+
+                        index=self.notifications_index,
+
+                        id=notification_id,
+
+                        body={"doc": data},
+
+                        refresh=True
+
+                    )
+
+                    return True
+
+                except Exception:
+
+                    return False
+
+            return await loop.run_in_executor(None, update)
+
+    

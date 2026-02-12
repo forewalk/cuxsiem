@@ -138,3 +138,27 @@ export interface NotificationRule {
 
 export interface NotificationRuleCreate extends Omit<NotificationRule, 'id' | 'created_at' | 'updated_at' | 'error_count' | 'total_alerts_count'> {}
 export interface NotificationRuleUpdate extends Partial<NotificationRuleCreate> {}
+
+// 알림 내역
+export interface NotificationHistory {
+  id: string;
+  rule_id: string;
+  title: string;
+  message: string;
+  event_ref: string;
+  dedup_key: string;
+  receiver: Record<string, any> | null;
+  status: string;
+  error_message: string | null;
+  severity: string | null;
+  created_at: string;
+  sent_at: string | null;
+
+  // 발송 증적 필드
+  channel?: string;
+  endpoint?: string;
+  request_headers?: Record<string, any>;
+  outgoing_payload?: Record<string, any>;
+  response_status_code?: number;
+  response_body?: string;
+}
