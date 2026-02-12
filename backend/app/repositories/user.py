@@ -26,7 +26,7 @@ class UserRepository:
                     "query": {
                         "bool": {
                             "must": [
-                                {"term": {"email.keyword": email.lower()}}
+                                {"term": {"emad": email.lower()}}
                             ],
                             "must_not": [
                                 {"exists": {"field": "deleted_at"}}
@@ -67,7 +67,7 @@ class UserRepository:
                 return self._dict_to_user(user_data, user_id)
         except Exception:
             pass
-            
+
         return None
 
     async def create(self, user: User) -> User:

@@ -86,3 +86,55 @@ export interface LogStreamResponse {
   logs: LogEntry[];
   last_timestamp: string;
 }
+
+
+// 알림 채널 설정
+export interface WebhookConfig {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+}
+
+export interface SlackConfig {
+  channel: string;
+  webhook_url: string;
+}
+
+export interface EmailConfig {
+  recipients: string[];
+  subject_template?: string;
+}
+
+export interface NotificationChannels {
+  webhooks: WebhookConfig[];
+  slack: SlackConfig[];
+  email: EmailConfig[];
+}
+
+// 규칙
+export interface NotificationRule {
+  id: string;
+  name: string;
+  target_index: string;
+  condition_type: string;
+  condition_config: Record<string, any>;
+  severity: string;
+  interval_min: number;
+  window_min: number;
+  dedup_ttl_min: number;
+  dedup_key_template: string;
+  channels: NotificationChannels;
+  receiver: Record<string, any>;
+  is_active: boolean;
+  last_run_at?: string;
+  last_success_at?: string;
+  last_triggered_at?: string;
+  last_error?: string;
+  error_count: number;
+  total_alerts_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationRuleCreate extends Omit<NotificationRule, 'id' | 'created_at' | 'updated_at' | 'error_count' | 'total_alerts_count'> {}
+export interface NotificationRuleUpdate extends Partial<NotificationRuleCreate> {}

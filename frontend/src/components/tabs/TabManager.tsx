@@ -7,6 +7,8 @@ import UserManagementTab from '../../pages/admin/tabs/UserManagementTab';
 import PasswordPolicyTab from '../../pages/admin/tabs/PasswordPolicyTab';
 import DashboardTab from '../../pages/dashboard/tabs/DashboardTab';
 import LogStreamingTab from '../../pages/admin/tabs/LogStreamingTab';
+import NotificationRuleListTab from '../../pages/admin/tabs/NotificationRuleListTab';
+import NotificationHistoryTab from '../../pages/admin/tabs/NotificationHistoryTab';
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../locales/ko.json";
@@ -18,6 +20,8 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   PasswordPolicyTab: PasswordPolicyTab,
   DashboardTab: DashboardTab,
   LogStreamingTab: LogStreamingTab,
+  NotificationRuleListTab: NotificationRuleListTab,
+  NotificationHistoryTab: NotificationHistoryTab,
 };
 
 const TabManager: React.FC = () => {

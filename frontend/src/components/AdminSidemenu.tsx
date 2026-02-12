@@ -7,7 +7,8 @@ import {
 import {
   ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Settings as SettingsIcon,
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
-  ShowChart as ThreatsIcon, Terminal as TerminalIcon,
+  ShowChart as ThreatsIcon, Terminal as TerminalIcon, Notifications as NotificationsIcon,
+  ListAlt as ListAltIcon, History as HistoryIcon,
 } from '@mui/icons-material';
 import useTabStore from '../stores/tabStore';
 
@@ -25,6 +26,7 @@ const listItemHeight = 48;
 
 const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
   const [openAdminMenu, setOpenAdminMenu] = useState(false);
+  const [openNotificationMenu, setOpenNotificationMenu] = useState(false);
   const [openDashboardMenu, setOpenDashboardMenu] = useState(true); // 기본적으로 열림
   const theme = useTheme();
   const navigate = useNavigate();
@@ -39,6 +41,16 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
       setOpenAdminMenu(true);
     } else {
       setOpenAdminMenu(!openAdminMenu);
+    }
+  };
+
+  const handleNotificationMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!drawerOpen) {
+      handleDrawerToggle();
+      setOpenNotificationMenu(true);
+    } else {
+      setOpenNotificationMenu(!openNotificationMenu);
     }
   };
 
@@ -172,6 +184,41 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                   <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><LockIcon /></ListItemIcon>
                   <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
                 </ListItemButton>
+
+                {/* Notification Center Accordion */}
+                <ListItemButton
+                  sx={{ pl: 4, minHeight: listItemHeight }}
+                  onClick={handleNotificationMenuClick}
+                >
+                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
+                    <NotificationsIcon />
+                  </ListItemIcon>
+                  <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
+                  {drawerOpen && (openNotificationMenu ? <ExpandLess /> : <ExpandMore />)}
+                </ListItemButton>
+                
+                <Collapse in={openNotificationMenu && drawerOpen} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    <ListItemButton
+                      sx={{ pl: 6, minHeight: listItemHeight }}
+                      onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}
+                    >
+                      <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
+                        <ListAltIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText primary={t('notificationRuleList')} sx={listItemTextStyle} />
+                    </ListItemButton>
+                    <ListItemButton
+                      sx={{ pl: 6, minHeight: listItemHeight }}
+                      onClick={() => handleMenuTabClick(t('notificationHistory'), 'NotificationHistoryTab', 'notificationHistory')}
+                    >
+                      <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
+                        <HistoryIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText primary={t('notificationHistory')} sx={listItemTextStyle} />
+                    </ListItemButton>
+                  </List>
+                </Collapse>
               </List>
             </Collapse>
           </List>
