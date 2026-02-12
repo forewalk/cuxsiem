@@ -31,7 +31,7 @@ const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 3
   }, [language]);
 
   const finalEmptyMessage = emptyMessage || t('noResults');
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
 
   const colors = [
     theme.palette.primary.main,
@@ -49,6 +49,12 @@ const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 3
   const centerX = 100;
   const centerY = 100;
   let currentAngle = 0;
+
+  // 100%에 가까운 항목 찾기 (없으면 null)
+  const dominantItemIndex = data.findIndex(item => total > 0 && (item.value / total) > 0.999);
+  const isSingleData = data.length === 1 || dominantItemIndex !== -1;
+  const targetIndex = dominantItemIndex !== -1 ? dominantItemIndex : 0;
+  const targetItem = data[targetIndex];
 
   const CustomTooltip = ({ label, value, pct }: { label: string, value: number, pct: string }) => (
     <Box sx={{ p: 1, minWidth: 180 }}>
@@ -76,31 +82,64 @@ const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 3
         </Typography>
       )}
       
-      {(!data || data.length === 0 || total === 0) ? (
+      {(!data || data.length === 0 || total === 0 || isNaN(total)) ? (
         <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: 'action.hover', borderRadius: 1 }}>
           <Typography variant="body2" color="text.disabled">{finalEmptyMessage}</Typography>
         </Box>
       ) : (
-        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          <svg width={200} height={200} viewBox="0 0 200 200">
-            {data.map((item, i) => {
-              const angle = (item.value / total) * 360;
-              const x1 = centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
-              const y1 = centerY + radius * Math.sin((currentAngle * Math.PI) / 180);
-              const x2 = centerX + radius * Math.cos(((currentAngle + angle) * Math.PI) / 180);
-              const y2 = centerY + radius * Math.sin(((currentAngle + angle) * Math.PI) / 180);
-              const largeArcFlag = angle > 180 ? 1 : 0;
-              const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
-              const segment = (
-                <Tooltip key={i} title={<CustomTooltip label={item.label} value={item.value} pct={((item.value / total) * 100).toFixed(1)} />} arrow placement="top" componentsProps={{ tooltip: { sx: { bgcolor: 'rgba(38, 50, 56, 0.95)', color: '#fff', boxShadow: theme.shadows[4], borderRadius: 1.5, '& .MuiTooltip-arrow': { color: 'rgba(38, 50, 56, 0.95)' } } } }}>
-                  <path d={pathData} fill={colors[i % colors.length]} stroke="#fff" strokeWidth="1" style={{ cursor: 'pointer' }} />
-                </Tooltip>
-              );
-              currentAngle += angle;
-              return segment;
-            })}
-            <circle cx={centerX} cy={centerY} r={radius * 0.4} fill={theme.palette.background.paper} />
-          </svg>
+                <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  <svg width={200} height={200} viewBox="0 0 200 200">
+                    {isSingleData && targetItem ? (
+                      /* 한 요소가 100%일 경우 단순 원으로 그림 */
+                      <Tooltip 
+                        title={<CustomTooltip label={targetItem.label} value={targetItem.value} pct="100.0" />} 
+                        arrow 
+                        placement="top"
+                        componentsProps={{ tooltip: { sx: { bgcolor: 'rgba(38, 50, 56, 0.95)', color: '#fff', boxShadow: theme.shadows[4], borderRadius: 1.5 } } }}
+                      >
+                        <circle cx={centerX} cy={centerY} r={radius} fill={colors[targetIndex % colors.length]} style={{ cursor: 'pointer' }} />
+                      </Tooltip>
+                    ) : (
+                      /* 여러 요소가 섞여 있을 경우 조각(Path)으로 그림 */
+                      data.map((item, i) => {
+                        const angle = (item.value / total) * 360;
+                        const x1 = centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
+                        const y1 = centerY + radius * Math.sin((currentAngle * Math.PI) / 180);
+                        const x2 = centerX + radius * Math.cos(((currentAngle + angle) * Math.PI) / 180);
+                        const y2 = centerY + radius * Math.sin(((currentAngle + angle) * Math.PI) / 180);
+                        
+                        const largeArcFlag = angle > 180 ? 1 : 0;
+                        const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                        
+                        const segment = (
+                          <Tooltip 
+                            key={i} 
+                            title={<CustomTooltip label={item.label} value={item.value} pct={((item.value / total) * 100).toFixed(1)} />} 
+                            arrow 
+                            placement="top"
+                            componentsProps={{
+                              tooltip: {
+                                sx: {
+                                  bgcolor: 'rgba(38, 50, 56, 0.95)',
+                                  color: '#fff',
+                                  boxShadow: theme.shadows[4],
+                                  borderRadius: 1.5,
+                                  '& .MuiTooltip-arrow': { color: 'rgba(38, 50, 56, 0.95)' }
+                                }
+                              }
+                            }}
+                          >
+                            <path d={pathData} fill={colors[i % colors.length]} stroke="#fff" strokeWidth="1" style={{ cursor: 'pointer' }} />
+                          </Tooltip>
+                        );
+                        
+                        currentAngle += angle;
+                        return segment;
+                      })
+                    )}
+                    {/* 중앙 구멍 (도넛 차트 효과) */}
+                    <circle cx={centerX} cy={centerY} r={radius * 0.4} fill={theme.palette.background.paper} />
+                  </svg>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: height - 60, overflowY: 'auto' }}>
             {data.map((item, i) => (
               <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

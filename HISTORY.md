@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-12 09:10 | 최지호 | 수정 | origin/feature/dashboard push (시계열 그래프 시간이동, 검색 필터 추가) |
 | 2026-02-11 14:35 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-11 14:35 | 김장훈 | 배포 | origin/feature/logs push (develop 기준 신규 브랜치 생성) |
 | 2026-02-11 14:10 | 김장훈 | 배포 | origin/develop push (feature/account 병합) |
