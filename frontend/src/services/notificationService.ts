@@ -4,7 +4,7 @@ import type { NotificationRule, NotificationRuleCreate, NotificationRuleUpdate, 
 export const notificationService = {
   /* 알림 규칙 목록 조회 */
   getRules: async (skip: number = 0, limit: number = 100) => {
-    const response = await api.get<NotificationRule[]>('/api/v1/notifications/rules', {
+    const response = await api.get<{ total: number, items: NotificationRule[] }>('/api/v1/notifications/rules', {
       params: { skip, limit }
     });
     return response.data;

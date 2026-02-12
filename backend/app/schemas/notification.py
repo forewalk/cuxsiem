@@ -94,6 +94,10 @@ class NotificationRuleResponse(NotificationRuleBase):
     class Config:
         from_attributes = True
 
+class NotificationRuleListResponse(BaseModel):
+    total: int
+    items: List[NotificationRuleResponse]
+
 # --- 알림 내역 ---
 
 class NotificationBase(BaseModel):

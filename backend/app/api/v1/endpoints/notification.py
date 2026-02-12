@@ -6,6 +6,7 @@ from app.schemas.notification import (
     NotificationRuleBase,
     NotificationRuleUpdate,
     NotificationRuleResponse,
+    NotificationRuleListResponse,
     NotificationResponse,
     NotificationListResponse
 )
@@ -15,7 +16,7 @@ service = NotificationService()
 
 # --- Notification Rules ---
 
-@router.get("/rules", response_model=List[NotificationRuleResponse])
+@router.get("/rules", response_model=NotificationRuleListResponse)
 async def list_rules(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -23,7 +24,7 @@ async def list_rules(
     order: str = Query("desc", pattern="^(asc|desc)$")
 ):
     total, rules = await service.list_rules(skip=skip, limit=limit, sort_by=sort_by, order=order)
-    return rules
+    return {"total": total, "items": rules}
 
 @router.post("/rules", response_model=NotificationRuleResponse, status_code=status.HTTP_201_CREATED)
 async def create_rule(rule_in: NotificationRuleBase):
