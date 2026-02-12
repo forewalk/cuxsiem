@@ -30,8 +30,8 @@ const translations: Record<string, Record<string, string>> = {
 };
 
 // 행 컴포넌트 (확장 로직 포함)
-const NotificationRow: React.FC<{ 
-  row: NotificationHistory, 
+const NotificationRow: React.FC<{
+  row: NotificationHistory,
   t: any,
   getStatusChip: (s: string) => React.ReactNode,
   getSeverityChip: (s: string | null) => React.ReactNode
@@ -69,10 +69,10 @@ const NotificationRow: React.FC<{
 
   return (
     <React.Fragment>
-      <TableRow 
-        hover 
+      <TableRow
+        hover
         onClick={() => setOpen(!open)}
-        sx={{ 
+        sx={{
           cursor: 'pointer',
           '& > td': { borderBottom: open ? 'none' : undefined },
           bgcolor: open ? 'action.selected' : 'inherit',
@@ -93,10 +93,10 @@ const NotificationRow: React.FC<{
         <TableCell sx={{ fontWeight: 'bold' }}>
           {row.title}
         </TableCell>
-        <TableCell sx={{ 
-          maxWidth: 300, 
-          overflow: 'hidden', 
-          textOverflow: 'ellipsis', 
+        <TableCell sx={{
+          maxWidth: 300,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
           color: 'text.secondary'
         }}>
@@ -106,18 +106,18 @@ const NotificationRow: React.FC<{
           {getStatusChip(row.status)}
         </TableCell>
       </TableRow>
-      
+
       <TableRow sx={{ '& > td': { p: 0, borderBottom: open ? undefined : 'none' } }}>
         <TableCell colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 2, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
-              <Paper 
-                variant="outlined" 
-                sx={{ 
-                  p: 1.2, 
-                  mb: 2.5, 
-                  bgcolor: '#1e1e1e', 
-                  color: '#d4d4d4', 
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 1.2,
+                  mb: 2.5,
+                  bgcolor: '#1e1e1e',
+                  color: '#d4d4d4',
                   fontFamily: 'monospace',
                   fontSize: '0.75rem',
                   display: 'flex',
@@ -142,7 +142,7 @@ const NotificationRow: React.FC<{
                       <IconButton size="small"><OpenInNewIcon fontSize="inherit" /></IconButton>
                     </Tooltip>
                   </Stack>
-                  
+
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>알림 규칙</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>{row.title}</Typography>
@@ -150,10 +150,10 @@ const NotificationRow: React.FC<{
 
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>메시지 본문</Typography>
-                    <Typography variant="body2" sx={{ 
-                      whiteSpace: 'pre-wrap', 
-                      p: 1.5, 
-                      bgcolor: 'background.paper', 
+                    <Typography variant="body2" sx={{
+                      whiteSpace: 'pre-wrap',
+                      p: 1.5,
+                      bgcolor: 'background.paper',
                       borderRadius: 1,
                       border: '1px solid',
                       borderColor: 'divider'
@@ -190,13 +190,13 @@ const NotificationRow: React.FC<{
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     FULL AUDIT PAYLOAD (Evidence)
                   </Typography>
-                  <Box 
-                    sx={{ 
-                      flexGrow: 1, 
-                      bgcolor: '#1e1e1e', 
-                      color: '#9cdcfe', 
-                      p: 2, 
-                      borderRadius: 1, 
+                  <Box
+                    sx={{
+                      flexGrow: 1,
+                      bgcolor: '#1e1e1e',
+                      color: '#9cdcfe',
+                      p: 2,
+                      borderRadius: 1,
                       overflow: 'auto',
                       maxHeight: 450,
                       fontFamily: '"Fira Code", "Cascadia Code", monospace',
@@ -250,16 +250,16 @@ const NotificationHistoryTab: React.FC = () => {
   }, [language]);
 
   const handleSnackbarClose = () => setSnackbar(prev => ({ ...prev, open: false }));
-
+  // 데이터 로드 함수
   const loadNotifications = useCallback(async (isAuto = false) => {
     if (!isAuto) setLoading(true);
     try {
       const data = await notificationService.getNotifications();
-      
+
       setNotifications(prev => {
         // 자동 폴링 시 데이터 개수가 늘어났다면 스낵바 표시
         if (isAuto && prev.length > 0 && data.length > prev.length) {
-          const latest = data[0]; 
+          const latest = data[0];
           setSnackbar({
             open: true,
             message: `신규 알림: ${latest.title}`,
@@ -277,12 +277,10 @@ const NotificationHistoryTab: React.FC = () => {
 
   useEffect(() => {
     loadNotifications();
-    const timer = setInterval(() => loadNotifications(true), 10000);
-    return () => clearInterval(timer);
   }, [loadNotifications]);
 
   const getStatusChip = (status: string) => {
-    const color = status === 'sent' || status === 'success' ? 'success' : 
+    const color = status === 'sent' || status === 'success' ? 'success' :
                   status === 'error' || status === 'failed' ? 'error' : 'default';
     return <Chip label={status.toUpperCase()} color={color} size="small" variant="outlined" sx={{ fontWeight: 'bold', height: 20, fontSize: '0.65rem' }} />;
   };
@@ -307,8 +305,8 @@ const NotificationHistoryTab: React.FC = () => {
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      
-      <ControlBar 
+
+      <ControlBar
         t={t}
         fromValue={fromValue} fromUnit={fromUnit}
         toValue={toValue} toUnit={toUnit}
@@ -334,8 +332,8 @@ const NotificationHistoryTab: React.FC = () => {
 
         <Divider sx={{ mb: 1 }} />
 
-        <TableContainer sx={{ 
-          flexGrow: 1, 
+        <TableContainer sx={{
+          flexGrow: 1,
           overflow: 'auto',
           maxHeight: '100%',
           '&::-webkit-scrollbar': { width: 8 },
@@ -361,12 +359,12 @@ const NotificationHistoryTab: React.FC = () => {
                 </TableRow>
               ) : (
                 filteredLogs.map((row) => (
-                  <NotificationRow 
-                    key={row.id} 
-                    row={row} 
-                    t={t} 
-                    getStatusChip={getStatusChip} 
-                    getSeverityChip={getSeverityChip} 
+                  <NotificationRow
+                    key={row.id}
+                    row={row}
+                    t={t}
+                    getStatusChip={getStatusChip}
+                    getSeverityChip={getSeverityChip}
                   />
                 ))
               )}
@@ -375,9 +373,9 @@ const NotificationHistoryTab: React.FC = () => {
         </TableContainer>
       </Paper>
 
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={3000} 
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >

@@ -34,19 +34,8 @@ class NotificationService:
     # --- Notification Management ---
 
     async def list_notifications(self, **kwargs):
-        total, notifications = await self.repository.list_notifications(**kwargs)
-
-        rule_ids = list(set(n.get("rule_id") for n in notifications if n.get("rule_id")))
-        rules_cache = {}
-        for rid in rule_ids:
-            rule = await self.get_rule(rid)
-            if rule:
-                rules_cache[rid] = rule.get("severity", "info")
-
-        for n in notifications:
-            n["severity"] = rules_cache.get(n.get("rule_id"), "info")
-
-        return total, notifications
+        """알림 로그 조회 (규칙 조회 없이 저장된 데이터 그대로 반환)"""
+        return await self.repository.list_notifications(**kwargs)
 
     def _generate_dedup_key(self, rule: Dict[str, Any], event: Dict[str, Any]) -> str:
         # 매 실행마다 새로운 알림이 발생하도록 현재 시간(분 단위)을 키에 포함 (느슨한 설정)
@@ -142,6 +131,7 @@ class NotificationService:
                     "message": f"Detected {total} events in the last {window_min} minutes.",
                     "event_ref": event_ref,
                     "dedup_key": dedup_key,
+                    "severity": rule.get("severity", "info"),
                     "receiver": rule.get("receiver"),
                     "status": "created",
                     "created_at": now.isoformat()

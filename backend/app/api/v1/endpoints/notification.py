@@ -54,8 +54,8 @@ async def delete_rule(rule_id: str):
 async def list_notifications(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    receiver_type: Optional[str] = None,
-    receiver_value: Optional[str] = None
+    receiver_type: Optional[str] = "role",
+    receiver_value: Optional[str] = "admin"
 ):
     total, notifications = await service.list_notifications(
         skip=skip,

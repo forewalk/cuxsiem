@@ -105,7 +105,7 @@ class NotificationBase(BaseModel):
     receiver: Optional[Dict[str, Any]] = None
     status: str = "created"
     error_message: Optional[str] = None
-    
+
     # 발송 증적 필드
     channel: Optional[str] = None
     endpoint: Optional[str] = None

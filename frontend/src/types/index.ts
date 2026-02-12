@@ -111,7 +111,7 @@ export interface NotificationChannels {
   email: EmailConfig[];
 }
 
-// 규칙
+// 알림 규칙
 export interface NotificationRule {
   id: string;
   name: string;

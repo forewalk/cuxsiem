@@ -1,5 +1,5 @@
 import api from './api';
-import type { NotificationRule, NotificationRuleCreate, NotificationRuleUpdate, NotificationHistory } from '../types';
+import type { NotificationRule, NotificationRuleCreate, NotificationRuleUpdate, NotificationHistory } from '@/types';
 
 export const notificationService = {
   /* 알림 규칙 목록 조회 */
@@ -29,10 +29,13 @@ export const notificationService = {
     await api.delete(`/api/v1/notifications/rules/${id}`);
   },
 
+
+  /* 알림 목록 조회 */
   getNotifications: async (skip: number = 0, limit: number = 100) => {
     const response = await api.get<NotificationHistory[]>('/api/v1/notifications/', {
       params: { skip, limit }
     });
+    console.log("[notificationService] getNotifications : ",  response.data)
     return response.data;
   }
 };
