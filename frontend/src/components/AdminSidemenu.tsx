@@ -7,7 +7,7 @@ import {
 import {
   ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Settings as SettingsIcon,
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
-  ShowChart as ThreatsIcon, Terminal as TerminalIcon,
+  ShowChart as ThreatsIcon, Terminal as TerminalIcon, Tune as AdvancedIcon,
 } from '@mui/icons-material';
 import useTabStore from '../stores/tabStore';
 
@@ -171,6 +171,13 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                 >
                   <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><LockIcon /></ListItemIcon>
                   <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
+                </ListItemButton>
+                <ListItemButton
+                  sx={{ pl: 4, minHeight: listItemHeight }}
+                  onClick={() => handleMenuTabClick(t('advancedSettings'), 'AdvancedSettingsTab', 'advancedSettings')}
+                >
+                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><AdvancedIcon /></ListItemIcon>
+                  <ListItemText primary={t('advancedSettings')} sx={listItemTextStyle} />
                 </ListItemButton>
               </List>
             </Collapse>

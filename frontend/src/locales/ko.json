@@ -151,5 +151,9 @@
   "pause": "일시중지",
   "clearLogs": "로그 지우기",
   "autoScroll": "자동 스크롤",
-  "waitingForLogs": "로그를 기다리는 중..."
+  "waitingForLogs": "로그를 기다리는 중...",
+  "advancedSettings": "고급 설정",
+  "userRegistrationActivation": "사용자 신청 활성화",
+  "loadFailed": "불러오기 실패",
+  "signupDisabled": "계정 신청이 불가능합니다. 관리자에게 문의해주세요."
 }

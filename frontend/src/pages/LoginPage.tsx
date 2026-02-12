@@ -32,6 +32,7 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { useAuth } from "../hooks/useAuth";
 import { authService } from "../services/authService";
+import { advancedSettingsService } from "../services/advancedSettingsService";
 import AccountApplyModal from "../components/auth/AccountApplyModal";
 
 import koMessages from "../locales/ko.json";
@@ -61,6 +62,21 @@ export const LoginPage: React.FC = () => {
   });
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [userRegisterEnabled, setUserRegisterEnabled] = useState(false);
+
+  useEffect(() => {
+    // 고급 설정(사용자 가입 활성화 여부) 로드
+    const loadAdvancedSettings = async () => {
+      try {
+        const settings = await advancedSettingsService.getSettings();
+        setUserRegisterEnabled(settings.user_register);
+      } catch (err) {
+        console.error("Failed to load advanced settings:", err);
+        // 기본값은 false로 유지
+      }
+    };
+    loadAdvancedSettings();
+  }, []);
 
   // 다크모드 변경 시 localStorage에 저장
   const handleDarkModeChange = useCallback(() => {
@@ -474,7 +490,12 @@ export const LoginPage: React.FC = () => {
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
-                    setApplyModalOpen(true);
+                    if (userRegisterEnabled) {
+                      setApplyModalOpen(true);
+                    } else {
+                      setError(t("signupDisabled"));
+                      setOpenSnackbar(true);
+                    }
                   }}
                   sx={{
                     flex: 1,

@@ -153,5 +153,9 @@
   "pause": "Pause",
   "clearLogs": "Clear Logs",
   "autoScroll": "Auto Scroll",
-  "waitingForLogs": "Waiting for logs..."
+  "waitingForLogs": "Waiting for logs...",
+  "advancedSettings": "Advanced Settings",
+  "userRegistrationActivation": "User Registration Activation",
+  "loadFailed": "Load Failed",
+  "signupDisabled": "Account registration is disabled. Please contact the administrator."
 }
