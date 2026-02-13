@@ -11,7 +11,7 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
-import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
+import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from "@mui/material";
 import { useAuth } from "./hooks/useAuth";
 import { useLanguageStore } from "./stores/useLanguageStore";
 
@@ -24,6 +24,7 @@ import AdminSidemenu from "./components/AdminSidemenu";
 
 const drawerWidth = 273;
 const collapsedWidth = 72;
+const mobileDrawerWidth = 0;
 
 const FIGMA_COLORS = {
   buttonBg: "#4A5568",
@@ -46,6 +47,29 @@ function App() {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const theme = useMemo(() => createTheme({
+    palette: {
+      mode: darkMode ? "dark" : "light",
+      primary: {
+        main: FIGMA_COLORS.buttonBg,
+      },
+      background: {
+        default: darkMode ? "#121212" : FIGMA_COLORS.contentBg,
+      },
+    },
+    breakpoints: {
+      values: {
+        xs: 0,
+        sm: 600,
+        md: 900,
+        lg: 1200,
+        xl: 1536,
+      },
+    },
+  }), [darkMode]);
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const handleDarkModeChange = useCallback(() => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
@@ -59,7 +83,6 @@ function App() {
     cn: cnMessages,
   };
 
-  // t 함수를 useMemo로 감싸서 언어 변경 시에만 재생성되도록 함
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
     let text = currentTranslations[key] || (params?.fallback || key);
@@ -70,18 +93,6 @@ function App() {
     }
     return text;
   }, [language]);
-
-  const theme = useMemo(() => createTheme({
-    palette: {
-      mode: darkMode ? "dark" : "light",
-      primary: {
-        main: FIGMA_COLORS.buttonBg,
-      },
-      background: {
-        default: darkMode ? "#121212" : FIGMA_COLORS.contentBg,
-      },
-    },
-  }), [darkMode]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -107,13 +118,25 @@ function App() {
     );
   }
 
+  const currentDrawerWidth = isMobile 
+    ? (drawerOpen ? 240 : mobileDrawerWidth) 
+    : (drawerOpen ? drawerWidth : collapsedWidth);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden' }}>
         <AdminSidemenu t={t} userRole={user?.role} drawerOpen={drawerOpen} handleDrawerToggle={handleDrawerToggle} />
 
-        <Box sx={{ flexGrow: 1, position: 'relative' }}>
+        <Box sx={{ 
+          flexGrow: 1, 
+          position: 'relative',
+          width: isMobile ? '100%' : `calc(100% - ${currentDrawerWidth}px)`,
+          transition: (theme) => theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
+        }}>
           <AppBar
             position="fixed"
             elevation={0}
@@ -122,34 +145,44 @@ function App() {
               backgroundColor: theme.palette.background.paper,
               borderBottom: `1px solid ${theme.palette.divider}`,
               color: theme.palette.text.primary,
-              left: drawerOpen ? drawerWidth : collapsedWidth,
-              width: `calc(100% - ${drawerOpen ? drawerWidth : collapsedWidth}px)`,
+              left: isMobile ? 0 : currentDrawerWidth,
+              width: isMobile ? '100%' : `calc(100% - ${currentDrawerWidth}px)`,
               transition: (theme) => theme.transitions.create(['width', 'left'], {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,
               }),
             }}
           >
-            <Toolbar sx={{ justifyContent: "space-between", px: 3, py: 1.5 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Typography variant="body2" sx={{ color: theme.palette.text.primary, fontWeight: 500 }}>
+            <Toolbar sx={{ justifyContent: "space-between", px: { xs: 1, sm: 3 }, py: { xs: 0.5, sm: 1.5 }, minHeight: { xs: 56, sm: 64 } }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 2 } }}>
+                {isMobile && (
+                  <IconButton
+                    color="inherit"
+                    aria-label="open drawer"
+                    onClick={handleDrawerToggle}
+                    edge="start"
+                    sx={{ mr: 0 }}
+                  >
+                    <Box sx={{ width: 20, height: 2, bgcolor: 'text.primary', position: 'relative', '&::before, &::after': { content: '""', position: 'absolute', width: 20, height: 2, bgcolor: 'text.primary', left: 0 }, '&::before': { top: -6 }, '&::after': { top: 6 } }} />
+                  </IconButton>
+                )}
+                <Typography variant="body2" sx={{ color: theme.palette.text.primary, fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                   {user?.name ? `${user.name} (${user.role})` : ''}
                 </Typography>
               </Box>
 
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1.5 } }}>
                  <Button
                   onClick={handleLogout}
                   sx={{
                     color: theme.palette.text.primary,
                     textTransform: "none",
-                    fontSize: "13px",
+                    fontSize: { xs: "11px", sm: "13px" },
                     fontWeight: 500,
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: "3px",
-                    padding: "6px 12px",
+                    padding: { xs: "4px 8px", sm: "6px 12px" },
                     "&:hover": { bgcolor: theme.palette.action.hover },
-                    mr: 1,
                   }}
                 >
                   {t("logout")}
@@ -160,8 +193,9 @@ function App() {
                   onChange={(e) => setLanguage(e.target.value)}
                   sx={{
                     color: theme.palette.text.primary,
-                    fontSize: "13px",
+                    fontSize: { xs: "11px", sm: "13px" },
                     "& .MuiOutlinedInput-notchedOutline": { borderColor: theme.palette.divider },
+                    height: { xs: 32, sm: 40 }
                   }}
                   size="small"
                 >
@@ -170,8 +204,8 @@ function App() {
                   <MenuItem value="ja">日本語</MenuItem>
                   <MenuItem value="cn">简体中文</MenuItem>
                 </Select>
-                <IconButton onClick={handleDarkModeChange} sx={{ color: theme.palette.text.primary }}>
-                  {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                <IconButton onClick={handleDarkModeChange} sx={{ color: theme.palette.text.primary, p: { xs: 0.5, sm: 1 } }}>
+                  {darkMode ? <Brightness7Icon sx={{ fontSize: { xs: 20, sm: 24 } }} /> : <Brightness4Icon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
                 </IconButton>
               </Box>
             </Toolbar>
@@ -181,11 +215,12 @@ function App() {
             component="main"
             sx={{
               flexGrow: 1,
-              mt: 8,
-              height: 'calc(100vh - 64px)',
+              mt: { xs: 7, sm: 8 },
+              height: { xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)' },
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              bgcolor: 'background.default'
             }}
           >
             <Outlet context={{ t, language }} />

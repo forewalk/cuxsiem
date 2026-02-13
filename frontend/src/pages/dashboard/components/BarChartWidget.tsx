@@ -8,6 +8,7 @@ import { useLanguageStore } from "../../../stores/useLanguageStore";
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
+import cnMessages from "../../../locales/cn.json";
 
 interface BarChartWidgetProps {
   data: HistogramItem[];
@@ -18,10 +19,29 @@ interface BarChartWidgetProps {
   onRangeSelect?: (startTime: string, endTime: string) => void;
 }
 
-const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, title, emptyMessage, onBarClick, onRangeSelect }) => {
+const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, emptyMessage, onBarClick, onRangeSelect }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [actualHeight, setActualHeight] = useState(height || 300);
+
+  // 컨테이너 크기 감지
+  useEffect(() => {
+    if (height) {
+      setActualHeight(height);
+      return;
+    }
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const h = containerRef.current.clientHeight;
+        if (h > 0) setActualHeight(h);
+      }
+    };
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, [height]);
 
   // 드래그 선택 상태
   const [isSelecting, setIsRefreshing] = useState(false);
@@ -29,7 +49,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
   const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
 
   // i18n 지원
-  const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages };
+  const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   const t = useMemo(() => (key: string): string => {
     const currentTranslations = translations[language] || translations["ko"];
     return currentTranslations[key] || key;
@@ -43,8 +63,8 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
     return max === 0 ? 10 : max;
   }, [data]);
 
-  const padding = { top: 20, right: 20, bottom: 40, left: 50 };
-  const chartHeight = height - padding.top - padding.bottom;
+  const padding = { top: 20, right: 10, bottom: 40, left: 40 };
+  const chartHeight = actualHeight - padding.top - padding.bottom;
 
   const gridLines = useMemo(() => {
     const effectiveMax = Math.ceil(maxValue);
@@ -65,7 +85,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
     });
   }, [maxValue, chartHeight, padding.top]);
 
-  // 마우스 좌표를 시간으로 변환
+  // 마우스/터치 좌표를 시간으로 변환
   const getTimeFromX = (xPercent: number) => {
     if (!data || data.length === 0) return null;
     const totalPoints = data.length;
@@ -90,6 +110,26 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
     setSelectionEnd(Math.max(0, Math.min(xPct, 100)));
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const xPct = ((touch.clientX - rect.left) / rect.width) * 100;
+    setSelectionStart(xPct);
+    setSelectionEnd(xPct);
+    setIsRefreshing(true);
+    if (e.cancelable) e.preventDefault();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSelecting || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const xPct = ((touch.clientX - rect.left) / rect.width) * 100;
+    setSelectionEnd(Math.max(0, Math.min(xPct, 100)));
+    if (e.cancelable) e.preventDefault();
+  };
+
   const handleMouseUp = () => {
     if (!isSelecting || selectionStart === null || selectionEnd === null) {
       setIsRefreshing(false);
@@ -99,7 +139,6 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
     const start = Math.min(selectionStart, selectionEnd);
     const end = Math.max(selectionStart, selectionEnd);
 
-    // 최소 드래그 범위 (예: 전체의 1% 이상일 때만 동작)
     if (end - start > 1) {
       const startTime = getTimeFromX(start);
       const endTime = getTimeFromX(end);
@@ -144,45 +183,64 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
 
   if (!data || data.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: height, flexDirection: 'column' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: actualHeight, flexDirection: 'column' }}>
         <Typography color="text.disabled">{finalEmptyMessage}</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
+    <Box ref={containerRef} sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column', userSelect: 'none', touchAction: 'none' }}>
       {title && (
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold", color: 'text.secondary' }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold", color: 'text.secondary', fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
           {title}
         </Typography>
       )}
       
       <Box sx={{ flexGrow: 1, position: 'relative', width: '100%' }}>
         {gridLines.map((line, i) => (
-          <Typography key={i} variant="caption" sx={{ position: 'absolute', top: line.top, left: 0, width: padding.left - 10, textAlign: 'right', transform: 'translateY(-50%)', color: 'text.secondary', fontSize: '11px', pointerEvents: 'none' }}>
+          <Typography key={i} variant="caption" sx={{ position: 'absolute', top: line.top, left: 0, width: padding.left - 5, textAlign: 'right', transform: 'translateY(-50%)', color: 'text.secondary', fontSize: { xs: '9px', md: '11px' }, pointerEvents: 'none' }}>
             {line.value}
           </Typography>
         ))}
 
         <Box sx={{ position: 'absolute', top: padding.top, left: padding.left, right: padding.right, bottom: padding.bottom }}>
-          {gridLines.map((_, i) => (
-            <Box key={i} sx={{ position: 'absolute', top: `${((gridLines.length - 1 - i) / (gridLines.length - 1)) * 100}%`, left: 0, right: 0, height: '1px', bgcolor: theme.palette.divider, pointerEvents: 'none' }} />
-          ))}
-
           <svg 
             ref={svgRef}
             width="100%" height="100%" preserveAspectRatio="none" 
             style={{ 
               display: "block", 
               overflow: 'visible',
-              cursor: 'crosshair' // 드래그 가능함을 알리는 십자선 커서
+              cursor: 'crosshair', 
+              position: 'relative',
+              zIndex: 1,
+              touchAction: 'none'
             }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleMouseUp}
           >
+            {/* Grid Lines (Inside SVG to ensure they are behind bars) */}
+            {gridLines.map((_, i) => {
+              const yPct = ((gridLines.length - 1 - i) / (gridLines.length - 1)) * 100;
+              return (
+                <line 
+                  key={i} 
+                  x1="0" 
+                  y1={`${yPct}%`} 
+                  x2="100%" 
+                  y2={`${yPct}%`} 
+                  stroke={theme.palette.divider} 
+                  strokeWidth="1" 
+                  pointerEvents="none" 
+                />
+              );
+            })}
+
             {/* Selection Overlay */}
             {isSelecting && selectionStart !== null && selectionEnd !== null && (
               <rect
@@ -217,7 +275,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
                     y={`${100 - barHeightPct}%`}
                     width={`${barWidthPct}%`}
                     height={`${barHeightPct}%`}
-                    fill={theme.palette.primary.main}
+                    fill="#20b2aa"
                     rx="1"
                     style={{ cursor: 'pointer' }}
                     onClick={(e) => { e.stopPropagation(); handleRectClick(item, i); }}
@@ -230,15 +288,15 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height = 300, tit
 
           <Box sx={{ position: 'absolute', top: '100%', left: 0, right: 0, height: padding.bottom, display: 'flex' }}>
             {data.map((item, i) => {
-              const labelStep = Math.ceil(data.length / 12);
+              const labelStep = data.length > 20 ? Math.ceil(data.length / (window.innerWidth < 600 ? 4 : 12)) : 1;
               const showLabel = i % labelStep === 0;
               if (!showLabel) return <Box key={i} sx={{ flex: 1 }} />;
               const isMultiDay = data.length > 0 && !dayjs(data[0].timestamp).isSame(dayjs(data[data.length-1].timestamp), 'day');
               return (
                 <Box key={i} sx={{ flex: 1, position: 'relative' }}>
-                  <Box sx={{ position: 'absolute', left: '50%', top: 8, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
-                    {isMultiDay && <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '9px', lineHeight: 1, mb: 0.2 }}>{dayjs(item.timestamp).format("MM-DD")}</Typography>}
-                    <Typography variant="caption" sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '10px', lineHeight: 1 }}>{dayjs(item.timestamp).format("HH:mm")}</Typography>
+                  <Box sx={{ position: 'absolute', left: '50%', top: { xs: 4, md: 8 }, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
+                    {isMultiDay && <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: { xs: '7px', md: '9px' }, lineHeight: 1, mb: 0.2 }}>{dayjs(item.timestamp).format("MM-DD")}</Typography>}
+                    <Typography variant="caption" sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: { xs: '8px', md: '10px' }, lineHeight: 1 }}>{dayjs(item.timestamp).format("HH:mm")}</Typography>
                   </Box>
                 </Box>
               );

@@ -75,6 +75,15 @@ const DashboardTab: React.FC = () => {
     setSearchParams(newParams);
   };
 
+  const handleChartClick = (field: string, value: string) => {
+    const filter = `${field}:"${value}"`;
+    if (!searchQuery) {
+      handleSearchQueryChange(filter);
+    } else if (!searchQuery.includes(filter)) {
+      handleSearchQueryChange(`${searchQuery} AND ${filter}`);
+    }
+  };
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -106,24 +115,24 @@ const DashboardTab: React.FC = () => {
   };
 
   const StatPanel = ({ title, value, color }: { title: string, value: number, color?: string }) => (
-    <Paper elevation={1} sx={{ p: 2, height: 140, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', mb: 1, height: 40 }}>
+    <Paper elevation={1} sx={{ p: { xs: 0.75, sm: 1.5, md: 2 }, height: { xs: 90, sm: 120, md: 140 }, display: 'flex', flexDirection: 'column', borderRadius: 1.5 }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', mb: 0.25, height: { xs: 24, sm: 32, md: 40 }, fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.75rem' }, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.1 }}>
         {title}
       </Typography>
       <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography variant="h3" sx={{ fontWeight: 'bold', color: color || 'text.primary' }}>
+        <Typography variant="h3" sx={{ fontWeight: 'bold', color: color || 'text.primary', fontSize: { xs: '1.25rem', sm: '1.75rem', md: '2.5rem' } }}>
           {value.toLocaleString()}
         </Typography>
       </Box>
-      <Typography variant="caption" sx={{ color: 'text.disabled', textAlign: 'center' }}>
+      <Typography variant="caption" sx={{ color: 'text.disabled', textAlign: 'right', fontSize: '0.55rem' }}>
         {t('count', { fallback: '건' })}
       </Typography>
     </Paper>
   );
 
   const ChartPlaceholder = ({ title, type = 'bar' }: { title: string, type?: 'bar' | 'pie' | 'list' }) => (
-    <Paper elevation={1} sx={{ p: 2.5, height: 380, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.secondary', mb: 2 }}>
+    <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: { xs: 240, sm: 320, md: 380 }, display: 'flex', flexDirection: 'column', borderRadius: 1.5 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.secondary', mb: 1, fontSize: { xs: '0.7rem', md: '0.875rem' } }}>
         {title}
       </Typography>
       <Box sx={{ 
@@ -138,29 +147,29 @@ const DashboardTab: React.FC = () => {
       }}>
         <Box sx={{ textAlign: 'center' }}>
           {type === 'pie' ? (
-            <Box sx={{ width: 120, height: 120, borderRadius: '50%', border: '10px solid', borderColor: 'primary.light', mb: 1, mx: 'auto', opacity: 0.3 }} />
+            <Box sx={{ width: { xs: 60, sm: 100 }, height: { xs: 60, sm: 100 }, borderRadius: '50%', border: '6px solid', borderColor: 'primary.light', mb: 1, mx: 'auto', opacity: 0.3 }} />
           ) : type === 'list' ? (
-            <Box sx={{ width: 250, display: 'flex', flexDirection: 'column', gap: 1, mx: 'auto' }}>
+            <Box sx={{ width: { xs: 150, sm: 220 }, display: 'flex', flexDirection: 'column', gap: 0.75, mx: 'auto' }}>
               {[1,2,3].map(i => (
                 <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box sx={{ height: 12, bgcolor: 'divider', borderRadius: 0.5, width: `${100 - i*20}%` }} />
-                  <Box sx={{ height: 12, bgcolor: 'divider', borderRadius: 0.5, width: 20 }} />
+                  <Box sx={{ height: 10, bgcolor: 'divider', borderRadius: 0.5, width: `${100 - i*20}%` }} />
+                  <Box sx={{ height: 10, bgcolor: 'divider', borderRadius: 0.5, width: 20 }} />
                 </Box>
               ))}
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 80, mb: 1 }}>
-              {[40, 70, 30, 90, 50].map((h, i) => <Box key={i} sx={{ width: 15, height: `${h}%`, bgcolor: 'primary.light', opacity: 0.3, borderRadius: '2px 2px 0 0' }} />)}
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.75, height: { xs: 40, sm: 70 }, mb: 1 }}>
+              {[40, 70, 30, 90, 50].map((h, i) => <Box key={i} sx={{ width: { xs: 6, sm: 12 }, height: `${h}%`, bgcolor: 'primary.light', opacity: 0.3, borderRadius: '2px 2px 0 0' }} />)}
             </Box>
           )}
-          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>{t('noResults')}</Typography>
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5, fontSize: '0.65rem' }}>{t('noResults')}</Typography>
         </Box>
       </Box>
     </Paper>
   );
 
   return (
-    <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
+    <Box id="dashboard-tab-container" sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', height: '100%', position: 'relative', p: { xs: 1, sm: 2, md: 3 } }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
       <ControlBar 
         t={t}
@@ -169,17 +178,17 @@ const DashboardTab: React.FC = () => {
         fromDate={fromDate} toDate={toDate}
         onTimeChange={handleTimeChange}
         searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData}
-        lastUpdated={data?.last_updated ? dayjs(data.last_updated).format("HH:mm:ss") : undefined}
+        lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined}
       />
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 1, fontSize: '0.7rem', py: 0 }}>{error}</Alert>}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1, md: 3 }, width: '100%', maxWidth: '100vw' }}>
         {/* Main Log Trend Chart */}
-        <Paper elevation={1} sx={{ p: 3, height: 450, width: '100%', borderRadius: 2 }}>
+        <Paper elevation={1} sx={{ p: { xs: 1, sm: 2, md: 3 }, height: { xs: 220, sm: 350, md: 450 }, width: '100%', borderRadius: 1.5, overflow: 'hidden' }}>
           <BarChartWidget 
             data={data?.histogram || []} 
-            height={380} 
+            height={undefined} 
             title={t('logActivityTrend')} 
             emptyMessage={t('noLogs')}
             onBarClick={handleBarClick}
@@ -188,46 +197,49 @@ const DashboardTab: React.FC = () => {
         </Paper>
 
         {/* Summary Panels */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1, md: 2 } }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: { xs: 0.75, sm: 1.5, md: 2 } }}>
             <StatPanel title={t('totalThreats')} value={data?.summary.total_threats ?? 0} />
             <StatPanel title={t('unresolvedThreats')} value={data?.summary.unresolved_threats ?? 0} color="warning.main" />
             <StatPanel title={t('resolvedThreats')} value={data?.summary.resolved_threats ?? 0} color="success.main" />
             <StatPanel title={t('activeThreats')} value={data?.summary.active_threats ?? 0} color="error.main" />
           </Box>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr' }, gap: { xs: 0.75, sm: 1.5, md: 2 } }}>
             <StatPanel title={t('blockedThreats')} value={data?.summary.blocked_threats ?? 0} color="info.main" />
             <StatPanel title={t('mitigatedThreats')} value={data?.summary.mitigated_threats ?? 0} color="primary.main" />
             <StatPanel title={t('suspiciousThreats')} value={0} color="secondary.main" />
           </Box>
         </Box>
 
-        <Divider />
+        <Divider sx={{ my: { xs: 0.5, md: 1 } }} />
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
-          <Paper elevation={1} sx={{ p: 2.5, height: 380, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: { xs: 1, md: 2 } }}>
+          <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: { xs: 240, sm: 320, md: 380 }, display: 'flex', flexDirection: 'column', borderRadius: 1.5, overflow: 'hidden' }}>
             <PieChartWidget 
               title={t('detectionEngine')} 
               data={data?.detection_stats || []} 
-              height={320}
+              height={undefined}
               emptyMessage={t('noResults')}
+              onSliceClick={(label) => handleChartClick('threatInfo.detectionEngines.title', label)}
             />
           </Paper>
-          <Paper elevation={1} sx={{ p: 2.5, height: 380, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+          <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: { xs: 240, sm: 320, md: 380 }, display: 'flex', flexDirection: 'column', borderRadius: 1.5, overflow: 'hidden' }}>
             <CategoryBarChartWidget 
               title={t('prevalentThreats')} 
               data={data?.prevalent_threats || []} 
-              height={320}
+              height={undefined}
               emptyMessage={t('noResults')}
+              onBarClick={(label) => handleChartClick('threatInfo.threatName', label)}
             />
           </Paper>
           <ChartPlaceholder title={t('threatsByAgentStatus')} type="pie" />
-          <Paper elevation={1} sx={{ p: 2.5, height: 380, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+          <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: { xs: 240, sm: 320, md: 380 }, display: 'flex', flexDirection: 'column', borderRadius: 1.5, overflow: 'hidden' }}>
             <CategoryBarChartWidget 
               title={t('threatsByMitigationStatus')} 
               data={data?.mitigation_stats || []} 
-              height={320}
+              height={undefined}
               emptyMessage={t('noResults')}
+              onBarClick={(label) => handleChartClick('threatInfo.mitigationStatus', label)}
             />
           </Paper>
         </Box>
