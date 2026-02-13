@@ -27,10 +27,15 @@ class NotificationChannels(BaseModel):
 
 class NotificationRuleBase(BaseModel):
     name: str
+    description: Optional[str] = None
     target_index: str = "logs-sentinel_one.threats"
     condition_type: str = "dsl_query"
     condition_config: Dict[str, Any]
-    severity: str
+    message_template: str = Field(
+        default="Detected {{total}} events in the last {{window_min}} minutes.",
+        description="알림 메시지 템플릿"
+    )
+    severity: str = "info"
 
     # 주기 및 범위 설정
     interval_min: int = Field(ge=1, description="탐지 실행 주기(분)")
@@ -57,9 +62,11 @@ class NotificationRuleBase(BaseModel):
 
 class NotificationRuleUpdate(BaseModel):
     name: Optional[str] = None
+    description: Optional[str] = None
     target_index: Optional[str] = None
     condition_type: Optional[str] = None
     condition_config: Optional[Dict[str, Any]] = None
+    message_template: Optional[str] = None
     severity: Optional[str] = None
     interval_min: Optional[int] = Field(None, ge=1)
     window_min: Optional[int] = Field(None, ge=1)
@@ -103,6 +110,7 @@ class NotificationRuleListResponse(BaseModel):
 class NotificationBase(BaseModel):
     rule_id: str
     title: str
+    description: Optional[str] = None
     message: str
     event_ref: str
     dedup_key: str

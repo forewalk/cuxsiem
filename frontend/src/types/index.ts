@@ -115,9 +115,11 @@ export interface NotificationChannels {
 export interface NotificationRule {
   id: string;
   name: string;
+  description?: string;
   target_index: string;
   condition_type: string;
   condition_config: Record<string, any>;
+  message_template: string;
   severity: string;
   interval_min: number;
   window_min: number;
@@ -144,6 +146,7 @@ export interface NotificationHistory {
   id: string;
   rule_id: string;
   title: string;
+  description?: string;
   message: string;
   event_ref: string;
   dedup_key: string;

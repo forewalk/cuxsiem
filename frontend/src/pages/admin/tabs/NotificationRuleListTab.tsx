@@ -8,9 +8,7 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  NotificationsActive as NotificationsActiveIcon,
-  Refresh as RefreshIcon
+  NotificationsActive as NotificationsActiveIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
@@ -29,23 +27,19 @@ const translations: Record<string, Record<string, string>> = {
   ja: jaMessages,
 };
 
-const DEFAULT_CHANNELS: NotificationChannels = {
-  webhooks: [],
-  slack: [],
-  email: []
-};
-
 const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   name: '',
+  description: '',
   target_index: 'logs-sentinel_one.threats',
   condition_type: 'dsl_query',
   condition_config: { query: { match_all: {} } },
-  severity: 'medium',
+  message_template: '위협 탐지: {{total}} 건의 이벤트가 발생했습니다.',
+  severity: 'info',
   interval_min: 1,
   window_min: 1,
   dedup_ttl_min: 10,
   dedup_key_template: '{{rule_id}}',
-  channels: DEFAULT_CHANNELS,
+  channels: { webhooks: [{ url: '', method: 'POST', headers: {} }], slack: [], email: [] },
   receiver: { type: 'role', values: ['admin'] },
   is_active: true
 };
@@ -145,34 +139,21 @@ const NotificationRuleListTab: React.FC = () => {
     } catch (error) { setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' }); }
   };
 
-  const updateChannel = (type: keyof NotificationChannels, index: number, value: any) => {
-    const newChannels = { ...formData.channels };
-    newChannels[type][index] = value;
-    setFormData({ ...formData, channels: newChannels });
-  };
-
-  const addChannel = (type: keyof NotificationChannels) => {
-    const newChannels = { ...formData.channels };
-    const defaultValue = type === 'slack' ? { channel: '', webhook_url: '' } :
-                         type === 'webhooks' ? { url: '', method: 'POST', headers: {} } :
-                         { recipients: [], subject_template: '' };
-    newChannels[type] = [...newChannels[type], defaultValue as any];
-    setFormData({ ...formData, channels: newChannels });
-  };
-
-  const removeChannel = (type: keyof NotificationChannels, index: number) => {
-    const newChannels = { ...formData.channels };
-    newChannels[type] = newChannels[type].filter((_, i) => i !== index);
-    setFormData({ ...formData, channels: newChannels });
+  const handleToggleActive = async (rule: NotificationRule) => {
+    try {
+      await notificationService.updateRule(rule.id, { is_active: !rule.is_active });
+      loadRules();
+    } catch (error) {
+      setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
+    }
   };
 
   const getSeverityChip = (severity: string) => {
-    let color: "error" | "warning" | "info" | "success" | "default" = "default";
+    let color: "info" | "warning" | "error" | "default" = "default";
     switch (severity.toLowerCase()) {
-      case 'critical': color = "error"; break;
-      case 'high': color = "warning"; break;
-      case 'medium': color = "info"; break;
-      case 'low': color = "success"; break;
+      case 'info': color = "info"; break;
+      case 'warning': color = "warning"; break;
+      case 'error': color = "error"; break;
     }
     return <Chip label={severity.toUpperCase()} color={color} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />;
   };
@@ -193,10 +174,24 @@ const NotificationRuleListTab: React.FC = () => {
       <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <NotificationsActiveIcon color="primary" />
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationRuleList')}</Typography>
+            <NotificationsActiveIcon color="primary"  />
+            <Typography variant="subtitle2" sx={{ fontSize:'small', fontWeight: 'bold' }}>{t('notificationRuleList')}</Typography>
+            <Chip label={`${total} 건`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
           </Box>
-          <Button variant="contained" size="small" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
+          <Button
+            variant="contained"
+            disableElevation
+            size="small"
+            onClick={() => handleOpenDialog()}
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none',
+              fontWeight: 'bold',
+              px: 3,
+              bgcolor: 'primary.main',
+              '&:hover': { bgcolor: 'primary.dark' }
+            }}
+          >
             {t('addRule')}
           </Button>
         </Stack>
@@ -208,31 +203,41 @@ const NotificationRuleListTab: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell width={250} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('ruleName')}</TableCell>
-                <TableCell width={120} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('severity')}</TableCell>
-                <TableCell width={100} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('interval')}</TableCell>
-                <TableCell width={120} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('status')}</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('lastTriggered')}</TableCell>
+                <TableCell width={100} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('severity')}</TableCell>
+                <TableCell width={100} align="center" sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>활성여부</TableCell>
+                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>마지막 탐지</TableCell>
+                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>생성일</TableCell>
+                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>수정일</TableCell>
                 <TableCell width={100} align="right" sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredRules.length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? '로딩 중...' : '등록된 규칙이 없습니다.'}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? '로딩 중...' : '등록된 규칙이 없습니다.'}</TableCell></TableRow>
               ) : (
                 filteredRules.map((rule) => (
-                  <TableRow key={rule.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                  <TableRow key={rule.id} hover>
                     <TableCell sx={{ fontWeight: 'bold' }}>{rule.name}</TableCell>
                     <TableCell>{getSeverityChip(rule.severity)}</TableCell>
-                    <TableCell>{rule.interval_min}{t('unit_m')}</TableCell>
-                    <TableCell>
-                      <Box sx={{ color: rule.is_active ? 'success.main' : 'text.disabled', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: rule.is_active ? 'success.main' : 'text.disabled' }} />
-                        {rule.is_active ? t('active') : t('inactive')}
-                      </Box>
+                    <TableCell align="center">
+                      <Switch
+                        size="small"
+                        checked={rule.is_active}
+                        onChange={() => handleToggleActive(rule)}
+                        color="primary"
+                      />
                     </TableCell>
-                    <TableCell>{rule.last_triggered_at ? dayjs(rule.last_triggered_at).format('YYYY-MM-DD HH:mm') : '-'}</TableCell>
+                    <TableCell sx={{ fontSize: '0.85rem' }}>
+                      {rule.last_triggered_at ? dayjs(rule.last_triggered_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                      {dayjs(rule.created_at).format('YYYY-MM-DD HH:mm:ss')}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                      {dayjs(rule.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+                    </TableCell>
                     <TableCell align="right">
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                         <IconButton size="small" onClick={() => handleOpenDialog(rule)}><EditIcon fontSize="small" /></IconButton>
                         <IconButton size="small" color="error" onClick={() => setDeleteId(rule.id)}><DeleteIcon fontSize="small" /></IconButton>
                       </Stack>
@@ -251,7 +256,7 @@ const NotificationRuleListTab: React.FC = () => {
         />
       </Paper>
 
-      {/* 다이얼로그들 */}
+      {/* 삭제 확인 다이얼로그 */}
       <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
         <DialogTitle>{t('deleteRule')}</DialogTitle>
         <DialogContent><Typography>{t('confirmDeleteRule')}</Typography></DialogContent>
@@ -261,67 +266,70 @@ const NotificationRuleListTab: React.FC = () => {
         </DialogActions>
       </Dialog>
 
+      {/* 규칙 생성/수정 다이얼로그 */}
       <Dialog open={open} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>{editingRule ? t('editRule') : t('addRule')}</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={3}>
+            {/* 1. 기본 정보 */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>기본 설정</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>1. 기본 정보</Typography>
               <Stack spacing={2}>
-                <TextField label={t('ruleName')} fullWidth value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} size="small" />
+                <TextField label={t('ruleName')} fullWidth required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} size="small" />
+                <TextField label="규칙 설명" fullWidth multiline rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} size="small" />
                 <Stack direction="row" spacing={2}>
                   <TextField label={t('targetIndex')} fullWidth value={formData.target_index} onChange={(e) => setFormData({ ...formData, target_index: e.target.value })} size="small" />
                   <TextField select label={t('severity')} sx={{ minWidth: 150 }} value={formData.severity} onChange={(e) => setFormData({ ...formData, severity: e.target.value })} size="small">
-                    <MenuItem value="critical">{t('severityCritical')}</MenuItem>
-                    <MenuItem value="high">{t('severityHigh')}</MenuItem>
-                    <MenuItem value="medium">{t('severityMedium')}</MenuItem>
-                    <MenuItem value="low">{t('severityLow')}</MenuItem>
-                    <MenuItem value="info">{t('severityInfo')}</MenuItem>
+                    <MenuItem value="info">{t('severityInfo', { fallback: 'INFO' })}</MenuItem>
+                    <MenuItem value="warning">{t('severityWarning', { fallback: 'WARNING' })}</MenuItem>
+                    <MenuItem value="error">{t('severityError', { fallback: 'ERROR' })}</MenuItem>
                   </TextField>
                 </Stack>
                 <FormControlLabel control={<Switch checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />} label={t('status')} />
               </Stack>
             </Grid>
+
             <Grid item xs={12}><Divider /></Grid>
+
+            {/* 2. 탐지 로직 및 주기 */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>탐지 및 주기</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>2. 탐지 로직 및 주기</Typography>
               <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                <TextField label={t('intervalMin')} type="number" fullWidth value={formData.interval_min} onChange={(e) => setFormData({ ...formData, interval_min: parseInt(e.target.value) })} size="small" />
-                <TextField label={t('windowMin')} type="number" fullWidth value={formData.window_min} onChange={(e) => setFormData({ ...formData, window_min: parseInt(e.target.value) })} size="small" />
+                <TextField label={t('intervalMin')} type="number" fullWidth value={formData.interval_min} onChange={(e) => setFormData({ ...formData, interval_min: parseInt(e.target.value) })} size="small" helperText="실행 주기(분)" />
+                <TextField label={t('windowMin')} type="number" fullWidth value={formData.window_min} onChange={(e) => setFormData({ ...formData, window_min: parseInt(e.target.value) })} size="small" helperText="조회 범위(분)" />
               </Stack>
-              <TextField label={t('conditionConfig')} multiline rows={6} fullWidth value={dslString} onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError} helperText={jsonError} inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
+              <TextField label={t('conditionConfig')} multiline rows={6} fullWidth required value={dslString} onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError} helperText={jsonError || "OpenSearch DSL 쿼리를 입력하세요."} inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
             </Grid>
+
             <Grid item xs={12}><Divider /></Grid>
+
+            {/* 3. 알림 메시지 템플릿 */}
             <Grid item xs={12}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{t('channels')}</Typography>
-                <Stack direction="row" spacing={1}>
-                  <Button size="small" variant="outlined" onClick={() => addChannel('slack')}>+ Slack</Button>
-                  <Button size="small" variant="outlined" onClick={() => addChannel('webhooks')}>+ Webhook</Button>
-                </Stack>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>3. 알림 메시지 템플릿</Typography>
+              <TextField label="메시지 템플릿" fullWidth multiline rows={3} value={formData.message_template} onChange={(e) => setFormData({ ...formData, message_template: e.target.value })} size="small" helperText="{{total}}, {{window_min}} 등의 변수를 사용할 수 있습니다." />
+            </Grid>
+
+            <Grid item xs={12}><Divider /></Grid>
+
+            {/* 4. 수신처 설정 (고정 정보) */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>4. 수신처 및 채널</Typography>
+              <Stack spacing={2}>
+                <TextField label="수신자 그룹" fullWidth disabled value="ADMIN (고정)" size="small" />
+                {formData.channels.webhooks.map((config, idx) => (
+                  <Stack key={`webhook-${idx}`} direction="row" spacing={1} alignItems="center">
+                    <TextField label="전송 채널 (Webhook URL)" fullWidth required value={config.url} onChange={(e) => updateChannel('webhooks', idx, { ...config, url: e.target.value })} size="small" placeholder="https://hooks.slack.com/..." />
+                  </Stack>
+                ))}
               </Stack>
-              {formData.channels.slack.map((config, idx) => (
-                <Stack key={`slack-${idx}`} direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
-                  <TextField label={t('slackChannel')} size="small" value={config.channel} sx={{ width: '30%' }} onChange={(e) => updateChannel('slack', idx, { ...config, channel: e.target.value })} />
-                  <TextField label={t('webhookUrl')} size="small" value={config.webhook_url} sx={{ flexGrow: 1 }} onChange={(e) => updateChannel('slack', idx, { ...config, webhook_url: e.target.value })} />
-                  <IconButton color="error" size="small" onClick={() => removeChannel('slack', idx)}><DeleteOutlineIcon /></IconButton>
-                </Stack>
-              ))}
-              {formData.channels.webhooks.map((config, idx) => (
-                <Stack key={`webhook-${idx}`} direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
-                  <TextField label={t('webhookUrl')} size="small" value={config.url} sx={{ flexGrow: 1 }} onChange={(e) => updateChannel('webhooks', idx, { ...config, url: e.target.value })} />
-                  <TextField select label="Method" size="small" value={config.method} sx={{ width: 100 }} onChange={(e) => updateChannel('webhooks', idx, { ...config, method: e.target.value })}>
-                    <MenuItem value="POST">POST</MenuItem><MenuItem value="GET">GET</MenuItem>
-                  </TextField>
-                  <IconButton color="error" size="small" onClick={() => removeChannel('webhooks', idx)}><DeleteOutlineIcon /></IconButton>
-                </Stack>
-              ))}
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button variant="outlined" onClick={handleCloseDialog}>{t('cancel')}</Button>
-          <Button variant="contained" color="primary" onClick={handleSave} disabled={!!jsonError}>{t('save')}</Button>
+          <Button variant="contained" color="primary" onClick={handleSave} disabled={!!jsonError || !formData.name}>
+            {t('save')}
+          </Button>
         </DialogActions>
       </Dialog>
 

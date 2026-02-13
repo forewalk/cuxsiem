@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Box, Typography, Paper, Stack, Divider, LinearProgress, Chip,
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Collapse, Tooltip, TablePagination
+  TableRow, Collapse, Tooltip, TablePagination, Grid, Snackbar, Alert
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -10,7 +10,7 @@ import {
   Terminal as TerminalIcon,
   KeyboardArrowDown as ExpandMoreIcon,
   KeyboardArrowUp as ExpandLessIcon,
-  OpenInNew as OpenInNewIcon
+  Hub as HubIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
@@ -29,54 +29,27 @@ const translations: Record<string, Record<string, string>> = {
   ja: jaMessages,
 };
 
-// 행 컴포넌트 (확장 로직 포함)
-const NotificationRow: React.FC<{
-  row: NotificationHistory,
+// 행 컴포넌트
+const NotificationRow: React.FC<{ 
+  row: NotificationHistory, 
   t: any,
-  getStatusChip: (s: string) => React.ReactNode,
   getSeverityChip: (s: string | null) => React.ReactNode
-}> = ({ row, t, getStatusChip, getSeverityChip }) => {
+}> = ({ row, t, getSeverityChip }) => {
   const [open, setOpen] = useState(false);
 
-  // 전송 증적 데이터 구성
-  const auditData = useMemo(() => {
-    return {
-      audit: {
-        notification_id: row.id,
-        rule_id: row.rule_id,
-        sent_at: row.sent_at,
-        delivery_status: row.status,
-        error: row.error_message
-      },
-      request: {
-        channel: row.channel || "N/A",
-        endpoint: row.endpoint || "N/A",
-        headers: row.request_headers || {},
-        payload: row.outgoing_payload || {
-          title: row.title,
-          message: row.message,
-          receiver: row.receiver
-        }
-      },
-      response: {
-        status_code: row.response_status_code,
-        body: row.response_body
-      }
-    };
-  }, [row]);
-
-  const auditJson = JSON.stringify(auditData, null, 2);
+  // curl 커맨드라인 생성 (역슬래시 오류 방지를 위해 일반 문자열 결합 방식 사용)
+  const endpoint = row.endpoint || "/api/v1/notifications/send";
+  const curlCommand = "$ curl -X POST \"" + endpoint + "\" -H \"Content-Type: application/json\" -d '{\"rule_id\": \"" + row.rule_id + "\", ...}'";
 
   return (
     <React.Fragment>
-      <TableRow
-        hover
+      <TableRow 
+        hover 
         onClick={() => setOpen(!open)}
-        sx={{
+        sx={{ 
           cursor: 'pointer',
           '& > td': { borderBottom: open ? 'none' : undefined },
-          bgcolor: open ? 'action.selected' : 'inherit',
-          transition: 'background-color 0.2s'
+          bgcolor: open ? 'action.selected' : 'inherit'
         }}
       >
         <TableCell width={50}>
@@ -84,132 +57,127 @@ const NotificationRow: React.FC<{
             {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </TableCell>
-        <TableCell sx={{ whiteSpace: 'nowrap' }}>
+        <TableCell width={200}>
           {dayjs(row.created_at).format('YYYY-MM-DD HH:mm:ss')}
         </TableCell>
-        <TableCell>
+        <TableCell width={120}>
           {getSeverityChip(row.severity)}
         </TableCell>
         <TableCell sx={{ fontWeight: 'bold' }}>
           {row.title}
         </TableCell>
-        <TableCell sx={{
-          maxWidth: 300,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          color: 'text.secondary'
-        }}>
-          {row.message}
-        </TableCell>
-        <TableCell align="center">
-          {getStatusChip(row.status)}
+        <TableCell width={200}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <HubIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+              {row.channel ? row.channel.toUpperCase() : 'WEBHOOK'}
+            </Typography>
+          </Stack>
         </TableCell>
       </TableRow>
-
+      
       <TableRow sx={{ '& > td': { p: 0, borderBottom: open ? undefined : 'none' } }}>
-        <TableCell colSpan={6}>
+        <TableCell colSpan={5}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ py: 3, px: 2, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
-              <Paper
-                variant="outlined"
-                sx={{
-                  p: 1.2,
-                  mb: 2.5,
-                  bgcolor: '#1e1e1e',
-                  color: '#d4d4d4',
-                  fontFamily: 'monospace',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                  border: 'none'
-                }}
-              >
-                <TerminalIcon sx={{ fontSize: 16, color: '#4cc38a' }} />
-                <Typography variant="caption" sx={{ fontFamily: 'inherit', letterSpacing: 0.5 }}>
-                  {`$ curl -X POST "${row.endpoint || "/api/v1/notifications/send"}" -H "Content-Type: application/json" -d '{"rule_id": "${row.rule_id}", ...}'`}
-                </Typography>
-              </Paper>
-
-              <Box sx={{ display: 'flex', gap: 4 }}>
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                      Notification Evidence
-                    </Typography>
-                    <Tooltip title="이벤트 원본 보기">
-                      <IconButton size="small"><OpenInNewIcon fontSize="inherit" /></IconButton>
-                    </Tooltip>
-                  </Stack>
-
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>알림 규칙</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{row.title}</Typography>
-                  </Box>
-
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>메시지 본문</Typography>
-                    <Typography variant="body2" sx={{
-                      whiteSpace: 'pre-wrap',
-                      p: 1.5,
-                      bgcolor: 'background.paper',
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'divider'
-                    }}>
-                      {row.message}
-                    </Typography>
-                  </Box>
-
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>수신자 / 채널</Typography>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                      {row.channel ? `${row.channel.toUpperCase()} (${row.endpoint})` : (row.receiver ? JSON.stringify(row.receiver) : '-')}
-                    </Typography>
-                  </Box>
-
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 'bold' }}>중복 제거 키 (Dedup Key)</Typography>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary', wordBreak: 'break-all' }}>
-                      {row.dedup_key}
-                    </Typography>
-                  </Box>
-
-                  {row.error_message && (
-                    <Box sx={{ mt: 1, p: 1.5, bgcolor: 'error.lighter', borderRadius: 1, border: '1px solid', borderColor: 'error.light' }}>
-                      <Typography variant="caption" color="error.main" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>DELIVERY ERROR</Typography>
-                      <Typography variant="body2" color="error.main">{row.error_message}</Typography>
+            <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
+              {/* 좌우 배치를 위한 Flex 컨테이너 (Stack 사용) */}
+              <Stack direction="row" spacing={4} sx={{ alignItems: 'flex-start' }}>
+                
+                {/* 좌측: 규칙 및 전송 정보 (비중 4) */}
+                <Box sx={{ flex: 4, minWidth: 0 }}>
+                  <Stack spacing={3}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>규칙명</Typography>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{row.title}</Typography>
                     </Box>
-                  )}
+                    
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>규칙 설명</Typography>
+                      <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', minHeight: '3em' }}>
+                        {row.description || '설명이 없습니다.'}
+                      </Typography>
+                    </Box>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>전송 채널</Typography>
+                      <Chip 
+                        label={row.channel ? row.channel.toUpperCase() + " (" + (row.endpoint || 'N/A') + ")" : 'WEBHOOK'} 
+                        size="small" 
+                        variant="outlined" 
+                        color="primary"
+                        sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      />
+                    </Box>
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>커맨드라인 (Replay Command)</Typography>
+                      <Paper 
+                        variant="outlined" 
+                        sx={{ 
+                          p: 1.5, 
+                          bgcolor: '#1e1e1e', 
+                          color: '#d4d4d4', 
+                          fontFamily: 'monospace',
+                          fontSize: '0.75rem',
+                          position: 'relative',
+                          border: 'none',
+                          overflowX: 'auto'
+                        }}
+                      >
+                        <TerminalIcon sx={{ fontSize: 14, color: '#4cc38a', position: 'absolute', top: 8, left: 8 }} />
+                        <Box sx={{ pl: 3, whiteSpace: 'nowrap' }}>{curlCommand}</Box>
+                      </Paper>
+                    </Box>
+                  </Stack>
                 </Box>
 
                 <Divider orientation="vertical" flexItem />
 
-                <Box sx={{ flex: 1.5, display: 'flex', flexDirection: 'column' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    FULL AUDIT PAYLOAD (Evidence)
+                {/* 우측: 출력 예시 (JSON Audit) (비중 6) */}
+                <Box sx={{ flex: 6, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+                    출력 예시 (Full Audit Payload)
                   </Typography>
-                  <Box
-                    sx={{
-                      flexGrow: 1,
-                      bgcolor: '#1e1e1e',
-                      color: '#9cdcfe',
-                      p: 2,
-                      borderRadius: 1,
-                      overflow: 'auto',
-                      maxHeight: 450,
+                  <Box 
+                    sx={{ 
+                      bgcolor: '#1e1e1e', 
+                      color: '#9cdcfe', 
+                      p: 2, 
+                      borderRadius: 1, 
+                      overflow: 'auto', // 내부 스크롤 보장
+                      height: 400,      // 고정 높이로 스크롤 유도
                       fontFamily: '"Fira Code", "Cascadia Code", monospace',
                       fontSize: '0.8rem',
                       lineHeight: 1.5,
-                      '&::-webkit-scrollbar': { width: 8 },
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      '&::-webkit-scrollbar': { width: 8, height: 8 },
                       '&::-webkit-scrollbar-thumb': { bgcolor: '#333', borderRadius: 4 }
                     }}
                   >
-                    <pre style={{ margin: 0 }}>{auditJson}</pre>
+                    <pre style={{ margin: 0 }}>
+                      {JSON.stringify({
+                        audit: {
+                          id: row.id,
+                          rule_id: row.rule_id,
+                          created_at: row.created_at,
+                          status: row.status,
+                          error: row.error_message
+                        },
+                        request: {
+                          endpoint: row.endpoint,
+                          headers: row.request_headers,
+                          payload: row.outgoing_payload
+                        },
+                        response: {
+                          code: row.response_status_code,
+                          body: row.response_body
+                        }
+                      }, null, 2)}
+                    </pre>
                   </Box>
                 </Box>
-              </Box>
+              </Stack>
             </Box>
           </Collapse>
         </TableCell>
@@ -226,13 +194,13 @@ const NotificationHistoryTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { language } = useLanguageStore();
 
-  const [fromValue, setFromValue] = useState<number | null>(15);
-  const [fromUnit, setFromUnit] = useState("m");
-  const [toValue, setToValue] = useState<number | null>(null);
-  const [toUnit, setToUnit] = useState("m");
-  const [fromDate, setFromDate] = useState<string | null>(null);
-  const [toDate, setToDate] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // 신규 알림 스낵바 상태
+  const [snackbar, setSnackbar] = useState<{ open: boolean; title: string; severity: string }>({
+    open: false, title: '', severity: 'info'
+  });
+  const lastIdRef = useRef<string | null>(null);
 
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
@@ -245,17 +213,31 @@ const NotificationHistoryTab: React.FC = () => {
     return text;
   }, [language]);
 
-  const loadNotifications = useCallback(async () => {
-    setLoading(true);
+  const loadNotifications = useCallback(async (isPolling = false) => {
+    if (!isPolling) setLoading(true);
     try {
       const skip = page * rowsPerPage;
       const data = await notificationService.getNotifications(skip, rowsPerPage);
+      
+      // 신규 알림 감지 로직 (페이지가 0일 때만)
+      if (data.items.length > 0 && page === 0) {
+        const latestNotif = data.items[0];
+        if (lastIdRef.current && latestNotif.id !== lastIdRef.current) {
+          setSnackbar({
+            open: true,
+            title: latestNotif.title,
+            severity: latestNotif.severity || 'info'
+          });
+        }
+        lastIdRef.current = latestNotif.id;
+      }
+
       setNotifications(data.items);
       setTotal(data.total);
     } catch (error) {
       console.error('Failed to load notifications:', error);
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   }, [page, rowsPerPage]);
 
@@ -263,51 +245,46 @@ const NotificationHistoryTab: React.FC = () => {
     loadNotifications();
   }, [loadNotifications]);
 
-  const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const getStatusChip = (status: string) => {
-    const color = status === 'sent' || status === 'success' ? 'success' :
-                  status === 'error' || status === 'failed' ? 'error' : 'default';
-    return <Chip label={status.toUpperCase()} color={color} size="small" variant="outlined" sx={{ fontWeight: 'bold', height: 20, fontSize: '0.65rem' }} />;
-  };
+  // 10초 주기 폴링 설정
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadNotifications(true);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
 
   const getSeverityChip = (severity: string | null) => {
     if (!severity) return '-';
-    let color: "error" | "warning" | "info" | "success" | "default" = "default";
+    let color: "info" | "warning" | "error" | "default" = "default";
     switch (severity.toLowerCase()) {
-      case 'critical': color = "error"; break;
-      case 'high': color = "warning"; break;
-      case 'medium': color = "info"; break;
-      case 'low': color = "success"; break;
+      case 'info': color = "info"; break;
+      case 'warning': color = "warning"; break;
+      case 'error': color = "error"; break;
     }
-    return <Chip label={severity.toUpperCase()} color={color} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 'bold' }} />;
+    return <Chip label={severity.toUpperCase()} color={color} size="small" variant="outlined" sx={{ fontWeight: 'bold', height: 20, fontSize: '0.65rem' }} />;
+  };
+
+  const getAlertColor = (severity: string): "info" | "warning" | "error" | "success" => {
+    switch (severity.toLowerCase()) {
+      case 'error': return 'error';
+      case 'warning': return 'warning';
+      default: return 'info';
+    }
   };
 
   const filteredLogs = notifications.filter(log =>
     log.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.message.toLowerCase().includes(searchQuery.toLowerCase())
+    (log.description && log.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-
-      <ControlBar
+      
+      <ControlBar 
         t={t}
-        fromValue={fromValue} fromUnit={fromUnit}
-        toValue={toValue} toUnit={toUnit}
-        fromDate={fromDate} toDate={toDate}
-        onTimeChange={(fV, fU, tV, tU, fD, tD) => {
-          setFromValue(fV); setFromUnit(fU); setToValue(tV); setToUnit(tU);
-          setFromDate(fD); setToDate(tD);
-        }}
+        fromValue={null} fromUnit="m" toValue={null} toUnit="m" fromDate={null} toDate={null}
+        onTimeChange={() => {}}
         searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={() => { setPage(0); loadNotifications(); }}
       />
 
@@ -316,46 +293,36 @@ const NotificationHistoryTab: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsIcon color="primary" />
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationHistory')}</Typography>
+            <Chip label={`${total} 건`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
           </Box>
-
+          <IconButton size="small" onClick={() => { setPage(0); loadNotifications(); }} disabled={loading}>
+            <RefreshIcon />
+          </IconButton>
         </Stack>
 
         <Divider sx={{ mb: 1 }} />
 
-        <TableContainer sx={{
-          flexGrow: 1,
-          overflow: 'auto',
-          // 페이지네이션 공간 확보
-          minHeight: 0,
-          '&::-webkit-scrollbar': { width: 8 },
-          '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 4 }
-        }}>
+        <TableContainer sx={{ flexGrow: 1, overflow: 'auto', minHeight: 0 }}>
           <Table stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
                 <TableCell width={50} sx={{ bgcolor: 'background.paper', zIndex: 3 }} />
-                <TableCell width={180} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('createdAt')}</TableCell>
-                <TableCell width={100} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('severity')}</TableCell>
-                <TableCell width={250} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('name')}</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('ruleDescription', { fallback: '메시지' })}</TableCell>
-                <TableCell width={120} align="center" sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('status')}</TableCell>
+                <TableCell width={200} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>발생일</TableCell>
+                <TableCell width={120} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>중요도</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>규칙명</TableCell>
+                <TableCell width={200} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>전송채널</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredLogs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8, color: 'text.disabled' }}>
-                    {loading ? '데이터를 불러오는 중...' : '알림 내역이 없습니다.'}
-                  </TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? '로딩 중...' : '알림 내역이 없습니다.'}</TableCell></TableRow>
               ) : (
                 filteredLogs.map((row) => (
-                  <NotificationRow
-                    key={row.id}
-                    row={row}
-                    t={t}
-                    getStatusChip={getStatusChip}
-                    getSeverityChip={getSeverityChip}
+                  <NotificationRow 
+                    key={row.id} 
+                    row={row} 
+                    t={t} 
+                    getSeverityChip={getSeverityChip} 
                   />
                 ))
               )}
@@ -364,17 +331,31 @@ const NotificationHistoryTab: React.FC = () => {
         </TableContainer>
 
         <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage={t('rowsPerPage', { fallback: '페이지당 행 수:' })}
+          rowsPerPageOptions={[10, 25, 50, 100]} component="div" count={total} rowsPerPage={rowsPerPage} page={page}
+          onPageChange={(_, p) => setPage(p)} onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
           sx={{ borderTop: '1px solid', borderColor: 'divider', flexShrink: 0 }}
         />
       </Paper>
+
+      {/* 우측 하단 실시간 알림 스낵바 */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={getAlertColor(snackbar.severity)}
+          variant="filled"
+          sx={{ width: '100%', boxShadow: 3 }}
+        >
+          <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold', opacity: 0.9 }}>
+            {snackbar.severity.toUpperCase()}
+          </Typography>
+          <Typography variant="body2">{snackbar.title}</Typography>
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

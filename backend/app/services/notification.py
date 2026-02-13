@@ -127,7 +127,8 @@ class NotificationService:
 
                 notification_data = {
                     "rule_id": rule_id,
-                    "title": f"[Alert] {rule['name']}",
+                    "title": rule.get("name", "Unknown Rule"),
+                    "description": rule.get("description"),
                     "message": f"Detected {total} events in the last {window_min} minutes.",
                     "event_ref": event_ref,
                     "dedup_key": dedup_key,
