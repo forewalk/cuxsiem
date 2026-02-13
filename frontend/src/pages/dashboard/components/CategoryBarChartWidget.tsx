@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Box, Typography, useTheme, Tooltip } from "@mui/material";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 
@@ -6,6 +6,7 @@ import { useLanguageStore } from "../../../stores/useLanguageStore";
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
+import cnMessages from "../../../locales/cn.json";
 
 interface CategoryData {
   label: string;
@@ -17,14 +18,33 @@ interface CategoryBarChartWidgetProps {
   title?: string;
   height?: number;
   emptyMessage?: string;
+  onBarClick?: (label: string) => void;
 }
 
-const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, title, height = 300, emptyMessage }) => {
+const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, title, height, emptyMessage, onBarClick }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [actualHeight, setActualHeight] = useState(height || 300);
+
+  useEffect(() => {
+    if (height) {
+      setActualHeight(height);
+      return;
+    }
+    const updateHeight = () => {
+      if (containerRef.current) {
+        const h = containerRef.current.clientHeight;
+        if (h > 0) setActualHeight(h);
+      }
+    };
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, [height]);
 
   // i18n 지원
-  const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages };
+  const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   const t = useMemo(() => (key: string): string => {
     const currentTranslations = translations[language] || translations["ko"];
     return currentTranslations[key] || key;
@@ -38,8 +58,8 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
     return max === 0 ? 10 : max;
   }, [data]);
 
-  const padding = { top: 20, right: 20, bottom: 60, left: 50 };
-  const chartHeight = height - padding.top - padding.bottom;
+  const padding = { top: 20, right: 10, bottom: 60, left: 40 };
+  const chartHeight = actualHeight - padding.top - padding.bottom;
 
   const gridLines = useMemo(() => {
     const effectiveMax = Math.ceil(maxValue);
@@ -76,9 +96,9 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
   );
 
   return (
-    <Box sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column' }}>
+    <Box ref={containerRef} sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column' }}>
       {title && (
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold", color: 'text.secondary' }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold", color: 'text.secondary', fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
           {title}
         </Typography>
       )}
@@ -91,19 +111,31 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
         <Box sx={{ flexGrow: 1, position: 'relative', width: '100%' }}>
           {/* Y-axis Labels */}
           {gridLines.map((line, i) => (
-            <Typography key={i} variant="caption" sx={{ position: 'absolute', top: line.top, left: 0, width: padding.left - 10, textAlign: 'right', transform: 'translateY(-50%)', color: 'text.secondary', fontSize: '11px', pointerEvents: 'none' }}>
+            <Typography key={i} variant="caption" sx={{ position: 'absolute', top: line.top, left: 0, width: padding.left - 5, textAlign: 'right', transform: 'translateY(-50%)', color: 'text.secondary', fontSize: { xs: '9px', md: '11px' }, pointerEvents: 'none' }}>
               {line.value}
             </Typography>
           ))}
 
           <Box sx={{ position: 'absolute', top: padding.top, left: padding.left, right: padding.right, bottom: padding.bottom }}>
-            {/* Grid Lines */}
-            {gridLines.map((_, i) => (
-              <Box key={i} sx={{ position: 'absolute', top: `${((gridLines.length - 1 - i) / (gridLines.length - 1)) * 100}%`, left: 0, right: 0, height: '1px', bgcolor: theme.palette.divider, pointerEvents: 'none' }} />
-            ))}
+            {/* SVG Bars and Grid Lines */}
+            <svg width="100%" height="100%" preserveAspectRatio="none" style={{ display: "block", overflow: 'visible', position: 'relative', zIndex: 1 }}>
+              {/* Grid Lines (Inside SVG to ensure they are behind bars) */}
+              {gridLines.map((_, i) => {
+                const yPct = ((gridLines.length - 1 - i) / (gridLines.length - 1)) * 100;
+                return (
+                  <line 
+                    key={i} 
+                    x1="0" 
+                    y1={`${yPct}%`} 
+                    x2="100%" 
+                    y2={`${yPct}%`} 
+                    stroke={theme.palette.divider} 
+                    strokeWidth="1" 
+                    pointerEvents="none" 
+                  />
+                );
+              })}
 
-            {/* SVG Bars */}
-            <svg width="100%" height="100%" preserveAspectRatio="none" style={{ display: "block", overflow: 'visible' }}>
               {data.map((item, i) => {
                 const barCount = data.length;
                 const containerWidthPct = 100 / barCount;
@@ -119,7 +151,16 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
                     placement="top"
                     componentsProps={{ tooltip: { sx: { bgcolor: 'rgba(38, 50, 56, 0.95)', color: '#fff', boxShadow: theme.shadows[4], borderRadius: 1.5, '& .MuiTooltip-arrow': { color: 'rgba(38, 50, 56, 0.95)' } } } }}
                   >
-                    <rect x={`${xPct}%`} y={`${100 - barHeightPct}%`} width={`${barWidthPct}%`} height={`${barHeightPct}%`} fill="#20b2aa" rx="1" style={{ cursor: 'pointer' }} />
+                    <rect 
+                      x={`${xPct}%`} 
+                      y={`${100 - barHeightPct}%`} 
+                      width={`${barWidthPct}%`} 
+                      height={`${barHeightPct}%`} 
+                      fill="#20b2aa" 
+                      rx="1" 
+                      style={{ cursor: 'pointer' }} 
+                      onClick={() => onBarClick && onBarClick(item.label)}
+                    />
                   </Tooltip>
                 );
               })}
@@ -131,7 +172,7 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
               {data.map((item, i) => (
                 <Box key={i} sx={{ flex: 1, position: 'relative' }}>
                   <Tooltip title={item.label}>
-                    <Typography variant="caption" sx={{ position: 'absolute', left: '50%', top: 10, transform: 'translateX(-50%) rotate(-25deg)', transformOrigin: 'top center', whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '10px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'default' }}>
+                    <Typography variant="caption" sx={{ position: 'absolute', left: '50%', top: { xs: 6, md: 10 }, transform: { xs: 'translateX(-50%) rotate(-45deg)', md: 'translateX(-50%) rotate(-25deg)' }, transformOrigin: 'top center', whiteSpace: 'nowrap', color: 'text.secondary', fontSize: { xs: '8px', md: '10px' }, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'default' }}>
                       {item.label}
                     </Typography>
                   </Tooltip>

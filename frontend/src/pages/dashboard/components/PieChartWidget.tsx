@@ -17,9 +17,10 @@ interface PieChartWidgetProps {
   title?: string;
   height?: number;
   emptyMessage?: string;
+  onSliceClick?: (label: string) => void;
 }
 
-const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 300, emptyMessage }) => {
+const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 300, emptyMessage, onSliceClick }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
 
@@ -97,7 +98,7 @@ const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 3
                         placement="top"
                         componentsProps={{ tooltip: { sx: { bgcolor: 'rgba(38, 50, 56, 0.95)', color: '#fff', boxShadow: theme.shadows[4], borderRadius: 1.5 } } }}
                       >
-                        <circle cx={centerX} cy={centerY} r={radius} fill={colors[targetIndex % colors.length]} style={{ cursor: 'pointer' }} />
+                        <circle cx={centerX} cy={centerY} r={radius} fill={colors[targetIndex % colors.length]} style={{ cursor: 'pointer' }} onClick={() => onSliceClick && onSliceClick(targetItem.label)} />
                       </Tooltip>
                     ) : (
                       /* 여러 요소가 섞여 있을 경우 조각(Path)으로 그림 */
@@ -129,7 +130,7 @@ const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 3
                               }
                             }}
                           >
-                            <path d={pathData} fill={colors[i % colors.length]} stroke="#fff" strokeWidth="1" style={{ cursor: 'pointer' }} />
+                            <path d={pathData} fill={colors[i % colors.length]} stroke="#fff" strokeWidth="1" style={{ cursor: 'pointer' }} onClick={() => onSliceClick && onSliceClick(item.label)} />
                           </Tooltip>
                         );
                         
@@ -142,7 +143,7 @@ const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 3
                   </svg>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: height - 60, overflowY: 'auto' }}>
             {data.map((item, i) => (
-              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer', '&:hover': { opacity: 0.7 } }} onClick={() => onSliceClick && onSliceClick(item.label)}>
                 <Box sx={{ width: 12, height: 12, bgcolor: colors[i % colors.length], borderRadius: '2px' }} />
                 <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.primary', whiteSpace: 'nowrap' }}>{item.label}</Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>{((item.value / total) * 100).toFixed(1)}%</Typography>
