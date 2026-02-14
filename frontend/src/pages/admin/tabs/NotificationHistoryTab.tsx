@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Box, Typography, Paper, Stack, Divider, LinearProgress, Chip,
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Collapse, Tooltip, TablePagination, Grid, Snackbar, Alert
+  TableRow, Collapse, TablePagination, Snackbar, Alert
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -32,9 +32,8 @@ const translations: Record<string, Record<string, string>> = {
 // 행 컴포넌트
 const NotificationRow: React.FC<{ 
   row: NotificationHistory, 
-  t: any,
   getSeverityChip: (s: string | null) => React.ReactNode
-}> = ({ row, t, getSeverityChip }) => {
+}> = ({ row, getSeverityChip }) => {
   const [open, setOpen] = useState(false);
 
   // curl 커맨드라인 생성 (역슬래시 오류 방지를 위해 일반 문자열 결합 방식 사용)
@@ -195,12 +194,6 @@ const NotificationHistoryTab: React.FC = () => {
   const { language } = useLanguageStore();
 
   const [searchQuery, setSearchQuery] = useState("");
-  
-  // 신규 알림 스낵바 상태
-  const [snackbar, setSnackbar] = useState<{ open: boolean; title: string; severity: string }>({
-    open: false, title: '', severity: 'info'
-  });
-  const lastIdRef = useRef<string | null>(null);
 
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
@@ -212,6 +205,12 @@ const NotificationHistoryTab: React.FC = () => {
     }
     return text;
   }, [language]);
+  
+  // 신규 알림 스낵바 상태
+  const [snackbar, setSnackbar] = useState<{ open: boolean; title: string; severity: string }>({
+    open: false, title: '', severity: 'info'
+  });
+  const lastIdRef = useRef<string | null>(null);
 
   const loadNotifications = useCallback(async (isPolling = false) => {
     if (!isPolling) setLoading(true);
@@ -321,7 +320,6 @@ const NotificationHistoryTab: React.FC = () => {
                   <NotificationRow 
                     key={row.id} 
                     row={row} 
-                    t={t} 
                     getSeverityChip={getSeverityChip} 
                   />
                 ))

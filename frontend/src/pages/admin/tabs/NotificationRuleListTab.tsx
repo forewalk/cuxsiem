@@ -3,16 +3,16 @@ import {
   Box, Typography, Button, Paper, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField,
   Stack, Alert, Snackbar, Chip, MenuItem, Switch, FormControlLabel,
-  Divider, Grid, LinearProgress, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TablePagination
+  Divider, LinearProgress, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, TablePagination, Grid
 } from '@mui/material';
 import {
-  Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
+  Edit as EditIcon, Delete as DeleteIcon,
   NotificationsActive as NotificationsActiveIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
-import type { NotificationRule, NotificationRuleCreate, NotificationChannels } from '@/types';
+import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import ControlBar from "../../dashboard/components/ControlBar";
 
@@ -148,6 +148,14 @@ const NotificationRuleListTab: React.FC = () => {
     }
   };
 
+  const updateChannel = (type: keyof NotificationRuleCreate['channels'], index: number, config: any) => {
+    const updatedChannels = { ...formData.channels };
+    const channelList = [...(updatedChannels[type] || [])];
+    channelList[index] = config;
+    updatedChannels[type] = channelList as any;
+    setFormData({ ...formData, channels: updatedChannels });
+  };
+
   const getSeverityChip = (severity: string) => {
     let color: "info" | "warning" | "error" | "default" = "default";
     switch (severity.toLowerCase()) {
@@ -272,7 +280,7 @@ const NotificationRuleListTab: React.FC = () => {
         <DialogContent dividers>
           <Grid container spacing={3}>
             {/* 1. 기본 정보 */}
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>1. 기본 정보</Typography>
               <Stack spacing={2}>
                 <TextField label={t('ruleName')} fullWidth required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} size="small" />
@@ -280,19 +288,19 @@ const NotificationRuleListTab: React.FC = () => {
                 <Stack direction="row" spacing={2}>
                   <TextField label={t('targetIndex')} fullWidth value={formData.target_index} onChange={(e) => setFormData({ ...formData, target_index: e.target.value })} size="small" />
                   <TextField select label={t('severity')} sx={{ minWidth: 150 }} value={formData.severity} onChange={(e) => setFormData({ ...formData, severity: e.target.value })} size="small">
-                    <MenuItem value="info">{t('severityInfo', { fallback: 'INFO' })}</MenuItem>
-                    <MenuItem value="warning">{t('severityWarning', { fallback: 'WARNING' })}</MenuItem>
-                    <MenuItem value="error">{t('severityError', { fallback: 'ERROR' })}</MenuItem>
+                    <MenuItem value="info">{t('severityInfo')}</MenuItem>
+                    <MenuItem value="warning">{t('severityWarning')}</MenuItem>
+                    <MenuItem value="error">{t('severityError')}</MenuItem>
                   </TextField>
                 </Stack>
                 <FormControlLabel control={<Switch checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />} label={t('status')} />
               </Stack>
             </Grid>
 
-            <Grid item xs={12}><Divider /></Grid>
+            <Grid size={12}><Divider /></Grid>
 
             {/* 2. 탐지 로직 및 주기 */}
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>2. 탐지 로직 및 주기</Typography>
               <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
                 <TextField label={t('intervalMin')} type="number" fullWidth value={formData.interval_min} onChange={(e) => setFormData({ ...formData, interval_min: parseInt(e.target.value) })} size="small" helperText="실행 주기(분)" />
@@ -301,18 +309,18 @@ const NotificationRuleListTab: React.FC = () => {
               <TextField label={t('conditionConfig')} multiline rows={6} fullWidth required value={dslString} onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError} helperText={jsonError || "OpenSearch DSL 쿼리를 입력하세요."} inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
             </Grid>
 
-            <Grid item xs={12}><Divider /></Grid>
+            <Grid size={12}><Divider /></Grid>
 
             {/* 3. 알림 메시지 템플릿 */}
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>3. 알림 메시지 템플릿</Typography>
               <TextField label="메시지 템플릿" fullWidth multiline rows={3} value={formData.message_template} onChange={(e) => setFormData({ ...formData, message_template: e.target.value })} size="small" helperText="{{total}}, {{window_min}} 등의 변수를 사용할 수 있습니다." />
             </Grid>
 
-            <Grid item xs={12}><Divider /></Grid>
+            <Grid size={12}><Divider /></Grid>
 
             {/* 4. 수신처 설정 (고정 정보) */}
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>4. 수신처 및 채널</Typography>
               <Stack spacing={2}>
                 <TextField label="수신자 그룹" fullWidth disabled value="ADMIN (고정)" size="small" />

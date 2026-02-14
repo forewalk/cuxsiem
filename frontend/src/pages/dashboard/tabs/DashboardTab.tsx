@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Box, Paper, Typography, CircularProgress, Alert, LinearProgress, Divider } from "@mui/material";
+import { Box, Paper, Typography, Alert, LinearProgress, Divider } from "@mui/material";
 import ControlBar from "../components/ControlBar";
 import BarChartWidget from "../components/BarChartWidget";
 import PieChartWidget from "../components/PieChartWidget";
