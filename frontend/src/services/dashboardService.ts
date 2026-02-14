@@ -10,6 +10,11 @@ export interface SeverityStat {
   value: number;
 }
 
+export interface IndexField {
+  name: string;
+  type: string;
+}
+
 export interface DashboardSummary {
   total_logs: number;
   total_threats: number;
@@ -33,6 +38,35 @@ export interface DashboardStatsResponse {
 
 export const getDashboardIndices = async (): Promise<string[]> => {
   const response = await api.get<string[]>("/api/v1/dashboard/indices");
+  return response.data;
+};
+
+export const getIndexFields = async (indexName: string): Promise<IndexField[]> => {
+  const response = await api.get<IndexField[]>(`/api/v1/dashboard/fields/${indexName}`);
+  return response.data;
+};
+
+export const getIndexLogs = async (
+  fromValue?: number,
+  fromUnit?: string,
+  toValue?: number,
+  toUnit?: string,
+  fromDate?: string,
+  toDate?: string,
+  query?: string,
+  size: number = 20,
+  offset: number = 0
+): Promise<any[]> => {
+  let url = `/api/v1/dashboard/logs?size=${size}&offset=${offset}`;
+  if (fromValue !== undefined) url += `&from_value=${fromValue}`;
+  if (fromUnit) url += `&from_unit=${fromUnit}`;
+  if (toValue !== undefined) url += `&to_value=${toValue}`;
+  if (toUnit) url += `&to_unit=${toUnit}`;
+  if (fromDate) url += `&from_date=${fromDate}`;
+  if (toDate) url += `&to_date=${toDate}`;
+  if (query) url += `&q=${encodeURIComponent(query)}`;
+  
+  const response = await api.get<any[]>(url);
   return response.data;
 };
 
