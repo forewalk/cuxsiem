@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-14 20:45 | 김장훈 | 배포 | origin/develop push (dashboard, admin, logs, approval 통합 및 빌드 오류 수정 완료) |
 | 2026-02-13 14:00 | 최지호 | 수정 | origin/feature/dashboard (모바일 최적화) |
 | 2026-02-13 13:03 | 박지은 | 수정 | 알림 내역 탭 실시간 알림 스낵바 복구 및 프로세스 트리 SVG 생성 |
 | 2026-02-12 15:05 | 김장훈 | 배포 | origin/develop push (feature/account 병합, /conda·/env 슬래시 커맨드 추가) |
