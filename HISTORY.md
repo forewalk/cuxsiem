@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-14 21:00 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-14 20:45 | 김장훈 | 배포 | origin/develop push (dashboard, admin, logs, approval 통합 및 빌드 오류 수정 완료) |
 | 2026-02-13 14:00 | 최지호 | 수정 | origin/feature/dashboard (모바일 최적화) |
 | 2026-02-13 13:03 | 박지은 | 수정 | 알림 내역 탭 실시간 알림 스낵바 복구 및 프로세스 트리 SVG 생성 |
@@ -37,7 +38,7 @@
 | 2026-02-11 14:35 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-11 14:35 | 김장훈 | 배포 | origin/feature/logs push (develop 기준 신규 브랜치 생성) |
 | 2026-02-11 14:10 | 김장훈 | 배포 | origin/develop push (feature/account 병합) |
-| 2026-02-11 13:51 | 박재현 | 수정 | origin/feature/account push (계정 신청 이메일 유효성/비밀번호 정책 UI 개선 및 정책 조회 API Public 전환) |
+| 2026-02-11 13:51 | 박재현 | 수정 | origin/feature/account push (계정 신청 이메일 유효성/비번호 정책 UI 개선 및 정책 조회 API Public 전환) |
 | 2026-02-11 13:25 | 김장훈 | 배포 | origin/develop push (기본 관리자 계정명 administrator 변경 및 가이드 최신화) |
 | 2026-02-11 11:30 | 김장훈 | 배포 | origin/develop push (feature/reallog/main 병합) |
 | 2026-02-11 11:25 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
