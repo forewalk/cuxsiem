@@ -49,7 +49,7 @@ class NotificationRepository:
         """규칙 생성 및 운영 필드 초기화"""
         loop = asyncio.get_event_loop()
         rule_id = str(uuid.uuid4())
-        
+
         # 기본 및 운영 필드 초기값 설정
         now = datetime.utcnow().isoformat()
         rule_data.update({
@@ -109,7 +109,7 @@ class NotificationRepository:
         notif_id = str(uuid.uuid4())
         notification_data["id"] = notif_id
         notification_data["created_at"] = notification_data.get("created_at") or datetime.utcnow().isoformat()
-        
+
         def insert():
             self.client.index(
                 index=self.notifications_index,
@@ -121,30 +121,21 @@ class NotificationRepository:
         return await loop.run_in_executor(None, insert)
 
     async def list_notifications(
-        self, 
-        skip: int = 0, 
-        limit: int = 100,
-        receiver_type: Optional[str] = None,
-        receiver_value: Optional[str] = None
+        self,
+        skip: int = 0,
+        limit: int = 100
     ) -> Tuple[int, List[Dict[str, Any]]]:
+        
         """알림 로그 조회"""
         loop = asyncio.get_event_loop()
-        
+
         def search():
-            must = []
-            if receiver_type:
-                must.append({"term": {"receiver.type": receiver_type}})
-            if receiver_value:
-                must.append({"term": {"receiver.values": receiver_value}})
-                
-            query = {"bool": {"must": must}} if must else {"match_all": {}}
-            
             result = self.client.search(
                 index=self.notifications_index,
                 body={
                     "from": skip,
                     "size": limit,
-                    "query": query,
+                    "query": {"match_all": {}},
                     "sort": [{"created_at": {"order": "desc"}}]
                 }
             )
@@ -153,26 +144,3 @@ class NotificationRepository:
             notifications = [hit["_source"] for hit in hits]
             return total, notifications
         return await loop.run_in_executor(None, search)
-
-    async def mark_as_sent(self, notification_id: str, status: str, error: str = None) -> bool:
-        """알림 발송 상태 업데이트"""
-        loop = asyncio.get_event_loop()
-        data = {
-            "status": status,
-            "sent_at": datetime.utcnow().isoformat()
-        }
-        if error:
-            data["error_message"] = error
-
-        def update():
-            try:
-                self.client.update(
-                    index=self.notifications_index,
-                    id=notification_id,
-                    body={"doc": data},
-                    refresh=True
-                )
-                return True
-            except Exception as e:
-                return False
-        return await loop.run_in_executor(None, update)
