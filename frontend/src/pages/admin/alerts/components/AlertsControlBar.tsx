@@ -59,7 +59,8 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
   fromDate,
   toDate,
   onTimeChange,
-  searchQuery,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  searchQuery: _searchQuery,
   onSearchQueryChange,
   onRefresh,
   lastUpdated
