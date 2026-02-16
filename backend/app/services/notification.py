@@ -19,8 +19,29 @@ class NotificationService:
     async def get_rule(self, rule_id: str):
         return await self.repository.get_rule_by_id(rule_id)
 
-    async def list_rules(self, skip: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc"):
-        return await self.repository.list_rules(skip, limit, sort_by, order)
+    async def list_rules(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        sort_by: str = "created_at",
+        order: str = "desc",
+        query: Optional[str] = None,
+        severities: Optional[List[str]] = None,
+        is_active: Optional[bool] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ):
+        return await self.repository.list_rules(
+            skip=skip,
+            limit=limit,
+            sort_by=sort_by,
+            order=order,
+            query=query,
+            severities=severities,
+            is_active=is_active,
+            from_date=from_date,
+            to_date=to_date
+        )
 
     async def create_rule(self, rule_in: NotificationRuleBase):
         return await self.repository.create_rule(rule_in.model_dump())
@@ -33,26 +54,39 @@ class NotificationService:
 
     # --- Notification Management ---
 
-    async def list_notifications(self, **kwargs):
+    async def list_notifications(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        query: Optional[str] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ):
         """알림 로그 조회 (규칙 조회 없이 저장된 데이터 그대로 반환)"""
-        return await self.repository.list_notifications(**kwargs)
+        return await self.repository.list_notifications(
+            skip=skip,
+            limit=limit,
+            query=query,
+            from_date=from_date,
+            to_date=to_date
+        )
 
     def _generate_dedup_key(self, rule: Dict[str, Any], event: Dict[str, Any]) -> str:
         # 매 실행마다 새로운 알림이 발생하도록 현재 시간(분 단위)을 키에 포함 (느슨한 설정)
         now_str = datetime.utcnow().strftime("%Y%m%d%H%M")
         template = rule.get("dedup_key_template", "{{rule_id}}")
-        
+
         key = f"{now_str}_" + template.replace("{{rule_id}}", rule["id"])
         key = key.replace("{{rule_name}}", rule.get("name", ""))
-        
+
         matches = re.findall(r"\{\{([^}]+)\}\}", key)
         source = event.get("_source", {})
-        
+
         for field in matches:
             if field in ["rule_id", "rule_name"]: continue
             val = str(source.get(field, "unknown"))
             key = key.replace(f"{{{{{field}}}}}", val)
-            
+
         return key
 
     async def run_detection_for_rule(self, rule: Dict[str, Any]):
@@ -69,14 +103,14 @@ class NotificationService:
         now = datetime.utcnow()
         # 설정된 window_min을 정확히 따르되, 인덱싱 지연을 고려하여 10초의 미세 버퍼만 추가
         start_time = now - timedelta(minutes=window_min, seconds=10)
-        
+
         # OpenSearch 쿼리 실행
         try:
             await self.repository.update_rule(rule_id, {"last_run_at": now.isoformat()})
 
             # 사용자 정의 쿼리가 없으면 match_all 사용
             original_query = condition_config.get("query", {"match_all": {}})
-            
+
             # bool query 구조로 감싸서 시간 필터 적용
             final_query = {
                 "bool": {
@@ -119,7 +153,7 @@ class NotificationService:
 
             if total > 0:
                 logger.info(f"Rule '{rule['name']}' triggered: {total} events found.")
-                
+
                 # 첫 번째 히트를 기준으로 알림 생성 (필요 시 모든 히트 처리 가능)
                 first_hit = hits[0]
                 event_ref = first_hit.get("_id")
@@ -139,7 +173,7 @@ class NotificationService:
                 }
 
                 created_notif = await self.repository.create_notification(notification_data)
-                
+
                 # 터미널에서 즉시 확인할 수 있도록 출력
                 print(f"\n{'='*50}\n[NOTIFICATION DETECTED] {created_notif['title']}\nMessage: {created_notif['message']}\n{'='*50}\n")
 
@@ -152,14 +186,14 @@ class NotificationService:
                 tasks = []
                 if channels.get("webhooks"):
                     tasks.append(self.send_webhooks(channels["webhooks"], created_notif))
-                
+
                 if tasks:
                     asyncio.create_task(asyncio.gather(*tasks))
 
                 return created_notif
-            
+
             return None
-                
+
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Error running detection for rule {rule_id}: {error_msg}")
@@ -175,23 +209,23 @@ class NotificationService:
                 url = cfg.get("url")
                 method = cfg.get("method", "POST")
                 headers = cfg.get("headers", {})
-                
+
                 # 전송 데이터 원본 (증적용)
                 payload = notification.copy()
-                
+
                 # 마스킹 처리된 헤더 (보안상 민감 정보 제외)
-                safe_headers = {k: ("*" * 8 if k.lower() in ["authorization", "token", "apikey", "secret"] else v) 
+                safe_headers = {k: ("*" * 8 if k.lower() in ["authorization", "token", "apikey", "secret"] else v)
                                for k, v in headers.items()}
 
                 try:
                     response = await client.request(
-                        method, 
-                        url, 
-                        json=payload, 
-                        headers=headers, 
+                        method,
+                        url,
+                        json=payload,
+                        headers=headers,
                         timeout=10.0
                     )
-                    
+
                     resp_body = ""
                     try:
                         resp_body = response.text[:1000] # 너무 크면 잘라서 저장
@@ -200,7 +234,7 @@ class NotificationService:
 
                     if response.status_code < 300:
                         await self.repository.mark_as_sent(
-                            notification["id"], 
+                            notification["id"],
                             status="sent",
                             channel="webhook",
                             endpoint=url,

@@ -1,11 +1,31 @@
 import api from './api';
 import type { NotificationRule, NotificationRuleCreate, NotificationRuleUpdate, NotificationHistory } from '@/types';
 
+interface GetNotificationsParams {
+  skip?: number;
+  limit?: number;
+  query?: string;
+  from_date?: string;
+  to_date?: string;
+}
+
+interface GetRulesParams {
+  skip?: number;
+  limit?: number;
+  sort_by?: string;
+  order?: string;
+  query?: string;
+  severities?: string;
+  is_active?: boolean;
+  from_date?: string;
+  to_date?: string;
+}
+
 export const notificationService = {
   /* 알림 규칙 목록 조회 */
-  getRules: async (skip: number = 0, limit: number = 100) => {
+  getRules: async (params: GetRulesParams = {}) => {
     const response = await api.get<{ total: number, items: NotificationRule[] }>('/api/v1/notifications/rules', {
-      params: { skip, limit }
+      params
     });
     return response.data;
   },
@@ -31,9 +51,9 @@ export const notificationService = {
 
 
   /* 알림 목록 조회 */
-  getNotifications: async (skip: number = 0, limit: number = 100) => {
+  getNotifications: async (params: GetNotificationsParams = {}) => {
     const response = await api.get<{ total: number, items: NotificationHistory[] }>('/api/v1/notifications/', {
-      params: { skip, limit }
+      params
     });
     return response.data;
   }

@@ -26,16 +26,89 @@ class NotificationRepository:
                 return None
         return await loop.run_in_executor(None, get)
 
-    async def list_rules(self, skip: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> Tuple[int, List[Dict[str, Any]]]:
-        """규칙 목록 조회"""
+    async def list_rules(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        sort_by: str = "created_at",
+        order: str = "desc",
+        query: Optional[str] = None,
+        severities: Optional[List[str]] = None,
+        is_active: Optional[bool] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        """규칙 목록 조회 with 검색/필터/시간범위"""
         loop = asyncio.get_event_loop()
+
         def search():
+            # 검색 및 필터 쿼리 구성
+            must_clauses = []
+
+            # 규칙명 검색 (fuzzy + wildcard for partial match)
+            if query:
+                must_clauses.append({
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "name": {
+                                        "query": query,
+                                        "fuzziness": "AUTO"
+                                    }
+                                }
+                            },
+                            {
+                                "wildcard": {
+                                    "name": f"*{query.lower()}*"
+                                }
+                            }
+                        ],
+                        "minimum_should_match": 1
+                    }
+                })
+
+            # 중요도 필터 (OR 조건)
+            if severities:
+                must_clauses.append({
+                    "terms": {
+                        "severity": severities
+                    }
+                })
+
+            # 활성화 여부 필터
+            if is_active is not None:
+                must_clauses.append({
+                    "term": {
+                        "is_active": is_active
+                    }
+                })
+
+            # 시간 범위 필터 (created_at 기준)
+            if from_date or to_date:
+                range_filter = {"range": {"created_at": {}}}
+                if from_date:
+                    range_filter["range"]["created_at"]["gte"] = from_date
+                if to_date:
+                    range_filter["range"]["created_at"]["lte"] = to_date
+                must_clauses.append(range_filter)
+
+            # 최종 쿼리 구성
+            if must_clauses:
+                search_query = {
+                    "bool": {
+                        "must": must_clauses
+                    }
+                }
+            else:
+                search_query = {"match_all": {}}
+
             result = self.client.search(
                 index=self.rules_index,
                 body={
                     "from": skip,
                     "size": limit,
-                    "query": {"match_all": {}},
+                    "query": search_query,
                     "sort": [{sort_by: {"order": order}}]
                 }
             )
@@ -123,19 +196,71 @@ class NotificationRepository:
     async def list_notifications(
         self,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        query: Optional[str] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None
     ) -> Tuple[int, List[Dict[str, Any]]]:
-        
-        """알림 로그 조회"""
+
+        """알림 로그 조회 with 검색 및 시간 범위 필터"""
         loop = asyncio.get_event_loop()
 
         def search():
+            # 검색 및 필터 쿼리 구성
+            must_clauses = []
+
+            # 제목/설명 검색 (multi_match + wildcard for partial match)
+            if query:
+                must_clauses.append({
+                    "bool": {
+                        "should": [
+                            {
+                                "multi_match": {
+                                    "query": query,
+                                    "fields": ["title", "description"],
+                                    "fuzziness": "AUTO"
+                                }
+                            },
+                            {
+                                "wildcard": {
+                                    "title": f"*{query.lower()}*"
+                                }
+                            },
+                            {
+                                "wildcard": {
+                                    "description": f"*{query.lower()}*"
+                                }
+                            }
+                        ],
+                        "minimum_should_match": 1
+                    }
+                })
+
+            # 시간 범위 필터
+            if from_date or to_date:
+                range_filter = {"range": {"created_at": {}}}
+                if from_date:
+                    range_filter["range"]["created_at"]["gte"] = from_date
+                if to_date:
+                    range_filter["range"]["created_at"]["lte"] = to_date
+                must_clauses.append(range_filter)
+
+            # 최종 쿼리 구성
+            if must_clauses:
+                search_query = {
+                    "bool": {
+                        "must": must_clauses
+                    }
+                }
+            else:
+                search_query = {"match_all": {}}
+
             result = self.client.search(
                 index=self.notifications_index,
                 body={
                     "from": skip,
                     "size": limit,
-                    "query": {"match_all": {}},
+                    "query": search_query,
                     "sort": [{"created_at": {"order": "desc"}}]
                 }
             )

@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import dayjs from 'dayjs';
 import {
   Box, Typography, Paper, Stack, Divider, LinearProgress, Chip,
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Collapse, TablePagination, Snackbar, Alert
+  TableRow, Collapse, TablePagination, Snackbar, Alert, Menu, ListItemIcon, ListItemText, MenuItem
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
-  Refresh as RefreshIcon,
   Terminal as TerminalIcon,
   KeyboardArrowDown as ExpandMoreIcon,
   KeyboardArrowUp as ExpandLessIcon,
-  Hub as HubIcon
+  Hub as HubIcon,
+  FilterList as FilterListIcon
 } from '@mui/icons-material';
-import dayjs from 'dayjs';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
@@ -194,6 +196,15 @@ const NotificationHistoryTab: React.FC = () => {
   const { language } = useLanguageStore();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
+
+  // 시간 범위 상태
+  const [fromValue, setFromValue] = useState<number | null>(15);
+  const [fromUnit, setFromUnit] = useState<string>("m");
+  const [toValue, setToValue] = useState<number | null>(null);
+  const [toUnit, setToUnit] = useState<string>("m");
+  const [fromDate, setFromDate] = useState<string | null>(null);
+  const [toDate, setToDate] = useState<string | null>(null);
 
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
@@ -212,11 +223,50 @@ const NotificationHistoryTab: React.FC = () => {
   });
   const lastIdRef = useRef<string | null>(null);
 
+  // 필터 메뉴 상태
+  const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
+
+  // 시간 범위를 ISO 날짜로 변환
+  const calculateTimeRange = useCallback(() => {
+    const now = dayjs();
+    let from_date: string | undefined;
+    let to_date: string | undefined;
+
+    // fromDate가 있으면 절대 시간 사용
+    if (fromDate) {
+      from_date = fromDate;
+    } else if (fromValue !== null) {
+      // 상대 시간 계산
+      const fromMoment = now.subtract(fromValue, fromUnit as dayjs.ManipulateType);
+      from_date = fromMoment.toISOString();
+    }
+
+    // toDate가 있으면 절대 시간 사용, 없으면 현재 시간
+    if (toDate) {
+      to_date = toDate;
+    } else if (toValue !== null) {
+      const toMoment = now.subtract(toValue, toUnit as dayjs.ManipulateType);
+      to_date = toMoment.toISOString();
+    } else {
+      to_date = now.toISOString();
+    }
+
+    return { from_date, to_date };
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate]);
+
   const loadNotifications = useCallback(async (isPolling = false) => {
     if (!isPolling) setLoading(true);
     try {
       const skip = page * rowsPerPage;
-      const data = await notificationService.getNotifications(skip, rowsPerPage);
+      const { from_date, to_date } = calculateTimeRange();
+
+      const data = await notificationService.getNotifications({
+        skip,
+        limit: rowsPerPage,
+        query: searchQuery || undefined,
+        from_date,
+        to_date
+      });
 
       // 신규 알림 감지 로직 (페이지가 0일 때만)
       if (data.items.length > 0 && page === 0) {
@@ -238,7 +288,7 @@ const NotificationHistoryTab: React.FC = () => {
     } finally {
       if (!isPolling) setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, searchQuery, calculateTimeRange]);
 
   useEffect(() => {
     loadNotifications();
@@ -271,10 +321,13 @@ const NotificationHistoryTab: React.FC = () => {
     }
   };
 
-  const filteredLogs = notifications.filter(log =>
-    log.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (log.description && log.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const handleToggleSeverity = (severity: string) => {
+    const newValues = selectedSeverities.includes(severity)
+      ? selectedSeverities.filter(v => v !== severity)
+      : [...selectedSeverities, severity];
+    setSelectedSeverities(newValues);
+    setPage(0);
+  };
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
@@ -282,15 +335,27 @@ const NotificationHistoryTab: React.FC = () => {
 
       <AlertsControlBar
         t={t}
-        fromValue={null} fromUnit="m" toValue={null} toUnit="m" fromDate={null} toDate={null}
-        onTimeChange={() => {}}
-        searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={() => { setPage(0); loadNotifications(); }}
-        severityFilter={{
-          values: ['error', 'warning'],
-          onChange: (values) => {
-            console.log('Severity filter changed:', values);
-          }
+        fromValue={fromValue}
+        fromUnit={fromUnit}
+        toValue={toValue}
+        toUnit={toUnit}
+        fromDate={fromDate}
+        toDate={toDate}
+        onTimeChange={(fv, fu, tv, tu, fd, td) => {
+          setFromValue(fv);
+          setFromUnit(fu);
+          setToValue(tv);
+          setToUnit(tu);
+          setFromDate(fd);
+          setToDate(td);
+          setPage(0);
         }}
+        searchQuery={searchQuery}
+        onSearchQueryChange={(q) => {
+          setSearchQuery(q);
+          setPage(0);
+        }}
+        onRefresh={() => { setPage(0); loadNotifications(); }}
       />
 
       <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
@@ -300,9 +365,6 @@ const NotificationHistoryTab: React.FC = () => {
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationHistory')}</Typography>
             <Chip label={`${total} 건`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
           </Box>
-          <IconButton size="small" onClick={() => { setPage(0); loadNotifications(); }} disabled={loading}>
-            <RefreshIcon />
-          </IconButton>
         </Stack>
 
         <Divider sx={{ mb: 1 }} />
@@ -313,22 +375,35 @@ const NotificationHistoryTab: React.FC = () => {
               <TableRow>
                 <TableCell width={50} sx={{ bgcolor: 'background.paper', zIndex: 3 }} />
                 <TableCell width={200} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>발생일</TableCell>
-                <TableCell width={120} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>중요도</TableCell>
+                <TableCell width={120} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    중요도
+                    <IconButton
+                      size="small"
+                      onClick={(e) => setSeverityAnchor(e.currentTarget)}
+                      sx={{ p: 0.25 }}
+                    >
+                      <FilterListIcon sx={{ fontSize: 16, color: selectedSeverities.length > 0 ? 'primary.main' : 'text.secondary' }} />
+                    </IconButton>
+                  </Box>
+                </TableCell>
                 <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>규칙명</TableCell>
                 <TableCell width={200} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>전송채널</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredLogs.length === 0 ? (
+              {notifications.length === 0 ? (
                 <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? '로딩 중...' : '알림 내역이 없습니다.'}</TableCell></TableRow>
               ) : (
-                filteredLogs.map((row) => (
-                  <NotificationRow
-                    key={row.id}
-                    row={row}
-                    getSeverityChip={getSeverityChip}
-                  />
-                ))
+                notifications
+                  .filter(row => selectedSeverities.length === 0 || (row.severity && selectedSeverities.includes(row.severity.toLowerCase())))
+                  .map((row) => (
+                    <NotificationRow
+                      key={row.id}
+                      row={row}
+                      getSeverityChip={getSeverityChip}
+                    />
+                  ))
               )}
             </TableBody>
           </Table>
@@ -340,6 +415,33 @@ const NotificationHistoryTab: React.FC = () => {
           sx={{ borderTop: '1px solid', borderColor: 'divider', flexShrink: 0 }}
         />
       </Paper>
+
+      {/* 중요도 필터 메뉴 */}
+      <Menu
+        anchorEl={severityAnchor}
+        open={Boolean(severityAnchor)}
+        onClose={() => setSeverityAnchor(null)}
+      >
+        {['info', 'warning', 'error'].map((severity) => {
+          const isSelected = selectedSeverities.includes(severity);
+          return (
+            <MenuItem
+              key={severity}
+              onClick={() => handleToggleSeverity(severity)}
+              sx={{ minWidth: 150 }}
+            >
+              <ListItemIcon>
+                {isSelected ? (
+                  <CheckBoxIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                ) : (
+                  <CheckBoxOutlineBlankIcon fontSize="small" />
+                )}
+              </ListItemIcon>
+              <ListItemText primary={severity.toUpperCase()} />
+            </MenuItem>
+          );
+        })}
+      </Menu>
 
       {/* 우측 하단 실시간 알림 스낵바 */}
       <Snackbar

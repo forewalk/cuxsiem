@@ -23,16 +23,12 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import CloseIcon from "@mui/icons-material/Close";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { useLanguageStore } from "@/stores/useLanguageStore.ts";
 import dayjs, { Dayjs } from "dayjs";
-import InputLabel from "@mui/material/InputLabel";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import Chip from "@mui/material/Chip";
 
 // dayjs 로케일 임포트
 import 'dayjs/locale/ko';
@@ -52,18 +48,6 @@ interface ControlBarProps {
   onSearchQueryChange: (query: string) => void;
   onRefresh: () => void;
   lastUpdated?: string;
-
-  // ✨ Optional: 중요도 필터
-  severityFilter?: {
-    values: string[];
-    onChange: (values: string[]) => void;
-  };
-
-  // ✨ Optional: 활성여부 필터
-  activeFilter?: {
-    value: boolean | null;
-    onChange: (value: boolean | null) => void;
-  };
 }
 
 const AlertsControlBar: React.FC<ControlBarProps> = ({
@@ -78,9 +62,7 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
   searchQuery,
   onSearchQueryChange,
   onRefresh,
-  lastUpdated,
-  severityFilter,
-  activeFilter
+  lastUpdated
 }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
@@ -116,20 +98,13 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
     else setIsRefreshing(false);
   };
 
-  const handleSearchSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const trimmed = tempQuery.trim();
-    if (trimmed) {
-      const newQuery = searchQuery ? `${searchQuery} AND ${trimmed}` : trimmed;
-      onSearchQueryChange(newQuery);
-      setTempQuery("");
-    }
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTempQuery(e.target.value); // 입력만 업데이트, API 호출 안함
   };
 
-  const handleRemoveFilter = (filterToRemove: string) => {
-    const filters = searchQuery.split(" AND ").map(s => s.trim());
-    const newFilters = filters.filter(f => f !== filterToRemove);
-    onSearchQueryChange(newFilters.join(" AND "));
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearchQueryChange(tempQuery); // Enter 키 입력 시에만 API 호출
   };
 
   const handleQuickClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -300,7 +275,7 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
               variant="standard"
               placeholder={t('searchPlaceholder') || t('search')}
               value={tempQuery}
-              onChange={(e) => setTempQuery(e.target.value)}
+              onChange={handleSearchChange}
               sx={{
                 "& .MuiInputBase-root": { mt: 0 },
                 "& .MuiInput-underline:before, & .MuiInput-underline:after": { border: 'none' },
@@ -310,7 +285,14 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
             />
           </Box>
           {tempQuery && (
-            <IconButton size="small" onClick={() => setTempQuery("")} sx={{ p: 0.5, mr: 0.5 }}>
+            <IconButton
+              size="small"
+              onClick={() => {
+                setTempQuery("");
+                onSearchQueryChange("");
+              }}
+              sx={{ p: 0.5, mr: 0.5 }}
+            >
               <CloseIcon sx={{ fontSize: 14 }} />
             </IconButton>
           )}
@@ -344,63 +326,6 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
             </Box>
           </Box>
 
-          {/* ✨ 중요도 필터 (Optional) */}
-          {severityFilter && (
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel sx={{ fontSize: '0.75rem', top: -4 }}>중요도</InputLabel>
-              <Select
-                multiple
-                value={severityFilter.values}
-                onChange={(e) => {
-                  const value = e.target.value as string[];
-                  severityFilter.onChange(value);
-                }}
-                input={<OutlinedInput label="중요도" sx={{ minHeight: 32, fontSize: '0.75rem' }} />}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {(selected as string[]).map((value) => (
-                      <Chip key={value} label={value.toUpperCase()} size="small" sx={{ height: 18, fontSize: '0.65rem' }} />
-                    ))}
-                  </Box>
-                )}
-                sx={{
-                  bgcolor: BG_COLOR,
-                  minHeight: 32,
-                  '& .MuiSelect-select': { py: 0.5 }
-                }}
-              >
-                <MenuItem value="info">INFO</MenuItem>
-                <MenuItem value="warning">WARNING</MenuItem>
-                <MenuItem value="error">ERROR</MenuItem>
-              </Select>
-            </FormControl>
-          )}
-
-          {/* ✨ 활성여부 필터 (Optional) */}
-          {activeFilter && (
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ fontSize: '0.75rem', top: -4 }}>활성여부</InputLabel>
-              <Select
-                value={activeFilter.value === null ? '' : activeFilter.value.toString()}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  activeFilter.onChange(val === '' ? null : val === 'true');
-                }}
-                label="활성여부"
-                sx={{
-                  bgcolor: BG_COLOR,
-                  minHeight: 32,
-                  fontSize: '0.75rem',
-                  '& .MuiSelect-select': { py: 0.5 }
-                }}
-              >
-                <MenuItem value="">전체</MenuItem>
-                <MenuItem value="true">활성</MenuItem>
-                <MenuItem value="false">비활성</MenuItem>
-              </Select>
-            </FormControl>
-          )}
-
           <Button
             variant="contained"
             disableElevation
@@ -422,31 +347,6 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
           </Button>
         </Box>
       </Box>
-
-      {/* 4. Filter Tags Section */}
-      {searchQuery && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-          <FilterAltIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
-          {searchQuery.split(" AND ").map((filter, index) => (
-            <Box key={index} sx={{
-              display: 'flex',
-              alignItems: 'center',
-              bgcolor: theme.palette.mode === 'dark' ? 'rgba(0, 90, 94, 0.2)' : '#eef6f6',
-              border: `1px solid ${KIBANA_TEAL}`,
-              borderRadius: 0.5,
-              px: 0.75,
-              py: 0.1
-            }}>
-              <Typography variant="caption" sx={{ color: TEXT_COLOR, fontSize: '0.75rem' }}>
-                {filter.trim()}
-              </Typography>
-              <IconButton size="small" onClick={() => handleRemoveFilter(filter.trim())} sx={{ ml: 0.5, p: 0.1, color: TEXT_COLOR }}>
-                <CloseIcon sx={{ fontSize: 12 }} />
-              </IconButton>
-            </Box>
-          ))}
-        </Box>
-      )}
 
       {lastUpdated && (
         <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.25 }}>

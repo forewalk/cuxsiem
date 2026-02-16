@@ -4,12 +4,16 @@ import {
   DialogContent, DialogActions, TextField,
   Stack, Alert, Snackbar, Chip, MenuItem, Switch, FormControlLabel,
   Divider, LinearProgress, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TablePagination, Grid
+  TableContainer, TableHead, TableRow, TablePagination, Grid, TableSortLabel,
+  Menu, ListItemIcon, ListItemText
 } from '@mui/material';
 import {
   Edit as EditIcon, Delete as DeleteIcon,
-  NotificationsActive as NotificationsActiveIcon
+  NotificationsActive as NotificationsActiveIcon,
+  FilterList as FilterListIcon
 } from '@mui/icons-material';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
@@ -56,6 +60,18 @@ const NotificationRuleListTab: React.FC = () => {
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<boolean | null>(null);
 
+  // 정렬 상태
+  const [sortBy, setSortBy] = useState<string>("created_at");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+
+  // 시간 범위 상태
+  const [fromValue, setFromValue] = useState<number | null>(15);
+  const [fromUnit, setFromUnit] = useState<string>("m");
+  const [toValue, setToValue] = useState<number | null>(null);
+  const [toUnit, setToUnit] = useState<string>("m");
+  const [fromDate, setFromDate] = useState<string | null>(null);
+  const [toDate, setToDate] = useState<string | null>(null);
+
   const [open, setOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<NotificationRule | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -65,6 +81,10 @@ const NotificationRuleListTab: React.FC = () => {
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
+
+  // 필터 메뉴 상태
+  const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
+  const [activeAnchor, setActiveAnchor] = useState<null | HTMLElement>(null);
 
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
@@ -77,11 +97,73 @@ const NotificationRuleListTab: React.FC = () => {
     return text;
   }, [language]);
 
+  // 시간 범위를 ISO 날짜로 변환
+  const calculateTimeRange = useCallback(() => {
+    const now = dayjs();
+    let from_date: string | undefined;
+    let to_date: string | undefined;
+
+    // fromDate가 있으면 절대 시간 사용
+    if (fromDate) {
+      from_date = fromDate;
+    } else if (fromValue !== null) {
+      // 상대 시간 계산
+      const fromMoment = now.subtract(fromValue, fromUnit as dayjs.ManipulateType);
+      from_date = fromMoment.toISOString();
+    }
+
+    // toDate가 있으면 절대 시간 사용, 없으면 현재 시간
+    if (toDate) {
+      to_date = toDate;
+    } else if (toValue !== null) {
+      const toMoment = now.subtract(toValue, toUnit as dayjs.ManipulateType);
+      to_date = toMoment.toISOString();
+    } else {
+      to_date = now.toISOString();
+    }
+
+    return { from_date, to_date };
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate]);
+
   const loadRules = useCallback(async () => {
     setLoading(true);
     try {
       const skip = page * rowsPerPage;
-      const data = await notificationService.getRules(skip, rowsPerPage);
+      const { from_date, to_date } = calculateTimeRange();
+
+      // 서버 사이드 필터링 파라미터 구성
+      const params: {
+        skip: number;
+        limit: number;
+        sort_by: string;
+        order: string;
+        query?: string;
+        severities?: string;
+        is_active?: boolean;
+        from_date?: string;
+        to_date?: string;
+      } = {
+        skip,
+        limit: rowsPerPage,
+        sort_by: sortBy,
+        order,
+        from_date,
+        to_date
+      };
+
+      if (searchQuery) {
+        params.query = searchQuery;
+      }
+
+      if (selectedSeverities.length > 0) {
+        params.severities = selectedSeverities.join(',');
+      }
+
+      if (activeFilter !== null) {
+        params.is_active = activeFilter;
+      }
+
+      const data = await notificationService.getRules(params);
       setRules(data.items);
       setTotal(data.total);
     } catch (error) {
@@ -89,7 +171,7 @@ const NotificationRuleListTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, searchQuery, selectedSeverities, activeFilter, sortBy, order, calculateTimeRange]);
 
   useEffect(() => {
     loadRules();
@@ -117,7 +199,7 @@ const NotificationRuleListTab: React.FC = () => {
       const parsed = JSON.parse(value);
       setFormData({ ...formData, condition_config: parsed });
       setJsonError(null);
-    } catch (e) { setJsonError(t('invalidJson')); }
+    } catch { setJsonError(t('invalidJson')); }
   };
 
   const handleSave = async () => {
@@ -169,18 +251,29 @@ const NotificationRuleListTab: React.FC = () => {
     return <Chip label={severity.toUpperCase()} color={color} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />;
   };
 
-  const filteredRules = rules.filter(rule => {
-    // 검색 필터
-    const matchesSearch = rule.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setOrder(order === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(column);
+      setOrder("desc");
+    }
+    setPage(0);
+  };
 
-    // 중요도 필터
-    const matchesSeverity = selectedSeverities.length === 0 || selectedSeverities.includes(rule.severity);
+  const handleToggleSeverity = (severity: string) => {
+    const newValues = selectedSeverities.includes(severity)
+      ? selectedSeverities.filter(v => v !== severity)
+      : [...selectedSeverities, severity];
+    setSelectedSeverities(newValues);
+    setPage(0);
+  };
 
-    // 활성여부 필터
-    const matchesActive = activeFilter === null || rule.is_active === activeFilter;
-
-    return matchesSearch && matchesSeverity && matchesActive;
-  });
+  const handleToggleActiveFilter = (value: boolean | null) => {
+    setActiveFilter(value);
+    setPage(0);
+    setActiveAnchor(null);
+  };
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
@@ -188,28 +281,27 @@ const NotificationRuleListTab: React.FC = () => {
 
       <AlertsControlBar
         t={t}
-        fromValue={null} fromUnit="m" toValue={null} toUnit="m" fromDate={null} toDate={null}
-        onTimeChange={() => {}}
+        fromValue={fromValue}
+        fromUnit={fromUnit}
+        toValue={toValue}
+        toUnit={toUnit}
+        fromDate={fromDate}
+        toDate={toDate}
+        onTimeChange={(fv, fu, tv, tu, fd, td) => {
+          setFromValue(fv);
+          setFromUnit(fu);
+          setToValue(tv);
+          setToUnit(tu);
+          setFromDate(fd);
+          setToDate(td);
+          setPage(0);
+        }}
         searchQuery={searchQuery}
         onSearchQueryChange={(q) => {
           setSearchQuery(q);
           setPage(0);
         }}
         onRefresh={() => { setPage(0); loadRules(); }}
-        severityFilter={{
-          values: selectedSeverities,
-          onChange: (values) => {
-            setSelectedSeverities(values);
-            setPage(0);
-          }
-        }}
-        activeFilter={{
-          value: activeFilter,
-          onChange: (value) => {
-            setActiveFilter(value);
-            setPage(0);
-          }
-        }}
       />
 
       <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
@@ -243,20 +335,66 @@ const NotificationRuleListTab: React.FC = () => {
           <Table stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
-                <TableCell width={250} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('ruleName')}</TableCell>
-                <TableCell width={100} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('severity')}</TableCell>
-                <TableCell width={100} align="center" sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>활성여부</TableCell>
+                <TableCell width={250} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                  <TableSortLabel
+                    active={sortBy === 'name'}
+                    direction={sortBy === 'name' ? order : 'desc'}
+                    onClick={() => handleSort('name')}
+                  >
+                    {t('ruleName')}
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell width={100} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {t('severity')}
+                    <IconButton
+                      size="small"
+                      onClick={(e) => setSeverityAnchor(e.currentTarget)}
+                      sx={{ p: 0.25 }}
+                    >
+                      <FilterListIcon sx={{ fontSize: 16, color: selectedSeverities.length > 0 ? 'primary.main' : 'text.secondary' }} />
+                    </IconButton>
+                  </Box>
+                </TableCell>
+                <TableCell width={100} align="center" sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    활성여부
+                    <IconButton
+                      size="small"
+                      onClick={(e) => setActiveAnchor(e.currentTarget)}
+                      sx={{ p: 0.25 }}
+                    >
+                      <FilterListIcon sx={{ fontSize: 16, color: activeFilter !== null ? 'primary.main' : 'text.secondary' }} />
+                    </IconButton>
+                  </Box>
+                </TableCell>
                 <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>마지막 탐지</TableCell>
-                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>생성일</TableCell>
-                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>수정일</TableCell>
+                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                  <TableSortLabel
+                    active={sortBy === 'created_at'}
+                    direction={sortBy === 'created_at' ? order : 'desc'}
+                    onClick={() => handleSort('created_at')}
+                  >
+                    생성일
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                  <TableSortLabel
+                    active={sortBy === 'updated_at'}
+                    direction={sortBy === 'updated_at' ? order : 'desc'}
+                    onClick={() => handleSort('updated_at')}
+                  >
+                    수정일
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell width={100} align="right" sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredRules.length === 0 ? (
+              {rules.length === 0 ? (
                 <TableRow><TableCell colSpan={7} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? '로딩 중...' : '등록된 규칙이 없습니다.'}</TableCell></TableRow>
               ) : (
-                filteredRules.map((rule) => (
+                rules.map((rule) => (
                   <TableRow key={rule.id} hover>
                     <TableCell sx={{ fontWeight: 'bold' }}>{rule.name}</TableCell>
                     <TableCell>{getSeverityChip(rule.severity)}</TableCell>
@@ -296,6 +434,64 @@ const NotificationRuleListTab: React.FC = () => {
           sx={{ borderTop: '1px solid', borderColor: 'divider', flexShrink: 0 }}
         />
       </Paper>
+
+      {/* 중요도 필터 메뉴 */}
+      <Menu
+        anchorEl={severityAnchor}
+        open={Boolean(severityAnchor)}
+        onClose={() => setSeverityAnchor(null)}
+      >
+        {['info', 'warning', 'error'].map((severity) => {
+          const isSelected = selectedSeverities.includes(severity);
+          return (
+            <MenuItem
+              key={severity}
+              onClick={() => handleToggleSeverity(severity)}
+              sx={{ minWidth: 150 }}
+            >
+              <ListItemIcon>
+                {isSelected ? (
+                  <CheckBoxIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                ) : (
+                  <CheckBoxOutlineBlankIcon fontSize="small" />
+                )}
+              </ListItemIcon>
+              <ListItemText primary={severity.toUpperCase()} />
+            </MenuItem>
+          );
+        })}
+      </Menu>
+
+      {/* 활성여부 필터 메뉴 */}
+      <Menu
+        anchorEl={activeAnchor}
+        open={Boolean(activeAnchor)}
+        onClose={() => setActiveAnchor(null)}
+      >
+        {[
+          { label: '전체', value: null },
+          { label: '활성', value: true },
+          { label: '비활성', value: false }
+        ].map((option) => {
+          const isSelected = activeFilter === option.value;
+          return (
+            <MenuItem
+              key={option.label}
+              onClick={() => handleToggleActiveFilter(option.value)}
+              sx={{ minWidth: 150 }}
+            >
+              <ListItemIcon>
+                {isSelected ? (
+                  <CheckBoxIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                ) : (
+                  <CheckBoxOutlineBlankIcon fontSize="small" />
+                )}
+              </ListItemIcon>
+              <ListItemText primary={option.label} />
+            </MenuItem>
+          );
+        })}
+      </Menu>
 
       {/* 삭제 확인 다이얼로그 */}
       <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
