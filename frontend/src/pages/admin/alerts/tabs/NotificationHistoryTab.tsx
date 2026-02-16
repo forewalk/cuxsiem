@@ -7,7 +7,6 @@ import {
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
-  Terminal as TerminalIcon,
   KeyboardArrowDown as ExpandMoreIcon,
   KeyboardArrowUp as ExpandLessIcon,
   Hub as HubIcon,
@@ -37,10 +36,6 @@ const NotificationRow: React.FC<{
   row: NotificationHistory
 }> = ({ row }) => {
   const [open, setOpen] = useState(false);
-
-  // curl 커맨드라인 생성 (역슬래시 오류 방지를 위해 일반 문자열 결합 방식 사용)
-  const endpoint = row.endpoint || "/api/v1/notifications/send";
-  const curlCommand = "$ curl -X POST \"" + endpoint + "\" -H \"Content-Type: application/json\" -d '{\"rule_id\": \"" + row.rule_id + "\", ...}'";
 
   return (
     <React.Fragment>
@@ -108,26 +103,6 @@ const NotificationRow: React.FC<{
                         color="primary"
                         sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
                       />
-                    </Box>
-
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>커맨드라인 (Replay Command)</Typography>
-                      <Paper
-                        variant="outlined"
-                        sx={{
-                          p: 1.5,
-                          bgcolor: '#1e1e1e',
-                          color: '#d4d4d4',
-                          fontFamily: 'monospace',
-                          fontSize: '0.75rem',
-                          position: 'relative',
-                          border: 'none',
-                          overflowX: 'auto'
-                        }}
-                      >
-                        <TerminalIcon sx={{ fontSize: 14, color: '#4cc38a', position: 'absolute', top: 8, left: 8 }} />
-                        <Box sx={{ pl: 3, whiteSpace: 'nowrap' }}>{curlCommand}</Box>
-                      </Paper>
                     </Box>
                   </Stack>
                 </Box>
