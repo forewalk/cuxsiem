@@ -19,6 +19,7 @@ import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import AlertsControlBar from "../../admin/alerts/components/AlertsControlBar";
+import { SeverityChip } from '@/components/common/SeverityChip';
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -33,9 +34,8 @@ const translations: Record<string, Record<string, string>> = {
 
 // 행 컴포넌트
 const NotificationRow: React.FC<{
-  row: NotificationHistory,
-  getSeverityChip: (s: string | null) => React.ReactNode
-}> = ({ row, getSeverityChip }) => {
+  row: NotificationHistory
+}> = ({ row }) => {
   const [open, setOpen] = useState(false);
 
   // curl 커맨드라인 생성 (역슬래시 오류 방지를 위해 일반 문자열 결합 방식 사용)
@@ -62,7 +62,7 @@ const NotificationRow: React.FC<{
           {dayjs(row.created_at).format('YYYY-MM-DD HH:mm:ss')}
         </TableCell>
         <TableCell width={120}>
-          {getSeverityChip(row.severity)}
+          <SeverityChip severity={row.severity} />
         </TableCell>
         <TableCell sx={{ fontWeight: 'bold' }}>
           {row.title}
@@ -302,17 +302,6 @@ const NotificationHistoryTab: React.FC = () => {
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
-  const getSeverityChip = (severity: string | null) => {
-    if (!severity) return '-';
-    let color: "info" | "warning" | "error" | "default" = "default";
-    switch (severity.toLowerCase()) {
-      case 'info': color = "info"; break;
-      case 'warning': color = "warning"; break;
-      case 'error': color = "error"; break;
-    }
-    return <Chip label={severity.toUpperCase()} color={color} size="small" variant="outlined" sx={{ fontWeight: 'bold', height: 20, fontSize: '0.65rem' }} />;
-  };
-
   const getAlertColor = (severity: string): "info" | "warning" | "error" | "success" => {
     switch (severity.toLowerCase()) {
       case 'error': return 'error';
@@ -401,7 +390,6 @@ const NotificationHistoryTab: React.FC = () => {
                     <NotificationRow
                       key={row.id}
                       row={row}
-                      getSeverityChip={getSeverityChip}
                     />
                   ))
               )}

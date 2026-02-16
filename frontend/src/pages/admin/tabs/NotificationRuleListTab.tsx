@@ -19,6 +19,7 @@ import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import AlertsControlBar from "../../admin/alerts/components/AlertsControlBar";
+import { SeverityChip } from '@/components/common/SeverityChip';
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -241,16 +242,6 @@ const NotificationRuleListTab: React.FC = () => {
     setFormData({ ...formData, channels: updatedChannels });
   };
 
-  const getSeverityChip = (severity: string) => {
-    let color: "info" | "warning" | "error" | "default" = "default";
-    switch (severity.toLowerCase()) {
-      case 'info': color = "info"; break;
-      case 'warning': color = "warning"; break;
-      case 'error': color = "error"; break;
-    }
-    return <Chip label={severity.toUpperCase()} color={color} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />;
-  };
-
   const handleSort = (column: string) => {
     if (sortBy === column) {
       setOrder(order === "asc" ? "desc" : "asc");
@@ -396,8 +387,8 @@ const NotificationRuleListTab: React.FC = () => {
               ) : (
                 rules.map((rule) => (
                   <TableRow key={rule.id} hover>
-                    <TableCell sx={{ fontWeight: 'bold' }}>{rule.name}</TableCell>
-                    <TableCell>{getSeverityChip(rule.severity)}</TableCell>
+                    <TableCell>{rule.name}</TableCell>
+                    <TableCell><SeverityChip severity={rule.severity} /></TableCell>
                     <TableCell align="center">
                       <Switch
                         size="small"
