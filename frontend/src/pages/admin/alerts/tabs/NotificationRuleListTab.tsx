@@ -1,25 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import dayjs from 'dayjs';
 import {
   Box, Typography, Button, Paper, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField,
   Stack, Alert, Snackbar, Chip, MenuItem, Switch, FormControlLabel,
   Divider, LinearProgress, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TablePagination, Grid, TableSortLabel,
-  Menu, ListItemIcon, ListItemText
+  TableContainer, TableHead, TableRow, TablePagination, Grid, TableSortLabel
 } from '@mui/material';
 import {
   Edit as EditIcon, Delete as DeleteIcon,
   NotificationsActive as NotificationsActiveIcon,
   FilterList as FilterListIcon
 } from '@mui/icons-material';
-import CheckBoxIcon from '@mui/icons-material/CheckBox';
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
-import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import AlertsControlBar from "../components/AlertsControlBar";
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
+import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
+import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS, ACTIVE_STATUS_OPTIONS } from '../components/AlertTableStyles';
 
 // i18n
 import koMessages from "../../../../locales/ko.json";
@@ -237,7 +236,9 @@ const NotificationRuleListTab: React.FC = () => {
   const updateChannel = (type: keyof NotificationRuleCreate['channels'], index: number, config: NotificationRuleCreate['channels'][keyof NotificationRuleCreate['channels']]) => {
     const updatedChannels = { ...formData.channels };
     const channelList = [...(updatedChannels[type] || [])];
+    // @ts-expect-error - Complex union type handling
     channelList[index] = config;
+    // @ts-expect-error - Complex union type handling
     updatedChannels[type] = channelList as NotificationRuleCreate['channels'][keyof NotificationRuleCreate['channels']];
     setFormData({ ...formData, channels: updatedChannels });
   };
@@ -250,20 +251,6 @@ const NotificationRuleListTab: React.FC = () => {
       setOrder("desc");
     }
     setPage(0);
-  };
-
-  const handleToggleSeverity = (severity: string) => {
-    const newValues = selectedSeverities.includes(severity)
-      ? selectedSeverities.filter(v => v !== severity)
-      : [...selectedSeverities, severity];
-    setSelectedSeverities(newValues);
-    setPage(0);
-  };
-
-  const handleToggleActiveFilter = (value: boolean | null) => {
-    setActiveFilter(value);
-    setPage(0);
-    setActiveAnchor(null);
   };
 
   return (
@@ -295,11 +282,11 @@ const NotificationRuleListTab: React.FC = () => {
         onRefresh={() => { setPage(0); loadRules(); }}
       />
 
-      <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+      <Paper {...ALERT_TABLE_STYLES.paper}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2, pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsActiveIcon color="primary"  />
-            <Typography variant="subtitle2" sx={{ fontSize:'small', fontWeight: 'bold' }}>{t('notificationRuleList')}</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationRuleList')}</Typography>
             <Chip label={`${total} 건`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
           </Box>
           <Button
@@ -311,7 +298,6 @@ const NotificationRuleListTab: React.FC = () => {
               borderRadius: 1,
               textTransform: 'none',
               fontWeight: 'bold',
-              px: 3,
               bgcolor: 'primary.main',
               '&:hover': { bgcolor: 'primary.dark' }
             }}
@@ -320,13 +306,13 @@ const NotificationRuleListTab: React.FC = () => {
           </Button>
         </Stack>
 
-        <Divider sx={{ mb: 1 }} />
+        <Divider sx={{ mx: 2 }} />
 
-        <TableContainer sx={{ flexGrow: 1, overflow: 'auto', minHeight: 0 }}>
-          <Table stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
+        <TableContainer {...ALERT_TABLE_STYLES.container}>
+          <Table {...ALERT_TABLE_STYLES.table} size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
-                <TableCell width={250} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                <TableCell width={250} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <TableSortLabel
                     active={sortBy === 'name'}
                     direction={sortBy === 'name' ? order : 'desc'}
@@ -335,7 +321,7 @@ const NotificationRuleListTab: React.FC = () => {
                     {t('ruleName')}
                   </TableSortLabel>
                 </TableCell>
-                <TableCell width={100} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {t('severity')}
                     <IconButton
@@ -347,8 +333,8 @@ const NotificationRuleListTab: React.FC = () => {
                     </IconButton>
                   </Box>
                 </TableCell>
-                <TableCell width={100} align="center" sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     활성여부
                     <IconButton
                       size="small"
@@ -359,8 +345,8 @@ const NotificationRuleListTab: React.FC = () => {
                     </IconButton>
                   </Box>
                 </TableCell>
-                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>마지막 탐지</TableCell>
-                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>마지막 탐지</TableCell>
+                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <TableSortLabel
                     active={sortBy === 'created_at'}
                     direction={sortBy === 'created_at' ? order : 'desc'}
@@ -369,7 +355,7 @@ const NotificationRuleListTab: React.FC = () => {
                     생성일
                   </TableSortLabel>
                 </TableCell>
-                <TableCell width={160} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <TableSortLabel
                     active={sortBy === 'updated_at'}
                     direction={sortBy === 'updated_at' ? order : 'desc'}
@@ -378,7 +364,7 @@ const NotificationRuleListTab: React.FC = () => {
                     수정일
                   </TableSortLabel>
                 </TableCell>
-                <TableCell width={100} align="right" sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>{t('actions')}</TableCell>
+                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -386,10 +372,10 @@ const NotificationRuleListTab: React.FC = () => {
                 <TableRow><TableCell colSpan={7} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? '로딩 중...' : '등록된 규칙이 없습니다.'}</TableCell></TableRow>
               ) : (
                 rules.map((rule) => (
-                  <TableRow key={rule.id} hover>
-                    <TableCell>{rule.name}</TableCell>
-                    <TableCell><SeverityChip severity={rule.severity} /></TableCell>
-                    <TableCell align="center">
+                  <TableRow key={rule.id} hover sx={{ ...ALERT_TABLE_STYLES.bodyRow }}>
+                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>{rule.name}</TableCell>
+                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}><SeverityChip severity={rule.severity} /></TableCell>
+                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
                       <Switch
                         size="small"
                         checked={rule.is_active}
@@ -397,17 +383,17 @@ const NotificationRuleListTab: React.FC = () => {
                         color="primary"
                       />
                     </TableCell>
-                    <TableCell sx={{ fontSize: '0.85rem' }}>
-                      {rule.last_triggered_at ? dayjs(rule.last_triggered_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+                      {formatDateTime(rule.last_triggered_at)}
                     </TableCell>
-                    <TableCell sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
-                      {dayjs(rule.created_at).format('YYYY-MM-DD HH:mm:ss')}
+                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, color: 'text.secondary' }}>
+                      {formatDateTime(rule.created_at)}
                     </TableCell>
-                    <TableCell sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
-                      {dayjs(rule.updated_at).format('YYYY-MM-DD HH:mm:ss')}
+                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, color: 'text.secondary' }}>
+                      {formatDateTime(rule.updated_at)}
                     </TableCell>
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-start">
                         <IconButton size="small" onClick={() => handleOpenDialog(rule)}><EditIcon fontSize="small" /></IconButton>
                         <IconButton size="small" color="error" onClick={() => setDeleteId(rule.id)}><DeleteIcon fontSize="small" /></IconButton>
                       </Stack>
@@ -420,69 +406,44 @@ const NotificationRuleListTab: React.FC = () => {
         </TableContainer>
 
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]} component="div" count={total} rowsPerPage={rowsPerPage} page={page}
-          onPageChange={(_, p) => setPage(p)} onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          sx={{ borderTop: '1px solid', borderColor: 'divider', flexShrink: 0 }}
+          {...ALERT_TABLE_STYLES.pagination}
+          component="div"
+          count={total}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(_, p) => setPage(p)}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         />
       </Paper>
 
       {/* 중요도 필터 메뉴 */}
-      <Menu
+      <AlertTableFilterMenu
         anchorEl={severityAnchor}
         open={Boolean(severityAnchor)}
         onClose={() => setSeverityAnchor(null)}
-      >
-        {['info', 'warning', 'error'].map((severity) => {
-          const isSelected = selectedSeverities.includes(severity);
-          return (
-            <MenuItem
-              key={severity}
-              onClick={() => handleToggleSeverity(severity)}
-              sx={{ minWidth: 150 }}
-            >
-              <ListItemIcon>
-                {isSelected ? (
-                  <CheckBoxIcon fontSize="small" sx={{ color: 'primary.main' }} />
-                ) : (
-                  <CheckBoxOutlineBlankIcon fontSize="small" />
-                )}
-              </ListItemIcon>
-              <ListItemText primary={severity.toUpperCase()} />
-            </MenuItem>
+        options={SEVERITY_OPTIONS.map(s => ({ value: s, label: s.toUpperCase() }))}
+        selectedValues={selectedSeverities}
+        onToggle={(value) => {
+          const severity = value as string;
+          setSelectedSeverities(prev =>
+            prev.includes(severity) ? prev.filter(s => s !== severity) : [...prev, severity]
           );
-        })}
-      </Menu>
+        }}
+        multiSelect
+      />
 
       {/* 활성여부 필터 메뉴 */}
-      <Menu
+      <AlertTableFilterMenu
         anchorEl={activeAnchor}
         open={Boolean(activeAnchor)}
         onClose={() => setActiveAnchor(null)}
-      >
-        {[
-          { label: '전체', value: null },
-          { label: '활성', value: true },
-          { label: '비활성', value: false }
-        ].map((option) => {
-          const isSelected = activeFilter === option.value;
-          return (
-            <MenuItem
-              key={option.label}
-              onClick={() => handleToggleActiveFilter(option.value)}
-              sx={{ minWidth: 150 }}
-            >
-              <ListItemIcon>
-                {isSelected ? (
-                  <CheckBoxIcon fontSize="small" sx={{ color: 'primary.main' }} />
-                ) : (
-                  <CheckBoxOutlineBlankIcon fontSize="small" />
-                )}
-              </ListItemIcon>
-              <ListItemText primary={option.label} />
-            </MenuItem>
-          );
-        })}
-      </Menu>
+        options={[...ACTIVE_STATUS_OPTIONS]}
+        selectedValues={[activeFilter]}
+        onToggle={(value) => {
+          setActiveFilter(value as boolean | null);
+        }}
+        multiSelect={false}
+      />
 
       {/* 삭제 확인 다이얼로그 */}
       <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
@@ -546,6 +507,7 @@ const NotificationRuleListTab: React.FC = () => {
                 <TextField label="수신자 그룹" fullWidth disabled value="ADMIN (고정)" size="small" />
                 {formData.channels.webhooks.map((config, idx) => (
                   <Stack key={`webhook-${idx}`} direction="row" spacing={1} alignItems="center">
+                    {/* @ts-expect-error - Complex union type handling */}
                     <TextField label="전송 채널 (Webhook URL)" fullWidth required value={config.url} onChange={(e) => updateChannel('webhooks', idx, { ...config, url: e.target.value })} size="small" placeholder="https://hooks.slack.com/..." />
                   </Stack>
                 ))}

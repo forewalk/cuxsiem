@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import {
   Box, Typography, Paper, Stack, Divider, LinearProgress, Chip,
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Collapse, TablePagination, Snackbar, Alert, Menu, ListItemIcon, ListItemText, MenuItem
+  TableRow, Collapse, TablePagination, Snackbar, Alert
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -12,13 +12,13 @@ import {
   Hub as HubIcon,
   FilterList as FilterListIcon
 } from '@mui/icons-material';
-import CheckBoxIcon from '@mui/icons-material/CheckBox';
-import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import AlertsControlBar from "../components/AlertsControlBar";
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
+import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
+import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS } from '../components/AlertTableStyles';
 
 // i18n
 import koMessages from "../../../../locales/ko.json";
@@ -43,6 +43,7 @@ const NotificationRow: React.FC<{
         hover
         onClick={() => setOpen(!open)}
         sx={{
+          ...ALERT_TABLE_STYLES.bodyRow,
           cursor: 'pointer',
           '& > td': { borderBottom: open ? 'none' : undefined },
           bgcolor: open ? 'action.selected' : 'inherit'
@@ -53,16 +54,16 @@ const NotificationRow: React.FC<{
             {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </TableCell>
-        <TableCell width={200}>
-          {dayjs(row.created_at).format('YYYY-MM-DD HH:mm:ss')}
+        <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+          {formatDateTime(row.created_at)}
         </TableCell>
-        <TableCell width={120}>
+        <TableCell width={120} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <SeverityChip severity={row.severity} />
         </TableCell>
-        <TableCell sx={{ fontWeight: 'bold' }}>
+        <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, fontWeight: 'bold' }}>
           {row.title}
         </TableCell>
-        <TableCell width={200}>
+        <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <Stack direction="row" spacing={1} alignItems="center">
             <HubIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
             <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
@@ -285,14 +286,6 @@ const NotificationHistoryTab: React.FC = () => {
     }
   };
 
-  const handleToggleSeverity = (severity: string) => {
-    const newValues = selectedSeverities.includes(severity)
-      ? selectedSeverities.filter(v => v !== severity)
-      : [...selectedSeverities, severity];
-    setSelectedSeverities(newValues);
-    setPage(0);
-  };
-
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
@@ -322,8 +315,8 @@ const NotificationHistoryTab: React.FC = () => {
         onRefresh={() => { setPage(0); loadNotifications(); }}
       />
 
-      <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+      <Paper {...ALERT_TABLE_STYLES.paper}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2, pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsIcon color="primary" />
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationHistory')}</Typography>
@@ -331,15 +324,15 @@ const NotificationHistoryTab: React.FC = () => {
           </Box>
         </Stack>
 
-        <Divider sx={{ mb: 1 }} />
+        <Divider sx={{ mx: 2 }} />
 
-        <TableContainer sx={{ flexGrow: 1, overflow: 'auto', minHeight: 0 }}>
-          <Table stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
+        <TableContainer {...ALERT_TABLE_STYLES.container}>
+          <Table {...ALERT_TABLE_STYLES.table} size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
-                <TableCell width={50} sx={{ bgcolor: 'background.paper', zIndex: 3 }} />
-                <TableCell width={200} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>발생일</TableCell>
-                <TableCell width={120} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>
+                <TableCell width={50} sx={{ ...ALERT_TABLE_STYLES.headerCell }} />
+                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>발생일</TableCell>
+                <TableCell width={120} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     중요도
                     <IconButton
@@ -351,8 +344,8 @@ const NotificationHistoryTab: React.FC = () => {
                     </IconButton>
                   </Box>
                 </TableCell>
-                <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>규칙명</TableCell>
-                <TableCell width={200} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', zIndex: 3 }}>전송채널</TableCell>
+                <TableCell sx={{ ...ALERT_TABLE_STYLES.headerCell }}>규칙명</TableCell>
+                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>전송채널</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -373,38 +366,31 @@ const NotificationHistoryTab: React.FC = () => {
         </TableContainer>
 
         <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 100]} component="div" count={total} rowsPerPage={rowsPerPage} page={page}
-          onPageChange={(_, p) => setPage(p)} onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          sx={{ borderTop: '1px solid', borderColor: 'divider', flexShrink: 0 }}
+          {...ALERT_TABLE_STYLES.pagination}
+          component="div"
+          count={total}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(_, p) => setPage(p)}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
         />
       </Paper>
 
       {/* 중요도 필터 메뉴 */}
-      <Menu
+      <AlertTableFilterMenu
         anchorEl={severityAnchor}
         open={Boolean(severityAnchor)}
         onClose={() => setSeverityAnchor(null)}
-      >
-        {['info', 'warning', 'error'].map((severity) => {
-          const isSelected = selectedSeverities.includes(severity);
-          return (
-            <MenuItem
-              key={severity}
-              onClick={() => handleToggleSeverity(severity)}
-              sx={{ minWidth: 150 }}
-            >
-              <ListItemIcon>
-                {isSelected ? (
-                  <CheckBoxIcon fontSize="small" sx={{ color: 'primary.main' }} />
-                ) : (
-                  <CheckBoxOutlineBlankIcon fontSize="small" />
-                )}
-              </ListItemIcon>
-              <ListItemText primary={severity.toUpperCase()} />
-            </MenuItem>
+        options={SEVERITY_OPTIONS.map(s => ({ value: s, label: s.toUpperCase() }))}
+        selectedValues={selectedSeverities}
+        onToggle={(value) => {
+          const severity = value as string;
+          setSelectedSeverities(prev =>
+            prev.includes(severity) ? prev.filter(s => s !== severity) : [...prev, severity]
           );
-        })}
-      </Menu>
+        }}
+        multiSelect
+      />
 
       {/* 우측 하단 실시간 알림 스낵바 */}
       <Snackbar
