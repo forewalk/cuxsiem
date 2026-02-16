@@ -16,7 +16,7 @@ import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
-import ControlBar from "../../dashboard/components/ControlBar";
+import AlertsControlBar from "../../admin/alerts/components/AlertsControlBar";
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -30,8 +30,8 @@ const translations: Record<string, Record<string, string>> = {
 };
 
 // 행 컴포넌트
-const NotificationRow: React.FC<{ 
-  row: NotificationHistory, 
+const NotificationRow: React.FC<{
+  row: NotificationHistory,
   getSeverityChip: (s: string | null) => React.ReactNode
 }> = ({ row, getSeverityChip }) => {
   const [open, setOpen] = useState(false);
@@ -42,10 +42,10 @@ const NotificationRow: React.FC<{
 
   return (
     <React.Fragment>
-      <TableRow 
-        hover 
+      <TableRow
+        hover
         onClick={() => setOpen(!open)}
-        sx={{ 
+        sx={{
           cursor: 'pointer',
           '& > td': { borderBottom: open ? 'none' : undefined },
           bgcolor: open ? 'action.selected' : 'inherit'
@@ -74,14 +74,14 @@ const NotificationRow: React.FC<{
           </Stack>
         </TableCell>
       </TableRow>
-      
+
       <TableRow sx={{ '& > td': { p: 0, borderBottom: open ? undefined : 'none' } }}>
         <TableCell colSpan={5}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
               {/* 좌우 배치를 위한 Flex 컨테이너 (Stack 사용) */}
               <Stack direction="row" spacing={4} sx={{ alignItems: 'flex-start' }}>
-                
+
                 {/* 좌측: 규칙 및 전송 정보 (비중 4) */}
                 <Box sx={{ flex: 4, minWidth: 0 }}>
                   <Stack spacing={3}>
@@ -89,7 +89,7 @@ const NotificationRow: React.FC<{
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>규칙명</Typography>
                       <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{row.title}</Typography>
                     </Box>
-                    
+
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>규칙 설명</Typography>
                       <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', minHeight: '3em' }}>
@@ -99,10 +99,10 @@ const NotificationRow: React.FC<{
 
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>전송 채널</Typography>
-                      <Chip 
-                        label={row.channel ? row.channel.toUpperCase() + " (" + (row.endpoint || 'N/A') + ")" : 'WEBHOOK'} 
-                        size="small" 
-                        variant="outlined" 
+                      <Chip
+                        label={row.channel ? row.channel.toUpperCase() + " (" + (row.endpoint || 'N/A') + ")" : 'WEBHOOK'}
+                        size="small"
+                        variant="outlined"
                         color="primary"
                         sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
                       />
@@ -110,12 +110,12 @@ const NotificationRow: React.FC<{
 
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>커맨드라인 (Replay Command)</Typography>
-                      <Paper 
-                        variant="outlined" 
-                        sx={{ 
-                          p: 1.5, 
-                          bgcolor: '#1e1e1e', 
-                          color: '#d4d4d4', 
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 1.5,
+                          bgcolor: '#1e1e1e',
+                          color: '#d4d4d4',
                           fontFamily: 'monospace',
                           fontSize: '0.75rem',
                           position: 'relative',
@@ -137,12 +137,12 @@ const NotificationRow: React.FC<{
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
                     출력 예시 (Full Audit Payload)
                   </Typography>
-                  <Box 
-                    sx={{ 
-                      bgcolor: '#1e1e1e', 
-                      color: '#9cdcfe', 
-                      p: 2, 
-                      borderRadius: 1, 
+                  <Box
+                    sx={{
+                      bgcolor: '#1e1e1e',
+                      color: '#9cdcfe',
+                      p: 2,
+                      borderRadius: 1,
                       overflow: 'auto', // 내부 스크롤 보장
                       height: 400,      // 고정 높이로 스크롤 유도
                       fontFamily: '"Fira Code", "Cascadia Code", monospace',
@@ -205,7 +205,7 @@ const NotificationHistoryTab: React.FC = () => {
     }
     return text;
   }, [language]);
-  
+
   // 신규 알림 스낵바 상태
   const [snackbar, setSnackbar] = useState<{ open: boolean; title: string; severity: string }>({
     open: false, title: '', severity: 'info'
@@ -217,7 +217,7 @@ const NotificationHistoryTab: React.FC = () => {
     try {
       const skip = page * rowsPerPage;
       const data = await notificationService.getNotifications(skip, rowsPerPage);
-      
+
       // 신규 알림 감지 로직 (페이지가 0일 때만)
       if (data.items.length > 0 && page === 0) {
         const latestNotif = data.items[0];
@@ -279,12 +279,18 @@ const NotificationHistoryTab: React.FC = () => {
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      
-      <ControlBar 
+
+      <AlertsControlBar
         t={t}
         fromValue={null} fromUnit="m" toValue={null} toUnit="m" fromDate={null} toDate={null}
         onTimeChange={() => {}}
         searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={() => { setPage(0); loadNotifications(); }}
+        severityFilter={{
+          values: ['error', 'warning'],
+          onChange: (values) => {
+            console.log('Severity filter changed:', values);
+          }
+        }}
       />
 
       <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
@@ -317,10 +323,10 @@ const NotificationHistoryTab: React.FC = () => {
                 <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? '로딩 중...' : '알림 내역이 없습니다.'}</TableCell></TableRow>
               ) : (
                 filteredLogs.map((row) => (
-                  <NotificationRow 
-                    key={row.id} 
-                    row={row} 
-                    getSeverityChip={getSeverityChip} 
+                  <NotificationRow
+                    key={row.id}
+                    row={row}
+                    getSeverityChip={getSeverityChip}
                   />
                 ))
               )}
@@ -342,8 +348,8 @@ const NotificationHistoryTab: React.FC = () => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={getAlertColor(snackbar.severity)}
           variant="filled"
           sx={{ width: '100%', boxShadow: 3 }}

@@ -14,7 +14,7 @@ import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
-import ControlBar from "../../dashboard/components/ControlBar";
+import AlertsControlBar from "../../admin/alerts/components/AlertsControlBar";
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -53,6 +53,9 @@ const NotificationRuleListTab: React.FC = () => {
   const { language } = useLanguageStore();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
+  const [activeFilter, setActiveFilter] = useState<boolean | null>(null);
+
   const [open, setOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<NotificationRule | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -124,7 +127,7 @@ const NotificationRuleListTab: React.FC = () => {
       setSnackbar({ open: true, message: t('ruleSaveSuccess'), severity: 'success' });
       handleCloseDialog();
       loadRules();
-    } catch (error: any) {
+    } catch  {
       setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
     }
   };
@@ -136,23 +139,23 @@ const NotificationRuleListTab: React.FC = () => {
       setSnackbar({ open: true, message: t('ruleDeleteSuccess'), severity: 'success' });
       setDeleteId(null);
       loadRules();
-    } catch (error) { setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' }); }
+    } catch { setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' }); }
   };
 
   const handleToggleActive = async (rule: NotificationRule) => {
     try {
       await notificationService.updateRule(rule.id, { is_active: !rule.is_active });
       loadRules();
-    } catch (error) {
+    } catch {
       setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
     }
   };
 
-  const updateChannel = (type: keyof NotificationRuleCreate['channels'], index: number, config: any) => {
+  const updateChannel = (type: keyof NotificationRuleCreate['channels'], index: number, config: NotificationRuleCreate['channels'][keyof NotificationRuleCreate['channels']]) => {
     const updatedChannels = { ...formData.channels };
     const channelList = [...(updatedChannels[type] || [])];
     channelList[index] = config;
-    updatedChannels[type] = channelList as any;
+    updatedChannels[type] = channelList as NotificationRuleCreate['channels'][keyof NotificationRuleCreate['channels']];
     setFormData({ ...formData, channels: updatedChannels });
   };
 
@@ -166,17 +169,47 @@ const NotificationRuleListTab: React.FC = () => {
     return <Chip label={severity.toUpperCase()} color={color} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />;
   };
 
-  const filteredRules = rules.filter(rule => rule.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredRules = rules.filter(rule => {
+    // 검색 필터
+    const matchesSearch = rule.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // 중요도 필터
+    const matchesSeverity = selectedSeverities.length === 0 || selectedSeverities.includes(rule.severity);
+
+    // 활성여부 필터
+    const matchesActive = activeFilter === null || rule.is_active === activeFilter;
+
+    return matchesSearch && matchesSeverity && matchesActive;
+  });
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
 
-      <ControlBar
+      <AlertsControlBar
         t={t}
         fromValue={null} fromUnit="m" toValue={null} toUnit="m" fromDate={null} toDate={null}
         onTimeChange={() => {}}
-        searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={() => { setPage(0); loadRules(); }}
+        searchQuery={searchQuery}
+        onSearchQueryChange={(q) => {
+          setSearchQuery(q);
+          setPage(0);
+        }}
+        onRefresh={() => { setPage(0); loadRules(); }}
+        severityFilter={{
+          values: selectedSeverities,
+          onChange: (values) => {
+            setSelectedSeverities(values);
+            setPage(0);
+          }
+        }}
+        activeFilter={{
+          value: activeFilter,
+          onChange: (value) => {
+            setActiveFilter(value);
+            setPage(0);
+          }
+        }}
       />
 
       <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
