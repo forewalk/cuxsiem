@@ -18,13 +18,13 @@ import dayjs from 'dayjs';
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
-import AlertsControlBar from "../../admin/alerts/components/AlertsControlBar";
-import { SeverityChip } from '@/components/common/SeverityChip';
+import AlertsControlBar from "../components/AlertsControlBar";
+import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 
 // i18n
-import koMessages from "../../../locales/ko.json";
-import enMessages from "../../../locales/en.json";
-import jaMessages from "../../../locales/ja.json";
+import koMessages from "../../../../locales/ko.json";
+import enMessages from "../../../../locales/en.json";
+import jaMessages from "../../../../locales/ja.json";
 
 const translations: Record<string, Record<string, string>> = {
   ko: koMessages,
