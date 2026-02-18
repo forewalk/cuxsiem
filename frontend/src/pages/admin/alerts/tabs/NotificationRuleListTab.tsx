@@ -24,11 +24,13 @@ import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS, ACTIVE_STATUS_OPT
 import koMessages from "../../../../locales/ko.json";
 import enMessages from "../../../../locales/en.json";
 import jaMessages from "../../../../locales/ja.json";
+import cnMessages from "../../../../locales/cn.json";
 
 const translations: Record<string, Record<string, string>> = {
   ko: koMessages,
   en: enMessages,
   ja: jaMessages,
+  cn: cnMessages,
 };
 
 const DEFAULT_FORM_DATA: NotificationRuleCreate = {
@@ -43,8 +45,8 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   window_min: 1,
   dedup_ttl_min: 10,
   dedup_key_template: '{{rule_id}}',
-  channels: { webhooks: [{ url: '', method: 'POST', headers: {} }], slack: [], email: [] },
-  receiver: { type: 'role', values: ['admin'] },
+  channels: { webhooks: [], slack: [], email: [] },
+  receiver: { type: 'role', values: [] },
   is_active: true
 };
 
@@ -233,16 +235,6 @@ const NotificationRuleListTab: React.FC = () => {
     }
   };
 
-  const updateChannel = (type: keyof NotificationRuleCreate['channels'], index: number, config: NotificationRuleCreate['channels'][keyof NotificationRuleCreate['channels']]) => {
-    const updatedChannels = { ...formData.channels };
-    const channelList = [...(updatedChannels[type] || [])];
-    // @ts-expect-error - Complex union type handling
-    channelList[index] = config;
-    // @ts-expect-error - Complex union type handling
-    updatedChannels[type] = channelList as NotificationRuleCreate['channels'][keyof NotificationRuleCreate['channels']];
-    setFormData({ ...formData, channels: updatedChannels });
-  };
-
   const handleSort = (column: string) => {
     if (sortBy === column) {
       setOrder(order === "asc" ? "desc" : "asc");
@@ -287,7 +279,7 @@ const NotificationRuleListTab: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsActiveIcon color="primary"  />
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationRuleList')}</Typography>
-            <Chip label={`${total} 건`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
+            <Chip label={`${total} ${t('countUnit')}`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
           </Box>
           <Button
             variant="contained"
@@ -335,7 +327,7 @@ const NotificationRuleListTab: React.FC = () => {
                 </TableCell>
                 <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    활성여부
+                    {t('activeStatus')}
                     <IconButton
                       size="small"
                       onClick={(e) => setActiveAnchor(e.currentTarget)}
@@ -345,14 +337,14 @@ const NotificationRuleListTab: React.FC = () => {
                     </IconButton>
                   </Box>
                 </TableCell>
-                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>마지막 탐지</TableCell>
+                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('lastTriggered')}</TableCell>
                 <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <TableSortLabel
                     active={sortBy === 'created_at'}
                     direction={sortBy === 'created_at' ? order : 'desc'}
                     onClick={() => handleSort('created_at')}
                   >
-                    생성일
+                    {t('createdAt')}
                   </TableSortLabel>
                 </TableCell>
                 <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
@@ -361,7 +353,7 @@ const NotificationRuleListTab: React.FC = () => {
                     direction={sortBy === 'updated_at' ? order : 'desc'}
                     onClick={() => handleSort('updated_at')}
                   >
-                    수정일
+                    {t('updatedAt')}
                   </TableSortLabel>
                 </TableCell>
                 <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('actions')}</TableCell>
@@ -462,10 +454,10 @@ const NotificationRuleListTab: React.FC = () => {
           <Grid container spacing={3}>
             {/* 1. 기본 정보 */}
             <Grid size={12}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>1. 기본 정보</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>1. {t('basicInfo')}</Typography>
               <Stack spacing={2}>
                 <TextField label={t('ruleName')} fullWidth required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} size="small" />
-                <TextField label="규칙 설명" fullWidth multiline rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} size="small" />
+                <TextField label={t('ruleDescriptionLabel')} fullWidth multiline rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} size="small" />
                 <Stack direction="row" spacing={2}>
                   <TextField label={t('targetIndex')} fullWidth value={formData.target_index} onChange={(e) => setFormData({ ...formData, target_index: e.target.value })} size="small" />
                   <TextField select label={t('severity')} sx={{ minWidth: 150 }} value={formData.severity} onChange={(e) => setFormData({ ...formData, severity: e.target.value })} size="small">
@@ -482,35 +474,91 @@ const NotificationRuleListTab: React.FC = () => {
 
             {/* 2. 탐지 로직 및 주기 */}
             <Grid size={12}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>2. 탐지 로직 및 주기</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>2. {t('detectionCondition')}</Typography>
               <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                <TextField label={t('intervalMin')} type="number" fullWidth value={formData.interval_min} onChange={(e) => setFormData({ ...formData, interval_min: parseInt(e.target.value) })} size="small" helperText="실행 주기(분)" />
-                <TextField label={t('windowMin')} type="number" fullWidth value={formData.window_min} onChange={(e) => setFormData({ ...formData, window_min: parseInt(e.target.value) })} size="small" helperText="조회 범위(분)" />
+                <TextField label={t('intervalMin')} type="number" fullWidth value={formData.interval_min} onChange={(e) => setFormData({ ...formData, interval_min: parseInt(e.target.value) })} size="small" helperText={t('intervalMinHelper')} />
+                <TextField label={t('windowMin')} type="number" fullWidth value={formData.window_min} onChange={(e) => setFormData({ ...formData, window_min: parseInt(e.target.value) })} size="small" helperText={t('windowMinHelper')} />
               </Stack>
-              <TextField label={t('conditionConfig')} multiline rows={6} fullWidth required value={dslString} onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError} helperText={jsonError || "OpenSearch DSL 쿼리를 입력하세요."} inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
+              <TextField label={t('conditionConfig')} multiline rows={6} fullWidth required value={dslString} onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError} helperText={jsonError || t('dslQueryHelper')} inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
             </Grid>
 
             <Grid size={12}><Divider /></Grid>
 
             {/* 3. 알림 메시지 템플릿 */}
             <Grid size={12}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>3. 알림 메시지 템플릿</Typography>
-              <TextField label="메시지 템플릿" fullWidth multiline rows={3} value={formData.message_template} onChange={(e) => setFormData({ ...formData, message_template: e.target.value })} size="small" helperText="{{total}}, {{window_min}} 등의 변수를 사용할 수 있습니다." />
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>3. {t('notificationMessageTemplate')}</Typography>
+              <TextField label={t('messageTemplate')} fullWidth multiline rows={3} value={formData.message_template} onChange={(e) => setFormData({ ...formData, message_template: e.target.value })} size="small" helperText={t('messageTemplateHelper')} />
             </Grid>
 
             <Grid size={12}><Divider /></Grid>
 
-            {/* 4. 수신처 설정 (고정 정보) */}
+            {/* 4. 알림 수신 대상 역할 */}
             <Grid size={12}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>4. 수신처 및 채널</Typography>
-              <Stack spacing={2}>
-                <TextField label="수신자 그룹" fullWidth disabled value="ADMIN (고정)" size="small" />
-                {formData.channels.webhooks.map((config, idx) => (
-                  <Stack key={`webhook-${idx}`} direction="row" spacing={1} alignItems="center">
-                    {/* @ts-expect-error - Complex union type handling */}
-                    <TextField label="전송 채널 (Webhook URL)" fullWidth required value={config.url} onChange={(e) => updateChannel('webhooks', idx, { ...config, url: e.target.value })} size="small" placeholder="https://hooks.slack.com/..." />
-                  </Stack>
-                ))}
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>4. {t('notificationReceiverRoles')}</Typography>
+              <Stack spacing={1}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+                  {t('selectReceiverRoles')}
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.receiver?.values?.includes('user') || false}
+                      onChange={(e) => {
+                        const currentValues = formData.receiver?.values || [];
+                        const newValues = e.target.checked
+                          ? [...currentValues, 'user']
+                          : currentValues.filter((v: string) => v !== 'user');
+                        setFormData({ ...formData, receiver: { type: 'role', values: newValues } });
+                      }}
+                    />
+                  }
+                  label={t('userRoleUser')}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.receiver?.values?.includes('monitoring') || false}
+                      onChange={(e) => {
+                        const currentValues = formData.receiver?.values || [];
+                        const newValues = e.target.checked
+                          ? [...currentValues, 'monitoring']
+                          : currentValues.filter((v: string) => v !== 'monitoring');
+                        setFormData({ ...formData, receiver: { type: 'role', values: newValues } });
+                      }}
+                    />
+                  }
+                  label={t('userRoleMonitoring')}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.receiver?.values?.includes('approver') || false}
+                      onChange={(e) => {
+                        const currentValues = formData.receiver?.values || [];
+                        const newValues = e.target.checked
+                          ? [...currentValues, 'approver']
+                          : currentValues.filter((v: string) => v !== 'approver');
+                        setFormData({ ...formData, receiver: { type: 'role', values: newValues } });
+                      }}
+                    />
+                  }
+                  label={t('userRoleApprover')}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.receiver?.values?.includes('admin') || false}
+                      onChange={(e) => {
+                        const currentValues = formData.receiver?.values || [];
+                        const newValues = e.target.checked
+                          ? [...currentValues, 'admin']
+                          : currentValues.filter((v: string) => v !== 'admin');
+                        setFormData({ ...formData, receiver: { type: 'role', values: newValues } });
+                      }}
+                    />
+                  }
+                  label={t('userRoleAdmin')}
+                />
               </Stack>
             </Grid>
           </Grid>

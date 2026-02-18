@@ -182,13 +182,8 @@ class NotificationService:
                     "total_alerts_count": rule.get("total_alerts_count", 0) + total
                 })
 
-                # --- 다양한 발송 채널(Channels) 처리 ---
-                tasks = []
-                if channels.get("webhooks"):
-                    tasks.append(self.send_webhooks(channels["webhooks"], created_notif))
-
-                if tasks:
-                    asyncio.create_task(asyncio.gather(*tasks))
+                # 알림은 OpenSearch에 저장되며, receiver 역할을 가진 사용자가 조회 가능
+                # (Webhook 전송 제거: 알림내역 페이지에서 확인)
 
                 return created_notif
 

@@ -9,7 +9,6 @@ import {
   Notifications as NotificationsIcon,
   KeyboardArrowDown as ExpandMoreIcon,
   KeyboardArrowUp as ExpandLessIcon,
-  Hub as HubIcon,
   FilterList as FilterListIcon
 } from '@mui/icons-material';
 import { notificationService } from '@/services/notificationService.ts';
@@ -24,17 +23,20 @@ import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS } from '../compone
 import koMessages from "../../../../locales/ko.json";
 import enMessages from "../../../../locales/en.json";
 import jaMessages from "../../../../locales/ja.json";
+import cnMessages from "../../../../locales/cn.json";
 
 const translations: Record<string, Record<string, string>> = {
   ko: koMessages,
   en: enMessages,
   ja: jaMessages,
+  cn: cnMessages,
 };
 
 // 행 컴포넌트
 const NotificationRow: React.FC<{
-  row: NotificationHistory
-}> = ({ row }) => {
+  row: NotificationHistory;
+  t: (key: string) => string;
+}> = ({ row, t }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -64,11 +66,25 @@ const NotificationRow: React.FC<{
           {row.title}
         </TableCell>
         <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <HubIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-              {row.channel ? row.channel.toUpperCase() : 'WEBHOOK'}
-            </Typography>
+          <Stack direction="row" spacing={0.5} flexWrap="wrap">
+            {row.receiver?.values && Array.isArray(row.receiver.values) ? (
+              row.receiver.values.map((role: string) => (
+                <Chip
+                  key={role}
+                  label={
+                    role === 'user' ? t('userRoleUser') :
+                    role === 'monitoring' ? t('userRoleMonitoring') :
+                    role === 'approver' ? t('userRoleApprover') :
+                    role === 'admin' ? t('userRoleAdmin') : role
+                  }
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.7rem', height: 20 }}
+                />
+              ))
+            ) : (
+              <Typography variant="caption" color="text.secondary">-</Typography>
+            )}
           </Stack>
         </TableCell>
       </TableRow>
@@ -84,26 +100,22 @@ const NotificationRow: React.FC<{
                 <Box sx={{ flex: 4, minWidth: 0 }}>
                   <Stack spacing={3}>
                     <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>규칙명</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>{t('ruleName')}</Typography>
                       <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{row.title}</Typography>
                     </Box>
 
                     <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>규칙 설명</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>{t('ruleDescription')}</Typography>
                       <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', minHeight: '3em' }}>
-                        {row.description || '설명이 없습니다.'}
+                        {row.description || t('noDescription')}
                       </Typography>
                     </Box>
 
                     <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>전송 채널</Typography>
-                      <Chip
-                        label={row.channel ? row.channel.toUpperCase() + " (" + (row.endpoint || 'N/A') + ")" : 'WEBHOOK'}
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                        sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                      />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>{t('receiverGroup')}</Typography>
+                      <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                        {row.receiver?.values?.join(', ') || '-'}
+                      </Typography>
                     </Box>
                   </Stack>
                 </Box>
@@ -113,7 +125,7 @@ const NotificationRow: React.FC<{
                 {/* 우측: 출력 예시 (JSON Audit) (비중 6) */}
                 <Box sx={{ flex: 6, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
-                    출력 예시 (Full Audit Payload)
+                    {t('outputExample')}
                   </Typography>
                   <Box
                     sx={{
@@ -331,10 +343,10 @@ const NotificationHistoryTab: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell width={50} sx={{ ...ALERT_TABLE_STYLES.headerCell }} />
-                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>발생일</TableCell>
+                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('occurrenceDate')}</TableCell>
                 <TableCell width={120} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    중요도
+                    {t('severity')}
                     <IconButton
                       size="small"
                       onClick={(e) => setSeverityAnchor(e.currentTarget)}
@@ -344,13 +356,13 @@ const NotificationHistoryTab: React.FC = () => {
                     </IconButton>
                   </Box>
                 </TableCell>
-                <TableCell sx={{ ...ALERT_TABLE_STYLES.headerCell }}>규칙명</TableCell>
-                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>전송채널</TableCell>
+                <TableCell sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('ruleName')}</TableCell>
+                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {notifications.length === 0 ? (
-                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? '로딩 중...' : '알림 내역이 없습니다.'}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
               ) : (
                 notifications
                   .filter(row => selectedSeverities.length === 0 || (row.severity && selectedSeverities.includes(row.severity.toLowerCase())))
@@ -358,6 +370,7 @@ const NotificationHistoryTab: React.FC = () => {
                     <NotificationRow
                       key={row.id}
                       row={row}
+                      t={t}
                     />
                   ))
               )}
