@@ -60,10 +60,10 @@ const NotificationRow: React.FC<{
           {formatDateTime(row.created_at)}
         </TableCell>
         <TableCell width={120} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-          <SeverityChip severity={row.severity} />
+          <SeverityChip severity={row.rule_severity || row.severity} />
         </TableCell>
         <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, fontWeight: 'bold' }}>
-          {row.title}
+          {row.rule_name || row.title}
         </TableCell>
         <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <Stack direction="row" spacing={0.5} flexWrap="wrap">
@@ -96,25 +96,43 @@ const NotificationRow: React.FC<{
               {/* 좌우 배치를 위한 Flex 컨테이너 (Stack 사용) */}
               <Stack direction="row" spacing={4} sx={{ alignItems: 'flex-start' }}>
 
-                {/* 좌측: 규칙 및 전송 정보 (비중 4) */}
+                {/* 좌측: 알림 메시지 (비중 4) */}
                 <Box sx={{ flex: 4, minWidth: 0 }}>
-                  <Stack spacing={3}>
+                  <Stack spacing={2}>
+                    {/* 규칙명 */}
                     <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>{t('ruleName')}</Typography>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{row.title}</Typography>
-                    </Box>
-
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>{t('ruleDescription')}</Typography>
-                      <Typography variant="body2" sx={{ color: 'text.primary', whiteSpace: 'pre-wrap', minHeight: '3em' }}>
-                        {row.description || t('noDescription')}
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                        {t('triggeredRule')}
                       </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                          {row.rule_name || row.title}
+                        </Typography>
+                        <SeverityChip severity={row.rule_severity || row.severity} />
+                      </Stack>
                     </Box>
-
+                    
+                    {/* 알림 메시지 */}
                     <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>{t('receiverGroup')}</Typography>
-                      <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                        {row.receiver?.values?.join(', ') || '-'}
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                        {t('alertMessage')}
+                      </Typography>
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          color: 'text.primary',
+                          fontWeight: 'medium',
+                          p: 2,
+                          bgcolor: 'action.selected',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          minHeight: '100px',
+                          whiteSpace: 'pre-wrap',
+                          lineHeight: 1.8
+                        }}
+                      >
+                        {row.message}
                       </Typography>
                     </Box>
                   </Stack>
@@ -122,19 +140,36 @@ const NotificationRow: React.FC<{
 
                 <Divider orientation="vertical" flexItem />
 
-                {/* 우측: 출력 예시 (JSON Audit) (비중 6) */}
+                {/* 우측: 원본 Document _source (비중 6) */}
                 <Box sx={{ flex: 6, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
-                    {t('outputExample')}
-                  </Typography>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                      {t('originalDocument')}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Chip 
+                        label={`Index: ${row.event_index}`} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ fontSize: '0.65rem', height: 18 }}
+                      />
+                      <Chip 
+                        label={`ID: ${row.event_ref}`} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ fontSize: '0.65rem', height: 18 }}
+                      />
+                    </Stack>
+                  </Stack>
+                  
                   <Box
                     sx={{
                       bgcolor: '#1e1e1e',
                       color: '#9cdcfe',
                       p: 2,
                       borderRadius: 1,
-                      overflow: 'auto', // 내부 스크롤 보장
-                      height: 400,      // 고정 높이로 스크롤 유도
+                      overflow: 'auto',
+                      height: 400,
                       fontFamily: '"Fira Code", "Cascadia Code", monospace',
                       fontSize: '0.8rem',
                       lineHeight: 1.5,
@@ -145,24 +180,10 @@ const NotificationRow: React.FC<{
                     }}
                   >
                     <pre style={{ margin: 0 }}>
-                      {JSON.stringify({
-                        audit: {
-                          id: row.id,
-                          rule_id: row.rule_id,
-                          created_at: row.created_at,
-                          status: row.status,
-                          error: row.error_message
-                        },
-                        request: {
-                          endpoint: row.endpoint,
-                          headers: row.request_headers,
-                          payload: row.outgoing_payload
-                        },
-                        response: {
-                          code: row.response_status_code,
-                          body: row.response_body
-                        }
-                      }, null, 2)}
+                      {row.event_source 
+                        ? JSON.stringify(row.event_source, null, 2)
+                        : t('noEventSourceData')
+                      }
                     </pre>
                   </Box>
                 </Box>

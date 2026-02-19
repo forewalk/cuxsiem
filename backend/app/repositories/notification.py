@@ -11,7 +11,7 @@ class NotificationRepository:
     def __init__(self):
         self.client = get_opensearch_client()
         self.rules_index = "cs_notification_rules"
-        self.notifications_index = "cs_notifications"
+        self.alerts_index = "cs_alerts"  # 변경: cs_notifications → cs_alerts
 
     # --- Notification Rules ---
 
@@ -174,26 +174,31 @@ class NotificationRepository:
                 return False
         return await loop.run_in_executor(None, delete_doc)
 
-    # --- Notifications (Logs) ---
+    # --- Alerts (알림 내역) ---
 
-    async def create_notification(self, notification_data: Dict[str, Any]) -> Dict[str, Any]:
-        """알림 로그 생성"""
+    async def create_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:
+        """알림을 cs_alerts 인덱스에 저장"""
         loop = asyncio.get_event_loop()
-        notif_id = str(uuid.uuid4())
-        notification_data["id"] = notif_id
-        notification_data["created_at"] = notification_data.get("created_at") or datetime.utcnow().isoformat()
+        alert_id = str(uuid.uuid4())
+        alert_data["id"] = alert_id
+        alert_data["created_at"] = alert_data.get("created_at") or datetime.utcnow().isoformat()
 
         def insert():
             self.client.index(
-                index=self.notifications_index,
-                id=notif_id,
-                body=notification_data,
+                index=self.alerts_index,
+                id=alert_id,
+                body=alert_data,
                 refresh=True
             )
-            return notification_data
+            return alert_data
         return await loop.run_in_executor(None, insert)
+    
+    # 하위 호환성을 위한 별칭
+    async def create_notification(self, notification_data: Dict[str, Any]) -> Dict[str, Any]:
+        """하위 호환성을 위한 별칭 (create_alert 호출)"""
+        return await self.create_alert(notification_data)
 
-    async def list_notifications(
+    async def list_alerts(
         self,
         skip: int = 0,
         limit: int = 100,
@@ -201,15 +206,14 @@ class NotificationRepository:
         from_date: Optional[str] = None,
         to_date: Optional[str] = None
     ) -> Tuple[int, List[Dict[str, Any]]]:
-
-        """알림 로그 조회 with 검색 및 시간 범위 필터"""
+        """cs_alerts 인덱스에서 알림 내역 조회 with 검색 및 시간 범위 필터"""
         loop = asyncio.get_event_loop()
 
         def search():
             # 검색 및 필터 쿼리 구성
             must_clauses = []
 
-            # 제목/설명 검색 (multi_match + wildcard for partial match)
+            # 규칙명/메시지 검색 (multi_match + wildcard)
             if query:
                 must_clauses.append({
                     "bool": {
@@ -217,18 +221,18 @@ class NotificationRepository:
                             {
                                 "multi_match": {
                                     "query": query,
-                                    "fields": ["title", "description"],
+                                    "fields": ["rule_name", "message", "rule_description"],
                                     "fuzziness": "AUTO"
                                 }
                             },
                             {
                                 "wildcard": {
-                                    "title": f"*{query.lower()}*"
+                                    "rule_name": f"*{query.lower()}*"
                                 }
                             },
                             {
                                 "wildcard": {
-                                    "description": f"*{query.lower()}*"
+                                    "message": f"*{query.lower()}*"
                                 }
                             }
                         ],
@@ -256,7 +260,7 @@ class NotificationRepository:
                 search_query = {"match_all": {}}
 
             result = self.client.search(
-                index=self.notifications_index,
+                index=self.alerts_index,
                 body={
                     "from": skip,
                     "size": limit,
@@ -266,6 +270,18 @@ class NotificationRepository:
             )
             total = result.get("hits", {}).get("total", {}).get("value", 0)
             hits = result.get("hits", {}).get("hits", [])
-            notifications = [hit["_source"] for hit in hits]
-            return total, notifications
+            alerts = [hit["_source"] for hit in hits]
+            return total, alerts
         return await loop.run_in_executor(None, search)
+    
+    # 하위 호환성을 위한 별칭
+    async def list_notifications(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        query: Optional[str] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        """하위 호환성을 위한 별칭 (list_alerts 호출)"""
+        return await self.list_alerts(skip, limit, query, from_date, to_date)

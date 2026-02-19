@@ -217,5 +217,11 @@
   "messageTemplateHelper": "可以使用 {{total}}, {{window_min}} 等变量。",
   "intervalMinHelper": "执行周期（分钟）",
   "windowMinHelper": "查询范围（分钟）",
-  "countUnit": "条"
+  "countUnit": "条",
+  "renderedMessage": "渲染的消息",
+  "ruleMetadata": "规则元数据",
+  "originalDocument": "原始Document",
+  "noEventSourceData": "未找到事件源数据。",
+  "triggeredRule": "触发规则",
+  "alertMessage": "警报消息"
 }

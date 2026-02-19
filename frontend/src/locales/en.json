@@ -217,5 +217,11 @@
   "messageTemplateHelper": "You can use variables like {{total}}, {{window_min}}.",
   "intervalMinHelper": "Execution interval (minutes)",
   "windowMinHelper": "Query range (minutes)",
-  "countUnit": "items"
+  "countUnit": "items",
+  "renderedMessage": "Rendered Message",
+  "ruleMetadata": "Rule Metadata",
+  "originalDocument": "Original Document",
+  "noEventSourceData": "No event source data found.",
+  "triggeredRule": "Triggered Rule",
+  "alertMessage": "Alert Message"
 }

@@ -105,20 +105,38 @@ class NotificationRuleListResponse(BaseModel):
     total: int
     items: List[NotificationRuleResponse]
 
-# --- 알림 내역 ---
+# --- 알림 내역 (cs_alerts 인덱스) ---
 
-class NotificationBase(BaseModel):
+class AlertBase(BaseModel):
+    """알림 내역 기본 스키마"""
     rule_id: str
-    title: str
-    description: Optional[str] = None
-    message: str
-    event_ref: str
+    
+    # 규칙 메타데이터 (조회 편의성)
+    rule_name: str
+    rule_description: Optional[str] = None
+    rule_severity: str
+    rule_target_index: str
+    
+    # 메시지 관련
+    message: str = Field(description="렌더링된 메시지")
+    message_template: str = Field(description="원본 메시지 템플릿")
+    
+    # 이벤트 관련
+    event_ref: str = Field(description="탐지된 Document ID")
+    event_index: str = Field(description="원본 인덱스명")
+    event_source: Optional[Dict[str, Any]] = Field(default=None, description="원본 Document의 _source")
+    
+    # 중복 제거
     dedup_key: str
+    
+    # 수신자 정보
     receiver: Optional[Dict[str, Any]] = None
+    
+    # 상태 관리
     status: str = "created"
     error_message: Optional[str] = None
-
-    # 발송 증적 필드
+    
+    # 발송 증적 필드 (webhook 등)
     channel: Optional[str] = None
     endpoint: Optional[str] = None
     request_headers: Optional[Dict[str, Any]] = None
@@ -126,7 +144,8 @@ class NotificationBase(BaseModel):
     response_status_code: Optional[int] = None
     response_body: Optional[str] = None
 
-class NotificationResponse(NotificationBase):
+class AlertResponse(AlertBase):
+    """알림 내역 응답 스키마"""
     id: str
     severity: Optional[str] = None
     created_at: datetime
@@ -135,6 +154,12 @@ class NotificationResponse(NotificationBase):
     class Config:
         from_attributes = True
 
-class NotificationListResponse(BaseModel):
+class AlertListResponse(BaseModel):
+    """알림 내역 목록 응답"""
     total: int
-    items: List[NotificationResponse]
+    items: List[AlertResponse]
+
+# --- 하위 호환성을 위한 별칭 (기존 코드와의 호환) ---
+NotificationBase = AlertBase
+NotificationResponse = AlertResponse
+NotificationListResponse = AlertListResponse

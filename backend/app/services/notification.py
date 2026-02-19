@@ -62,8 +62,8 @@ class NotificationService:
         from_date: Optional[str] = None,
         to_date: Optional[str] = None
     ):
-        """알림 로그 조회 (규칙 조회 없이 저장된 데이터 그대로 반환)"""
-        return await self.repository.list_notifications(
+        """알림 내역 조회 (cs_alerts 인덱스에서 조회)"""
+        return await self.repository.list_alerts(
             skip=skip,
             limit=limit,
             query=query,
@@ -88,6 +88,37 @@ class NotificationService:
             key = key.replace(f"{{{{{field}}}}}", val)
 
         return key
+    
+    def _render_message_template(self, template: str, context: Dict[str, Any]) -> str:
+        """
+        메시지 템플릿 렌더링
+        - {{변수}} 형식 지원
+        - {{nested.field}} 중첩 필드 접근 지원
+        """
+        def replace_var(match):
+            key = match.group(1)
+            
+            # 중첩 필드 접근 (예: agentDetectionInfo.accountName)
+            if '.' in key:
+                keys = key.split('.')
+                value = context
+                for k in keys:
+                    if isinstance(value, dict):
+                        value = value.get(k)
+                        if value is None:
+                            return f"{{{{{key}}}}}"  # 값이 없으면 원본 유지
+                    else:
+                        return f"{{{{{key}}}}}"
+                return str(value) if value is not None else f"{{{{{key}}}}}"
+            
+            # 단순 키 접근
+            value = context.get(key)
+            if value is None:
+                return f"{{{{{key}}}}}"
+            return str(value)
+        
+        # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
+        return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
 
     async def run_detection_for_rule(self, rule: Dict[str, Any]):
         """특정 규칙에 대한 탐지 엔진 실행 및 채널(Channels) 발송 수행"""
@@ -154,38 +185,72 @@ class NotificationService:
             if total > 0:
                 logger.info(f"Rule '{rule['name']}' triggered: {total} events found.")
 
-                # 첫 번째 히트를 기준으로 알림 생성 (필요 시 모든 히트 처리 가능)
+                # 첫 번째 히트를 기준으로 알림 생성
                 first_hit = hits[0]
                 event_ref = first_hit.get("_id")
+                event_index = first_hit.get("_index")
+                event_source = first_hit.get("_source", {})
                 dedup_key = self._generate_dedup_key(rule, first_hit)
 
-                notification_data = {
+                # 메시지 템플릿 렌더링을 위한 context 구성
+                # event_source의 모든 필드 + 메타 정보 포함
+                template_context = {
+                    # 기본 정보
+                    "total": total,
+                    "window_min": window_min,
+                    "rule_name": rule.get("name"),
                     "rule_id": rule_id,
-                    "title": rule.get("name", "Unknown Rule"),
-                    "description": rule.get("description"),
-                    "message": f"Detected {total} events in the last {window_min} minutes.",
+                    "rule_severity": rule.get("severity"),
+                    "target_index": target_index,
+                    "_id": event_ref,
+                    "_index": event_index,
+                    # event_source의 모든 필드 포함 (중첩 접근 지원)
+                    **event_source
+                }
+                
+                message_template = rule.get("message_template", "Detected {{total}} events in the last {{window_min}} minutes.")
+                rendered_message = self._render_message_template(message_template, template_context)
+
+                # cs_alerts 인덱스에 저장할 알림 데이터
+                alert_data = {
+                    "rule_id": rule_id,
+                    
+                    # 규칙 메타데이터
+                    "rule_name": rule.get("name", "Unknown Rule"),
+                    "rule_description": rule.get("description"),
+                    "rule_severity": rule.get("severity", "info"),
+                    "rule_target_index": target_index,
+                    
+                    # 메시지 관련
+                    "message": rendered_message,
+                    "message_template": message_template,
+                    
+                    # 이벤트 관련
                     "event_ref": event_ref,
+                    "event_index": event_index,
+                    "event_source": event_source,
+                    
+                    # 중복 제거 및 수신자
                     "dedup_key": dedup_key,
                     "severity": rule.get("severity", "info"),
                     "receiver": rule.get("receiver"),
+                    
+                    # 상태
                     "status": "created",
                     "created_at": now.isoformat()
                 }
 
-                created_notif = await self.repository.create_notification(notification_data)
+                created_alert = await self.repository.create_alert(alert_data)
 
                 # 터미널에서 즉시 확인할 수 있도록 출력
-                print(f"\n{'='*50}\n[NOTIFICATION DETECTED] {created_notif['title']}\nMessage: {created_notif['message']}\n{'='*50}\n")
+                print(f"\n{'='*50}\n[ALERT DETECTED] {created_alert['rule_name']}\nMessage: {created_alert['message']}\nEvent: {event_index}/{event_ref}\n{'='*50}\n")
 
                 await self.repository.update_rule(rule_id, {
                     "last_triggered_at": now.isoformat(),
                     "total_alerts_count": rule.get("total_alerts_count", 0) + total
                 })
 
-                # 알림은 OpenSearch에 저장되며, receiver 역할을 가진 사용자가 조회 가능
-                # (Webhook 전송 제거: 알림내역 페이지에서 확인)
-
-                return created_notif
+                return created_alert
 
             return None
 

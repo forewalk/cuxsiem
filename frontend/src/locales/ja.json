@@ -217,5 +217,11 @@
   "messageTemplateHelper": "{{total}}, {{window_min}} などの変数を使用できます。",
   "intervalMinHelper": "実行周期（分）",
   "windowMinHelper": "クエリ範囲（分）",
-  "countUnit": "件"
+  "countUnit": "件",
+  "renderedMessage": "レンダリングされたメッセージ",
+  "ruleMetadata": "ルールメタデータ",
+  "originalDocument": "元のDocument",
+  "noEventSourceData": "イベントソースデータが見つかりません。",
+  "triggeredRule": "発生ルール",
+  "alertMessage": "アラートメッセージ"
 }
