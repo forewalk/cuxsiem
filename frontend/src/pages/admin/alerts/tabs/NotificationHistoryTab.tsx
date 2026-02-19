@@ -294,13 +294,6 @@ const NotificationHistoryTab: React.FC = () => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // 10초 주기 폴링 설정
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadNotifications(true);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [loadNotifications]);
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
