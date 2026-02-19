@@ -22,6 +22,7 @@ import AbcIcon from "@mui/icons-material/Abc";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CodeIcon from "@mui/icons-material/Code";
+import TagIcon from "@mui/icons-material/Tag";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 
@@ -114,6 +115,19 @@ const ThreatListTab: React.FC = () => {
     return String(val);
   };
 
+  // 헬퍼: 중첩된 객체를 평탄화 (e.g. {a: {b: 1}} -> {"a.b": 1})
+  const flattenObject = (obj: any, prefix = ""): Record<string, any> => {
+    return Object.keys(obj).reduce((acc: any, k: string) => {
+      const pre = prefix.length ? prefix + "." : "";
+      if (typeof obj[k] === "object" && obj[k] !== null && !Array.isArray(obj[k])) {
+        Object.assign(acc, flattenObject(obj[k], pre + k));
+      } else {
+        acc[pre + k] = obj[k];
+      }
+      return acc;
+    }, {});
+  };
+
   // 필드 목록 분리 (선택됨 vs 사용 가능)
   const filteredFields = useMemo(() => 
     fields.filter(f => f.name.toLowerCase().includes(fieldSearchQuery.toLowerCase())),
@@ -200,24 +214,42 @@ const ThreatListTab: React.FC = () => {
     handleTimeChange(null, "m", null, "m", startTime, endTime);
   };
 
-  const FieldItem = ({ name, type, selected = false, onAction }: { name: string, type?: string, selected?: boolean, onAction: (name: string) => void }) => (
-    <Tooltip title={name} placement="right" arrow disableInteractive>
-      <ListItem disablePadding sx={{ '&:hover': { bgcolor: 'action.hover' }, '&:hover .field-actions': { display: 'flex' }, px: 1, py: 0.2, cursor: 'pointer', borderRadius: 0.5, mb: 0.2, position: 'relative' }}>
-        <ListItemIcon sx={{ minWidth: 28 }}>
-          {type === 'number' || type === 'integer' || type === 'long' || type === 'float' ? <NumbersIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> : 
-           type === 'date' ? <CalendarTodayIcon sx={{ fontSize: 14, color: 'text.disabled' }} /> :
-           type === 'boolean' || type === 'code' ? <CodeIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> :
-           <AbcIcon sx={{ fontSize: 18, color: 'text.disabled' }} />}
-        </ListItemIcon>
-        <ListItemText primary={name} primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.75rem', fontWeight: selected ? 'bold' : 'normal', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mr: 4 } }} />
-        <Box className="field-actions" sx={{ display: 'none', position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', alignItems: 'center', bgcolor: 'action.hover', pl: 1 }}>
-          <IconButton size="small" sx={{ p: 0.2, color: '#005a5e' }} onClick={(e) => { e.stopPropagation(); onAction(name); }}>
-            {selected ? <RemoveCircleIcon sx={{ fontSize: 16 }} /> : <AddCircleIcon sx={{ fontSize: 16 }} />}
-          </IconButton>
-        </Box>
-      </ListItem>
-    </Tooltip>
-  );
+  const FieldItem = ({ name, type, selected = false, onAction }: { name: string, type?: string, selected?: boolean, onAction: (name: string) => void }) => {
+    const getTypeInfo = (type?: string) => {
+      switch (type) {
+        case 'keyword':
+          return { label: 'Keyword', icon: <TagIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> };
+        case 'number': case 'integer': case 'long': case 'float':
+          return { label: 'Number', icon: <NumbersIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> };
+        case 'date':
+          return { label: 'Date', icon: <CalendarTodayIcon sx={{ fontSize: 14, color: 'text.disabled' }} /> };
+        case 'boolean': case 'code':
+          return { label: type.charAt(0).toUpperCase() + type.slice(1), icon: <CodeIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> };
+        default:
+          return { label: 'Text', icon: <AbcIcon sx={{ fontSize: 18, color: 'text.disabled' }} /> };
+      }
+    };
+
+    const typeInfo = getTypeInfo(type);
+
+    return (
+      <Tooltip title={name} placement="right" arrow disableInteractive>
+        <ListItem disablePadding sx={{ '&:hover': { bgcolor: 'action.hover' }, '&:hover .field-actions': { display: 'flex' }, px: 1, py: 0.2, cursor: 'pointer', borderRadius: 0.5, mb: 0.2, position: 'relative' }}>
+          <Tooltip title={typeInfo.label} placement="left" arrow>
+            <ListItemIcon sx={{ minWidth: 28 }}>
+              {typeInfo.icon}
+            </ListItemIcon>
+          </Tooltip>
+          <ListItemText primary={name} primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.75rem', fontWeight: selected ? 'bold' : 'normal', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mr: 4 } }} />
+          <Box className="field-actions" sx={{ display: 'none', position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', alignItems: 'center', bgcolor: 'action.hover', pl: 1 }}>
+            <IconButton size="small" sx={{ p: 0.2, color: '#005a5e' }} onClick={(e) => { e.stopPropagation(); onAction(name); }}>
+              {selected ? <RemoveCircleIcon sx={{ fontSize: 16 }} /> : <AddCircleIcon sx={{ fontSize: 16 }} />}
+            </IconButton>
+          </Box>
+        </ListItem>
+      </Tooltip>
+    );
+  };
 
     return (
 
@@ -382,67 +414,139 @@ const ThreatListTab: React.FC = () => {
                       
                                                                 }}>
                       
-                                                                  <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                                                                          <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                       
-                                                                    {/* Header-like row for @timestamp */}
+                                                                                            {(() => {
                       
-                                                                    <Box sx={{ display: 'flex', borderBottom: '1px solid', borderColor: 'divider' }}>
+                                                                                              const flatLog = flattenObject(log);
                       
-                                                                      <Box sx={{ width: 220, p: 1, pl: 8, flexShrink: 0, bgcolor: 'action.hover' }}>
+                                                                                              const sortedKeys = Object.keys(flatLog).sort((a, b) => {
                       
-                                                                        <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>@timestamp</Typography>
+                                                                                                if (a === "@timestamp") return -1;
                       
-                                                                      </Box>
+                                                                                                if (b === "@timestamp") return 1;
                       
-                                                                      <Box sx={{ p: 1, flexGrow: 1 }}>
+                                                                                                return a.localeCompare(b);
                       
-                                                                        <Typography variant="caption" sx={{ wordBreak: 'break-all', fontWeight: 'bold' }}>{formatValue(log["@timestamp"])}</Typography>
+                                                                                              });
                       
-                                                                      </Box>
+                                                                  
                       
-                                                                    </Box>
+                                                                                              return sortedKeys.map((key, i, arr) => (
                       
-                                                                    
+                                                                                                                              <Box key={key} sx={{ 
                       
-                                                                    {/* All other fields */}
+                                                                                                                                display: 'flex', 
                       
-                                                                    {Object.keys(log).filter(k => k !== "@timestamp").sort().map((key, i, arr) => (
+                                                                                                                                borderBottom: i < arr.length - 1 ? '1px solid' : 'none', 
                       
-                                                                      <Box key={key} sx={{ 
+                                                                                                                                borderColor: 'divider',
                       
-                                                                        display: 'flex', 
+                                                                                                                                '&:hover': { bgcolor: 'action.hover' },
                       
-                                                                        borderBottom: i < arr.length - 1 ? '1px solid' : 'none', 
+                                                                                                                                alignItems: 'stretch' // 높이 맞춤
                       
-                                                                        borderColor: 'divider',
+                                                                                                                              }}>
                       
-                                                                        '&:hover': { bgcolor: 'action.hover' }
+                                                                                                                                <Box sx={{ 
                       
-                                                                      }}>
+                                                                                                                                  width: 250, // 너비를 조금 더 확장
                       
-                                                                        <Box sx={{ width: 220, p: 0.75, pl: 8, flexShrink: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
+                                                                                                                                  p: 1, 
                       
-                                                                          <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.secondary' }}>{key}</Typography>
+                                                                                                                                  pl: 8, 
                       
-                                                                        </Box>
+                                                                                                                                  flexShrink: 0, 
                       
-                                                                        <Box sx={{ p: 0.75, flexGrow: 1, pl: 2 }}>
+                                                                                                                                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
                       
-                                                                          <Typography variant="caption" sx={{ wordBreak: 'break-all', color: 'text.primary' }}>{formatValue(log[key])}</Typography>
+                                                                                                                                  borderRight: 1,
                       
-                                                                        </Box>
+                                                                                                                                  borderColor: 'divider',
                       
-                                                                      </Box>
+                                                                                                                                  display: 'flex',
                       
-                                                                    ))}
+                                                                                                                                  alignItems: 'center'
                       
-                                                                  </Box>
+                                                                                                                                }}>
+                      
+                                                                                                                                  <Typography variant="caption" sx={{ 
+                      
+                                                                                                                                    fontWeight: key === "@timestamp" ? 'bold' : 500, 
+                      
+                                                                                                                                    color: key === "@timestamp" ? 'primary.main' : 'text.secondary',
+                      
+                                                                                                                                    wordBreak: 'break-all', // 필드명이 길면 줄바꿈
+                      
+                                                                                                                                    lineHeight: 1.2
+                      
+                                                                                                                                  }}>
+                      
+                                                                                                                                    {key}
+                      
+                                                                                                                                  </Typography>
+                      
+                                                                                                                                </Box>
+                      
+                                                                                                                                <Box sx={{ 
+                      
+                                                                                                                                  p: 1, 
+                      
+                                                                                                                                  flexGrow: 1, 
+                      
+                                                                                                                                  pl: 2, 
+                      
+                                                                                                                                  minWidth: 0,
+                      
+                                                                                                                                  bgcolor: 'transparent',
+                      
+                                                                                                                                  display: 'flex',
+                      
+                                                                                                                                  alignItems: 'center'
+                      
+                                                                                                                                }}>
+                      
+                                                                                                                                  <Typography variant="caption" sx={{ 
+                      
+                                                                                                                                    wordBreak: 'break-all', 
+                      
+                                                                                                                                    whiteSpace: 'pre-wrap',
+                      
+                                                                                                                                    color: 'text.primary',
+                      
+                                                                                                                                    display: 'block',
+                      
+                                                                                                                                    lineHeight: 1.6,
+                      
+                                                                                                                                    fontWeight: key === "@timestamp" ? 'bold' : 'normal'
+                      
+                                                                                                                                  }}>
+                      
+                                                                                                                                    {formatValue(flatLog[key])}
+                      
+                                                                                                                                  </Typography>
+                      
+                                                                                                                                </Box>
+                      
+                                                                                                                              </Box>
+                      
+                                                                                              ));
+                      
+                                                                                            })()}
+                      
+                                                                                          </Box>
                       
                                                                 </Box>
                       
                                                               </Collapse>                    </Box>
                   );
-                }) : !loading && <Box sx={{ p: 10, textAlign: 'center' }}><Typography variant="body2" color="text.disabled">{t('noResults')}</Typography></Box>}
+                }) : !loading && (
+                  <Box sx={{ width: '100%', py: 10, textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.disabled">
+                      {t('noResults')}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Paper>
           </Box>

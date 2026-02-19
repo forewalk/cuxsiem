@@ -34,24 +34,15 @@ class NotificationService:
     # --- Notification Management ---
 
     async def list_notifications(self, **kwargs):
-        total, notifications = await self.repository.list_notifications(**kwargs)
-
-        rule_ids = list(set(n.get("rule_id") for n in notifications if n.get("rule_id")))
-        rules_cache = {}
-        for rid in rule_ids:
-            rule = await self.get_rule(rid)
-            if rule:
-                rules_cache[rid] = rule.get("severity", "info")
-
-        for n in notifications:
-            n["severity"] = rules_cache.get(n.get("rule_id"), "info")
-
-        return total, notifications
+        """알림 로그 조회 (규칙 조회 없이 저장된 데이터 그대로 반환)"""
+        return await self.repository.list_notifications(**kwargs)
 
     def _generate_dedup_key(self, rule: Dict[str, Any], event: Dict[str, Any]) -> str:
+        # 매 실행마다 새로운 알림이 발생하도록 현재 시간(분 단위)을 키에 포함 (느슨한 설정)
+        now_str = datetime.utcnow().strftime("%Y%m%d%H%M")
         template = rule.get("dedup_key_template", "{{rule_id}}")
         
-        key = template.replace("{{rule_id}}", rule["id"])
+        key = f"{now_str}_" + template.replace("{{rule_id}}", rule["id"])
         key = key.replace("{{rule_name}}", rule.get("name", ""))
         
         matches = re.findall(r"\{\{([^}]+)\}\}", key)
@@ -73,20 +64,43 @@ class NotificationService:
         target_index = rule.get("target_index", "logs-sentinel_one.threats")
         condition_config = rule.get("condition_config", {})
         window_min = rule.get("window_min", 5)
-        channels = rule.get("channels", {}) # activities -> channels 변경
+        channels = rule.get("channels", {})
 
         now = datetime.utcnow()
+        # 설정된 window_min을 정확히 따르되, 인덱싱 지연을 고려하여 10초의 미세 버퍼만 추가
+        start_time = now - timedelta(minutes=window_min, seconds=10)
         
         # OpenSearch 쿼리 실행
         try:
             await self.repository.update_rule(rule_id, {"last_run_at": now.isoformat()})
 
-            query = condition_config.get("query", {"match_all": {}})
-            search_body = {
-                "query": query,
-                "size": 10,
-                "sort": [{"created_at": {"order": "desc"}}]
+            # 사용자 정의 쿼리가 없으면 match_all 사용
+            original_query = condition_config.get("query", {"match_all": {}})
+            
+            # bool query 구조로 감싸서 시간 필터 적용
+            final_query = {
+                "bool": {
+                    "must": [original_query],
+                    "filter": [
+                        {
+                            "range": {
+                                "@timestamp": {
+                                    "gte": start_time.isoformat(),
+                                    "lte": now.isoformat()
+                                }
+                            }
+                        }
+                    ]
+                }
             }
+
+            search_body = {
+                "query": final_query,
+                "size": 10,
+                "sort": [{"@timestamp": {"order": "desc"}}]
+            }
+
+            logger.info(f"Running detection for rule '{rule['name']}' on index '{target_index}' (window: {window_min}m)")
 
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
@@ -104,47 +118,47 @@ class NotificationService:
             })
 
             if total > 0:
+                logger.info(f"Rule '{rule['name']}' triggered: {total} events found.")
+                
+                # 첫 번째 히트를 기준으로 알림 생성 (필요 시 모든 히트 처리 가능)
                 first_hit = hits[0]
                 event_ref = first_hit.get("_id")
                 dedup_key = self._generate_dedup_key(rule, first_hit)
 
                 notification_data = {
                     "rule_id": rule_id,
-                    "title": f"[Alert] {rule['name']}",
+                    "title": rule.get("name", "Unknown Rule"),
+                    "description": rule.get("description"),
                     "message": f"Detected {total} events in the last {window_min} minutes.",
                     "event_ref": event_ref,
                     "dedup_key": dedup_key,
+                    "severity": rule.get("severity", "info"),
                     "receiver": rule.get("receiver"),
                     "status": "created",
                     "created_at": now.isoformat()
                 }
 
                 created_notif = await self.repository.create_notification(notification_data)
+                
+                # 터미널에서 즉시 확인할 수 있도록 출력
+                print(f"\n{'='*50}\n[NOTIFICATION DETECTED] {created_notif['title']}\nMessage: {created_notif['message']}\n{'='*50}\n")
 
                 await self.repository.update_rule(rule_id, {
                     "last_triggered_at": now.isoformat(),
-                    "total_alerts_count": rule.get("total_alerts_count", 0) + 1
+                    "total_alerts_count": rule.get("total_alerts_count", 0) + total
                 })
 
                 # --- 다양한 발송 채널(Channels) 처리 ---
                 tasks = []
-                
-                # Webhooks
                 if channels.get("webhooks"):
                     tasks.append(self.send_webhooks(channels["webhooks"], created_notif))
                 
-                # Slack 
-                if channels.get("slack"):
-                    logger.info(f"Slack notification triggered for rule {rule_id}")
-                    
-                # Email
-                if channels.get("email"):
-                    logger.info(f"Email notification triggered for rule {rule_id}")
-
                 if tasks:
-                    asyncio.gather(*tasks)
+                    asyncio.create_task(asyncio.gather(*tasks))
 
                 return created_notif
+            
+            return None
                 
         except Exception as e:
             error_msg = str(e)
@@ -162,26 +176,58 @@ class NotificationService:
                 method = cfg.get("method", "POST")
                 headers = cfg.get("headers", {})
                 
+                # 전송 데이터 원본 (증적용)
+                payload = notification.copy()
+                
+                # 마스킹 처리된 헤더 (보안상 민감 정보 제외)
+                safe_headers = {k: ("*" * 8 if k.lower() in ["authorization", "token", "apikey", "secret"] else v) 
+                               for k, v in headers.items()}
+
                 try:
                     response = await client.request(
                         method, 
                         url, 
-                        json=notification, 
+                        json=payload, 
                         headers=headers, 
                         timeout=10.0
                     )
                     
+                    resp_body = ""
+                    try:
+                        resp_body = response.text[:1000] # 너무 크면 잘라서 저장
+                    except:
+                        pass
+
                     if response.status_code < 300:
-                        await self.repository.mark_as_sent(notification["id"], status="sent")
+                        await self.repository.mark_as_sent(
+                            notification["id"], 
+                            status="sent",
+                            channel="webhook",
+                            endpoint=url,
+                            request_headers=safe_headers,
+                            outgoing_payload=payload,
+                            response_status_code=response.status_code,
+                            response_body=resp_body
+                        )
                     else:
                         await self.repository.mark_as_sent(
                             notification["id"],
                             status="failed",
-                            error=f"HTTP {response.status_code}"
+                            error=f"HTTP {response.status_code}",
+                            channel="webhook",
+                            endpoint=url,
+                            request_headers=safe_headers,
+                            outgoing_payload=payload,
+                            response_status_code=response.status_code,
+                            response_body=resp_body
                         )
                 except Exception as e:
                     await self.repository.mark_as_sent(
                         notification["id"],
                         status="failed",
-                        error=str(e)
+                        error=str(e),
+                        channel="webhook",
+                        endpoint=url,
+                        request_headers=safe_headers,
+                        outgoing_payload=payload
                     )

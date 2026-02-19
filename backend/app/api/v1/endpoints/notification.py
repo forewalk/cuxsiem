@@ -6,7 +6,9 @@ from app.schemas.notification import (
     NotificationRuleBase,
     NotificationRuleUpdate,
     NotificationRuleResponse,
-    NotificationResponse
+    NotificationRuleListResponse,
+    NotificationResponse,
+    NotificationListResponse
 )
 
 router = APIRouter()
@@ -14,7 +16,7 @@ service = NotificationService()
 
 # --- Notification Rules ---
 
-@router.get("/rules", response_model=List[NotificationRuleResponse])
+@router.get("/rules", response_model=NotificationRuleListResponse)
 async def list_rules(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -22,7 +24,7 @@ async def list_rules(
     order: str = Query("desc", pattern="^(asc|desc)$")
 ):
     total, rules = await service.list_rules(skip=skip, limit=limit, sort_by=sort_by, order=order)
-    return rules
+    return {"total": total, "items": rules}
 
 @router.post("/rules", response_model=NotificationRuleResponse, status_code=status.HTTP_201_CREATED)
 async def create_rule(rule_in: NotificationRuleBase):
@@ -48,19 +50,15 @@ async def delete_rule(rule_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Rule not found")
 
-# --- Notification Logs ---
+# --- 알림내역 조회 ---
 
-@router.get("/", response_model=List[NotificationResponse])
+@router.get("/", response_model=NotificationListResponse)
 async def list_notifications(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    receiver_type: Optional[str] = None,
-    receiver_value: Optional[str] = None
+    limit: int = Query(100, ge=1, le=1000)
 ):
     total, notifications = await service.list_notifications(
         skip=skip,
-        limit=limit,
-        receiver_type=receiver_type,
-        receiver_value=receiver_value
+        limit=limit
     )
-    return notifications
+    return {"total": total, "items": notifications}
