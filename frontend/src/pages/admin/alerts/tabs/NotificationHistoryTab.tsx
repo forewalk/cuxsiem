@@ -283,7 +283,7 @@ const NotificationHistoryTab: React.FC = () => {
         if (lastIdRef.current && latestNotif.id !== lastIdRef.current) {
           setSnackbar({
             open: true,
-            title: latestNotif.title,
+            title: latestNotif.title || latestNotif.rule_name || 'Notification',
             severity: latestNotif.severity || 'info'
           });
         }

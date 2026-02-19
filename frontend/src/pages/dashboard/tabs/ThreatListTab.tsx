@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { 
-  Box, Paper, Typography, Alert, LinearProgress, Divider, 
+  Box, Paper, Typography, Alert, LinearProgress, 
   List, ListItem, ListItemIcon, ListItemText, IconButton, Tooltip,
   Button, TextField, Select, MenuItem, useTheme, Collapse
 } from "@mui/material";
@@ -359,11 +359,13 @@ const ThreatListTab: React.FC = () => {
                                           textOverflow: 'ellipsis', 
                                           cursor: 'grab',
                                           transition: 'all 0.2s',
-                                          '&:hover': { bgcolor: 'action.selected' },
+                                          '&:hover': { 
+                                            bgcolor: 'action.selected',
+                                            borderLeft: dragIdx !== null ? `2px dashed ${theme.palette.primary.main}` : 'none'
+                                          },
                                           '&:active': { cursor: 'grabbing' },
                                           opacity: dragIdx === idx ? 0.5 : 1,
                                           borderLeft: dragIdx !== null && dragIdx !== idx ? '2px dashed transparent' : 'none',
-                                          '&:hover': { borderLeft: dragIdx !== null ? `2px dashed ${theme.palette.primary.main}` : 'none' }
                                         }}
                                       >
                                         {fieldName}

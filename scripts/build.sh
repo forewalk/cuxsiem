@@ -22,9 +22,10 @@ fi
 mkdir -p "$DIST_DIR"
 
 # 2. Build Docker Images
+# Use --platform linux/amd64 to ensure compatibility when building on Mac arm64 for Linux x86_64
 echo "Building Backend Image (cruxsiem/backend:$VERSION)..."
 cp scripts/test_db.py backend/
-docker build -t cruxsiem/backend:"$VERSION" ./backend
+docker build --platform linux/amd64 -t cruxsiem/backend:"$VERSION" ./backend
 rm backend/test_db.py
 
 echo "Checking frontend dependencies..."
@@ -36,7 +37,7 @@ if [ ! -f "./frontend/package-lock.json" ]; then
 fi
 
 echo "Building Frontend Image (cruxsiem/frontend:$VERSION)..."
-docker build -t cruxsiem/frontend:"$VERSION" ./frontend
+docker build --platform linux/amd64 -t cruxsiem/frontend:"$VERSION" ./frontend
 
 # 3. Save Images to Tarball
 ARCHIVE_NAME="cruxsiem-images-$VERSION.tar.gz"
@@ -64,17 +65,16 @@ if [ -f ".env.production" ]; then
     if [ "$VERSION" != "latest" ]; then
         # Check if TAG exists, if so replace it, otherwise append it
         if grep -q "^TAG=" "$DIST_DIR/.env.production"; then
-            sed -i "s/^TAG=.*/TAG=$VERSION/" "$DIST_DIR/.env.production"
+            sed "s/^TAG=.*/TAG=$VERSION/" "$DIST_DIR/.env.production" > "$DIST_DIR/.env.production.tmp" && mv "$DIST_DIR/.env.production.tmp" "$DIST_DIR/.env.production"
         else
             echo "TAG=$VERSION" >> "$DIST_DIR/.env.production"
         fi
     fi
 fi
 
-# On Linux/Mac sed usage is slightly different, trying portable way or assuming GNU sed (Git Bash usually has GNU sed)
-# We want to replace TAG=latest with TAG=$VERSION in the example file
+# Replacing TAG=latest with TAG=$VERSION in the example file
 if [ "$VERSION" != "latest" ]; then
-    sed -i "s/TAG=latest/TAG=$VERSION/" "$DIST_DIR/.env.production.example"
+    sed "s/TAG=latest/TAG=$VERSION/" "$DIST_DIR/.env.production.example" > "$DIST_DIR/.env.production.example.tmp" && mv "$DIST_DIR/.env.production.example.tmp" "$DIST_DIR/.env.production.example"
 fi
 
 # Copy deploy script
