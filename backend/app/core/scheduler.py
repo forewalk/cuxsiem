@@ -25,7 +25,7 @@ class DetectionScheduler:
                     continue
 
                 # 규칙별 interval_min을 체크하여 실행 시점 결정
-                interval_min = rule.get("interval_min", 5)  # 기본값 5분
+                interval_min = rule["interval_min"]  # 필수 필드 (스키마에서 검증됨)
                 last_run_at = rule.get("last_run_at")
 
                 # 마지막 실행 시각이 없거나, interval_min이 지났으면 실행
@@ -65,7 +65,7 @@ class DetectionScheduler:
             self.scheduler.add_job(
                 self.run_active_detections,
                 "interval",
-                minutes=1,  # 스케줄러는 1분마다 체크, 각 규칙의 interval_min에 따라 실행 결정
+                minutes=1,
                 id="detection_job",
                 max_instances=1,
                 coalesce=True,

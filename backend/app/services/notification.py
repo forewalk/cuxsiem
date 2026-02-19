@@ -129,7 +129,7 @@ class NotificationService:
         rule_id = rule["id"]
         target_index = rule.get("target_index", "logs-sentinel_one.threats")
         condition_config = rule.get("condition_config", {})
-        window_min = rule.get("window_min", 5)
+        window_min = rule["window_min"]  # 필수 필드 (스키마에서 검증됨)
 
         now = datetime.utcnow()
         # 설정된 window_min을 정확히 따르되, 인덱싱 지연을 고려하여 10초의 미세 버퍼만 추가
