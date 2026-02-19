@@ -10,6 +10,8 @@ from app.schemas.notification import (
     NotificationResponse,
     NotificationListResponse
 )
+from app.api.v1.deps import get_current_active_user
+from app.schemas.user import UserResponse
 
 router = APIRouter()
 service = NotificationService()
@@ -21,9 +23,27 @@ async def list_rules(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     sort_by: str = Query("created_at", pattern="^(created_at|updated_at|name)$"),
-    order: str = Query("desc", pattern="^(asc|desc)$")
+    order: str = Query("desc", pattern="^(asc|desc)$"),
+    query: Optional[str] = Query(None, description="규칙명 검색"),
+    severities: Optional[str] = Query(None, description="중요도 필터 (쉼표로 구분)"),
+    is_active: Optional[bool] = Query(None, description="활성화 여부"),
+    from_date: Optional[str] = Query(None, description="시작 날짜 (ISO 8601)"),
+    to_date: Optional[str] = Query(None, description="종료 날짜 (ISO 8601)")
 ):
-    total, rules = await service.list_rules(skip=skip, limit=limit, sort_by=sort_by, order=order)
+    # severities를 리스트로 변환
+    severity_list = [s.strip().lower() for s in severities.split(",")] if severities else None
+
+    total, rules = await service.list_rules(
+        skip=skip,
+        limit=limit,
+        sort_by=sort_by,
+        order=order,
+        query=query,
+        severities=severity_list,
+        is_active=is_active,
+        from_date=from_date,
+        to_date=to_date
+    )
     return {"total": total, "items": rules}
 
 @router.post("/rules", response_model=NotificationRuleResponse, status_code=status.HTTP_201_CREATED)
@@ -55,10 +75,19 @@ async def delete_rule(rule_id: str):
 @router.get("/", response_model=NotificationListResponse)
 async def list_notifications(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
+    query: Optional[str] = Query(None, description="제목/설명 검색"),
+    from_date: Optional[str] = Query(None, description="시작 날짜 (ISO 8601)"),
+    to_date: Optional[str] = Query(None, description="종료 날짜 (ISO 8601)"),
+    current_user: UserResponse = Depends(get_current_active_user)
 ):
+    """현재 사용자의 role에 맞는 알림만 조회"""
     total, notifications = await service.list_notifications(
         skip=skip,
-        limit=limit
+        limit=limit,
+        query=query,
+        from_date=from_date,
+        to_date=to_date,
+        user_role=current_user.role
     )
     return {"total": total, "items": notifications}

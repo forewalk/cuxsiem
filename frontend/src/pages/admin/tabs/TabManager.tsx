@@ -1,32 +1,26 @@
 import React, { useMemo } from 'react';
 import { Box, Tabs, Tab, IconButton, Typography, useTheme } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import useTabStore from '../../stores/tabStore';
-import { useLanguageStore } from '../../stores/useLanguageStore';
-import UserManagementTab from '../../pages/admin/tabs/UserManagementTab';
-import PasswordPolicyTab from '../../pages/admin/tabs/PasswordPolicyTab';
-import DashboardTab from '../../pages/dashboard/tabs/DashboardTab';
-import ThreatListTab from '../../pages/dashboard/tabs/ThreatListTab';
-import AgentListTab from '../../pages/dashboard/tabs/AgentListTab';
-import AgentDashboardTab from '../../pages/dashboard/tabs/AgentDashboardTab';
-import LogStreamingTab from '../../pages/admin/tabs/LogStreamingTab';
-import NotificationRuleListTab from '../../pages/admin/alerts/tabs/NotificationRuleListTab';
-import NotificationHistoryTab from '../../pages/admin/alerts/tabs/NotificationHistoryTab';
-import AdvancedSettingsTab from '../../pages/admin/tabs/AdvancedSettingsTab';
+import useTabStore from '../../../stores/tabStore';
+import { useLanguageStore } from '../../../stores/useLanguageStore';
+import UserManagementTab from './UserManagementTab';
+import PasswordPolicyTab from './PasswordPolicyTab';
+import DashboardTab from '../../dashboard/tabs/DashboardTab';
+import LogStreamingTab from './LogStreamingTab';
+import NotificationRuleListTab from '../alerts/tabs/NotificationRuleListTab';
+import NotificationHistoryTab from '../alerts/tabs/NotificationHistoryTab';
+import AdvancedSettingsTab from './AdvancedSettingsTab';
 
 // i18n: JSON 파일에서 번역 로드
-import koMessages from "../../locales/ko.json";
-import enMessages from "../../locales/en.json";
-import jaMessages from "../../locales/ja.json";
-import cnMessages from "../../locales/cn.json";
+import koMessages from "../../../locales/ko.json";
+import enMessages from "../../../locales/en.json";
+import jaMessages from "../../../locales/ja.json";
+import cnMessages from "../../../locales/cn.json";
 
 const tabComponents: { [key: string]: React.ComponentType<any> } = {
   UserManagementTab: UserManagementTab,
   PasswordPolicyTab: PasswordPolicyTab,
   DashboardTab: DashboardTab,
-  ThreatListTab: ThreatListTab,
-  AgentListTab: AgentListTab,
-  AgentDashboardTab: AgentDashboardTab,
   LogStreamingTab: LogStreamingTab,
   NotificationRuleListTab: NotificationRuleListTab,
   NotificationHistoryTab: NotificationHistoryTab,

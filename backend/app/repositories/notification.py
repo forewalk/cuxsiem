@@ -11,31 +11,116 @@ class NotificationRepository:
     def __init__(self):
         self.client = get_opensearch_client()
         self.rules_index = "cs_notification_rules"
-        self.notifications_index = "cs_notifications"
+        self.alerts_index = "cs_alerts"
 
     # --- Notification Rules ---
 
     async def get_rule_by_id(self, rule_id: str) -> Optional[Dict[str, Any]]:
-        """ID로 규칙 조회"""
+        """ID로 규칙 조회 (삭제된 규칙 제외)"""
         loop = asyncio.get_event_loop()
         def get():
             try:
                 result = self.client.get(index=self.rules_index, id=rule_id)
-                return result["_source"]
+                source = result["_source"]
+                if source.get("deleted_at"):
+                    return None
+                return source
             except Exception:
                 return None
         return await loop.run_in_executor(None, get)
 
-    async def list_rules(self, skip: int = 0, limit: int = 100, sort_by: str = "created_at", order: str = "desc") -> Tuple[int, List[Dict[str, Any]]]:
-        """규칙 목록 조회"""
+    async def list_rules(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        sort_by: str = "created_at",
+        order: str = "desc",
+        query: Optional[str] = None,
+        severities: Optional[List[str]] = None,
+        is_active: Optional[bool] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        """규칙 목록 조회 with 검색/필터/시간범위"""
         loop = asyncio.get_event_loop()
+
         def search():
+            # 검색 및 필터 쿼리 구성
+            must_clauses = []
+
+            # 규칙명 검색 (fuzzy + wildcard for partial match)
+            if query:
+                must_clauses.append({
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "name": {
+                                        "query": query,
+                                        "fuzziness": "AUTO"
+                                    }
+                                }
+                            },
+                            {
+                                "wildcard": {
+                                    "name": f"*{query.lower()}*"
+                                }
+                            }
+                        ],
+                        "minimum_should_match": 1
+                    }
+                })
+
+            # 중요도 필터 (OR 조건)
+            if severities:
+                must_clauses.append({
+                    "terms": {
+                        "severity": severities
+                    }
+                })
+
+            # 활성화 여부 필터
+            if is_active is not None:
+                must_clauses.append({
+                    "term": {
+                        "is_active": is_active
+                    }
+                })
+
+            # 시간 범위 필터 (created_at 기준)
+            if from_date or to_date:
+                range_filter = {"range": {"created_at": {}}}
+                if from_date:
+                    range_filter["range"]["created_at"]["gte"] = from_date
+                if to_date:
+                    range_filter["range"]["created_at"]["lte"] = to_date
+                must_clauses.append(range_filter)
+
+            # 최종 쿼리 구성 (삭제된 규칙 제외)
+            if must_clauses:
+                search_query = {
+                    "bool": {
+                        "must": must_clauses,
+                        "must_not": [
+                            {"exists": {"field": "deleted_at"}}
+                        ]
+                    }
+                }
+            else:
+                search_query = {
+                    "bool": {
+                        "must_not": [
+                            {"exists": {"field": "deleted_at"}}
+                        ]
+                    }
+                }
+
             result = self.client.search(
                 index=self.rules_index,
                 body={
                     "from": skip,
                     "size": limit,
-                    "query": {"match_all": {}},
+                    "query": search_query,
                     "sort": [{sort_by: {"order": order}}]
                 }
             )
@@ -91,56 +176,145 @@ class NotificationRepository:
         return None
 
     async def delete_rule(self, rule_id: str) -> bool:
-        """규칙 삭제 (Soft Delete 권장되나 현재는 Hard Delete)"""
+        """규칙 삭제 (Soft Delete)"""
         loop = asyncio.get_event_loop()
-        def delete_doc():
+        def soft_delete():
             try:
-                self.client.delete(index=self.rules_index, id=rule_id, refresh=True)
+                self.client.update(
+                    index=self.rules_index,
+                    id=rule_id,
+                    body={
+                        "doc": {
+                            "deleted_at": datetime.utcnow().isoformat(),
+                            "is_active": False,
+                            "updated_at": datetime.utcnow().isoformat()
+                        }
+                    },
+                    refresh=True
+                )
                 return True
             except Exception:
                 return False
-        return await loop.run_in_executor(None, delete_doc)
+        return await loop.run_in_executor(None, soft_delete)
 
-    # --- Notifications (Logs) ---
+    # --- Alerts (알림 내역) ---
 
-    async def create_notification(self, notification_data: Dict[str, Any]) -> Dict[str, Any]:
-        """알림 로그 생성"""
+    async def create_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:
+        """알림을 cs_alerts 인덱스에 저장"""
         loop = asyncio.get_event_loop()
-        notif_id = str(uuid.uuid4())
-        notification_data["id"] = notif_id
-        notification_data["created_at"] = notification_data.get("created_at") or datetime.utcnow().isoformat()
+        alert_id = str(uuid.uuid4())
+        alert_data["id"] = alert_id
+        alert_data["created_at"] = alert_data.get("created_at") or datetime.utcnow().isoformat()
 
         def insert():
             self.client.index(
-                index=self.notifications_index,
-                id=notif_id,
-                body=notification_data,
+                index=self.alerts_index,
+                id=alert_id,
+                body=alert_data,
                 refresh=True
             )
-            return notification_data
+            return alert_data
         return await loop.run_in_executor(None, insert)
+    
+    # 하위 호환성을 위한 별칭
+    async def create_notification(self, notification_data: Dict[str, Any]) -> Dict[str, Any]:
+        """하위 호환성을 위한 별칭 (create_alert 호출)"""
+        return await self.create_alert(notification_data)
 
-    async def list_notifications(
+    async def list_alerts(
         self,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        query: Optional[str] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+        user_role: Optional[str] = None
     ) -> Tuple[int, List[Dict[str, Any]]]:
-        
-        """알림 로그 조회"""
+        """cs_alerts 인덱스에서 알림 내역 조회 with 검색, 시간 범위 및 role 기반 필터"""
         loop = asyncio.get_event_loop()
 
         def search():
+            # 검색 및 필터 쿼리 구성
+            must_clauses = []
+
+            # 규칙명/메시지 검색 (multi_match + wildcard)
+            if query:
+                must_clauses.append({
+                    "bool": {
+                        "should": [
+                            {
+                                "multi_match": {
+                                    "query": query,
+                                    "fields": ["rule_name", "message", "rule_description"],
+                                    "fuzziness": "AUTO"
+                                }
+                            },
+                            {
+                                "wildcard": {
+                                    "rule_name": f"*{query.lower()}*"
+                                }
+                            },
+                            {
+                                "wildcard": {
+                                    "message": f"*{query.lower()}*"
+                                }
+                            }
+                        ],
+                        "minimum_should_match": 1
+                    }
+                })
+
+            # 시간 범위 필터
+            if from_date or to_date:
+                range_filter = {"range": {"created_at": {}}}
+                if from_date:
+                    range_filter["range"]["created_at"]["gte"] = from_date
+                if to_date:
+                    range_filter["range"]["created_at"]["lte"] = to_date
+                must_clauses.append(range_filter)
+
+            # role 기반 필터링 (receiver.values 배열에 user_role이 포함된 알림만 조회)
+            if user_role:
+                must_clauses.append({
+                    "term": {
+                        "receiver.values": user_role
+                    }
+                })
+
+            # 최종 쿼리 구성
+            if must_clauses:
+                search_query = {
+                    "bool": {
+                        "must": must_clauses
+                    }
+                }
+            else:
+                search_query = {"match_all": {}}
+
             result = self.client.search(
-                index=self.notifications_index,
+                index=self.alerts_index,
                 body={
                     "from": skip,
                     "size": limit,
-                    "query": {"match_all": {}},
+                    "query": search_query,
                     "sort": [{"created_at": {"order": "desc"}}]
                 }
             )
             total = result.get("hits", {}).get("total", {}).get("value", 0)
             hits = result.get("hits", {}).get("hits", [])
-            notifications = [hit["_source"] for hit in hits]
-            return total, notifications
+            alerts = [hit["_source"] for hit in hits]
+            return total, alerts
         return await loop.run_in_executor(None, search)
+    
+    # 하위 호환성을 위한 별칭
+    async def list_notifications(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        query: Optional[str] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+        user_role: Optional[str] = None
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        """하위 호환성을 위한 별칭 (list_alerts 호출)"""
+        return await self.list_alerts(skip, limit, query, from_date, to_date, user_role)
