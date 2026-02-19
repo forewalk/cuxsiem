@@ -504,7 +504,7 @@ const NotificationRuleListTab: React.FC = () => {
             {/* 3. 알림 메시지 템플릿 */}
             <Grid size={12}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>3. {t('notificationMessageTemplate')}</Typography>
-              <TextField label={t('messageTemplate')} fullWidth multiline rows={3} value={formData.message_template} onChange={(e) => setFormData({ ...formData, message_template: e.target.value })} size="small" helperText={t('messageTemplateHelper')} />
+              <TextField label={t('messageTemplate')} fullWidth multiline rows={10} value={formData.message_template} onChange={(e) => setFormData({ ...formData, message_template: e.target.value })} size="small" helperText={t('messageTemplateHelper')} />
             </Grid>
 
             <Grid size={12}><Divider /></Grid>
@@ -512,10 +512,10 @@ const NotificationRuleListTab: React.FC = () => {
             {/* 4. 알림 수신 대상 역할 */}
             <Grid size={12}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>4. {t('notificationReceiverRoles')}</Typography>
-              <Stack spacing={1}>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
-                  {t('selectReceiverRoles')}
-                </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                {t('selectReceiverRoles')}
+              </Typography>
+              <Stack direction="row" spacing={2} flexWrap="wrap">
                 <FormControlLabel
                   control={
                     <Switch
