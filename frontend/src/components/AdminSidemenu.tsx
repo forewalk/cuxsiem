@@ -10,7 +10,7 @@ import {
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
   ShowChart as ThreatsIcon, Terminal as TerminalIcon, Close as CloseIcon,
   Notifications as NotificationsIcon, ListAlt as ListAltIcon, History as HistoryIcon,
-  Tune as AdvancedIcon,
+  Tune as AdvancedIcon, Computer as AgentIcon,
 } from '@mui/icons-material';
 import useTabStore from '../stores/tabStore';
 
@@ -30,7 +30,9 @@ const listItemHeight = 48;
 const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
   const [openAdminMenu, setOpenAdminMenu] = useState(false);
   const [openNotificationMenu, setOpenNotificationMenu] = useState(false);
-  const [openDashboardMenu, setOpenDashboardMenu] = useState(true); // 기본적으로 열림
+  const [openDashboardMenu, setOpenDashboardMenu] = useState(true);
+  const [openThreatMenu, setOpenThreatMenu] = useState(true);
+  const [openAgentMenu, setOpenAgentMenu] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
   const { addTab, activeTabId } = useTabStore();
@@ -67,6 +69,16 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
     }
   };
 
+  const handleThreatMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenThreatMenu(!openThreatMenu);
+  };
+
+  const handleAgentMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenAgentMenu(!openAgentMenu);
+  };
+
   const handleMenuTabClick = (label: string, component: string, labelKey?: string) => {
     addTab({ label, component, labelKey });
     if (isMobile) handleDrawerToggle(); // 모바일에서는 클릭 후 사이드바 닫기
@@ -86,6 +98,11 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
     overflow: 'hidden',
     whiteSpace: 'nowrap',
     fontSize: '0.875rem',
+  };
+
+  const subListItemTextStyle = {
+    ...listItemTextStyle,
+    fontSize: '0.8125rem',
   };
 
   const currentWidth = isMobile ? (drawerOpen ? mobileDrawerWidth : 0) : (drawerOpen ? drawerWidth : collapsedWidth);
@@ -125,7 +142,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
       
       <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
         <List>
-          {/* Dashboard Menu */}
+          {/* Dashboard Menu Group */}
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton onClick={handleDashboardMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
               <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}><DashboardIcon /></ListItemIcon>
@@ -136,13 +153,39 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
           
           <Collapse in={openDashboardMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              <ListItemButton
-                sx={{ pl: 4, minHeight: listItemHeight }}
-                onClick={() => handleMenuTabClick(t('threats'), 'DashboardTab', 'threats')}
-              >
+              {/* 1. Threat Status Sub-Group */}
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={handleThreatMenuClick}>
                 <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><ThreatsIcon /></ListItemIcon>
                 <ListItemText primary={t('threats')} sx={listItemTextStyle} />
+                {(drawerOpen || isMobile) && (openThreatMenu ? <ExpandLess /> : <ExpandMore />)}
               </ListItemButton>
+              <Collapse in={openThreatMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('threatListTitle'), 'ThreatListTab', 'threatListTitle')}>
+                    <ListItemText primary={t('threatList')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('threatDashboardTitle'), 'DashboardTab', 'threatDashboardTitle')}>
+                    <ListItemText primary={t('threatDashboard')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                </List>
+              </Collapse>
+
+              {/* 2. Agent Sub-Group */}
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={handleAgentMenuClick}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><AgentIcon /></ListItemIcon>
+                <ListItemText primary={t('agent')} sx={listItemTextStyle} />
+                {(drawerOpen || isMobile) && (openAgentMenu ? <ExpandLess /> : <ExpandMore />)}
+              </ListItemButton>
+              <Collapse in={openAgentMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('agentListTitle'), 'AgentListTab', 'agentListTitle')}>
+                    <ListItemText primary={t('agentList')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('agentDashboardTitle'), 'AgentDashboardTab', 'agentDashboardTitle')}>
+                    <ListItemText primary={t('agentDashboard')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                </List>
+              </Collapse>
             </List>
           </Collapse>
 

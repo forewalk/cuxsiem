@@ -6,6 +6,9 @@ import { useLanguageStore } from '../../stores/useLanguageStore';
 import UserManagementTab from '../../pages/admin/tabs/UserManagementTab';
 import PasswordPolicyTab from '../../pages/admin/tabs/PasswordPolicyTab';
 import DashboardTab from '../../pages/dashboard/tabs/DashboardTab';
+import ThreatListTab from '../../pages/dashboard/tabs/ThreatListTab';
+import AgentListTab from '../../pages/dashboard/tabs/AgentListTab';
+import AgentDashboardTab from '../../pages/dashboard/tabs/AgentDashboardTab';
 import LogStreamingTab from '../../pages/admin/tabs/LogStreamingTab';
 import NotificationRuleListTab from '../../pages/admin/tabs/NotificationRuleListTab';
 import NotificationHistoryTab from '../../pages/admin/tabs/NotificationHistoryTab';
@@ -21,6 +24,9 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   UserManagementTab: UserManagementTab,
   PasswordPolicyTab: PasswordPolicyTab,
   DashboardTab: DashboardTab,
+  ThreatListTab: ThreatListTab,
+  AgentListTab: AgentListTab,
+  AgentDashboardTab: AgentDashboardTab,
   LogStreamingTab: LogStreamingTab,
   NotificationRuleListTab: NotificationRuleListTab,
   NotificationHistoryTab: NotificationHistoryTab,
