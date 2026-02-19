@@ -475,8 +475,26 @@ const NotificationRuleListTab: React.FC = () => {
             <Grid size={12}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>2. {t('detectionCondition')}</Typography>
               <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                <TextField label={t('intervalMin')} type="number" fullWidth value={formData.interval_min} onChange={(e) => setFormData({ ...formData, interval_min: parseInt(e.target.value) })} size="small" helperText={t('intervalMinHelper')} />
-                <TextField label={t('windowMin')} type="number" fullWidth value={formData.window_min} onChange={(e) => setFormData({ ...formData, window_min: parseInt(e.target.value) })} size="small" helperText={t('windowMinHelper')} />
+                <TextField 
+                  label={t('intervalMin')} 
+                  type="number" 
+                  fullWidth 
+                  value={formData.interval_min} 
+                  onChange={(e) => setFormData({ ...formData, interval_min: parseInt(e.target.value) })} 
+                  size="small" 
+                  helperText={t('intervalMinHelper')}
+                  inputProps={{ min: 1, max: 1440, step: 1 }}
+                />
+                <TextField 
+                  label={t('windowMin')} 
+                  type="number" 
+                  fullWidth 
+                  value={formData.window_min} 
+                  onChange={(e) => setFormData({ ...formData, window_min: parseInt(e.target.value) })} 
+                  size="small" 
+                  helperText={t('windowMinHelper')}
+                  inputProps={{ min: 1, max: 10080, step: 1 }}
+                />
               </Stack>
               <TextField label={t('conditionConfig')} multiline rows={6} fullWidth required value={dslString} onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError} helperText={jsonError || t('dslQueryHelper')} inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
             </Grid>
