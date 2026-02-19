@@ -16,12 +16,15 @@ class NotificationRepository:
     # --- Notification Rules ---
 
     async def get_rule_by_id(self, rule_id: str) -> Optional[Dict[str, Any]]:
-        """ID로 규칙 조회"""
+        """ID로 규칙 조회 (삭제된 규칙 제외)"""
         loop = asyncio.get_event_loop()
         def get():
             try:
                 result = self.client.get(index=self.rules_index, id=rule_id)
-                return result["_source"]
+                source = result["_source"]
+                if source.get("deleted_at"):
+                    return None
+                return source
             except Exception:
                 return None
         return await loop.run_in_executor(None, get)
@@ -93,15 +96,24 @@ class NotificationRepository:
                     range_filter["range"]["created_at"]["lte"] = to_date
                 must_clauses.append(range_filter)
 
-            # 최종 쿼리 구성
+            # 최종 쿼리 구성 (삭제된 규칙 제외)
             if must_clauses:
                 search_query = {
                     "bool": {
-                        "must": must_clauses
+                        "must": must_clauses,
+                        "must_not": [
+                            {"exists": {"field": "deleted_at"}}
+                        ]
                     }
                 }
             else:
-                search_query = {"match_all": {}}
+                search_query = {
+                    "bool": {
+                        "must_not": [
+                            {"exists": {"field": "deleted_at"}}
+                        ]
+                    }
+                }
 
             result = self.client.search(
                 index=self.rules_index,
@@ -164,15 +176,26 @@ class NotificationRepository:
         return None
 
     async def delete_rule(self, rule_id: str) -> bool:
-        """규칙 삭제 (Soft Delete 권장되나 현재는 Hard Delete)"""
+        """규칙 삭제 (Soft Delete)"""
         loop = asyncio.get_event_loop()
-        def delete_doc():
+        def soft_delete():
             try:
-                self.client.delete(index=self.rules_index, id=rule_id, refresh=True)
+                self.client.update(
+                    index=self.rules_index,
+                    id=rule_id,
+                    body={
+                        "doc": {
+                            "deleted_at": datetime.utcnow().isoformat(),
+                            "is_active": False,
+                            "updated_at": datetime.utcnow().isoformat()
+                        }
+                    },
+                    refresh=True
+                )
                 return True
             except Exception:
                 return False
-        return await loop.run_in_executor(None, delete_doc)
+        return await loop.run_in_executor(None, soft_delete)
 
     # --- Alerts (알림 내역) ---
 
