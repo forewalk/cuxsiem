@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-19 15:50 | 최지호 | 수정 | origin/feagure/dashboard push (리스트/대시보드 분리 구현) |
 | 2026-02-14 21:00 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
 | 2026-02-14 20:45 | 김장훈 | 배포 | origin/develop push (dashboard, admin, logs, approval 통합 및 빌드 오류 수정 완료) |
 | 2026-02-13 14:00 | 최지호 | 수정 | origin/feature/dashboard (모바일 최적화) |

@@ -22,8 +22,8 @@ const WorkspacePage: React.FC = () => {
     if (isInitialMount.current) {
       if (tabs.length === 0) {
         addTab({ 
-          label: t('threats'), 
-          labelKey: 'threats',
+          label: t('threatDashboardTitle'), 
+          labelKey: 'threatDashboardTitle',
           component: 'DashboardTab' 
         });
       }
