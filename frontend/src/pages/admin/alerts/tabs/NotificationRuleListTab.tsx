@@ -37,13 +37,11 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   name: '',
   description: '',
   target_index: 'logs-sentinel_one.threats',
-  condition_type: 'dsl_query',
   condition_config: { query: { match_all: {} } },
   message_template: '위협 탐지: {{total}} 건의 이벤트가 발생했습니다.',
   severity: 'info',
   interval_min: 1,
   window_min: 1,
-  dedup_ttl_min: 10,
   dedup_key_template: '{{rule_id}}',
   receiver: { type: 'role', values: [] },
   is_active: true

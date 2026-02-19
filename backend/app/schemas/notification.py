@@ -9,30 +9,25 @@ class NotificationRuleBase(BaseModel):
     name: str
     description: Optional[str] = None
     target_index: str = "logs-sentinel_one.threats"
-    condition_type: str = "dsl_query"
     condition_config: Dict[str, Any]
     message_template: str = Field(
         default="Detected {{total}} events in the last {{window_min}} minutes.",
         description="알림 메시지 템플릿"
     )
     severity: str = "info"
-
+    
     # 주기 및 범위 설정
     interval_min: int = Field(ge=1, le=1440, description="쿼리 실행 주기(분)")
     window_min: int = Field(ge=1, le=10080, description="데이터 조회 범위(분)")
-
+    
     # 중복 제거 설정
-    dedup_ttl_min: int = Field(default=30, ge=0)
     dedup_key_template: str = Field(
         default="{{rule_id}}",
         description="중복 키 생성을 위한 템플릿 (예: {{rule_id}}_{{source_ip}})"
     )
-
     # 수신자 설정 (cs_users의 role 기반)
     receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})
-
     is_active: bool = True
-
     @model_validator(mode='after')
     def validate_window_and_interval(self) -> 'NotificationRuleBase':
         if self.window_min < self.interval_min:
@@ -43,13 +38,11 @@ class NotificationRuleUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     target_index: Optional[str] = None
-    condition_type: Optional[str] = None
     condition_config: Optional[Dict[str, Any]] = None
     message_template: Optional[str] = None
     severity: Optional[str] = None
     interval_min: Optional[int] = Field(None, ge=1)
     window_min: Optional[int] = Field(None, ge=1)
-    dedup_ttl_min: Optional[int] = None
     dedup_key_template: Optional[str] = None
     receiver: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
@@ -119,7 +112,6 @@ class AlertResponse(AlertBase):
     id: str
     severity: Optional[str] = None
     created_at: datetime
-    sent_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

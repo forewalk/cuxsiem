@@ -94,13 +94,11 @@ export interface NotificationRule {
   name: string;
   description?: string;
   target_index: string;
-  condition_type: string;
   condition_config: Record<string, any>;
   message_template: string;
   severity: string;
   interval_min: number;
   window_min: number;
-  dedup_ttl_min: number;
   dedup_key_template: string;
   receiver: Record<string, any>;
   is_active: boolean;
@@ -144,17 +142,8 @@ export interface NotificationHistory {
   error_message: string | null;
   severity: string | null;
   created_at: string;
-  sent_at: string | null;
-
-  // 발송 증적 필드 (webhook 등)
-  channel?: string;
-  endpoint?: string;
-  request_headers?: Record<string, any>;
-  outgoing_payload?: Record<string, any>;
-  response_status_code?: number;
-  response_body?: string;
   
-  // 하위 호환성 (기존 코드)
+  // 하위 호환성 (기존 코드와 호환)
   title?: string;
   description?: string;
 }
