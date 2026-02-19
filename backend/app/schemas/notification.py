@@ -2,26 +2,6 @@ from typing import List, Optional, Any, Dict
 from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
 
-# --- 알림 채널(발송 수단) 설정 ---
-
-class WebhookConfig(BaseModel):
-    url: str
-    method: str = "POST"
-    headers: Dict[str, str] = {}
-
-class SlackConfig(BaseModel):
-    channel: str
-    webhook_url: str
-
-class EmailConfig(BaseModel):
-    recipients: List[str]
-    subject_template: Optional[str] = None
-
-class NotificationChannels(BaseModel):
-    """확장 가능한 알림 채널 정의"""
-    webhooks: List[WebhookConfig] = []
-    slack: List[SlackConfig] = []
-    email: List[EmailConfig] = []
 
 # --- Notification Rule Schemas ---
 
@@ -38,8 +18,8 @@ class NotificationRuleBase(BaseModel):
     severity: str = "info"
 
     # 주기 및 범위 설정
-    interval_min: int = Field(ge=1, description="탐지 실행 주기(분)")
-    window_min: int = Field(ge=1, description="탐지 데이터 조회 범위(분)")
+    interval_min: int = Field(ge=1, le=1440, description="쿼리 실행 주기(분)")
+    window_min: int = Field(ge=1, le=10080, description="데이터 조회 범위(분)")
 
     # 중복 제거 설정
     dedup_ttl_min: int = Field(default=30, ge=0)
@@ -48,8 +28,7 @@ class NotificationRuleBase(BaseModel):
         description="중복 키 생성을 위한 템플릿 (예: {{rule_id}}_{{source_ip}})"
     )
 
-    # 발송 채널 및 수신 설정
-    channels: NotificationChannels = Field(default_factory=NotificationChannels)
+    # 수신자 설정 (cs_users의 role 기반)
     receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})
 
     is_active: bool = True
@@ -72,7 +51,6 @@ class NotificationRuleUpdate(BaseModel):
     window_min: Optional[int] = Field(None, ge=1)
     dedup_ttl_min: Optional[int] = None
     dedup_key_template: Optional[str] = None
-    channels: Optional[NotificationChannels] = None
     receiver: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
@@ -135,14 +113,6 @@ class AlertBase(BaseModel):
     # 상태 관리
     status: str = "created"
     error_message: Optional[str] = None
-    
-    # 발송 증적 필드 (webhook 등)
-    channel: Optional[str] = None
-    endpoint: Optional[str] = None
-    request_headers: Optional[Dict[str, Any]] = None
-    outgoing_payload: Optional[Dict[str, Any]] = None
-    response_status_code: Optional[int] = None
-    response_body: Optional[str] = None
 
 class AlertResponse(AlertBase):
     """알림 내역 응답 스키마"""

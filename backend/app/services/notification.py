@@ -1,12 +1,11 @@
 from typing import List, Optional, Tuple, Dict, Any
 from datetime import datetime, timedelta
-import httpx
 import asyncio
 import logging
 import re
 
 from app.repositories.notification import NotificationRepository
-from app.schemas.notification import NotificationRuleBase, NotificationRuleUpdate, WebhookConfig
+from app.schemas.notification import NotificationRuleBase, NotificationRuleUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -60,15 +59,17 @@ class NotificationService:
         limit: int = 100,
         query: Optional[str] = None,
         from_date: Optional[str] = None,
-        to_date: Optional[str] = None
+        to_date: Optional[str] = None,
+        user_role: Optional[str] = None
     ):
-        """알림 내역 조회 (cs_alerts 인덱스에서 조회)"""
+        """알림 내역 조회 (cs_alerts 인덱스에서 조회) - role 기반 필터링"""
         return await self.repository.list_alerts(
             skip=skip,
             limit=limit,
             query=query,
             from_date=from_date,
-            to_date=to_date
+            to_date=to_date,
+            user_role=user_role
         )
 
     def _generate_dedup_key(self, rule: Dict[str, Any], event: Dict[str, Any]) -> str:
@@ -121,7 +122,7 @@ class NotificationService:
         return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
 
     async def run_detection_for_rule(self, rule: Dict[str, Any]):
-        """특정 규칙에 대한 탐지 엔진 실행 및 채널(Channels) 발송 수행"""
+        """특정 규칙에 대한 탐지 엔진 실행 및 알림 생성"""
         if not rule.get("is_active"):
             return
 
@@ -129,7 +130,6 @@ class NotificationService:
         target_index = rule.get("target_index", "logs-sentinel_one.threats")
         condition_config = rule.get("condition_config", {})
         window_min = rule.get("window_min", 5)
-        channels = rule.get("channels", {})
 
         now = datetime.utcnow()
         # 설정된 window_min을 정확히 따르되, 인덱싱 지연을 고려하여 10초의 미세 버퍼만 추가
@@ -263,65 +263,3 @@ class NotificationService:
             })
             return None
 
-    async def send_webhooks(self, configs: List[Dict[str, Any]], notification: Dict[str, Any]):
-        async with httpx.AsyncClient() as client:
-            for cfg in configs:
-                url = cfg.get("url")
-                method = cfg.get("method", "POST")
-                headers = cfg.get("headers", {})
-
-                # 전송 데이터 원본 (증적용)
-                payload = notification.copy()
-
-                # 마스킹 처리된 헤더 (보안상 민감 정보 제외)
-                safe_headers = {k: ("*" * 8 if k.lower() in ["authorization", "token", "apikey", "secret"] else v)
-                               for k, v in headers.items()}
-
-                try:
-                    response = await client.request(
-                        method,
-                        url,
-                        json=payload,
-                        headers=headers,
-                        timeout=10.0
-                    )
-
-                    resp_body = ""
-                    try:
-                        resp_body = response.text[:1000] # 너무 크면 잘라서 저장
-                    except:
-                        pass
-
-                    if response.status_code < 300:
-                        await self.repository.mark_as_sent(
-                            notification["id"],
-                            status="sent",
-                            channel="webhook",
-                            endpoint=url,
-                            request_headers=safe_headers,
-                            outgoing_payload=payload,
-                            response_status_code=response.status_code,
-                            response_body=resp_body
-                        )
-                    else:
-                        await self.repository.mark_as_sent(
-                            notification["id"],
-                            status="failed",
-                            error=f"HTTP {response.status_code}",
-                            channel="webhook",
-                            endpoint=url,
-                            request_headers=safe_headers,
-                            outgoing_payload=payload,
-                            response_status_code=response.status_code,
-                            response_body=resp_body
-                        )
-                except Exception as e:
-                    await self.repository.mark_as_sent(
-                        notification["id"],
-                        status="failed",
-                        error=str(e),
-                        channel="webhook",
-                        endpoint=url,
-                        request_headers=safe_headers,
-                        outgoing_payload=payload
-                    )

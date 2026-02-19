@@ -11,7 +11,7 @@ class NotificationRepository:
     def __init__(self):
         self.client = get_opensearch_client()
         self.rules_index = "cs_notification_rules"
-        self.alerts_index = "cs_alerts"  # 변경: cs_notifications → cs_alerts
+        self.alerts_index = "cs_alerts"
 
     # --- Notification Rules ---
 
@@ -204,9 +204,10 @@ class NotificationRepository:
         limit: int = 100,
         query: Optional[str] = None,
         from_date: Optional[str] = None,
-        to_date: Optional[str] = None
+        to_date: Optional[str] = None,
+        user_role: Optional[str] = None
     ) -> Tuple[int, List[Dict[str, Any]]]:
-        """cs_alerts 인덱스에서 알림 내역 조회 with 검색 및 시간 범위 필터"""
+        """cs_alerts 인덱스에서 알림 내역 조회 with 검색, 시간 범위 및 role 기반 필터"""
         loop = asyncio.get_event_loop()
 
         def search():
@@ -249,6 +250,14 @@ class NotificationRepository:
                     range_filter["range"]["created_at"]["lte"] = to_date
                 must_clauses.append(range_filter)
 
+            # role 기반 필터링 (receiver.values 배열에 user_role이 포함된 알림만 조회)
+            if user_role:
+                must_clauses.append({
+                    "term": {
+                        "receiver.values": user_role
+                    }
+                })
+
             # 최종 쿼리 구성
             if must_clauses:
                 search_query = {
@@ -281,7 +290,8 @@ class NotificationRepository:
         limit: int = 100,
         query: Optional[str] = None,
         from_date: Optional[str] = None,
-        to_date: Optional[str] = None
+        to_date: Optional[str] = None,
+        user_role: Optional[str] = None
     ) -> Tuple[int, List[Dict[str, Any]]]:
         """하위 호환성을 위한 별칭 (list_alerts 호출)"""
-        return await self.list_alerts(skip, limit, query, from_date, to_date)
+        return await self.list_alerts(skip, limit, query, from_date, to_date, user_role)

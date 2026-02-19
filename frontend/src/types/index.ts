@@ -88,29 +88,6 @@ export interface LogStreamResponse {
 }
 
 
-// 알림 채널 설정
-export interface WebhookConfig {
-  url: string;
-  method: string;
-  headers: Record<string, string>;
-}
-
-export interface SlackConfig {
-  channel: string;
-  webhook_url: string;
-}
-
-export interface EmailConfig {
-  recipients: string[];
-  subject_template?: string;
-}
-
-export interface NotificationChannels {
-  webhooks: WebhookConfig[];
-  slack: SlackConfig[];
-  email: EmailConfig[];
-}
-
 // 알림 규칙
 export interface NotificationRule {
   id: string;
@@ -125,7 +102,6 @@ export interface NotificationRule {
   window_min: number;
   dedup_ttl_min: number;
   dedup_key_template: string;
-  channels: NotificationChannels;
   receiver: Record<string, any>;
   is_active: boolean;
   last_run_at?: string;

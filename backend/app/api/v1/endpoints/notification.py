@@ -10,6 +10,8 @@ from app.schemas.notification import (
     NotificationResponse,
     NotificationListResponse
 )
+from app.api.v1.deps import get_current_active_user
+from app.schemas.user import UserResponse
 
 router = APIRouter()
 service = NotificationService()
@@ -76,13 +78,16 @@ async def list_notifications(
     limit: int = Query(100, ge=1, le=1000),
     query: Optional[str] = Query(None, description="제목/설명 검색"),
     from_date: Optional[str] = Query(None, description="시작 날짜 (ISO 8601)"),
-    to_date: Optional[str] = Query(None, description="종료 날짜 (ISO 8601)")
+    to_date: Optional[str] = Query(None, description="종료 날짜 (ISO 8601)"),
+    current_user: UserResponse = Depends(get_current_active_user)
 ):
+    """현재 사용자의 role에 맞는 알림만 조회"""
     total, notifications = await service.list_notifications(
         skip=skip,
         limit=limit,
         query=query,
         from_date=from_date,
-        to_date=to_date
+        to_date=to_date,
+        user_role=current_user.role
     )
     return {"total": total, "items": notifications}

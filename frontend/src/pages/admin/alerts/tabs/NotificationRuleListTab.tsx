@@ -45,7 +45,6 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   window_min: 1,
   dedup_ttl_min: 10,
   dedup_key_template: '{{rule_id}}',
-  channels: { webhooks: [], slack: [], email: [] },
   receiver: { type: 'role', values: [] },
   is_active: true
 };
