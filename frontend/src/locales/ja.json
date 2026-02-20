@@ -223,5 +223,6 @@
   "originalDocument": "元のDocument",
   "noEventSourceData": "イベントソースデータが見つかりません。",
   "triggeredRule": "発生ルール",
-  "alertMessage": "アラートメッセージ"
+  "alertMessage": "アラートメッセージ",
+  "all": "全体"
 }

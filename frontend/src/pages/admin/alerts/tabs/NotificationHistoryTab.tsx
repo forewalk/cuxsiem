@@ -218,7 +218,7 @@ const NotificationHistoryTab: React.FC = () => {
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
 
   // 시간 범위 상태
-  const [fromValue, setFromValue] = useState<number | null>(15);
+  const [fromValue, setFromValue] = useState<number | null>(null);
   const [fromUnit, setFromUnit] = useState<string>("m");
   const [toValue, setToValue] = useState<number | null>(null);
   const [toUnit, setToUnit] = useState<string>("m");

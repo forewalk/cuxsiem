@@ -223,5 +223,6 @@
   "originalDocument": "原始Document",
   "noEventSourceData": "未找到事件源数据。",
   "triggeredRule": "触发规则",
-  "alertMessage": "警报消息"
+  "alertMessage": "警报消息",
+  "all": "全部"
 }

@@ -56,7 +56,7 @@ export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackb
           open={true}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           sx={{ 
-            mb: 2 + (index * 9), // 각 Snackbar를 위로 쌓기 (9rem = Alert 높이 + 여백)
+            mb: 2 + (index * 9),
             mr: 2,
           }}
         >

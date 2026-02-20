@@ -222,5 +222,6 @@
   "originalDocument": "원본 Document",
   "noEventSourceData": "원본 이벤트 데이터를 찾을 수 없습니다.",
   "triggeredRule": "발생 규칙",
-  "alertMessage": "알림 메시지"
+  "alertMessage": "알림 메시지",
+  "all": "전체"
 }

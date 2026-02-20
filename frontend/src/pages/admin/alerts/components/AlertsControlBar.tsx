@@ -211,6 +211,7 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
   const formatPoint = (val: number | null, unit: string, date: string | null, isTo: boolean) => {
     if (isTo && val === null && date === null) return t('now');
     if (date) return dayjs(date).locale(language).format("MMM D, YYYY @ HH:mm");
+    if (val === null) return t('all');
     return `~ ${val} ${unitTextMap[unit]}`;
   };
 
