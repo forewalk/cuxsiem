@@ -22,7 +22,7 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean) => {
     open: false,
     title: '',
     message: '',
-    severity: 'info',
+    severity: '',
     alertId: ''
   });
 
@@ -55,7 +55,7 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean) => {
           setSnackbar({
             open: true,
             title: latestAlert.rule_name || latestAlert.title || 'New Alert',
-            message: latestAlert.message || '',
+            message: (latestAlert.message || '').split('\n')[0],  // 첫 번째 줄만 추출
             severity: latestAlert.severity || latestAlert.rule_severity || 'info',
             alertId: latestAlert.id
           });

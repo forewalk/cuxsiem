@@ -11,11 +11,11 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
-import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
-import { ThemeProvider, createTheme, CssBaseline, useMediaQuery, Snackbar, Alert } from "@mui/material";
+import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from "@mui/material";
 import { useAuth } from "./hooks/useAuth";
 import { useLanguageStore } from "./stores/useLanguageStore";
 import { useGlobalAlertNotification } from "./hooks/useGlobalAlertNotification";
+import { GlobalAlertSnackbar } from "./pages/admin/alerts/components";
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "./locales/ko.json";
@@ -233,51 +233,7 @@ function App() {
         </Box>
 
         {/* 전역 알림 스낵바 (모든 페이지에서 표시) */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={5000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          sx={{ mb: 2, mr: 2 }}
-        >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={
-              snackbar.severity === 'critical' || snackbar.severity === 'high' 
-                ? 'error' 
-                : snackbar.severity === 'medium' 
-                  ? 'warning' 
-                  : snackbar.severity === 'low' 
-                    ? 'info' 
-                    : 'info'
-            }
-            variant="filled"
-            icon={<NotificationsActiveIcon />}
-            sx={{ 
-              width: '100%', 
-              minWidth: 320,
-              maxWidth: 500,
-              boxShadow: 6,
-              '& .MuiAlert-message': {
-                width: '100%'
-              }
-            }}
-          >
-            <Box>
-              <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold', opacity: 0.95, mb: 0.5 }}>
-                🔔 {snackbar.severity.toUpperCase()} ALERT
-              </Typography>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                {snackbar.title}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.85rem' }}>
-                {snackbar.message.length > 100 
-                  ? `${snackbar.message.substring(0, 100)}...` 
-                  : snackbar.message}
-              </Typography>
-            </Box>
-          </Alert>
-        </Snackbar>
+        <GlobalAlertSnackbar snackbar={snackbar} onClose={handleCloseSnackbar} />
       </Box>
     </ThemeProvider>
   );
