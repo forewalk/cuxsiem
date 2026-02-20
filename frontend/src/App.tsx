@@ -50,9 +50,9 @@ function App() {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // 전역 알림 시스템 (WebSocket 기반)
+  // 전역 알림 시스템 (WebSocket 기반 - 다중 Snackbar)
   const token = authService.getToken();
-  const { snackbar, handleCloseSnackbar, isConnected } = useGlobalAlertNotification(!!user, token);
+  const { snackbars, handleCloseSnackbar, isConnected } = useGlobalAlertNotification(!!user, token);
 
   const theme = useMemo(() => createTheme({
     palette: {
@@ -234,8 +234,8 @@ function App() {
           </Box>
         </Box>
 
-        {/* 전역 알림 스낵바 (모든 페이지에서 표시) */}
-        <GlobalAlertSnackbar snackbar={snackbar} onClose={handleCloseSnackbar} />
+        {/* 전역 알림 스낵바 (다중 표시) */}
+        <GlobalAlertSnackbar snackbars={snackbars} onClose={handleCloseSnackbar} />
       </Box>
     </ThemeProvider>
   );
