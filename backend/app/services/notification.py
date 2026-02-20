@@ -6,6 +6,7 @@ import re
 
 from app.repositories.notification import NotificationRepository
 from app.schemas.notification import NotificationRuleBase, NotificationRuleUpdate
+from app.core.websocket import manager
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +245,44 @@ class NotificationService:
 
                 # 터미널에서 즉시 확인할 수 있도록 출력
                 print(f"\n{'='*50}\n[ALERT DETECTED] {created_alert['rule_name']}\nMessage: {created_alert['message']}\nEvent: {event_index}/{event_ref}\n{'='*50}\n")
+
+                # WebSocket으로 실시간 알림 전송
+                try:
+                    receiver_values = rule.get("receiver", {}).get("values", [])
+                    if receiver_values:
+                        # 수신자 역할에 따라 전송
+                        await manager.send_to_roles(
+                            roles=receiver_values,
+                            message={
+                                "type": "new_alert",
+                                "data": {
+                                    "id": created_alert["id"],
+                                    "rule_name": created_alert["rule_name"],
+                                    "message": created_alert["message"],
+                                    "severity": created_alert["severity"],
+                                    "rule_severity": created_alert["rule_severity"],
+                                    "created_at": created_alert["created_at"]
+                                }
+                            }
+                        )
+                        logger.info(f"WebSocket alert sent to roles: {receiver_values}")
+                    else:
+                        # 수신자 없으면 모든 연결에 브로드캐스트
+                        await manager.broadcast({
+                            "type": "new_alert",
+                            "data": {
+                                "id": created_alert["id"],
+                                "rule_name": created_alert["rule_name"],
+                                "message": created_alert["message"],
+                                "severity": created_alert["severity"],
+                                "rule_severity": created_alert["rule_severity"],
+                                "created_at": created_alert["created_at"]
+                            }
+                        })
+                        logger.info("WebSocket alert broadcasted to all users")
+                except Exception as ws_error:
+                    logger.error(f"Failed to send WebSocket alert: {ws_error}")
+                    # WebSocket 실패해도 알림 생성은 계속 진행
 
                 await self.repository.update_rule(rule_id, {
                     "last_triggered_at": now.isoformat(),

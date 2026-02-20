@@ -16,6 +16,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useLanguageStore } from "./stores/useLanguageStore";
 import { useGlobalAlertNotification } from "./hooks/useGlobalAlertNotification";
 import { GlobalAlertSnackbar } from "./pages/admin/alerts/components";
+import { authService } from "./services/authService";
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "./locales/ko.json";
@@ -49,8 +50,9 @@ function App() {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // 전역 알림 시스템
-  const { snackbar, handleCloseSnackbar } = useGlobalAlertNotification(!!user);
+  // 전역 알림 시스템 (WebSocket 기반)
+  const token = authService.getToken();
+  const { snackbar, handleCloseSnackbar, isConnected } = useGlobalAlertNotification(!!user, token);
 
   const theme = useMemo(() => createTheme({
     palette: {

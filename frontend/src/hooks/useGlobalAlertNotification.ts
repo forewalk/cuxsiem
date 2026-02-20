@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { notificationService } from '../services/notificationService';
+import { useState, useCallback, useMemo } from 'react';
+import { useWebSocket } from './useWebSocket';
 
 interface AlertSnackbar {
   open: boolean;
@@ -9,15 +9,15 @@ interface AlertSnackbar {
   alertId: string;
 }
 
-const POLL_INTERVAL = 10000; // 10초
-
 /**
- * 전역 알림 감지 훅
- * - 백그라운드에서 주기적으로 신규 알림 폴링
+ * 전역 알림 감지 훅 (WebSocket 기반)
+ * 
+ * - WebSocket을 통한 실시간 알림 수신
  * - 역할 기반 필터링 자동 적용 (백엔드에서 처리)
+ * - 자동 재연결
  * - 모든 페이지에서 사용 가능
  */
-export const useGlobalAlertNotification = (isAuthenticated: boolean) => {
+export const useGlobalAlertNotification = (isAuthenticated: boolean, token: string | null) => {
   const [snackbar, setSnackbar] = useState<AlertSnackbar>({
     open: false,
     title: '',
@@ -26,67 +26,36 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean) => {
     alertId: ''
   });
 
-  const lastAlertIdRef = useRef<string | null>(null);
-  const isFirstLoadRef = useRef(true);
+  // WebSocket URL 생성
+  const wsUrl = useMemo(() => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    // http(s)://host:port -> ws(s)://host:port
+    const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
+    return `${wsBaseUrl}/api/v1/ws/alerts`;
+  }, []);
 
-  const checkForNewAlerts = useCallback(async () => {
-    if (!isAuthenticated) return;
-
-    try {
-      // 최신 알림 1개만 조회
-      const response = await notificationService.getNotifications({
-        skip: 0,
-        limit: 1,
-        // 역할 기반 필터링은 백엔드에서 자동 처리됨
+  // WebSocket 메시지 핸들러
+  const handleMessage = useCallback((data: any) => {
+    if (data.type === 'new_alert' && data.data) {
+      const alert = data.data;
+      console.log('🔔 New alert received:', alert.rule_name);
+      
+      setSnackbar({
+        open: true,
+        title: alert.rule_name || 'New Alert',
+        message: (alert.message || '').split('\n')[0],  // 첫 번째 줄만 추출
+        severity: alert.severity || alert.rule_severity || 'info',
+        alertId: alert.id
       });
-
-      if (response.items.length > 0) {
-        const latestAlert = response.items[0];
-
-        // 첫 로드 시에는 스낵바를 띄우지 않음 (현재 상태만 저장)
-        if (isFirstLoadRef.current) {
-          lastAlertIdRef.current = latestAlert.id;
-          isFirstLoadRef.current = false;
-          return;
-        }
-
-        // 신규 알림 감지
-        if (lastAlertIdRef.current && latestAlert.id !== lastAlertIdRef.current) {
-          setSnackbar({
-            open: true,
-            title: latestAlert.rule_name || latestAlert.title || 'New Alert',
-            message: (latestAlert.message || '').split('\n')[0],  // 첫 번째 줄만 추출
-            severity: latestAlert.severity || latestAlert.rule_severity || 'info',
-            alertId: latestAlert.id
-          });
-
-          lastAlertIdRef.current = latestAlert.id;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to check for new alerts:', error);
     }
-  }, [isAuthenticated]);
+  }, []);
 
-  // 주기적 폴링
-  useEffect(() => {
-    if (!isAuthenticated) {
-      // 로그아웃 시 초기화
-      isFirstLoadRef.current = true;
-      lastAlertIdRef.current = null;
-      return;
-    }
-
-    // 즉시 한 번 실행
-    checkForNewAlerts();
-
-    // 주기적 폴링 시작
-    const intervalId = setInterval(checkForNewAlerts, POLL_INTERVAL);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [isAuthenticated, checkForNewAlerts]);
+  // WebSocket 연결 (인증된 경우에만)
+  const { isConnected } = useWebSocket({
+    url: wsUrl,
+    token: isAuthenticated ? token : null,
+    onMessage: handleMessage
+  });
 
   const handleCloseSnackbar = useCallback(() => {
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -94,6 +63,7 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean) => {
 
   return {
     snackbar,
-    handleCloseSnackbar
+    handleCloseSnackbar,
+    isConnected  // WebSocket 연결 상태도 반환
   };
 };
