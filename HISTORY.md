@@ -107,6 +107,7 @@
 | 2026-01-29 21:41 | 김장훈 | 수정 | GEMINI.md CLAUDE.md와 동기화 (MUI/i18n/테마/모달 반영) |
 | 2026-01-29 21:41 | 김장훈 | 추가 | docs/figma/resolver/ 어택라인, 프로세스트리 디자인 파일 |
 | 2026-01-29 21:41 | 김장훈 | 배포 | origin/develop push (ROADMAP, figma 디자인, CLAUDE.md/GEMINI.md 동기화) |
+| 2026-02-23 18:20 | Gemini | 수정 | 로그 스트리밍 UI 레이아웃 최적화 (너비 고정 및 메시지 5줄 제한) |
 | 2026-01-29 20:48 | 김장훈 | 추가 | .gitattributes, .editorconfig LF 개행 통일 및 OS간 빌드 오류 방지 |
 | 2026-01-29 20:48 | 김장훈 | 배포 | origin/develop push (.gitattributes, .editorconfig) |
 | 2026-01-29 17:40 | 김장훈 | 배포 | origin/develop push (백엔드/프론트엔드 구조, 문서 갱신, README) |

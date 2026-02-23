@@ -278,7 +278,7 @@ const LogStreamingTab: React.FC = () => {
                 fontWeight: 'bold', 
                 color: 'text.secondary',
                 flexShrink: 0,
-                width: field === 'timestamp' ? 240 : field === '_index' ? 150 : 'auto',
+                width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto',
                 flexGrow: field === 'message' ? 1 : 0,
                 minWidth: 0
               }}
@@ -312,7 +312,7 @@ const LogStreamingTab: React.FC = () => {
               <Box 
                 key={log._id} 
                 sx={{ 
-                  py: 0.2,
+                  py: 0.5,
                   borderBottom: '1px solid', 
                   borderColor: 'divider',
                   display: 'flex',
@@ -329,24 +329,27 @@ const LogStreamingTab: React.FC = () => {
                     variant={field === 'message' ? 'body2' : 'caption'}
                     sx={{ 
                       fontFamily: 'monospace', 
-                      fontSize: field === 'message' ? '0.85rem' : field === 'timestamp' ? '0.8rem' : '0.75rem', 
+                      fontSize: field === 'message' ? '0.85rem' : field === 'timestamp' ? '0.7rem' : '0.7rem', 
                       color: field === 'timestamp' ? 'primary.main' : field === '_index' ? 'text.secondary' : 'text.primary',
                       fontWeight: (field === 'timestamp' || field === '_index') ? 'bold' : 'normal',
-                      // 고정 필드는 수축 방지(0), 메시지 필드는 수축 허용(1)
                       flexShrink: field === 'message' ? 1 : 0,
-                      // 메시지 필드는 flexGrow로 남은 공간 차지, 나머지는 고정 너비
-                      width: field === 'timestamp' ? 230 : field === '_index' ? 150 : 'auto',
+                      width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto',
                       flexGrow: field === 'message' ? 1 : 0,
                       minWidth: 0, 
                       wordBreak: 'break-all', 
-                      whiteSpace: field === 'message' ? 'normal' : 'nowrap', 
+                      whiteSpace: field === 'timestamp' ? 'nowrap' : 'normal', 
                       lineHeight: 1.4,
+                      ...(field === 'message' && {
+                        display: '-webkit-box',
+                        WebkitLineClamp: 5,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }),
                       ...(field === '_index' && {
                         bgcolor: 'action.selected',
                         px: 0.5,
                         borderRadius: 0.5,
-                        width: 'fit-content',
-                        minWidth: 142
                       })
                     }}
                   >
