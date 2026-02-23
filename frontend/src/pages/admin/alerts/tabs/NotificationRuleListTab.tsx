@@ -42,7 +42,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   severity: 'info',
   interval_min: 1,
   window_min: 1,
-  dedup_key_template: '{{rule_id}}',
+  dedup_key_template: '{{rule_id}}_{{_id}}',
   receiver: { type: 'role', values: [] },
   is_active: true
 };
