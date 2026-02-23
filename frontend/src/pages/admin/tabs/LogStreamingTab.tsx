@@ -4,7 +4,9 @@ import {
   PlayArrow as PlayArrowIcon,
   DeleteSweep as ClearIcon,
   VerticalAlignBottom as AutoScrollIcon,
-  Terminal as TerminalIcon
+  Terminal as TerminalIcon,
+  Search as DetailIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { 
   Box, Typography, Paper, Stack, Button, IconButton, Tooltip, 
@@ -33,6 +35,7 @@ const LogStreamingTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState('*');
   const [indexOptions, setIndexOptions] = useState<string[]>(['*']);
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const lastTimestampRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -118,23 +121,25 @@ const LogStreamingTab: React.FC = () => {
       let fromTime: string | undefined = undefined;
       let toTime: string | undefined = undefined;
 
+      // 시작 시간 설정
       if (!lastTimestampRef.current) {
         if (fromDate) {
           fromTime = fromDate;
         } else if (fromValue !== null) {
           fromTime = `now-${fromValue}${fromUnit}`;
         }
+      }
 
-        if (toDate) {
-          toTime = toDate;
-        } else if (toValue !== null) {
-          toTime = `now-${toValue}${toUnit}`;
-        }
+      // 종료 시간 설정 (항상 유지)
+      if (toDate) {
+        toTime = toDate;
+      } else if (toValue !== null) {
+        toTime = `now-${toValue}${toUnit}`;
       }
 
       const response = await logService.getLogStream(
         lastTimestampRef.current, 
-        100, 
+        MAX_LOGS, 
         searchQuery, 
         selectedIndex,
         fromTime,
@@ -260,111 +265,180 @@ const LogStreamingTab: React.FC = () => {
         
         <Divider />
 
-        {/* 필드 헤더 영역 */}
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 1, 
-          px: 3, 
-          py: 1, 
-          bgcolor: 'action.selected', 
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          mt: 1,
-          borderRadius: '4px 4px 0 0'
-        }}>
-          {visibleFields.map((field) => (
-            <Typography 
-              key={field} 
-              variant="caption" 
+        <Stack direction="row" sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
+          {/* 로그 리스트 영역 */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {/* 필드 헤더 영역 */}
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 1, 
+              px: 3, 
+              py: 1, 
+              bgcolor: 'action.selected', 
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              mt: 1,
+              borderRadius: '4px 4px 0 0'
+            }}>
+              {visibleFields.map((field) => (
+                <Typography 
+                  key={field} 
+                  variant="caption" 
+                  sx={{ 
+                    fontWeight: 'bold', 
+                    color: 'text.secondary',
+                    flexShrink: 0,
+                    width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto',
+                    flexGrow: field === 'message' ? 1 : 0,
+                    minWidth: 0
+                  }}
+                >
+                  {field.toUpperCase()}
+                </Typography>
+              ))}
+              <Box sx={{ width: 40 }} /> {/* 상세 버튼 공간 확보 */}
+            </Box>
+
+            <Box 
+              ref={scrollRef}
+              onScroll={handleScroll}
               sx={{ 
-                fontWeight: 'bold', 
-                color: 'text.secondary',
-                flexShrink: 0,
-                width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto',
-                flexGrow: field === 'message' ? 1 : 0,
-                minWidth: 0
+                flexGrow: 1, 
+                bgcolor: 'action.hover', 
+                borderRadius: '0 0 4px 4px',
+                p: 1.5, 
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderTop: 'none',
+                // 스크롤바 스타일링
+                '&::-webkit-scrollbar': { width: '8px' },
+                '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: '4px' }
               }}
             >
-              {field.toUpperCase()}
-            </Typography>
-          ))}
-        </Box>
-
-        <Box 
-          ref={scrollRef}
-          onScroll={handleScroll}
-          sx={{ 
-            flexGrow: 1, 
-            bgcolor: 'action.hover', 
-            borderRadius: '0 0 4px 4px',
-            p: 1.5, 
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderTop: 'none',
-            // 스크롤바 스타일링
-            '&::-webkit-scrollbar': { width: '8px' },
-            '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: '4px' }
-          }}
-        >
-          {logs.length === 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1, color: 'text.disabled' }}>
-              {loading ? <CircularProgress size={24} /> : <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('waitingForLogs')}</Typography>}
-            </Box>
-          ) : (
-            logs.map((log) => (
-              <Box 
-                key={log._id} 
-                sx={{ 
-                  py: 0.5,
-                  borderBottom: '1px solid', 
-                  borderColor: 'divider',
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 1,
-                  width: '100%',
-                  '&:last-child': { borderBottom: 'none' },
-                  '&:hover': { bgcolor: 'action.selected' }
-                }}
-              >
-                {visibleFields.map((field) => (
-                  <Typography 
-                    key={field}
-                    variant={field === 'message' ? 'body2' : 'caption'}
+              {logs.length === 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1, color: 'text.disabled' }}>
+                  {loading ? <CircularProgress size={24} /> : <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('waitingForLogs')}</Typography>}
+                </Box>
+              ) : (
+                logs.map((log) => (
+                  <Box 
+                    key={log._id} 
+                    onClick={() => setSelectedLog(selectedLog?._id === log._id ? null : log)}
                     sx={{ 
-                      fontFamily: 'monospace', 
-                      fontSize: field === 'message' ? '0.85rem' : field === 'timestamp' ? '0.7rem' : '0.7rem', 
-                      color: field === 'timestamp' ? 'primary.main' : field === '_index' ? 'text.secondary' : 'text.primary',
-                      fontWeight: (field === 'timestamp' || field === '_index') ? 'bold' : 'normal',
-                      flexShrink: field === 'message' ? 1 : 0,
-                      width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto',
-                      flexGrow: field === 'message' ? 1 : 0,
-                      minWidth: 0, 
-                      wordBreak: 'break-all', 
-                      whiteSpace: field === 'timestamp' ? 'nowrap' : 'normal', 
-                      lineHeight: 1.4,
-                      ...(field === 'message' && {
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }),
-                      ...(field === '_index' && {
-                        bgcolor: 'action.selected',
-                        px: 0.5,
-                        borderRadius: 0.5,
-                      })
+                      py: 0.5,
+                      borderBottom: '1px solid', 
+                      borderColor: 'divider',
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      gap: 1,
+                      width: '100%',
+                      cursor: 'pointer',
+                      bgcolor: selectedLog?._id === log._id ? 'action.selected' : 'transparent',
+                      '&:last-child': { borderBottom: 'none' },
+                      '&:hover': { bgcolor: 'action.selected' }
                     }}
                   >
-                    {renderFieldValue(log, field)}
-                  </Typography>
-                ))}
+                    {visibleFields.map((field) => (
+                      <Typography 
+                        key={field}
+                        variant={field === 'message' ? 'body2' : 'caption'}
+                        sx={{ 
+                          fontFamily: 'monospace', 
+                          fontSize: field === 'message' ? '0.85rem' : field === 'timestamp' ? '0.7rem' : '0.7rem', 
+                          color: field === 'timestamp' ? 'text.primary' : field === '_index' ? 'text.secondary' : 'text.primary',
+                          fontWeight: (field === 'timestamp' || field === '_index') ? 'bold' : 'normal',
+                          flexShrink: field === 'message' ? 1 : 0,
+                          width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto',
+                          flexGrow: field === 'message' ? 1 : 0,
+                          minWidth: 0, 
+                          wordBreak: 'break-all', 
+                          whiteSpace: field === 'timestamp' ? 'nowrap' : 'normal', 
+                          lineHeight: 1.4,
+                          ...(field === 'message' && {
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }),
+                          ...(field === '_index' && {
+                            bgcolor: 'action.selected',
+                            px: 0.5,
+                            borderRadius: 0.5,
+                          })
+                        }}
+                      >
+                        {renderFieldValue(log, field)}
+                      </Typography>
+                    ))}
+                    <Box sx={{ flexShrink: 0, ml: 'auto', display: 'flex', alignItems: 'center' }}>
+                      <Tooltip title="View Detail">
+                        <IconButton 
+                          size="small" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLog(selectedLog?._id === log._id ? null : log);
+                          }}
+                          color={selectedLog?._id === log._id ? "primary" : "default"}
+                        >
+                          <DetailIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                ))
+              )}
+            </Box>
+          </Box>
+
+          {/* 로그 상세 정보 패널 (JSON View) */}
+          {selectedLog && (
+            <Box sx={{ 
+              width: { xs: '100%', md: '45%' }, 
+              ml: 1, 
+              display: 'flex', 
+              flexDirection: 'column',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              bgcolor: 'background.paper',
+              mt: 1
+            }}>
+              <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'action.selected', borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <DetailIcon fontSize="small" color="primary" />
+                  Log Details
+                </Typography>
+                <IconButton size="small" onClick={() => setSelectedLog(null)}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
               </Box>
-            ))
+              <Box sx={{ 
+                p: 2, 
+                flexGrow: 1, 
+                overflow: 'auto', 
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', 
+                color: 'text.primary', 
+                borderRadius: '0 0 4px 4px',
+                borderTop: '1px solid',
+                borderColor: 'divider'
+              }}>
+                <pre style={{ 
+                  margin: 0, 
+                  fontFamily: 'monospace', 
+                  fontSize: '0.8rem', 
+                  whiteSpace: 'pre-wrap', 
+                  wordBreak: 'break-all',
+                  color: 'inherit'
+                }}>
+                  {JSON.stringify((selectedLog as any)._source || selectedLog, null, 2)}
+                </pre>
+              </Box>
+            </Box>
           )}
-        </Box>
+        </Stack>
       </Paper>
     </Box>
   );

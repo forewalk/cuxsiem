@@ -86,15 +86,19 @@ async def stream_logs(
 
     # 타임스탬프 범위 처리
     range_query = {}
+    
+    # 시작 시간 설정 (last_timestamp 우선, 없으면 from_time)
     if last_timestamp:
         range_query["gt"] = last_timestamp
-    elif from_time or to_time:
-        if from_time:
-            range_query["gte"] = from_time
-        if to_time:
-            range_query["lte"] = to_time
-    elif not last_timestamp:
+    elif from_time:
+        range_query["gte"] = from_time
+    else:
+        # 기본값: 최근 15분
         range_query["gte"] = "now-15m"
+
+    # 종료 시간 설정 (to_time이 있으면 반드시 준수)
+    if to_time:
+        range_query["lte"] = to_time
 
     if range_query:
         # @timestamp와 timestamp 두 가지 가능성을 모두 고려한 필터링
