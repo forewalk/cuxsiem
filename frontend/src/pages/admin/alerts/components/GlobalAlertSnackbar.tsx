@@ -56,7 +56,7 @@ export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackb
           open={true}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           sx={{ 
-            mb: 2 + (index * 9),
+            mb: 2 + (index * 13.75),
             mr: 2,
           }}
         >
@@ -66,23 +66,49 @@ export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackb
             variant="filled"
             icon={<NotificationsActiveIcon />}
             sx={{ 
-              width: '100%', 
-              minWidth: 320,
-              maxWidth: 500,
+              width: '400px',
+              minHeight: '100px',
+              maxHeight: '100px',
               boxShadow: 6,
               '& .MuiAlert-message': {
-                width: '100%'
+                width: '100%',
+                overflow: 'hidden'
               }
             }}
           >
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              overflow: 'hidden',
+              height: '100%',
+              justifyContent: 'center'
+            }}>
+              <Typography 
+                variant="subtitle2" 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: 0.5,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
                 {snackbar.title}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.85rem' }}>
-                {snackbar.message.length > 100 
-                  ? `${snackbar.message.substring(0, 100)}...` 
-                  : snackbar.message}
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  opacity: 0.9, 
+                  fontSize: '0.85rem',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  lineHeight: 1.4
+                }}
+              >
+                {snackbar.message}
               </Typography>
             </Box>
           </Alert>
