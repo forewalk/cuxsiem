@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
-  Box, Typography, Paper, Stack, Button, IconButton, Tooltip, 
-  Divider, LinearProgress, CircularProgress, Chip
-} from '@mui/material';
-import { 
   Pause as PauseIcon, 
   PlayArrow as PlayArrowIcon,
   DeleteSweep as ClearIcon,
   VerticalAlignBottom as AutoScrollIcon,
   Terminal as TerminalIcon
 } from '@mui/icons-material';
+import { 
+  Box, Typography, Paper, Stack, Button, IconButton, Tooltip, 
+  Divider, LinearProgress, CircularProgress, Chip
+} from '@mui/material';
 import ControlBar from "../../dashboard/components/ControlBar";
 import { logService } from '../../../services/logService';
 import { useLanguageStore } from "../../../stores/useLanguageStore";
@@ -80,16 +80,19 @@ const LogStreamingTab: React.FC = () => {
   };
 
   const fetchLogs = useCallback(async (isManualRefresh = false) => {
-    // 탭이 활성화되지 않았거나 일시 중지 상태이면 (수동 새로고침이 아닌 경우) 중단
+    // 탭이 활성화되지 않았거나 일시 중지 상태이면 (수동 새로고침이나 초기화가 아닌 경우) 중단
     if ((!isActive || isPaused) && !isManualRefresh) return;
 
     try {
       if (isManualRefresh) setLoading(true);
       
-      const response = await logService.getLogStream(lastTimestampRef.current);
+      const response = await logService.getLogStream(lastTimestampRef.current, 100, searchQuery);
       
       if (response.logs.length > 0) {
         setLogs(prevLogs => {
+          // 검색어가 있는 상태에서 새로 조회를 시작하는 경우(lastTimestamp가 없는 경우)는 기존 로그 무시
+          if (!lastTimestampRef.current) return response.logs.slice(-MAX_LOGS);
+
           const newLogs = response.logs.filter(
             newLog => !prevLogs.some(prevLog => prevLog._id === newLog._id)
           );
@@ -106,16 +109,22 @@ const LogStreamingTab: React.FC = () => {
     } finally {
       if (isManualRefresh) setLoading(false);
     }
-  }, [isActive, isPaused]);
+  }, [isActive, isPaused, searchQuery]);
+
+  // 검색어가 변경되면 로그를 비우고 다시 조회를 시작함
+  useEffect(() => {
+    if (isActive) {
+      setLogs([]);
+      lastTimestampRef.current = null;
+      fetchLogs(true);
+    }
+  }, [searchQuery, isActive]);
 
   useEffect(() => {
-    // 탭이 활성화될 때 한 번 즉시 호출
-    if (isActive) {
-      fetchLogs();
-    }
+    // 탭이 활성화될 때 한 번 즉시 호출 (searchQuery useEffect가 처리하므로 중복 방지 필요)
     const timer = setInterval(() => fetchLogs(), POLL_INTERVAL);
     return () => clearInterval(timer);
-  }, [fetchLogs, isActive]);
+  }, [fetchLogs]);
 
   useEffect(() => {
     if (autoScroll && scrollRef.current && isActive) {

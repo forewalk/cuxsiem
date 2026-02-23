@@ -10,6 +10,7 @@ router = APIRouter(prefix="/logs", tags=["logs"])
 @router.get("/stream", response_model=LogStreamResponse, response_model_by_alias=True)
 async def stream_logs(
     last_timestamp: Optional[str] = Query(None, description="마지막 로그의 타임스탬프 (ISO 형식)"),
+    q: Optional[str] = Query(None, description="검색어 (Lucene 쿼리 문법 지원)"),
     limit: int = Query(100, ge=1, le=1000, description="최대 조회 개수"),
     current_user: UserResponse = Depends(get_current_active_user),
     os_client=Depends(get_opensearch)
@@ -19,26 +20,35 @@ async def stream_logs(
     last_timestamp가 제공되면 해당 시간 이후의 로그만 조회합니다.
     """
     
+    must_queries = [{"exists": {"field": "timestamp"}}]
+
+    # 검색어 처리 (query_string 사용으로 유연한 검색 지원)
+    if q:
+        must_queries.append({
+            "query_string": {
+                "query": q,
+                "default_field": "message"
+            }
+        })
+
+    # 타임스탬프 범위 처리
+    range_query = {}
+    if last_timestamp:
+        # 실시간 스트리밍 모드: 마지막 시간 이후만 조회
+        range_query["gt"] = last_timestamp
+    
+    if range_query:
+        must_queries.append({"range": {"timestamp": range_query}})
+
     query = {
         "size": limit,
         "sort": [{"timestamp": {"order": "desc"}}],
         "query": {
             "bool": {
-                "must": [
-                    {"exists": {"field": "timestamp"}}  # timestamp 필드가 있는 문서만 조회
-                ]
+                "must": must_queries
             }
         }
     }
-
-    if last_timestamp:
-        query["query"]["bool"]["must"].append({
-            "range": {
-                "timestamp": {
-                    "gt": last_timestamp
-                }
-            }
-        })
 
     # 'activities' 인덱스를 우선적으로 보되, 와일드카드를 사용하여 유연하게 대응
     index_name = "activities*"
