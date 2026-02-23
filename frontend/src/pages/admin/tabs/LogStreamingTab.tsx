@@ -211,7 +211,7 @@ const LogStreamingTab: React.FC = () => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', p: 3, gap: 1 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
       
       <ControlBar 
@@ -226,8 +226,8 @@ const LogStreamingTab: React.FC = () => {
         onIndexChange={setSelectedIndex}
       />
 
-      <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+      <Paper elevation={1} sx={{ p: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <TerminalIcon color="primary" />
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('logStreaming')}</Typography>
@@ -295,12 +295,15 @@ const LogStreamingTab: React.FC = () => {
             flexGrow: 1, 
             bgcolor: 'action.hover', 
             borderRadius: '0 0 4px 4px',
-            p: 2, 
+            p: 1.5, 
             overflowY: 'auto',
-            overflowX: 'hidden', // 가로 스크롤 방지
+            overflowX: 'hidden',
             border: '1px solid',
             borderColor: 'divider',
-            borderTop: 'none'
+            borderTop: 'none',
+            // 스크롤바 스타일링
+            '&::-webkit-scrollbar': { width: '8px' },
+            '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: '4px' }
           }}
         >
           {logs.length === 0 ? (
@@ -341,7 +344,7 @@ const LogStreamingTab: React.FC = () => {
                       lineHeight: 1.4,
                       ...(field === 'message' && {
                         display: '-webkit-box',
-                        WebkitLineClamp: 5,
+                        WebkitLineClamp: 3,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis'
