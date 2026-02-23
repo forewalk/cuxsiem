@@ -179,7 +179,7 @@ const NotificationRow: React.FC<{
                       p: 2,
                       borderRadius: 1,
                       overflow: 'auto',
-                      height: 400,
+                      maxHeight: 457,
                       fontFamily: '"Fira Code", "Cascadia Code", monospace',
                       fontSize: '0.8rem',
                       lineHeight: 1.5,
