@@ -31,11 +31,37 @@ const LogStreamingTab: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState('activities*');
+  const [indexOptions, setIndexOptions] = useState<string[]>([]);
   const lastTimestampRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { activeTabId } = useTabStore();
   const isActive = activeTabId === 'LogStreamingTab';
+
+  // 인덱스 목록 동적 로드
+  useEffect(() => {
+    const fetchIndices = async () => {
+      try {
+        const response = await logService.getIndices();
+        setIndexOptions(response.indices);
+        
+        // 현재 선택된 인덱스가 목록에 없으면 첫 번째 인덱스로 설정
+        if (response.indices.length > 0 && !response.indices.includes(selectedIndex)) {
+          // activities* 가 포함되어 있다면 우선순위 유지
+          const defaultIndex = response.indices.find(idx => idx.startsWith('activities')) || response.indices[0];
+          setSelectedIndex(defaultIndex);
+        }
+      } catch (error) {
+        console.error('Failed to fetch indices:', error);
+        setIndexOptions(['activities*']);
+      }
+    };
+
+    if (isActive) {
+      fetchIndices();
+    }
+  }, [isActive]);
 
   // ControlBar states
   const [fromValue, setFromValue] = useState<number | null>(15);
@@ -86,11 +112,11 @@ const LogStreamingTab: React.FC = () => {
     try {
       if (isManualRefresh) setLoading(true);
       
-      const response = await logService.getLogStream(lastTimestampRef.current, 100, searchQuery);
+      const response = await logService.getLogStream(lastTimestampRef.current, 100, searchQuery, selectedIndex);
       
       if (response.logs.length > 0) {
         setLogs(prevLogs => {
-          // 검색어가 있는 상태에서 새로 조회를 시작하는 경우(lastTimestamp가 없는 경우)는 기존 로그 무시
+          // 검색어/인덱스가 있는 상태에서 새로 조회를 시작하는 경우(lastTimestamp가 없는 경우)는 기존 로그 무시
           if (!lastTimestampRef.current) return response.logs.slice(-MAX_LOGS);
 
           const newLogs = response.logs.filter(
@@ -109,16 +135,16 @@ const LogStreamingTab: React.FC = () => {
     } finally {
       if (isManualRefresh) setLoading(false);
     }
-  }, [isActive, isPaused, searchQuery]);
+  }, [isActive, isPaused, searchQuery, selectedIndex]);
 
-  // 검색어가 변경되면 로그를 비우고 다시 조회를 시작함
+  // 검색어 또는 인덱스가 변경되면 로그를 비우고 다시 조회를 시작함
   useEffect(() => {
     if (isActive) {
       setLogs([]);
       lastTimestampRef.current = null;
       fetchLogs(true);
     }
-  }, [searchQuery, isActive]);
+  }, [searchQuery, selectedIndex, isActive]);
 
   useEffect(() => {
     // 탭이 활성화될 때 한 번 즉시 호출 (searchQuery useEffect가 처리하므로 중복 방지 필요)
@@ -170,6 +196,9 @@ const LogStreamingTab: React.FC = () => {
         fromDate={fromDate} toDate={toDate}
         onTimeChange={handleTimeChange}
         searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={() => fetchLogs(true)}
+        indexOptions={indexOptions}
+        selectedIndex={selectedIndex}
+        onIndexChange={setSelectedIndex}
       />
 
       <Paper elevation={1} sx={{ p: 3, height: 'calc(100% - 100px)', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>

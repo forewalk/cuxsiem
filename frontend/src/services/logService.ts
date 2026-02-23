@@ -1,7 +1,15 @@
 import api from "./api";
-import type { LogStreamResponse } from "../types";
+import type { LogStreamResponse, IndexListResponse } from "../types";
 
 export const logService = {
+  /**
+   * 사용 가능한 인덱스 목록을 조회합니다.
+   */
+  getIndices: async (): Promise<IndexListResponse> => {
+    const response = await api.get<IndexListResponse>("/api/v1/logs/indices");
+    return response.data;
+  },
+
   /**
    * 실시간 로그 스트리밍 데이터를 조회합니다.
    * @param lastTimestamp 마지막으로 확인된 로그의 타임스탬프
@@ -10,7 +18,8 @@ export const logService = {
   getLogStream: async (
     lastTimestamp?: string | null, 
     limit: number = 100,
-    q?: string
+    q?: string,
+    index: string = "activities*"
   ): Promise<LogStreamResponse> => {
     const params = new URLSearchParams();
     if (lastTimestamp) {
@@ -19,6 +28,7 @@ export const logService = {
     if (q) {
       params.append("q", q);
     }
+    params.append("index", index);
     params.append("limit", limit.toString());
 
     const response = await api.get<LogStreamResponse>(`/api/v1/logs/stream?${params.toString()}`);

@@ -1,22 +1,54 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from app.core.opensearch import get_opensearch
-from app.schemas.log import LogStreamResponse
+from app.schemas.log import LogStreamResponse, IndexListResponse
 from app.api.v1.deps import get_current_active_user
 from app.schemas.user import UserResponse
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
+@router.get("/indices", response_model=IndexListResponse)
+async def get_indices(
+    current_user: UserResponse = Depends(get_current_active_user),
+    os_client=Depends(get_opensearch)
+):
+    """
+    사용 가능한 OpenSearch 인덱스 목록을 조회합니다.
+    시스템 인덱스(.)를 제외하고 반환합니다.
+    """
+    try:
+        # 인덱스 목록 조회
+        response = os_client.cat.indices(format="json")
+        
+        # 시스템 인덱스(.) 및 내부용 인덱스 제외 필터링
+        indices = [
+            item["index"] for item in response 
+            if not item["index"].startswith(".") 
+            and not item["index"].startswith("security-auditlog")
+        ]
+        
+        # 중복 제거 및 정렬
+        unique_indices = sorted(list(set(indices)))
+        
+        # activities* 패턴이 목록에 없다면 수동 추가 (기본 인덱스 보장)
+        if not any(idx.startswith("activities") for idx in unique_indices):
+            unique_indices.insert(0, "activities*")
+
+        return {"indices": unique_indices}
+    except Exception as e:
+        return {"indices": ["activities*"]}
+
 @router.get("/stream", response_model=LogStreamResponse, response_model_by_alias=True)
 async def stream_logs(
     last_timestamp: Optional[str] = Query(None, description="마지막 로그의 타임스탬프 (ISO 형식)"),
+    index: str = Query("activities*", description="조회할 인덱스명 또는 와일드카드"),
     q: Optional[str] = Query(None, description="검색어 (Lucene 쿼리 문법 지원)"),
     limit: int = Query(100, ge=1, le=1000, description="최대 조회 개수"),
     current_user: UserResponse = Depends(get_current_active_user),
     os_client=Depends(get_opensearch)
 ):
     """
-    OpenSearch 'activities' 인덱스에서 최신 로그를 조회합니다.
+    OpenSearch 인덱스에서 최신 로그를 조회합니다.
     last_timestamp가 제공되면 해당 시간 이후의 로그만 조회합니다.
     """
     
@@ -50,11 +82,8 @@ async def stream_logs(
         }
     }
 
-    # 'activities' 인덱스를 우선적으로 보되, 와일드카드를 사용하여 유연하게 대응
-    index_name = "activities*"
-    
     try:
-        response = os_client.search(index=index_name, body=query)
+        response = os_client.search(index=index, body=query)
         hits = response.get("hits", {}).get("hits", [])
     except Exception as e:
         # 인덱스가 없거나 검색 오류 시 빈 리스트 반환

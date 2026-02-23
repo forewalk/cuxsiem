@@ -87,6 +87,11 @@ export interface LogStreamResponse {
   last_timestamp: string;
 }
 
+export interface IndexListResponse {
+  indices: string[];
+}
+
+
 
 // 알림 채널 설정
 export interface WebhookConfig {
