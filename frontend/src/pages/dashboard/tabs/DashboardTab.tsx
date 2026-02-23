@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Box, Paper, Typography, Alert, LinearProgress, Divider } from "@mui/material";
 import ControlBar from "../components/ControlBar";
-import BarChartWidget from "../components/BarChartWidget";
 import PieChartWidget from "../components/PieChartWidget";
 import CategoryBarChartWidget from "../components/CategoryBarChartWidget";
 import { getDashboardStats } from "../../../services/dashboardService";
@@ -110,10 +109,6 @@ const DashboardTab: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleBarClick = (startTime: string, endTime: string) => {
-    handleTimeChange(null, "m", null, "m", startTime, endTime);
-  };
-
   const StatPanel = ({ title, value, color }: { title: string, value: number, color?: string }) => (
     <Paper elevation={1} sx={{ p: { xs: 0.75, sm: 1.5, md: 2 }, height: { xs: 90, sm: 120, md: 140 }, display: 'flex', flexDirection: 'column', borderRadius: 1.5 }}>
       <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', mb: 0.25, height: { xs: 24, sm: 32, md: 40 }, fontSize: { xs: '0.6rem', sm: '0.7rem', md: '0.75rem' }, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.1 }}>
@@ -184,18 +179,6 @@ const DashboardTab: React.FC = () => {
       {error && <Alert severity="error" sx={{ mb: 1, fontSize: '0.7rem', py: 0 }}>{error}</Alert>}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1, md: 3 }, width: '100%', maxWidth: '100vw' }}>
-        {/* Main Log Trend Chart */}
-        <Paper elevation={1} sx={{ p: { xs: 1, sm: 2, md: 3 }, height: { xs: 220, sm: 350, md: 450 }, width: '100%', borderRadius: 1.5, overflow: 'hidden' }}>
-          <BarChartWidget 
-            data={data?.histogram || []} 
-            height={undefined} 
-            title={t('logActivityTrend')} 
-            emptyMessage={t('noLogs')}
-            onBarClick={handleBarClick}
-            onRangeSelect={handleBarClick}
-          />
-        </Paper>
-
         {/* Summary Panels */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1, md: 2 } }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: { xs: 0.75, sm: 1.5, md: 2 } }}>

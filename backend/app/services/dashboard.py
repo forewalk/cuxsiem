@@ -16,6 +16,12 @@ class DashboardService:
     async def get_indices(self) -> List[str]:
         return await self.repository.get_indices()
 
+    async def get_fields(self, index_name: str) -> List[dict]:
+        return await self.repository.get_field_mappings(index_name)
+
+    async def get_logs(self, **kwargs) -> List[dict]:
+        return await self.repository.get_logs(**kwargs)
+
     async def get_dashboard_stats(
         self, 
         from_value: Optional[int] = None, 
