@@ -43,18 +43,31 @@ async def stream_logs(
     last_timestamp: Optional[str] = Query(None, description="마지막 로그의 타임스탬프 (ISO 형식)"),
     index: str = Query("activities*", description="조회할 인덱스명 또는 와일드카드"),
     q: Optional[str] = Query(None, description="검색어 (Lucene 쿼리 문법 지원)"),
+    from_time: Optional[str] = Query(None, description="시작 시간 (상대적 -15m 또는 절대적 ISO)"),
+    to_time: Optional[str] = Query(None, description="종료 시간"),
     limit: int = Query(100, ge=1, le=1000, description="최대 조회 개수"),
     current_user: UserResponse = Depends(get_current_active_user),
     os_client=Depends(get_opensearch)
 ):
     """
     OpenSearch 인덱스에서 최신 로그를 조회합니다.
-    last_timestamp가 제공되면 해당 시간 이후의 로그만 조회합니다.
+    @timestamp 또는 timestamp 필드를 자동으로 감지하여 정렬 및 필터링합니다.
     """
     
-    must_queries = [{"exists": {"field": "timestamp"}}]
+    # 1. 인덱스 매핑을 통해 사용할 타임스탬프 필드 결정
+    ts_field = "timestamp" # 기본값
+    try:
+        mapping = os_client.indices.get_mapping(index=index)
+        first_index = list(mapping.keys())[0]
+        properties = mapping[first_index]['mappings']['properties']
+        if "@timestamp" in properties and "timestamp" not in properties:
+            ts_field = "@timestamp"
+    except:
+        pass # 오류 시 기본값 유지
 
-    # 검색어 처리 (query_string 사용으로 유연한 검색 지원)
+    must_queries = [{"exists": {"field": ts_field}}]
+
+    # 검색어 처리
     if q:
         must_queries.append({
             "query_string": {
@@ -63,18 +76,27 @@ async def stream_logs(
             }
         })
 
-    # 타임스탬프 범위 처리
+    # 타임스탬프 범위 처리 (last_timestamp가 있으면 실시간 스트리밍 모드)
     range_query = {}
     if last_timestamp:
-        # 실시간 스트리밍 모드: 마지막 시간 이후만 조회
         range_query["gt"] = last_timestamp
-    
+    elif from_time or to_time:
+        # ControlBar에서 보낸 시간 범위 적용
+        if from_time:
+            # -15m 형식일 경우 그대로 사용, 절대 시간일 경우 gte 사용
+            range_query["gte"] = from_time
+        if to_time:
+            range_query["lte"] = to_time
+    elif not last_timestamp:
+        # 기본값: 최근 15분
+        range_query["gte"] = "now-15m"
+
     if range_query:
-        must_queries.append({"range": {"timestamp": range_query}})
+        must_queries.append({"range": {ts_field: range_query}})
 
     query = {
         "size": limit,
-        "sort": [{"timestamp": {"order": "desc"}}],
+        "sort": [{ts_field: {"order": "desc"}}],
         "query": {
             "bool": {
                 "must": must_queries
@@ -86,35 +108,28 @@ async def stream_logs(
         response = os_client.search(index=index, body=query)
         hits = response.get("hits", {}).get("hits", [])
     except Exception as e:
-        # 인덱스가 없거나 검색 오류 시 빈 리스트 반환
-        return {
-            "logs": [],
-            "last_timestamp": last_timestamp
-        }
+        return {"logs": [], "last_timestamp": last_timestamp}
     
     logs = []
     new_last_timestamp = last_timestamp
     
     for hit in hits:
         source = hit.get("_source", {})
-        ts = source.get("timestamp")
+        ts = source.get(ts_field)
         
-        # timestamp가 없는 문서는 이미 query에서 필터링되었겠지만, 안전을 위해 체크
         if not ts:
             continue
 
         logs.append({
             "_id": hit.get("_id"),
             "_index": hit.get("_index"),
-            "timestamp": ts,
-            "message": source.get("message", ""),
+            "timestamp": ts, # 프론트엔드 호환성을 위해 timestamp로 통일
+            "message": source.get("message") or source.get("event", {}).get("original") or source.get("log", {}).get("original") or str(source),
             "_source": source
         })
-        # 역순 정렬이므로 첫 번째 데이터가 가장 최신임
         if not new_last_timestamp or ts > new_last_timestamp:
             new_last_timestamp = ts
 
-    # 프론트엔드에서는 최신 로그가 아래로 가야하므로, 결과를 다시 시간순(오름차순)으로 뒤집어서 전달
     logs.reverse()
 
     return {

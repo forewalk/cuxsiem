@@ -19,7 +19,9 @@ export const logService = {
     lastTimestamp?: string | null, 
     limit: number = 100,
     q?: string,
-    index: string = "activities*"
+    index: string = "activities*",
+    fromTime?: string,
+    toTime?: string
   ): Promise<LogStreamResponse> => {
     const params = new URLSearchParams();
     if (lastTimestamp) {
@@ -27,6 +29,12 @@ export const logService = {
     }
     if (q) {
       params.append("q", q);
+    }
+    if (fromTime) {
+      params.append("from_time", fromTime);
+    }
+    if (toTime) {
+      params.append("to_time", toTime);
     }
     params.append("index", index);
     params.append("limit", limit.toString());

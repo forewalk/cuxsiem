@@ -112,11 +112,36 @@ const LogStreamingTab: React.FC = () => {
     try {
       if (isManualRefresh) setLoading(true);
       
-      const response = await logService.getLogStream(lastTimestampRef.current, 100, searchQuery, selectedIndex);
+      // 시간 범위 변환
+      let fromTime: string | undefined = undefined;
+      let toTime: string | undefined = undefined;
+
+      if (!lastTimestampRef.current) {
+        if (fromDate) {
+          fromTime = fromDate;
+        } else if (fromValue !== null) {
+          fromTime = `now-${fromValue}${fromUnit}`;
+        }
+
+        if (toDate) {
+          toTime = toDate;
+        } else if (toValue !== null) {
+          toTime = `now-${toValue}${toUnit}`;
+        }
+      }
+
+      const response = await logService.getLogStream(
+        lastTimestampRef.current, 
+        100, 
+        searchQuery, 
+        selectedIndex,
+        fromTime,
+        toTime
+      );
       
       if (response.logs.length > 0) {
         setLogs(prevLogs => {
-          // 검색어/인덱스가 있는 상태에서 새로 조회를 시작하는 경우(lastTimestamp가 없는 경우)는 기존 로그 무시
+          // 검색어/인덱스/시간이 변경되어 새로 조회를 시작하는 경우 기존 로그 무시
           if (!lastTimestampRef.current) return response.logs.slice(-MAX_LOGS);
 
           const newLogs = response.logs.filter(
@@ -135,16 +160,16 @@ const LogStreamingTab: React.FC = () => {
     } finally {
       if (isManualRefresh) setLoading(false);
     }
-  }, [isActive, isPaused, searchQuery, selectedIndex]);
+  }, [isActive, isPaused, searchQuery, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit]);
 
-  // 검색어 또는 인덱스가 변경되면 로그를 비우고 다시 조회를 시작함
+  // 검색어, 인덱스 또는 시간 범위가 변경되면 로그를 비우고 다시 조회를 시작함
   useEffect(() => {
     if (isActive) {
       setLogs([]);
       lastTimestampRef.current = null;
       fetchLogs(true);
     }
-  }, [searchQuery, selectedIndex, isActive]);
+  }, [searchQuery, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit, isActive]);
 
   useEffect(() => {
     // 탭이 활성화될 때 한 번 즉시 호출 (searchQuery useEffect가 처리하므로 중복 방지 필요)
@@ -253,7 +278,7 @@ const LogStreamingTab: React.FC = () => {
                 fontWeight: 'bold', 
                 color: 'text.secondary',
                 flexShrink: 0,
-                width: field === 'timestamp' ? 230 : field === '_index' ? 150 : 'auto',
+                width: field === 'timestamp' ? 240 : field === '_index' ? 150 : 'auto',
                 flexGrow: field === 'message' ? 1 : 0,
                 minWidth: 0
               }}
