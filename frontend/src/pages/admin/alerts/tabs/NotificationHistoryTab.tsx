@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 import {
   Box, Typography, Paper, Stack, Divider, LinearProgress, Chip,
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Collapse, TablePagination, Snackbar, Alert
+  TableRow, Collapse, TablePagination
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -128,8 +128,18 @@ const NotificationRow: React.FC<{
                           border: '1px solid',
                           borderColor: 'divider',
                           minHeight: '100px',
+                          maxHeight: '400px',
+                          overflow: 'auto',
                           whiteSpace: 'pre-wrap',
-                          lineHeight: 1.8
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
+                          lineHeight: 1.8,
+                          '&::-webkit-scrollbar': { width: 6, height: 6 },
+                          '&::-webkit-scrollbar-thumb': { 
+                            bgcolor: 'rgba(0,0,0,0.2)', 
+                            borderRadius: 3,
+                            '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' }
+                          }
                         }}
                       >
                         {row.message}
@@ -169,7 +179,7 @@ const NotificationRow: React.FC<{
                       p: 2,
                       borderRadius: 1,
                       overflow: 'auto',
-                      height: 400,
+                      maxHeight: 457,
                       fontFamily: '"Fira Code", "Cascadia Code", monospace',
                       fontSize: '0.8rem',
                       lineHeight: 1.5,
@@ -208,7 +218,7 @@ const NotificationHistoryTab: React.FC = () => {
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
 
   // 시간 범위 상태
-  const [fromValue, setFromValue] = useState<number | null>(15);
+  const [fromValue, setFromValue] = useState<number | null>(null);
   const [fromUnit, setFromUnit] = useState<string>("m");
   const [toValue, setToValue] = useState<number | null>(null);
   const [toUnit, setToUnit] = useState<string>("m");
@@ -225,12 +235,6 @@ const NotificationHistoryTab: React.FC = () => {
     }
     return text;
   }, [language]);
-
-  // 신규 알림 스낵바 상태
-  const [snackbar, setSnackbar] = useState<{ open: boolean; title: string; severity: string }>({
-    open: false, title: '', severity: 'info'
-  });
-  const lastIdRef = useRef<string | null>(null);
 
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
@@ -277,19 +281,6 @@ const NotificationHistoryTab: React.FC = () => {
         to_date
       });
 
-      // 신규 알림 감지 로직 (페이지가 0일 때만)
-      if (data.items.length > 0 && page === 0) {
-        const latestNotif = data.items[0];
-        if (lastIdRef.current && latestNotif.id !== lastIdRef.current) {
-          setSnackbar({
-            open: true,
-            title: latestNotif.title || latestNotif.rule_name || 'Notification',
-            severity: latestNotif.severity || 'info'
-          });
-        }
-        lastIdRef.current = latestNotif.id;
-      }
-
       setNotifications(data.items);
       setTotal(data.total);
     } catch (error) {
@@ -303,21 +294,6 @@ const NotificationHistoryTab: React.FC = () => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // 10초 주기 폴링 설정
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadNotifications(true);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [loadNotifications]);
-
-  const getAlertColor = (severity: string): "info" | "warning" | "error" | "success" => {
-    switch (severity.toLowerCase()) {
-      case 'error': return 'error';
-      case 'warning': return 'warning';
-      default: return 'info';
-    }
-  };
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
@@ -425,26 +401,6 @@ const NotificationHistoryTab: React.FC = () => {
         }}
         multiSelect
       />
-
-      {/* 우측 하단 실시간 알림 스낵바 */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={getAlertColor(snackbar.severity)}
-          variant="filled"
-          sx={{ width: '100%', boxShadow: 3 }}
-        >
-          <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold', opacity: 0.9 }}>
-            {snackbar.severity.toUpperCase()}
-          </Typography>
-          <Typography variant="body2">{snackbar.title}</Typography>
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

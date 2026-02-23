@@ -14,6 +14,9 @@ import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from "@mui/material";
 import { useAuth } from "./hooks/useAuth";
 import { useLanguageStore } from "./stores/useLanguageStore";
+import { useGlobalAlertNotification } from "./hooks/useGlobalAlertNotification";
+import { GlobalAlertSnackbar } from "./pages/admin/alerts/components";
+import { authService } from "./services/authService";
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "./locales/ko.json";
@@ -46,6 +49,10 @@ function App() {
     return saved ? JSON.parse(saved) : false;
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // 전역 알림 시스템 (WebSocket 기반 - 다중 Snackbar)
+  const token = authService.getToken();
+  const { snackbars, handleCloseSnackbar, isConnected } = useGlobalAlertNotification(!!user, token);
 
   const theme = useMemo(() => createTheme({
     palette: {
@@ -226,6 +233,9 @@ function App() {
             <Outlet context={{ t, language }} />
           </Box>
         </Box>
+
+        {/* 전역 알림 스낵바 (다중 표시) */}
+        <GlobalAlertSnackbar snackbars={snackbars} onClose={handleCloseSnackbar} />
       </Box>
     </ThemeProvider>
   );

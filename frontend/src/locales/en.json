@@ -238,5 +238,6 @@
   "originalDocument": "Original Document",
   "noEventSourceData": "No event source data found.",
   "triggeredRule": "Triggered Rule",
-  "alertMessage": "Alert Message"
+  "alertMessage": "Alert Message",
+  "all": "All"
 }
