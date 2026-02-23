@@ -31,8 +31,8 @@ const LogStreamingTab: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState('activities*');
-  const [indexOptions, setIndexOptions] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState('*');
+  const [indexOptions, setIndexOptions] = useState<string[]>(['*']);
   const lastTimestampRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -44,17 +44,19 @@ const LogStreamingTab: React.FC = () => {
     const fetchIndices = async () => {
       try {
         const response = await logService.getIndices();
-        setIndexOptions(response.indices);
+        // '*' (전체 로그)를 항상 최상단에 배치
+        const indices = response.indices.includes('*') 
+          ? response.indices 
+          : ['*', ...response.indices];
+        setIndexOptions(indices);
         
-        // 현재 선택된 인덱스가 목록에 없으면 첫 번째 인덱스로 설정
-        if (response.indices.length > 0 && !response.indices.includes(selectedIndex)) {
-          // activities* 가 포함되어 있다면 우선순위 유지
-          const defaultIndex = response.indices.find(idx => idx.startsWith('activities')) || response.indices[0];
-          setSelectedIndex(defaultIndex);
+        // 현재 선택된 인덱스가 목록에 없으면 '*'로 설정
+        if (indices.length > 0 && !indices.includes(selectedIndex)) {
+          setSelectedIndex('*');
         }
       } catch (error) {
         console.error('Failed to fetch indices:', error);
-        setIndexOptions(['activities*']);
+        setIndexOptions(['*']);
       }
     };
 

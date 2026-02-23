@@ -281,7 +281,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
         >
           <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
           <Typography variant="body2" sx={{ fontWeight: 'bold', color: TEXT_COLOR, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-            {selectedIndex}
+            {selectedIndex === '*' ? t('allLogs') : selectedIndex}
           </Typography>
           {indexOptions.length > 0 && <KeyboardArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 14 }} />}
         </Box>
@@ -438,7 +438,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
                     '&.Mui-selected': { bgcolor: `${KIBANA_TEAL}22`, color: KIBANA_TEAL, fontWeight: 'bold' }
                   }}
                 >
-                  {index}
+                  {index === '*' ? t('allLogs') : index}
                 </MenuItem>
               ))}
             </Box>

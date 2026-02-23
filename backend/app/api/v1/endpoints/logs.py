@@ -57,15 +57,23 @@ async def stream_logs(
     # 1. 인덱스 매핑을 통해 사용할 타임스탬프 필드 결정
     ts_field = "timestamp" # 기본값
     try:
-        mapping = os_client.indices.get_mapping(index=index)
-        first_index = list(mapping.keys())[0]
-        properties = mapping[first_index]['mappings']['properties']
-        if "@timestamp" in properties and "timestamp" not in properties:
+        # 특정 인덱스가 아닌 '*' 또는 와일드카드인 경우, 전체 properties를 확인하거나 
+        # 일반적인 SIEM 관례(@timestamp 우선)를 따름
+        if index == "*" or "*" in index:
+            # 여러 인덱스 조회 시에는 @timestamp를 우선 시도하고, 
+            # 정렬 시 unmapped_type을 사용하여 필드가 없는 인덱스 오류 방지
             ts_field = "@timestamp"
+        else:
+            mapping = os_client.indices.get_mapping(index=index)
+            first_index = list(mapping.keys())[0]
+            properties = mapping[first_index]['mappings']['properties']
+            if "@timestamp" in properties:
+                ts_field = "@timestamp"
     except:
-        pass # 오류 시 기본값 유지
+        ts_field = "@timestamp" # 실패 시 관례적인 @timestamp 시도
 
-    must_queries = [{"exists": {"field": ts_field}}]
+    # 'exists' 조건 제거 (여러 인덱스 혼합 시 필드명이 다를 수 있음)
+    must_queries = []
 
     # 검색어 처리
     if q:
@@ -76,27 +84,37 @@ async def stream_logs(
             }
         })
 
-    # 타임스탬프 범위 처리 (last_timestamp가 있으면 실시간 스트리밍 모드)
+    # 타임스탬프 범위 처리
     range_query = {}
     if last_timestamp:
         range_query["gt"] = last_timestamp
     elif from_time or to_time:
-        # ControlBar에서 보낸 시간 범위 적용
         if from_time:
-            # -15m 형식일 경우 그대로 사용, 절대 시간일 경우 gte 사용
             range_query["gte"] = from_time
         if to_time:
             range_query["lte"] = to_time
     elif not last_timestamp:
-        # 기본값: 최근 15분
         range_query["gte"] = "now-15m"
 
     if range_query:
-        must_queries.append({"range": {ts_field: range_query}})
+        # @timestamp와 timestamp 두 가지 가능성을 모두 고려한 필터링
+        must_queries.append({
+            "bool": {
+                "should": [
+                    {"range": {"@timestamp": range_query}},
+                    {"range": {"timestamp": range_query}}
+                ],
+                "minimum_should_match": 1
+            }
+        })
 
+    # 정렬 시에도 두 필드 모두 고려 (존재하는 필드 우선)
     query = {
         "size": limit,
-        "sort": [{ts_field: {"order": "desc"}}],
+        "sort": [
+            {"@timestamp": {"order": "desc", "unmapped_type": "date"}},
+            {"timestamp": {"order": "desc", "unmapped_type": "date"}}
+        ],
         "query": {
             "bool": {
                 "must": must_queries
@@ -115,7 +133,8 @@ async def stream_logs(
     
     for hit in hits:
         source = hit.get("_source", {})
-        ts = source.get(ts_field)
+        # @timestamp 또는 timestamp 중 존재하는 필드 사용
+        ts = source.get("@timestamp") or source.get("timestamp")
         
         if not ts:
             continue
@@ -123,7 +142,7 @@ async def stream_logs(
         logs.append({
             "_id": hit.get("_id"),
             "_index": hit.get("_index"),
-            "timestamp": ts, # 프론트엔드 호환성을 위해 timestamp로 통일
+            "timestamp": ts, 
             "message": source.get("message") or source.get("event", {}).get("original") or source.get("log", {}).get("original") or str(source),
             "_source": source
         })

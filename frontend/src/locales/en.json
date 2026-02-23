@@ -149,6 +149,7 @@
   "emailFormatError": "Please include an '@' in the email address.",
   "request": "Apply",
   "logStreaming": "Log Streaming",
+  "allLogs": "All Logs",
   "resume": "Resume",
   "pause": "Pause",
   "clearLogs": "Clear Logs",
