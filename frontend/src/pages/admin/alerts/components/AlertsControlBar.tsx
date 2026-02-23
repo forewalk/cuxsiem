@@ -240,21 +240,7 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
       }}>
 
         {/* 1. Index Info (More compact) */}
-        <Box sx={{
-          display: { xs: 'none', sm: 'flex' },
-          alignItems: 'center',
-          bgcolor: BG_COLOR,
-          border: `1px solid ${BORDER_COLOR}`,
-          borderRadius: 1,
-          px: 1,
-          gap: 0.75,
-          minHeight: 32
-        }}>
-          <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
-          <Typography variant="body2" sx={{ fontWeight: 'bold', color: TEXT_COLOR, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-            {isMobile ? 'threats' : 'logs-sentinel_one.threats'}
-          </Typography>
-        </Box>
+
 
         {/* 2. Search Section (Expanded) */}
         <Box sx={{
