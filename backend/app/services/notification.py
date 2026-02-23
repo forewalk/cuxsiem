@@ -74,18 +74,27 @@ class NotificationService:
         )
 
     def _generate_dedup_key(self, rule: Dict[str, Any], event: Dict[str, Any]) -> str:
-        # 매 실행마다 새로운 알림이 발생하도록 현재 시간(분 단위)을 키에 포함 (느슨한 설정)
-        now_str = datetime.utcnow().strftime("%Y%m%d%H%M")
-        template = rule.get("dedup_key_template", "{{rule_id}}")
+        """
+        중복 제거 키 생성
+        - 룰 ID와 이벤트 고유 ID({{_id}}) 또는 주요 필드 조합을 기반으로 함
+        - 시간 의존성을 제거하여 동일 이벤트에 대해 항상 동일한 키 생성
+        """
+        template = rule.get("dedup_key_template", "{{rule_id}}_{{_id}}")
 
-        key = f"{now_str}_" + template.replace("{{rule_id}}", rule["id"])
+        key = template.replace("{{rule_id}}", rule["id"])
         key = key.replace("{{rule_name}}", rule.get("name", ""))
+        
+        # 이벤트 메타데이터 처리
+        if "{{_id}}" in key:
+            key = key.replace("{{_id}}", str(event.get("_id", "unknown")))
+        if "{{_index}}" in key:
+            key = key.replace("{{_index}}", str(event.get("_index", "unknown")))
 
         matches = re.findall(r"\{\{([^}]+)\}\}", key)
         source = event.get("_source", {})
 
         for field in matches:
-            if field in ["rule_id", "rule_name"]: continue
+            if field in ["rule_id", "rule_name", "_id", "_index"]: continue
             val = str(source.get(field, "unknown"))
             key = key.replace(f"{{{{{field}}}}}", val)
 
@@ -192,6 +201,12 @@ class NotificationService:
                 event_index = first_hit.get("_index")
                 event_source = first_hit.get("_source", {})
                 dedup_key = self._generate_dedup_key(rule, first_hit)
+
+                # 중복 체크: 이미 동일한 dedup_key를 가진 알림이 있는지 확인
+                existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
+                if existing_alert:
+                    logger.info(f"Duplicate alert skipped for rule '{rule['name']}' with dedup_key: {dedup_key}")
+                    return None
 
                 # 메시지 템플릿 렌더링을 위한 context 구성
                 # event_source의 모든 필드 + 메타 정보 포함

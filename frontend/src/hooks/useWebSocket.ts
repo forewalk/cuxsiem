@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 interface UseWebSocketOptions {
   url: string;
@@ -19,35 +19,35 @@ interface UseWebSocketReturn {
 
 /**
  * WebSocket 연결 관리 훅
- * 
+ *
  * - 자동 재연결
  * - JWT 토큰 인증
  * - 에러 처리
  * - Ping/Pong (연결 유지)
  */
 export const useWebSocket = ({
-  url,
-  token,
-  onMessage,
-  onConnect,
-  onDisconnect,
-  onError,
-  reconnectInterval = 3000,
-  maxReconnectAttempts = 10
-}: UseWebSocketOptions): UseWebSocketReturn => {
+                               url,
+                               token,
+                               onMessage,
+                               onConnect,
+                               onDisconnect,
+                               onError,
+                               reconnectInterval = 3000,
+                               maxReconnectAttempts = 10
+                             }: UseWebSocketOptions): UseWebSocketReturn => {
   const ws = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const reconnectCount = useRef(0);
   const reconnectTimeout = useRef<NodeJS.Timeout>();
   const pingInterval = useRef<NodeJS.Timeout>();
   const shouldReconnect = useRef(true);
-  
+
   // 콜백을 ref로 저장하여 재연결 방지
   const onMessageRef = useRef(onMessage);
   const onConnectRef = useRef(onConnect);
   const onDisconnectRef = useRef(onDisconnect);
   const onErrorRef = useRef(onError);
-  
+
   useEffect(() => {
     onMessageRef.current = onMessage;
     onConnectRef.current = onConnect;
@@ -57,32 +57,34 @@ export const useWebSocket = ({
 
   const connect = useCallback(() => {
     if (!token) return;
-    
+
     if (ws.current?.readyState === WebSocket.OPEN) return;
 
     try {
-      const wsUrl = `${url}?token=${encodeURIComponent(token)}`;
-      ws.current = new WebSocket(wsUrl);
+      // 보안을 위해 쿼리 파라미터 대신 Sec-WebSocket-Protocol 헤더를 통해 토큰 전달
+      // 브라우저 WebSocket API는 커스텀 헤더를 직접 지원하지 않으므로 subprotocol 활용
+      const wsUrl = url;
+      ws.current = new WebSocket(wsUrl, token);
 
       ws.current.onopen = () => {
         console.log('🟢 WebSocket connected');
         setIsConnected(true);
         reconnectCount.current = 0;
-        
+
         // Ping 시작 (30초마다)
         pingInterval.current = setInterval(() => {
           if (ws.current?.readyState === WebSocket.OPEN) {
             ws.current.send('ping');
           }
         }, 30000);
-        
+
         onConnectRef.current?.();
       };
 
       ws.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
+
           // Pong/Connection 응답은 처리 안 함
           if (data.type !== 'pong' && data.type !== 'connection') {
             onMessageRef.current?.(data);
@@ -99,19 +101,19 @@ export const useWebSocket = ({
 
       ws.current.onclose = (event) => {
         setIsConnected(false);
-        
+
         // Ping 중지
         if (pingInterval.current) {
           clearInterval(pingInterval.current);
         }
-        
+
         onDisconnectRef.current?.();
 
         // 재연결 시도
         if (shouldReconnect.current && reconnectCount.current < maxReconnectAttempts) {
           reconnectCount.current++;
           console.log(`🔄 Reconnecting (${reconnectCount.current}/${maxReconnectAttempts})...`);
-          
+
           reconnectTimeout.current = setTimeout(() => {
             connect();
           }, reconnectInterval);
@@ -127,20 +129,20 @@ export const useWebSocket = ({
 
   const disconnect = useCallback(() => {
     shouldReconnect.current = false;
-    
+
     if (reconnectTimeout.current) {
       clearTimeout(reconnectTimeout.current);
     }
-    
+
     if (pingInterval.current) {
       clearInterval(pingInterval.current);
     }
-    
+
     if (ws.current) {
       ws.current.close();
       ws.current = null;
     }
-    
+
     setIsConnected(false);
   }, []);
 
@@ -162,7 +164,7 @@ export const useWebSocket = ({
 
   useEffect(() => {
     connect();
-    
+
     return () => {
       disconnect();
     };

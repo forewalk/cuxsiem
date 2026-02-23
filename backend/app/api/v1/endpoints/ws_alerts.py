@@ -12,21 +12,44 @@ router = APIRouter()
 @router.websocket("/alerts")
 async def websocket_alerts(
     websocket: WebSocket,
-    token: str = Query(...)
+    token: str = Query(None)
 ):
     """
     알림 WebSocket 엔드포인트
     
     - 실시간 알림 수신
-    - JWT 토큰 인증 필요 (쿼리 파라미터: ?token=xxx)
+    - JWT 토큰 인증 필요
+      1. Sec-WebSocket-Protocol 헤더 (권장)
+      2. token 쿼리 파라미터 (하위 호환)
     - 자동 재연결 지원
     """
-    # 먼저 연결 수락
-    await websocket.accept()
+    # Sec-WebSocket-Protocol 헤더에서 토큰 추출 시도
+    protocol_token = None
+    requested_protocols = websocket.headers.get("Sec-WebSocket-Protocol")
+    if requested_protocols:
+        # 프로토콜 리스트 중 첫 번째를 토큰으로 간주 (프론트엔드 설정에 맞춤)
+        protocol_token = requested_protocols.split(",")[0].strip()
     
+    # 쿼리 파라미터보다 헤더 토큰 우선
+    final_token = protocol_token or token
+    
+    if not final_token:
+        # 연결 수락 전 거부 가능하면 좋지만, FastAPI WebSocket은 accept 후 로직 처리가 일반적
+        await websocket.accept()
+        await websocket.send_json({"type": "error", "message": "Token missing"})
+        await websocket.close(code=1008)
+        return
+
+    # Sec-WebSocket-Protocol을 사용한 경우, 동일한 프로토콜로 응답해야 연결이 성립됨
+    if protocol_token:
+        await websocket.accept(subprotocol=protocol_token)
+    else:
+        await websocket.accept()
+    
+    user_id = None
     try:
         # JWT 토큰 검증
-        user_id = decode_access_token(token)
+        user_id = decode_access_token(final_token)
         
         if not user_id:
             await websocket.send_json({

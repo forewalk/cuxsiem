@@ -215,6 +215,30 @@ class NotificationRepository:
             )
             return alert_data
         return await loop.run_in_executor(None, insert)
+
+    async def get_alert_by_dedup_key(self, dedup_key: str) -> Optional[Dict[str, Any]]:
+        """dedup_key로 기존 알림 조회"""
+        loop = asyncio.get_event_loop()
+        def search():
+            try:
+                result = self.client.search(
+                    index=self.alerts_index,
+                    body={
+                        "query": {
+                            "term": {
+                                "dedup_key.keyword": dedup_key
+                            }
+                        },
+                        "size": 1
+                    }
+                )
+                hits = result.get("hits", {}).get("hits", [])
+                if hits:
+                    return hits[0]["_source"]
+                return None
+            except Exception:
+                return None
+        return await loop.run_in_executor(None, search)
     
     # 하위 호환성을 위한 별칭
     async def create_notification(self, notification_data: Dict[str, Any]) -> Dict[str, Any]:
