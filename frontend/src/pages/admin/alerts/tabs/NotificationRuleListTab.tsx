@@ -83,7 +83,6 @@ const NotificationRuleListTab: React.FC = () => {
 
   // 탐지 조건 검증 상태
   const [windowIntervalError, setWindowIntervalError] = useState<string | null>(null);
-  const [windowIntervalWarning, setWindowIntervalWarning] = useState<string | null>(null);
 
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
@@ -190,21 +189,10 @@ const NotificationRuleListTab: React.FC = () => {
         t('windowIntervalError') || 
         '탐지 데이터 조회범위(window_min)는 탐지 주기(interval_min)보다 크거나 같아야 합니다.'
       );
-      setWindowIntervalWarning(null);
       return;
     }
     
     setWindowIntervalError(null);
-    
-    // Soft Warning: window_min > interval_min * 3
-    if (window_min > interval_min * 3) {
-      setWindowIntervalWarning(
-        t('windowIntervalWarning') || 
-        '조회범위가 주기의 3배를 초과하여 중복 알림이 많이 발생할 수 있습니다.'
-      );
-    } else {
-      setWindowIntervalWarning(null);
-    }
   }, [formData.window_min, formData.interval_min, t]);
 
   const handleOpenDialog = (rule: NotificationRule | null = null) => {
@@ -219,7 +207,6 @@ const NotificationRuleListTab: React.FC = () => {
     }
     setJsonError(null);
     setWindowIntervalError(null);
-    setWindowIntervalWarning(null);
     setOpen(true);
   };
 
@@ -519,13 +506,6 @@ const NotificationRuleListTab: React.FC = () => {
               {windowIntervalError && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {windowIntervalError}
-                </Alert>
-              )}
-              
-              {/* Soft Warning */}
-              {windowIntervalWarning && !windowIntervalError && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  {windowIntervalWarning}
                 </Alert>
               )}
               
