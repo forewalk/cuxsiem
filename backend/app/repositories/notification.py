@@ -261,6 +261,7 @@ class NotificationRepository:
         skip: int = 0,
         limit: int = 100,
         query: Optional[str] = None,
+        severities: Optional[List[str]] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
         user_role: Optional[str] = None
@@ -296,6 +297,14 @@ class NotificationRepository:
                             }
                         ],
                         "minimum_should_match": 1
+                    }
+                })
+
+            # 중요도 필터 (OR 조건)
+            if severities:
+                must_clauses.append({
+                    "terms": {
+                        "severity": severities
                     }
                 })
 

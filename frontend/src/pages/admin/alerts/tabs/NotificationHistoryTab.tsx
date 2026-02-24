@@ -273,13 +273,20 @@ const NotificationHistoryTab: React.FC = () => {
       const skip = page * rowsPerPage;
       const { from_date, to_date } = calculateTimeRange();
 
-      const data = await notificationService.getNotifications({
+      const params: any = {
         skip,
         limit: rowsPerPage,
         query: searchQuery || undefined,
         from_date,
         to_date
-      });
+      };
+
+      // 중요도 필터 추가
+      if (selectedSeverities.length > 0) {
+        params.severities = selectedSeverities.join(',');
+      }
+
+      const data = await notificationService.getNotifications(params);
 
       setNotifications(data.items);
       setTotal(data.total);
@@ -288,7 +295,7 @@ const NotificationHistoryTab: React.FC = () => {
     } finally {
       if (!isPolling) setLoading(false);
     }
-  }, [page, rowsPerPage, searchQuery, calculateTimeRange]);
+  }, [page, rowsPerPage, searchQuery, selectedSeverities, calculateTimeRange]);
 
   useEffect(() => {
     loadNotifications();

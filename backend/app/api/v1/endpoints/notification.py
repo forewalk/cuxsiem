@@ -77,15 +77,20 @@ async def list_notifications(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     query: Optional[str] = Query(None, description="제목/설명 검색"),
+    severities: Optional[str] = Query(None, description="중요도 필터 (쉼표로 구분)"),
     from_date: Optional[str] = Query(None, description="시작 날짜 (ISO 8601)"),
     to_date: Optional[str] = Query(None, description="종료 날짜 (ISO 8601)"),
     current_user: UserResponse = Depends(get_current_active_user)
 ):
     """현재 사용자의 role에 맞는 알림만 조회"""
+    # severities를 리스트로 변환
+    severity_list = [s.strip().lower() for s in severities.split(",")] if severities else None
+    
     total, notifications = await service.list_notifications(
         skip=skip,
         limit=limit,
         query=query,
+        severities=severity_list,
         from_date=from_date,
         to_date=to_date,
         user_role=current_user.role

@@ -59,6 +59,7 @@ class NotificationService:
         skip: int = 0,
         limit: int = 100,
         query: Optional[str] = None,
+        severities: Optional[List[str]] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
         user_role: Optional[str] = None
@@ -68,6 +69,7 @@ class NotificationService:
             skip=skip,
             limit=limit,
             query=query,
+            severities=severities,
             from_date=from_date,
             to_date=to_date,
             user_role=user_role
