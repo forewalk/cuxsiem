@@ -54,6 +54,7 @@ interface ControlBarProps {
   onSearchQueryChange: (query: string) => void;
   onRefresh: () => void;
   onReset?: () => void;
+  onAdd?: () => void;
   isEditMode?: boolean;
   onEdit?: () => void;
   onCancel?: () => void;
@@ -75,6 +76,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   onSearchQueryChange,
   onRefresh,
   onReset,
+  onAdd,
   isEditMode,
   onEdit,
   onCancel,
@@ -410,6 +412,21 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
             {isEditMode && (
               <>
+                {onAdd && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                    onClick={onAdd}
+                    sx={{ 
+                      fontSize: '0.65rem', color: KIBANA_TEAL, borderColor: KIBANA_TEAL, textTransform: 'none', height: 22, px: 1, borderRadius: 1,
+                      '&:hover': { bgcolor: 'action.hover', borderColor: '#004a4d' } 
+                    }}
+                  >
+                    {t('addPanel')}
+                  </Button>
+                )}
+
                 {onReset && (
                   <Button
                     variant="outlined"

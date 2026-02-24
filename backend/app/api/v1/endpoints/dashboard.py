@@ -1,5 +1,5 @@
 """대시보드 API 엔드포인트"""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from typing import List, Optional
 from app.schemas.dashboard import DashboardStatsResponse, DashboardPanelUpdate
 from app.services.dashboard import DashboardService
@@ -63,3 +63,22 @@ async def get_stats(
 ):
     service = DashboardService()
     return await service.get_dashboard_stats(dashboard_id, from_value, from_unit, to_value, to_unit, from_date, to_date, q)
+
+@router.post("/stats/{dashboard_id}", response_model=DashboardStatsResponse)
+async def get_stats_post(
+    dashboard_id: str,
+    from_value: Optional[int] = Query(None),
+    from_unit: Optional[str] = Query(None),
+    to_value: Optional[int] = Query(None),
+    to_unit: Optional[str] = Query(None),
+    from_date: Optional[str] = Query(None),
+    to_date: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
+    panels: List[dict] = Body(...)
+):
+    """로컬(수정 중) 패널 설정을 기반으로 통계를 실시간 집계합니다. (DB 저장 안함)"""
+    service = DashboardService()
+    return await service.get_dashboard_stats(
+        dashboard_id, from_value, from_unit, to_value, to_unit, from_date, to_date, q,
+        panels_override=panels
+    )

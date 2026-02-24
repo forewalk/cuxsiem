@@ -50,6 +50,7 @@ const AgentListTab: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
   const [fields, setFields] = useState<IndexField[]>([]);
   const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>([
+    "createdAt",
     "groupName", 
     "agentVersion", 
     "domain", 
@@ -58,14 +59,12 @@ const AgentListTab: React.FC = () => {
     "osType", 
     "totalMemory", 
     "coreCount", 
-    "registeredAt", 
     "lastLoggedInUserName", 
     "machineType", 
     "lastActiveDate", 
     "lastIpToMgmt", 
     "networkStatus", 
-    "threatRebootRequired", 
-    "@timestamp"
+    "threatRebootRequired"
   ]);
   const [fieldSearchQuery, setFieldSearchQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -165,7 +164,15 @@ const AgentListTab: React.FC = () => {
       ]);
       setData(stats);
       setLogs(logList);
-      setFields([{ name: "_source", type: "code" }, ...fieldList]);
+
+      // kubernetesInfo.*, containerInfo.*, ecsinfo.* 패턴 필드 제외
+      const filteredFieldList = fieldList.filter(f => 
+        !f.name.toLowerCase().startsWith("kubernetesinfo.") && 
+        !f.name.toLowerCase().startsWith("containerinfo.") && 
+        !f.name.toLowerCase().startsWith("ecsinfo.")
+      );
+
+      setFields([{ name: "_source", type: "code" }, ...filteredFieldList]);
     } catch (err) {
       console.error("Failed to fetch agent data", err);
       setError("Failed to load agent data.");
@@ -202,11 +209,7 @@ const AgentListTab: React.FC = () => {
   };
 
   const sortedDisplayFields = useMemo(() => {
-    return [...selectedFieldNames].sort((a, b) => {
-      if (a === "@timestamp") return -1;
-      if (b === "@timestamp") return 1;
-      return a.localeCompare(b);
-    });
+    return [...selectedFieldNames];
   }, [selectedFieldNames]);
 
   return (
@@ -224,12 +227,13 @@ const AgentListTab: React.FC = () => {
             <List disablePadding sx={{ pb: 4 }}>{availableList.map((field) => <FieldItem key={field.name} name={field.name} type={field.type} onAction={handleToggleField} />)}</List>
           </Box>
         </Paper>
-        <Box sx={{ flexGrow: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, pr: 1 }}>
-            <Paper elevation={1} sx={{ p: { xs: 1.5, md: 3 }, height: { xs: 250, sm: 350, md: 450 }, minHeight: { xs: 250, md: 450 }, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
-              <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}><BarChartWidget data={data?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} /></Box>
-              <Typography variant="caption" align="center" sx={{ display: 'block', mt: 1, color: 'text.disabled', fontSize: '0.75rem', fontWeight: 500 }}>@timestamp per interval</Typography>
-            </Paper>
+                <Box sx={{ flexGrow: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, pr: 1 }}>
+                    <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: { xs: 120, sm: 150, md: 180 }, minHeight: { xs: 120, md: 180 }, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
+                      <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
+                        <BarChartWidget data={data?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} />
+                      </Box>
+                    </Paper>
             <Box sx={{ px: 0.5, flexShrink: 0 }}><Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>{t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({logs.length}/{data?.summary.total_logs ?? 0})</Box></Typography></Box>
             <Paper elevation={1} sx={{ borderRadius: 1.5, overflowX: 'auto', bgcolor: 'background.paper', mb: 1, flexShrink: 0 }}>
               <Box sx={{ minWidth: 'max-content' }}>
@@ -244,9 +248,9 @@ const AgentListTab: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', py: 1.5, px: 2, '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer' }} onClick={() => toggleRow(idx)}>
                         <IconButton size="small" sx={{ p: 0, mr: 1, mt: 0.2 }}>{isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}</IconButton>
                         {sortedDisplayFields.map(fieldName => (
-                          <Typography key={fieldName} variant="caption" sx={{ width: fieldName === "@timestamp" ? 180 : 150, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {fieldName === "@timestamp" 
-                              ? dayjs(log["@timestamp"]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
+                          <Typography key={fieldName} variant="caption" sx={{ width: fieldName === "createdAt" || fieldName === "registeredAt" || fieldName === "@timestamp" ? 180 : 150, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {fieldName === "createdAt" || fieldName === "registeredAt" || fieldName === "@timestamp" 
+                              ? dayjs(log[fieldName.split('.').pop() || fieldName]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
                               : getValueByPath(log, fieldName)}
                           </Typography>
                         ))}

@@ -24,6 +24,10 @@ export interface DashboardPanel {
   grid_height: number;
   custom_query: string;
   default_query: string;
+  widget_type: string;
+  target_field?: string;
+  current_value?: number;
+  chart_data?: SeverityStat[];
   is_visible: boolean;
   display_order: number;
 }
@@ -64,7 +68,6 @@ export const getIndexFields = async (indexName: string): Promise<IndexField[]> =
   return response.data;
 };
 
-// --- getIndexLogs 함수 복구 ---
 export const getIndexLogs = async (
   dashboardId: string = "threat-status",
   fromValue?: number,
@@ -92,9 +95,10 @@ export const getIndexLogs = async (
 
 export const getDashboardStats = async (
   dashboardId: string = "threat-status",
-  fromValue?: number, fromUnit?: string, toValue?: number, toUnit?: string, fromDate?: string, toDate?: string, query?: string
+  fromValue?: number, fromUnit?: string, toValue?: number, toUnit?: string, fromDate?: string, toDate?: string, query?: string,
+  panels?: DashboardPanel[] // 추가: 로컬 패널 설정
 ): Promise<DashboardStatsResponse> => {
-  let url = `/api/v1/dashboard/stats?dashboard_id=${dashboardId}`;
+  let url = `/api/v1/dashboard/stats${panels ? `/${dashboardId}` : ''}?dashboard_id=${dashboardId}`;
   if (fromValue !== undefined) url += `&from_value=${fromValue}`;
   if (fromUnit) url += `&from_unit=${fromUnit}`;
   if (toValue !== undefined) url += `&to_value=${toValue}`;
@@ -102,6 +106,13 @@ export const getDashboardStats = async (
   if (fromDate) url += `&from_date=${fromDate}`;
   if (toDate) url += `&to_date=${toDate}`;
   if (query) url += `&q=${encodeURIComponent(query)}`;
+
+  // 패널 설정이 있으면 POST로 요청하여 실시간 집계 결과를 받아옴
+  if (panels) {
+    const response = await api.post<DashboardStatsResponse>(url, panels);
+    return response.data;
+  }
+
   const response = await api.get<DashboardStatsResponse>(url);
   return response.data;
 };

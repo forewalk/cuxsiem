@@ -50,7 +50,7 @@ const ThreatListTab: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
   const [fields, setFields] = useState<IndexField[]>([]);
   const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>([
-    "@timestamp",
+    "threatInfo.createdAt",
     "agentRealtimeInfo.agentComputerName",
     "threatInfo.analystVerdict",
     "threatInfo.classification",
@@ -60,8 +60,7 @@ const ThreatListTab: React.FC = () => {
     "threatInfo.incidentStatus",
     "threatInfo.mitigationStatus",
     "threatInfo.processUser",
-    "threatInfo.threatName",
-    "threatInfo.createdAt"
+    "threatInfo.threatName"
   ]);
   const [fieldSearchQuery, setFieldSearchQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -198,7 +197,15 @@ const ThreatListTab: React.FC = () => {
       ]);
       setData(stats);
       setLogs(logList);
-      setFields([{ name: "_source", type: "code" }, ...fieldList]);
+      
+      // kubernetesInfo.*, containerInfo.*, ecsinfo.* 패턴 필드 제외
+      const filteredFieldList = fieldList.filter(f => 
+        !f.name.toLowerCase().startsWith("kubernetesinfo.") && 
+        !f.name.toLowerCase().startsWith("containerinfo.") && 
+        !f.name.toLowerCase().startsWith("ecsinfo.")
+      );
+      
+      setFields([{ name: "_source", type: "code" }, ...filteredFieldList]);
     } catch (err) {
       console.error("Failed to fetch data", err);
       setError("Failed to load data.");
@@ -252,19 +259,9 @@ const ThreatListTab: React.FC = () => {
     );
   };
 
-      const sortedDisplayFields = useMemo(() => {
-
-        return [...selectedFieldNames].sort((a, b) => {
-
-          if (a === "@timestamp") return -1;
-
-          if (b === "@timestamp") return 1;
-
-          return a.localeCompare(b);
-
-        });
-
-      }, [selectedFieldNames]);
+  const sortedDisplayFields = useMemo(() => {
+    return [...selectedFieldNames];
+  }, [selectedFieldNames]);
 
     
 
@@ -362,21 +359,31 @@ const ThreatListTab: React.FC = () => {
 
     
 
-            <Box sx={{ flexGrow: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <Box sx={{ flexGrow: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, pr: 1 }}>
+    
 
-                <Paper elevation={1} sx={{ p: { xs: 1.5, md: 3 }, height: { xs: 250, sm: 350, md: 450 }, minHeight: { xs: 250, md: 450 }, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
+                      <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, pr: 1 }}>
 
-                  <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
+    
 
-                    <BarChartWidget data={data?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} />
+                        <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: { xs: 120, sm: 150, md: 180 }, minHeight: { xs: 120, md: 180 }, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
 
-                  </Box>
+    
 
-                  <Typography variant="caption" align="center" sx={{ display: 'block', mt: 1, color: 'text.disabled', fontSize: '0.75rem', fontWeight: 500 }}>@timestamp per interval</Typography>
+                          <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
 
-                </Paper>
+    
+
+                            <BarChartWidget data={data?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} />
+
+    
+
+                          </Box>
+
+    
+
+                        </Paper>
 
     
 
@@ -496,19 +503,19 @@ const ThreatListTab: React.FC = () => {
 
                             </IconButton>
 
-                            {sortedDisplayFields.map(fieldName => (
+                                                        {sortedDisplayFields.map(fieldName => (
 
-                              <Typography key={fieldName} variant="caption" sx={{ width: fieldName === "@timestamp" ? 180 : 150, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                          <Typography key={fieldName} variant="caption" sx={{ width: fieldName === "threatInfo.createdAt" ? 180 : 150, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
 
-                                {fieldName === "@timestamp" 
+                                                            {fieldName === "threatInfo.createdAt" || fieldName === "@timestamp" 
 
-                                  ? dayjs(log["@timestamp"]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
+                                                              ? dayjs(log[fieldName.split('.').pop() || fieldName]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
 
-                                  : getValueByPath(log, fieldName)}
+                                                              : getValueByPath(log, fieldName)}
 
-                              </Typography>
+                                                          </Typography>
 
-                            ))}
+                                                        ))}
 
                           </Box>
                       

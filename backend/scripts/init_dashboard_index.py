@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 
-# 프로젝트 루트 경로 추가 및 환경 변수 로드
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(ROOT_DIR)
 load_dotenv(os.path.join(ROOT_DIR, ".env"))
@@ -24,7 +23,9 @@ def init_dashboard_index():
                 "grid_width": {"type": "integer"}, 
                 "grid_height": {"type": "integer"},
                 "display_order": {"type": "integer"},
-                "custom_query": {"type": "text"}, # 추가: 패널별 커스텀 쿼리
+                "custom_query": {"type": "text"},
+                "widget_type": {"type": "keyword"},
+                "target_field": {"type": "keyword"},
                 "updated_at": {"type": "date"}
             }
         }
@@ -32,35 +33,33 @@ def init_dashboard_index():
 
     if client.indices.exists(index=index_name):
         client.indices.delete(index=index_name)
-    
     client.indices.create(index=index_name, body=mapping)
-    print(f"인덱스 '{index_name}'을(를) 생성했습니다.")
 
-    # grid_width는 이제 분모값 (1=100%, 2=50%, 3=33.3%, 4=25%)
+    # 위협 현황 패널 설정
     threat_panels = [
-        {"key": "total_threats", "def": "totalThreats", "order": 1, "w": 4, "h": 120},
-        {"key": "unresolved_threats", "def": "unresolvedThreats", "order": 2, "w": 4, "h": 120},
-        {"key": "active_threats", "def": "activeThreats", "order": 3, "w": 4, "h": 120},
-        {"key": "suspicious_threats", "def": "suspiciousThreats", "order": 4, "w": 4, "h": 120},
-        {"key": "resolved_threats", "def": "resolvedThreats", "order": 5, "w": 3, "h": 120},
-        {"key": "blocked_threats", "def": "blockedThreats", "order": 6, "w": 3, "h": 120},
-        {"key": "mitigated_threats", "def": "mitigatedThreats", "order": 7, "w": 3, "h": 120},
-        {"key": "detection_engine", "def": "detectionEngine", "order": 8, "w": 2, "h": 380},
-        {"key": "severity_dist", "def": "severityDistribution", "order": 9, "w": 2, "h": 380},
-        {"key": "prevalent_threats", "def": "prevalentThreats", "order": 10, "w": 3, "h": 380},
-        {"key": "mitigation_stats", "def": "mitigationStatusDist", "order": 11, "w": 3, "h": 380},
-        {"key": "agent_status_dist", "def": "agentStatusDist", "order": 12, "w": 3, "h": 380},
-        {"key": "detailed_mitigation_dist", "def": "detailedMitigationDist", "order": 20, "w": 1, "h": 450},
+        {"key": "total_threats", "def": "totalThreats", "order": 1, "w": 4, "h": 120, "type": "metric"},
+        {"key": "resolved_threats", "def": "resolvedThreats", "order": 2, "w": 4, "h": 120, "type": "metric"},
+        {"key": "unresolved_threats", "def": "unresolvedThreats", "order": 3, "w": 4, "h": 120, "type": "metric"},
+        {"key": "active_threats", "def": "activeThreats", "order": 3, "w": 4, "h": 120, "type": "metric"},
+        {"key": "blocked_threats", "def": "blockedThreats", "order": 5, "w": 3, "h": 120, "type": "metric"},
+        {"key": "mitigated_threats", "def": "mitigatedThreats", "order": 6, "w": 3, "h": 120, "type": "metric"},
+        {"key": "suspicious_threats", "def": "suspiciousThreats", "order": 7, "w": 3, "h": 120, "type": "metric"},
+        {"key": "detection_engine", "def": "detectionEngine", "order": 8, "w": 2, "h": 380, "type": "pie", "field": "threatInfo.detectionEngines.title"},
+        {"key": "severity_dist", "def": "severityDistribution", "order": 9, "w": 2, "h": 380, "type": "pie", "field": "threatInfo.severity"},
+        {"key": "prevalent_threats", "def": "prevalentThreats", "order": 10, "w": 3, "h": 380, "type": "bar", "field": "threatInfo.threatName"},
+        {"key": "mitigation_stats", "def": "mitigationStatusDist", "order": 11, "w": 3, "h": 380, "type": "bar", "field": "threatInfo.mitigationStatus"},
+        {"key": "agent_status_dist", "def": "agentStatusDist", "order": 12, "w": 3, "h": 380, "type": "pie", "field": "agentRealtimeInfo.agentDetectionState"},
     ]
 
+    # 에이전트 패널 설정
     agent_panels = [
-        {"key": "total_agents", "def": "totalAgents", "order": 1, "w": 4, "h": 120},
-        {"key": "active_agents", "def": "activeAgents", "order": 2, "w": 4, "h": 120},
-        {"key": "inactive_agents", "def": "inactiveAgents", "order": 3, "w": 4, "h": 120},
-        {"key": "infected_agents", "def": "infectedAgents", "order": 4, "w": 4, "h": 120},
-        {"key": "agent_os_dist", "def": "agentOSDistribution", "order": 5, "w": 2, "h": 380},
-        {"key": "agent_version_dist", "def": "agentVersionDistribution", "order": 6, "w": 2, "h": 380},
-        {"key": "agent_scan_status", "def": "agentScanStatus", "order": 7, "w": 1, "h": 300},
+        {"key": "total_agents", "def": "totalAgents", "order": 1, "w": 4, "h": 120, "type": "metric"},
+        {"key": "active_agents", "def": "activeAgents", "order": 2, "w": 4, "h": 120, "type": "metric"},
+        {"key": "inactive_agents", "def": "inactiveAgents", "order": 3, "w": 4, "h": 120, "type": "metric"},
+        {"key": "infected_agents", "def": "infectedAgents", "order": 4, "w": 4, "h": 120, "type": "metric"},
+        {"key": "agent_os_dist", "def": "agentOSDistribution", "order": 5, "w": 2, "h": 380, "type": "pie", "field": "osName"},
+        {"key": "agent_version_dist", "def": "agentVersionDistribution", "order": 6, "w": 2, "h": 380, "type": "bar", "field": "agentVersion"},
+        {"key": "agent_scan_status", "def": "agentScanStatus", "order": 7, "w": 1, "h": 300, "type": "pie", "field": "scanStatus"},
     ]
 
     def index_panels(dashboard_id, panel_list):
@@ -73,6 +72,8 @@ def init_dashboard_index():
                 "grid_width": p["w"],
                 "grid_height": p["h"],
                 "display_order": p["order"],
+                "widget_type": p["type"],
+                "target_field": p.get("field"),
                 "custom_query": None,
                 "updated_at": datetime.utcnow().isoformat()
             }
@@ -80,8 +81,7 @@ def init_dashboard_index():
 
     index_panels("threat-status", threat_panels)
     index_panels("agent-dashboard", agent_panels)
-    
-    print("인덱스 초기화 완료 (커스텀 쿼리 필드 포함)")
+    print("인덱스 초기화 완료 (차트 타입 정보 포함)")
 
 if __name__ == "__main__":
     init_dashboard_index()

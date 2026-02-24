@@ -252,8 +252,11 @@
   "agentScanStatus": "Agent Scan Status",
   "resetLayout": "Reset Layout",
   "deletePanel": "Delete Panel",
+  "editTitle": "Edit Title",
+  "panelSettings": "Panel Settings",
+  "clonePanel": "Clone Panel",
   "resetDashboardConfirmTitle": "Reset Dashboard",
-  "resetDashboardConfirmMessage": "All panel names, sizes, and positions will be reset to their initial state. Do you want to continue?",
+  "resetDashboardConfirmMessage": "All panel names, sizes, and positions will be reset to their initial state. Added or deleted panels will also be reset. Do you want to continue?",
   "all": "All",
   "windowIntervalError": "Detection window (window_min) must be greater than or equal to detection interval (interval_min).",
   "windowIntervalWarning": "The query range exceeds 3 times the interval, which may cause many duplicate notifications."

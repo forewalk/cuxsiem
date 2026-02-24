@@ -4,13 +4,14 @@ import {
   Box, Paper, Typography, LinearProgress, Divider, 
   IconButton, TextField, Tooltip, useTheme,
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  Menu, MenuItem, ListItemIcon, ListItemText
+  Menu, MenuItem, ListItemIcon, ListItemText, Stack,
+  Autocomplete, ToggleButton, ToggleButtonGroup
 } from "@mui/material";
 import ControlBar from "../components/ControlBar";
 import CategoryBarChartWidget from "../components/CategoryBarChartWidget";
 import PieChartWidget from "../components/PieChartWidget";
-import { getDashboardStats, resetDashboard, saveDashboardLayout } from "../../../services/dashboardService";
-import type { DashboardStatsResponse, DashboardPanel } from "../../../services/dashboardService";
+import { getDashboardStats, resetDashboard, saveDashboardLayout, getIndexFields } from "../../../services/dashboardService";
+import type { DashboardStatsResponse, DashboardPanel, IndexField } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
@@ -21,6 +22,9 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import PieChartIcon from '@mui/icons-material/PieChart';
+import TouchedIcon from '@mui/icons-material/AdsClick';
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -30,23 +34,120 @@ import cnMessages from "../../../locales/cn.json";
 
 const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
 
-// --- Query Edit Modal ---
-const QueryEditModal: React.FC<{
-  open: boolean; onClose: () => void; panelKey: string; initialQuery: string;
-  onSave: (key: string, query: string | null) => void;
-}> = ({ open, onClose, panelKey, initialQuery, onSave }) => {
-  const [query, setQuery] = useState(initialQuery || "");
-  useEffect(() => { setQuery(initialQuery || ""); }, [initialQuery]);
-  const handleSave = () => { onSave(panelKey, query); onClose(); };
-  const handleResetQuery = () => { onSave(panelKey, null); onClose(); };
+// --- Panel Settings Modal (Type + Query + Field) ---
+const PanelSettingsModal: React.FC<{
+  open: boolean; onClose: () => void; panel: DashboardPanel | null;
+  onSave: (key: string, type: string, query: string, field?: string) => void;
+  t: (k: string) => string;
+}> = ({ open, onClose, panel, onSave, t }) => {
+  const [type, setType] = useState("metric");
+  const [query, setQuery] = useState("");
+  const [field, setField] = useState("");
+  const [availableFields, setAvailableFields] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open && panel) {
+      setType(panel.widget_type || "metric");
+      setQuery(panel.custom_query || panel.default_query || "");
+      setField(panel.target_field || "");
+      const fetchFields = async () => {
+        try {
+          const fields = await getIndexFields("logs-sentinel_one.threats");
+          setAvailableFields(fields.map(f => f.name));
+        } catch (e) { console.error(e); }
+      };
+      fetchFields();
+    }
+  }, [open, panel]);
+
+  const handleSave = () => { 
+    if (panel) onSave(panel.panel_key, type, query, field); 
+    onClose(); 
+  };
+
+  if (!panel) return null;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 'bold' }}>패널 쿼리 편집</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 'bold' }}>{t('panelSettings')}</DialogTitle>
       <DialogContent>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>OpenSearch DSL 쿼리 또는 쿼리 스트링을 입력하세요</Typography>
-        <TextField fullWidth multiline rows={4} value={query} onChange={(e) => setQuery(e.target.value)} variant="outlined" placeholder="*" autoFocus sx={{ mt: 1, '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
+        <Stack spacing={3} sx={{ mt: 2 }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontWeight: 'bold' }}>{t('selectWidgetType')}</Typography>
+            <ToggleButtonGroup value={type} exclusive onChange={(_, next) => next && setType(next)} fullWidth size="small">
+              <ToggleButton value="metric" sx={{ py: 1, gap: 1 }}><TouchedIcon fontSize="small" /> {t('metric')}</ToggleButton>
+              <ToggleButton value="bar" sx={{ py: 1, gap: 1 }}><BarChartIcon fontSize="small" /> {t('barChart')}</ToggleButton>
+              <ToggleButton value="pie" sx={{ py: 1, gap: 1 }}><PieChartIcon fontSize="small" /> {t('pieChart')}</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontWeight: 'bold' }}>조회 쿼리 (OpenSearch DSL or String)</Typography>
+            <TextField fullWidth multiline rows={3} value={query} onChange={(e) => setQuery(e.target.value)} variant="outlined" placeholder="*" sx={{ '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
+          </Box>
+          {type !== "metric" && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontWeight: 'bold' }}>{t('targetField')}</Typography>
+              <Autocomplete freeSolo options={availableFields} value={field} onInputChange={(_, newValue) => setField(newValue)} renderInput={(params) => (
+                <TextField {...params} variant="outlined" placeholder="e.g. threatInfo.severity" />
+              )} />
+            </Box>
+          )}
+        </Stack>
       </DialogContent>
-      <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}><Button onClick={handleResetQuery} variant="text" color="error">쿼리 초기화</Button><Box><Button onClick={onClose} color="inherit" sx={{ mr: 1 }}>취소</Button><Button onClick={handleSave} variant="contained" color="primary">확인</Button></Box></DialogActions>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} color="inherit">{t('cancel')}</Button>
+        <Button onClick={handleSave} variant="contained" color="primary">{t('apply')}</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// --- Add Panel Dialog ---
+const AddPanelDialog: React.FC<{
+  open: boolean; onClose: () => void; onAdd: (data: { type: string, title: string, query: string, field?: string }) => void; t: (k: string) => string;
+}> = ({ open, onClose, onAdd, t }) => {
+  const [step, setStep] = useState(1); const [type, setType] = useState("metric"); const [title, setTitle] = useState(""); const [query, setQuery] = useState(""); const [field, setField] = useState("threatInfo.threatName");
+  const [availableFields, setAvailableFields] = useState<string[]>([]);
+  useEffect(() => { 
+    if (open) { 
+      setStep(1); setType("metric"); setTitle(""); setQuery(""); setField("threatInfo.threatName"); 
+      const fetchFields = async () => {
+        try {
+          const fields = await getIndexFields("logs-sentinel_one.threats");
+          setAvailableFields(fields.map(f => f.name));
+        } catch (e) { console.error(e); }
+      };
+      fetchFields();
+    } 
+  }, [open]);
+  const handleNext = () => setStep(2); const handleBack = () => setStep(1); const handleAdd = () => { onAdd({ type, title, query, field }); onClose(); };
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ fontWeight: 'bold' }}>{step === 1 ? t('selectWidgetType') : t('addPanel')}</DialogTitle>
+      <DialogContent>
+        {step === 1 ? (
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Paper variant="outlined" onClick={() => { setType("metric"); handleNext(); }} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' } }}><TouchedIcon color="primary" /><Box><Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{t('metric')}</Typography><Typography variant="caption" color="text.secondary">단일 숫자 지표</Typography></Box></Paper>
+            <Paper variant="outlined" onClick={() => { setType("bar"); handleNext(); }} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' } }}><BarChartIcon color="primary" /><Box><Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{t('barChart')}</Typography><Typography variant="caption" color="text.secondary">막대 그래프</Typography></Box></Paper>
+            <Paper variant="outlined" onClick={() => { setType("pie"); handleNext(); }} sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' } }}><PieChartIcon color="primary" /><Box><Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{t('pieChart')}</Typography><Typography variant="caption" color="text.secondary">원형 그래프</Typography></Box></Paper>
+          </Stack>
+        ) : (
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField fullWidth label={t('panelTitle')} value={title} onChange={(e) => setTitle(e.target.value)} variant="outlined" autoFocus />
+            <TextField fullWidth label="Query" multiline rows={2} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="*" variant="outlined" />
+            {type !== "metric" && (
+              <Autocomplete freeSolo options={availableFields} value={field} onInputChange={(_, newValue) => setField(newValue)} renderInput={(params) => (
+                <TextField {...params} label={t('targetField')} variant="outlined" placeholder="e.g. threatInfo.severity" />
+              )} />
+            )}
+          </Stack>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} color="inherit">{t('cancel')}</Button>
+        {step === 2 && <Button onClick={handleBack} color="inherit">이전</Button>}
+        {step === 2 && <Button onClick={handleAdd} variant="contained" color="primary" disabled={!title}>{t('addPanel')}</Button>}
+      </DialogActions>
     </Dialog>
   );
 };
@@ -74,9 +175,9 @@ const DraggablePanel: React.FC<{
   panel: DashboardPanel;
   onDragStart: (key: string) => void; onDragEnd: () => void; onDragOver: (key: string) => void; onDrop: () => void;
   onResizeEnd: (key: string, newWidth: number, newHeight: number) => void;
-  onQueryEdit: (key: string) => void; onTitleEdit: (key: string) => void; onClone: (key: string) => void; onDelete: (key: string) => void;
-  isDragging: boolean; isOver: boolean; isEditMode: boolean; children: React.ReactNode;
-}> = ({ panel, onDragStart, onDragEnd, onDragOver, onDrop, onResizeEnd, onQueryEdit, onTitleEdit, onClone, onDelete, isDragging, isOver, isEditMode, children }) => {
+  onSettingsEdit: (key: string) => void; onTitleEdit: (key: string) => void; onClone: (key: string) => void; onDelete: (key: string) => void;
+  isDragging: boolean; isOver: boolean; isEditMode: boolean; t: (k: string) => string; children: React.ReactNode;
+}> = ({ panel, onDragStart, onDragEnd, onDragOver, onDrop, onResizeEnd, onSettingsEdit, onTitleEdit, onClone, onDelete, isDragging, isOver, isEditMode, t, children }) => {
   const theme = useTheme();
   const [resizing, setResizing] = useState(false);
   const [visualWidth, setVisualWidth] = useState<number | string>(0);
@@ -106,14 +207,13 @@ const DraggablePanel: React.FC<{
     if (!isResizingRef.current) return;
     const deltaX = e.clientX - startX.current; const deltaY = e.clientY - startY.current;
     isResizingRef.current = false; setResizing(false);
-    const containerId = panel.dashboard_id === "threat-status" ? "threat-dashboard-grid-container" : "agent-dashboard-grid-container";
-    const gridContainer = document.getElementById(containerId);
+    const gridContainer = document.getElementById("threat-dashboard-grid-container");
     let finalRatio = panel.grid_width; const finalHeight = Math.max(100, Math.round((startHeight.current + deltaY) / 20) * 20);
     if (gridContainer) { finalRatio = getSnapRatio(startWidth.current + deltaX, gridContainer.getBoundingClientRect().width); }
     setVisualWidth(0); setVisualHeight('auto'); 
     document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp);
     onResizeEnd(panel.panel_key, finalRatio, finalHeight);
-  }, [panel.panel_key, panel.dashboard_id, panel.grid_width, onMouseMove, onResizeEnd]);
+  }, [panel.panel_key, panel.grid_width, onMouseMove, onResizeEnd]);
 
   const onMouseDownLocal = (e: React.MouseEvent) => {
     if (!isEditMode) return; e.preventDefault(); e.stopPropagation();
@@ -134,7 +234,13 @@ const DraggablePanel: React.FC<{
         {isEditMode && (
           <Box sx={{ position: 'absolute', top: 4, right: 4, zIndex: 20 }}>
             <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'primary.main', bgcolor: 'action.hover' } }}><SettingsIcon fontSize="small" /></IconButton>
-            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}><MenuItem onClick={() => { onTitleEdit(panel.panel_key); setAnchorEl(null); }}><ListItemIcon><EditIcon fontSize="small" /></ListItemIcon><ListItemText primary="제목 수정" /></MenuItem><MenuItem onClick={() => { onQueryEdit(panel.panel_key); setAnchorEl(null); }}><ListItemIcon><FilterAltIcon fontSize="small" /></ListItemIcon><ListItemText primary="쿼리 수정" /></MenuItem><MenuItem onClick={() => { onClone(panel.panel_key); setAnchorEl(null); }}><ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon><ListItemText primary="패널 복제" /></MenuItem><Divider /><MenuItem onClick={() => { onDelete(panel.panel_key); setAnchorEl(null); }} sx={{ color: 'error.main' }}><ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon><ListItemText primary="패널 삭제" /></MenuItem></Menu>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+              <MenuItem onClick={() => { onTitleEdit(panel.panel_key); setAnchorEl(null); }}><ListItemIcon><EditIcon fontSize="small" /></ListItemIcon><ListItemText primary={t('editTitle')} /></MenuItem>
+              <MenuItem onClick={() => { onSettingsEdit(panel.panel_key); setAnchorEl(null); }}><ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon><ListItemText primary={t('panelSettings')} /></MenuItem>
+              <MenuItem onClick={() => { onClone(panel.panel_key); setAnchorEl(null); }}><ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon><ListItemText primary={t('clonePanel')} /></MenuItem>
+              <Divider />
+              <MenuItem onClick={() => { onDelete(panel.panel_key); setAnchorEl(null); }} sx={{ color: 'error.main' }}><ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon><ListItemText primary={t('deletePanel')} /></MenuItem>
+            </Menu>
           </Box>
         )}
         {isEditMode && <Box className="resize-handle" onMouseDown={onMouseDownLocal} sx={{ position: 'absolute', right: 8, bottom: 8, width: 32, height: 32, cursor: 'nwse-resize', zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', color: 'primary.main', p: 0.5, '&:hover': { opacity: 1 } }}><NorthWestIcon sx={{ fontSize: 16, transform: 'rotate(180deg)' }} /></Box>}
@@ -153,7 +259,8 @@ const DashboardTab: React.FC = () => {
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
   const [overKey, setOverKey] = useState<string | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
-  const [queryEditPanel, setQueryEditPanel] = useState<string | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [settingsEditPanelKey, setSettingsEditPanelKey] = useState<string | null>(null);
   const [editingTitleKey, setEditingTitleKey] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const lastMoveRef = useRef<{ dragged: string, target: string } | null>(null);
@@ -168,16 +275,16 @@ const DashboardTab: React.FC = () => {
 
   const t = useMemo(() => (key: string): string => (translations[language] || translations["ko"] || {})[key] || key, [language]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (currentPanels?: DashboardPanel[]) => {
     try { 
       setLoading(true); 
-      const stats = await getDashboardStats("threat-status", fromValue || undefined, fromUnit, toValue ?? undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined); 
+      const stats = await getDashboardStats("threat-status", fromValue || undefined, fromUnit, toValue ?? undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, currentPanels); 
       if (stats && stats.summary) { setData(stats); }
     } catch (err) { console.error("Error fetching dashboard data:", err); }
     finally { setLoading(false); }
   }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { if (!isEditMode) fetchData(); }, [fetchData, isEditMode]);
 
   const handleTimeChange = useCallback((fv: number | null, fu: string, tv: number | null, tu: string, fd: string | null, td: string | null) => {
     const np = new URLSearchParams(searchParams);
@@ -194,12 +301,21 @@ const DashboardTab: React.FC = () => {
 
   const handleEditToggle = () => { if (!isEditMode) setOriginalPanels(data?.panels ? JSON.parse(JSON.stringify(data.panels)) : null); setIsEditMode(!isEditMode); };
   const handleCancel = () => { if (originalPanels && data) setData({ ...data, panels: JSON.parse(JSON.stringify(originalPanels)) }); setEditingTitleKey(null); setIsEditMode(false); };
-  const handleSave = async () => { if (!data) return; setLoading(true); try { await saveDashboardLayout("threat-status", data.panels); setOriginalPanels(JSON.parse(JSON.stringify(data.panels))); setEditingTitleKey(null); setIsEditMode(false); } finally { setLoading(false); } };
+  const handleSave = async () => { if (!data) return; setLoading(true); try { await saveDashboardLayout("threat-status", data.panels); setOriginalPanels(JSON.parse(JSON.stringify(data.panels))); setEditingTitleKey(null); setIsEditMode(false); fetchData(); } finally { setLoading(false); } };
 
-  const handleClonePanel = (pk: string) => { if (!data) return; const original = data.panels.find(p => p.panel_key === pk); if (!original) return; const newPanel = { ...JSON.parse(JSON.stringify(original)), panel_key: `${original.panel_key}_copy_${Date.now()}` }; setData({ ...data, panels: [...data.panels, newPanel] }); };
-  const handleDeletePanel = (pk: string) => { if (!data) return; setData({ ...data, panels: data.panels.filter(p => p.panel_key !== pk) }); };
+  const handleAddPanel = async (newP: { type: string, title: string, query: string, field?: string }) => {
+    if (!data) return;
+    const panelKey = `custom_${newP.type}_${Date.now()}`;
+    const newPanel: DashboardPanel = {
+      dashboard_id: "threat-status", panel_key: panelKey, custom_titles: { [language]: newP.title }, default_title_key: "", grid_width: newP.type === "metric" ? 4 : 2, grid_height: newP.type === "metric" ? 120 : 380, custom_query: newP.query, default_query: "*", widget_type: newP.type, target_field: newP.field, is_visible: true, display_order: (data?.panels?.length || 0) + 1, current_value: 0, chart_data: []
+    };
+    const updated = [...(data?.panels || []), newPanel]; setData({ ...data, panels: updated }); fetchData(updated);
+  };
+
+  const handleClonePanel = (pk: string) => { if (!data) return; const original = data.panels.find(p => p.panel_key === pk); if (!original) return; const newPanel = { ...JSON.parse(JSON.stringify(original)), panel_key: `${original.panel_key}_copy_${Date.now()}` }; const updated = [...data.panels, newPanel]; setData({ ...data, panels: updated }); fetchData(updated); };
+  const handleDeletePanel = (pk: string) => { if (!data) return; const updated = data.panels.filter(p => p.panel_key !== pk); setData({ ...data, panels: updated }); fetchData(updated); };
   const handleTitleSave = (pk: string, newTitle: string) => { if (data) setData({...data, panels: data.panels.map(p => p.panel_key === pk ? { ...p, custom_titles: { ...(p.custom_titles || {}), [language]: newTitle } } : p)}); };
-  const handleQuerySave = (pk: string, newQuery: string | null) => { if (data) setData({ ...data, panels: data.panels.map(p => p.panel_key === pk ? { ...p, custom_query: newQuery || "" } : p) }); };
+  const handleSettingsSave = (pk: string, newType: string, newQuery: string, newField?: string) => { if (data) { const updated = data.panels.map(p => p.panel_key === pk ? { ...p, widget_type: newType, custom_query: newQuery, target_field: newField || p.target_field } : p); setData({ ...data, panels: updated }); fetchData(updated); } };
 
   const handleDragStart = (key: string) => setDraggedKey(key);
   const handleDragEnd = () => { setDraggedKey(null); setOverKey(null); lastMoveRef.current = null; };
@@ -211,29 +327,26 @@ const DashboardTab: React.FC = () => {
     lastMoveRef.current = { dragged: draggedKey, target: targetKey }; setData({ ...data, panels: items.map((p, i) => ({ ...p, display_order: i + 1 })) });
   };
 
-  const handleResizeEnd = (pk: string, finalWidthRatio: number, finalHeight: number) => {
-    if (!data) return;
-    setData({ ...data, panels: data.panels.map(p => p.panel_key === pk ? { ...p, grid_width: finalWidthRatio, grid_height: finalHeight } : p) });
-  };
+  const handleResizeEnd = (pk: string, finalWidthRatio: number, finalHeight: number) => { if (!data) return; setData({ ...data, panels: data.panels.map(p => p.panel_key === pk ? { ...p, grid_width: finalWidthRatio, grid_height: finalHeight } : p) }); };
 
   const renderPanelContent = (panel: DashboardPanel) => {
     if (!data) return null;
     const pk = panel.panel_key;
-    const commonSummaryKeys = ["total_threats", "unresolved_threats", "resolved_threats", "active_threats", "blocked_threats", "mitigated_threats", "suspicious_threats"];
-    if (commonSummaryKeys.some(k => pk.startsWith(k))) {
-      const baseKey = commonSummaryKeys.find(k => pk.startsWith(k)) || "total_threats";
+    const isMetric = panel.widget_type === "metric";
+    if (isMetric) {
+      const commonSummaryKeys = ["total_threats", "unresolved_threats", "resolved_threats", "active_threats", "blocked_threats", "mitigated_threats", "suspicious_threats"];
+      const baseKey = commonSummaryKeys.find(k => pk.startsWith(k)) || "";
       const colorMap: any = { unresolved_threats: "warning.main", resolved_threats: "success.main", active_threats: "error.main", blocked_threats: "info.main", mitigated_threats: "primary.main", suspicious_threats: "secondary.main" };
-      const valMap: any = { total_threats: data.summary?.total_threats, unresolved_threats: data.summary?.unresolved_threats, resolved_threats: data.summary?.resolved_threats, active_threats: data.summary?.active_threats, blocked_threats: data.summary?.blocked_threats, mitigated_threats: data.summary?.mitigated_threats, suspicious_threats: data.summary?.suspicious_threats };
+      const val = (pk.startsWith("custom_") || pk.includes("_copy") || !baseKey) ? (panel.current_value || 0) : ((data.summary as any)[baseKey] ?? 0);
       return (
         <Paper elevation={1} sx={{ p: 2.5, borderRadius: 1.5, display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
           <EditableTitle panelKey={pk} initialTitle={panel.custom_titles[language] || panel.custom_titles["ko"] || t(panel.default_title_key)} onSave={handleTitleSave} variant="caption" isEditing={editingTitleKey === pk} setIsEditing={(v) => setEditingTitleKey(v ? pk : null)} />
-          <Typography variant="h4" sx={{ fontWeight: "bold", color: colorMap[baseKey] || "text.primary", mt: 0.5 }}>{(valMap[baseKey] ?? 0).toLocaleString()}</Typography>
+          <Typography variant="h4" sx={{ fontWeight: "bold", color: colorMap[baseKey] || "text.primary", mt: 0.5 }}>{(val || 0).toLocaleString()}</Typography>
         </Paper>
       );
     }
-    const chartMap: any = { detection_engine: data.detection_stats, severity_dist: data.severity_stats, prevalent_threats: data.prevalent_threats, mitigation_stats: data.mitigation_stats, agent_status_dist: data.agent_status_stats, confidence_level_dist: data.confidence_level_stats, incident_status_dist: data.incident_status_stats, top_threat_techniques: data.threat_technique_stats, infected_agents_dist: data.infected_agent_stats };
-    const chartData = chartMap[pk.split('_copy')[0]] || [];
-    const widget = pk.includes('engine') || pk.includes('severity') || pk.includes('status') ? <PieChartWidget data={chartData} /> : <CategoryBarChartWidget data={chartData} color="#20b2aa" />;
+    const chartData = panel.chart_data || [];
+    const widget = panel.widget_type === "pie" ? <PieChartWidget data={chartData} /> : <CategoryBarChartWidget data={chartData} />;
     return (
       <Paper elevation={1} sx={{ p: 2, height: "100%", display: 'flex', flexDirection: 'column', borderRadius: 1.5, overflow: 'hidden' }}>
         <EditableTitle panelKey={pk} initialTitle={panel.custom_titles[language] || panel.custom_titles["ko"] || t(panel.default_title_key)} onSave={handleTitleSave} isEditing={editingTitleKey === pk} setIsEditing={(v) => setEditingTitleKey(v ? pk : null)} />
@@ -242,17 +355,20 @@ const DashboardTab: React.FC = () => {
     );
   };
 
+  const selectedPanelForSettings = useMemo(() => data?.panels.find(p => p.panel_key === settingsEditPanelKey) || null, [data, settingsEditPanelKey]);
+
   return (
     <Box sx={{ flexGrow: 1, overflowY: "auto", height: "100%", p: { xs: 1.5, sm: 2, md: 3 }, bgcolor: "background.default", position: 'relative' }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      <Box sx={{ mb: 1 }}><ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} onReset={() => setResetDialogOpen(true)} isEditMode={isEditMode} onEdit={handleEditToggle} onCancel={handleCancel} onSave={handleSave} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} /></Box>
+      <Box sx={{ mb: 1 }}><ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={() => fetchData(isEditMode ? data?.panels : undefined)} onReset={() => setResetDialogOpen(true)} onAdd={() => setAddDialogOpen(true)} isEditMode={isEditMode} onEdit={handleEditToggle} onCancel={handleCancel} onSave={handleSave} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary?.total_logs} /></Box>
       <Box id="threat-dashboard-grid-container" sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
         {data?.panels?.map((panel) => (
-          <DraggablePanel key={panel.panel_key} panel={panel} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDrop={() => {}} onResizeEnd={handleResizeEnd} onQueryEdit={setQueryEditPanel} onTitleEdit={setEditingTitleKey} onClone={handleClonePanel} onDelete={handleDeletePanel} isDragging={draggedKey === panel.panel_key} isOver={overKey === panel.panel_key} isEditMode={isEditMode}>{renderPanelContent(panel)}</DraggablePanel>
+          <DraggablePanel key={panel.panel_key} panel={panel} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDrop={() => {}} onResizeEnd={handleResizeEnd} onSettingsEdit={setSettingsEditPanelKey} onTitleEdit={setEditingTitleKey} onClone={handleClonePanel} onDelete={handleDeletePanel} isDragging={draggedKey === panel.panel_key} isOver={overKey === panel.panel_key} isEditMode={isEditMode} t={t}>{renderPanelContent(panel)}</DraggablePanel>
         ))}
       </Box>
       <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}><DialogTitle>{t('resetDashboardConfirmTitle')}</DialogTitle><DialogContent><Typography>{t('resetDashboardConfirmMessage')}</Typography></DialogContent><DialogActions><Button onClick={() => setResetDialogOpen(false)}>{t('cancel')}</Button><Button onClick={async () => { await resetDashboard("threat-status"); fetchData(); setResetDialogOpen(false); setIsEditMode(false); }} variant="contained">{t('reset')}</Button></DialogActions></Dialog>
-      <QueryEditModal open={!!queryEditPanel} onClose={() => setQueryEditPanel(null)} panelKey={queryEditPanel || ""} initialQuery={(() => { const p = data?.panels?.find(p => p.panel_key === queryEditPanel); return p?.custom_query || p?.default_query || ""; })()} onSave={handleQuerySave} />
+      <AddPanelDialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} onAdd={handleAddPanel} t={t} />
+      <PanelSettingsModal open={!!settingsEditPanelKey} onClose={() => setSettingsEditPanelKey(null)} panel={selectedPanelForSettings} onSave={handleSettingsSave} t={t} />
     </Box>
   );
 };

@@ -29,6 +29,10 @@ class DashboardPanel(BaseModel):
     grid_height: int = 120
     custom_query: Optional[str] = None
     default_query: Optional[str] = None
+    widget_type: str = "metric"      # 추가: metric, bar, pie
+    target_field: Optional[str] = None # 추가: 집계 대상 필드
+    current_value: int = 0           # 추가: 실시간 값 (metric용)
+    chart_data: List[SeverityStat] = [] # 추가: 실시간 데이터 (chart용)
     is_visible: bool = True
     display_order: int = 0
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -59,3 +63,6 @@ class DashboardPanelUpdate(BaseModel):
     grid_width: Optional[int] = None
     grid_height: Optional[int] = None
     custom_query: Optional[str] = None
+    widget_type: Optional[str] = None
+    target_field: Optional[str] = None
+    display_order: Optional[int] = None

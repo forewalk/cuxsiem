@@ -58,10 +58,13 @@ function App() {
     palette: {
       mode: darkMode ? "dark" : "light",
       primary: {
-        main: FIGMA_COLORS.buttonBg,
+        main: darkMode ? "#5B9BD5" : "#4A90D9",
+      },
+      secondary: {
+        main: "#4CAF50",
       },
       background: {
-        default: darkMode ? "#121212" : FIGMA_COLORS.contentBg,
+        default: darkMode ? "#121212" : "#F4F5F7",
       },
     },
     breakpoints: {

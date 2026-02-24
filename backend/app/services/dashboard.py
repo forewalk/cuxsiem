@@ -7,7 +7,8 @@ from app.schemas.dashboard import (
     DashboardStatsResponse, 
     HistogramItem, 
     SeverityStat,
-    DashboardSummary
+    DashboardSummary,
+    DashboardPanel
 )
 
 class DashboardService:
@@ -21,63 +22,158 @@ class DashboardService:
         return await self.repository.get_logs(index_map.get(dashboard_id, "logs-sentinel_one.threats"), **kwargs)
 
     async def get_dashboard_stats(
-        self, dashboard_id: str = "threat-status", from_value=None, from_unit=None, to_value=None, to_unit=None, from_date=None, to_date=None, query=None
+        self, 
+        dashboard_id: str = "threat-status", 
+        from_value=None, from_unit=None, to_value=None, to_unit=None, from_date=None, to_date=None, 
+        query=None,
+        panels_override: List[Dict[str, Any]] = None # 추가: 외부에서 패널 설정 주입 가능
     ) -> DashboardStatsResponse:
         index_map = {"threat-status": "logs-sentinel_one.threats", "agent-dashboard": "logs-sentinel_one.agents"}
         target_index = index_map.get(dashboard_id, "logs-sentinel_one.threats")
 
-        # 1. 패널 설정 조회
-        panels_raw = await self.repository.get_panels(dashboard_id)
+        # 1. 패널 설정 결정 (오버라이드 있으면 그것 사용, 없으면 DB 조회)
+        if panels_override is not None:
+            panels_raw = panels_override
+        else:
+            panels_raw = await self.repository.get_panels(dashboard_id)
         
-        # 2. 통계 데이터 조회 (동적 패널 기능을 잠시 비활성화하고 정적으로 조회)
-        raw_data = await self.repository.get_stats(target_index, from_value, from_unit, to_value, to_unit, from_date, to_date, query)
+        # 시스템 기본 쿼리 매핑
+        default_queries = {
+            "resolved_threats": 'threatInfo.incidentStatus: "resolved"',
+            "unresolved_threats": 'threatInfo.incidentStatus: "unresolved"',
+            "active_threats": '(threatInfo.incidentStatus: "resolved") AND (threatInfo.mitigationStatus: "active")',
+            "blocked_threats": '(!threatInfo.incidentStatus: "resolved") AND (threatInfo.mitigationStatus: "blocked")',
+            "mitigated_threats": '(threatInfo.mitigationStatus: "mitigated") AND (!threatInfo.incidentStatus: "resolved")',
+            "suspicious_threats": '(threatInfo.incidentStatus: "resolved") AND (threatInfo.mitigationStatus: "active")',
+            "active_agents": 'isActive: true',
+            "inactive_agents": 'isActive: false',
+            "infected_agents": 'infected: true'
+        }
+
+        for p in panels_raw:
+            p["default_query"] = default_queries.get(p["panel_key"], "*")
+
+        # 2. 통계 데이터 조회 (동적 집계 포함)
+        raw_data = await self.repository.get_stats(target_index, panels_raw, from_value, from_unit, to_value, to_unit, from_date, to_date, query)
         
         aggs = raw_data.get("aggregations", {})
         total_hits = raw_data.get("hits", {}).get("total", {}).get("value", 0)
         
-        def get_buckets(agg_key): return aggs.get(agg_key, {}).get("buckets", [])
-        def get_doc_count(agg_key): return aggs.get(agg_key, {}).get("doc_count", 0)
+        def get_buckets(agg_key):
+            node = aggs.get(agg_key, {})
+            if "inner" in node: return node["inner"].get("buckets", [])
+            return node.get("buckets", [])
 
-        histogram = [HistogramItem(timestamp=datetime.fromtimestamp(b["key"]/1000.0), count=b["doc_count"]) for b in get_buckets("logs_over_time")]
+        def get_doc_count(agg_key):
+            node = aggs.get(agg_key, {})
+            return node.get("doc_count", 0)
+
+        histogram = [HistogramItem(timestamp=datetime.fromtimestamp(b["key"]/1000.0), count=b["doc_count"]) 
+                     for b in get_buckets("logs_over_time")]
 
         summary = DashboardSummary(
-            total_logs=total_hits, total_threats=total_hits,
-            resolved_threats=get_doc_count("resolved_count"), unresolved_threats=get_doc_count("unresolved_count"),
-            active_threats=get_doc_count("active_count"), blocked_threats=get_doc_count("blocked_count"),
-            mitigated_threats=get_doc_count("mitigated_count"), suspicious_threats=get_doc_count("suspicious_count")
+            total_logs=total_hits,
+            total_threats=get_doc_count("total_threats") or total_hits,
+            resolved_threats=get_doc_count("resolved_threats"),
+            unresolved_threats=get_doc_count("unresolved_threats"),
+            active_threats=get_doc_count("active_threats"),
+            blocked_threats=get_doc_count("blocked_threats"),
+            mitigated_threats=get_doc_count("mitigated_threats"),
+            suspicious_threats=get_doc_count("suspicious_threats")
         )
 
-        def map_stats(agg_key): return [SeverityStat(label=str(b["key"]), value=b["doc_count"]) for b in get_buckets(agg_key)]
+        # 동적 패널 데이터 매핑 (실시간 값 주입)
+        processed_panels = []
+        for p in panels_raw:
+            pk = p["panel_key"]
+            p["current_value"] = get_doc_count(pk) if p.get("widget_type") == "metric" else 0
+            p["chart_data"] = [SeverityStat(label=str(b["key"]), value=b["doc_count"]) for b in get_buckets(pk)] if p.get("widget_type") != "metric" else []
+            processed_panels.append(DashboardPanel(**p))
+
+        def map_stats(agg_key):
+            return [SeverityStat(label=str(b["key"]), value=b["doc_count"]) for b in get_buckets(agg_key)]
 
         return DashboardStatsResponse(
-            summary=summary, histogram=histogram,
-            detection_stats=map_stats("detection_engines"), prevalent_threats=map_stats("prevalent_threats"),
-            agent_status_stats=map_stats("agent_status"), mitigation_stats=map_stats("mitigation_status"),
+            summary=summary,
+            histogram=histogram,
+            detection_stats=map_stats("detection_engine"), 
+            prevalent_threats=map_stats("prevalent_threats"),
+            agent_status_stats=map_stats("agent_status_dist"), 
+            mitigation_stats=map_stats("mitigation_stats"),
             severity_stats=map_stats("severity_dist"),
-            agent_os_dist=map_stats("agent_os_dist"), agent_version_dist=map_stats("agent_version_dist"), agent_scan_status=map_stats("agent_scan_status"),
-            panels=panels_raw, last_updated=datetime.utcnow()
+            agent_os_dist=map_stats("agent_os_dist"), 
+            agent_version_dist=map_stats("agent_version_dist"), 
+            agent_scan_status=map_stats("agent_scan_status"),
+            panels=processed_panels,
+            last_updated=datetime.utcnow()
         )
 
-    async def update_panel_settings(self, dashboard_id: str, panel_key: str, title=None, language=None, grid_width=None, grid_height=None, custom_query=None) -> bool:
-        update_data = {"updated_at": datetime.utcnow().isoformat()}
+    async def update_panel_settings(self, dashboard_id: str, panel_key: str, title=None, language=None, grid_width=None, grid_height=None, custom_query=None, widget_type=None, target_field=None) -> bool:
+        update_data: Dict[str, Any] = {"updated_at": datetime.utcnow().isoformat()}
         if title and language: update_data[f"custom_titles.{language}"] = title
         if grid_width: update_data["grid_width"] = grid_width
         if grid_height: update_data["grid_height"] = grid_height
         if custom_query is not None: update_data["custom_query"] = custom_query
+        if widget_type: update_data["widget_type"] = widget_type
+        if target_field: update_data["target_field"] = target_field
         return await self.repository.update_panel(dashboard_id, panel_key, update_data)
 
     async def save_dashboard_layout(self, dashboard_id: str, panels: List[Dict[str, Any]]) -> bool:
         updates = []
         for p in panels:
-            updates.append({"panel_key": p["panel_key"], "custom_titles": p.get("custom_titles", {}), "grid_width": p.get("grid_width"), "grid_height": p.get("grid_height"), "custom_query": p.get("custom_query"), "display_order": p.get("display_order", 0)})
+            updates.append({
+                "panel_key": p["panel_key"], 
+                "custom_titles": p.get("custom_titles", {}),
+                "default_title_key": p.get("default_title_key", ""),
+                "grid_width": p.get("grid_width"), 
+                "grid_height": p.get("grid_height"),
+                "custom_query": p.get("custom_query"), 
+                "widget_type": p.get("widget_type", "metric"),
+                "target_field": p.get("target_field"), 
+                "display_order": p.get("display_order", 0)
+            })
         return await self.repository.bulk_update_panels(dashboard_id, updates)
 
     async def reset_dashboard_settings(self, dashboard_id: str) -> bool:
+        """대시보드 설정 초기화 (이름, 비율 기반 크기, 차트 타입 보존)"""
         default_config = {
-            "threat-status": [{"key": "total_threats", "w": 4, "h": 120, "order": 1}, {"key": "unresolved_threats", "w": 4, "h": 120, "order": 2}, {"key": "resolved_threats", "w": 4, "h": 120, "order": 3}, {"key": "active_threats", "w": 4, "h": 120, "order": 4}, {"key": "blocked_threats", "w": 3, "h": 120, "order": 5}, {"key": "mitigated_threats", "w": 3, "h": 120, "order": 6}, {"key": "suspicious_threats", "w": 3, "h": 120, "order": 7}, {"key": "detection_engine", "w": 2, "h": 380, "order": 8}, {"key": "severity_dist", "w": 2, "h": 380, "order": 9}, {"key": "prevalent_threats", "w": 3, "h": 380, "order": 10}, {"key": "mitigation_stats", "w": 3, "h": 380, "order": 11}, {"key": "agent_status_dist", "w": 3, "h": 380, "order": 12}],
-            "agent-dashboard": [{"key": "total_agents", "w": 4, "h": 120, "order": 1}, {"key": "active_agents", "w": 4, "h": 120, "order": 2}, {"key": "inactive_agents", "w": 4, "h": 120, "order": 3}, {"key": "infected_agents", "w": 4, "h": 120, "order": 4}, {"key": "agent_os_dist", "w": 2, "h": 380, "order": 5}, {"key": "agent_version_dist", "w": 2, "h": 380, "order": 6}, {"key": "agent_scan_status", "w": 1, "h": 300, "order": 7}]
+            "threat-status": [
+                {"key": "total_threats", "def": "totalThreats", "w": 4, "h": 120, "order": 1, "type": "metric"},
+                {"key": "resolved_threats", "def": "resolvedThreats", "w": 4, "h": 120, "order": 2, "type": "metric"},
+                {"key": "unresolved_threats", "def": "unresolvedThreats", "w": 4, "h": 120, "order": 3, "type": "metric"},
+                {"key": "active_threats", "def": "activeThreats", "w": 4, "h": 120, "order": 4, "type": "metric"},
+                {"key": "blocked_threats", "def": "blockedThreats", "w": 3, "h": 120, "order": 5, "type": "metric"},
+                {"key": "mitigated_threats", "def": "mitigatedThreats", "w": 3, "h": 120, "order": 6, "type": "metric"},
+                {"key": "suspicious_threats", "def": "suspiciousThreats", "w": 3, "h": 120, "order": 7, "type": "metric"},
+                {"key": "detection_engine", "w": 2, "h": 380, "order": 8, "type": "pie", "field": "threatInfo.detectionEngines.title", "def": "detectionEngine"},
+                {"key": "severity_dist", "w": 2, "h": 380, "order": 9, "type": "pie", "field": "threatInfo.severity", "def": "severityDistribution"},
+                {"key": "prevalent_threats", "w": 3, "h": 380, "order": 10, "type": "bar", "field": "threatInfo.threatName", "def": "prevalentThreats"},
+                {"key": "mitigation_stats", "w": 3, "h": 380, "order": 11, "type": "bar", "field": "threatInfo.mitigationStatus", "def": "mitigationStatusDist"},
+                {"key": "agent_status_dist", "w": 3, "h": 380, "order": 12, "type": "pie", "field": "agentRealtimeInfo.agentDetectionState", "def": "agentStatusDist"},
+            ],
+            "agent-dashboard": [
+                {"key": "total_agents", "def": "totalAgents", "w": 4, "h": 120, "order": 1, "type": "metric"},
+                {"key": "active_agents", "def": "activeAgents", "w": 4, "h": 120, "order": 2, "type": "metric"},
+                {"key": "inactive_agents", "def": "inactiveAgents", "w": 4, "h": 120, "order": 3, "type": "metric"},
+                {"key": "infected_agents", "def": "infectedAgents", "w": 4, "h": 120, "order": 4, "type": "metric"},
+                {"key": "agent_os_dist", "w": 2, "h": 380, "order": 5, "type": "pie", "field": "osName", "def": "agentOSDistribution"},
+                {"key": "agent_version_dist", "w": 2, "h": 380, "order": 6, "type": "bar", "field": "agentVersion", "def": "agentVersionDistribution"},
+                {"key": "agent_scan_status", "w": 1, "h": 300, "order": 7, "type": "pie", "field": "scanStatus", "def": "agentScanStatus"},
+            ]
         }
         panels = default_config.get(dashboard_id, [])
         if not panels: return False
-        updates = [{"panel_key": p["key"], "grid_width": p["w"], "grid_height": p["h"], "display_order": p["order"], "custom_titles": {}, "custom_query": None} for p in panels]
+        updates = []
+        for p in panels:
+            updates.append({
+                "panel_key": p["key"], 
+                "default_title_key": p["def"],
+                "grid_width": p["w"], 
+                "grid_height": p["h"], 
+                "display_order": p["order"],
+                "widget_type": p.get("type", "metric"), 
+                "target_field": p.get("field"),
+                "custom_titles": {}, 
+                "custom_query": None
+            })
         return await self.repository.bulk_update_panels(dashboard_id, updates)
