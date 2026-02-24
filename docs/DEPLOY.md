@@ -138,9 +138,6 @@ docker compose up -d
 # 컨테이너 상태 확인
 docker compose ps
 
-# DB 연결 테스트 (중요)
-docker compose exec backend python test_db.py
-
 # 로그 확인
 docker compose logs -f
 ```

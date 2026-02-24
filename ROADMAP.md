@@ -11,6 +11,7 @@
 - [x] OpenSearch 개발서버 연동
 - [x] 프로젝트 문서 정비 (INSTALL, GIT_GUIDE, DEPLOY, ARCHITECTURE)
 - [x] 로그인/인증 기능
+- [ ] 스토리북 (Storybook) - UI 컴포넌트 개발 및 문서화
 
 ## Phase 2: 핵심 기능
 
@@ -51,6 +52,9 @@
 ### 결제 기능
 - [ ] 결제 합의 통보 알림
 - [ ] 인사 시스템 연동 방식 결정 및 구현
+
+### 개인화 (Personalization)
+- [ ] 개인화 설정 (대시보드 위치/크기, 구조 레이아웃, 이름 등)
 
 ---
 
