@@ -239,5 +239,7 @@
   "noEventSourceData": "未找到事件源数据。",
   "triggeredRule": "触发规则",
   "alertMessage": "警报消息",
-  "all": "全部"
+  "all": "全部",
+  "windowIntervalError": "检测数据查询范围(window_min)必须大于或等于检测周期(interval_min)。",
+  "windowIntervalWarning": "查询范围超过周期的3倍，可能会产生大量重复通知。"
 }

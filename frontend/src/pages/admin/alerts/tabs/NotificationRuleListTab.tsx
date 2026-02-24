@@ -81,6 +81,10 @@ const NotificationRuleListTab: React.FC = () => {
     open: false, message: '', severity: 'success',
   });
 
+  // 탐지 조건 검증 상태
+  const [windowIntervalError, setWindowIntervalError] = useState<string | null>(null);
+  const [windowIntervalWarning, setWindowIntervalWarning] = useState<string | null>(null);
+
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
   const [activeAnchor, setActiveAnchor] = useState<null | HTMLElement>(null);
@@ -176,6 +180,33 @@ const NotificationRuleListTab: React.FC = () => {
     loadRules();
   }, [loadRules]);
 
+  // 탐지 조건 검증 (window_min과 interval_min 관계)
+  useEffect(() => {
+    const { window_min, interval_min } = formData;
+    
+    // Hard Barrier: window_min < interval_min
+    if (window_min < interval_min) {
+      setWindowIntervalError(
+        t('windowIntervalError') || 
+        '탐지 데이터 조회범위(window_min)는 탐지 주기(interval_min)보다 크거나 같아야 합니다.'
+      );
+      setWindowIntervalWarning(null);
+      return;
+    }
+    
+    setWindowIntervalError(null);
+    
+    // Soft Warning: window_min > interval_min * 3
+    if (window_min > interval_min * 3) {
+      setWindowIntervalWarning(
+        t('windowIntervalWarning') || 
+        '조회범위가 주기의 3배를 초과하여 중복 알림이 많이 발생할 수 있습니다.'
+      );
+    } else {
+      setWindowIntervalWarning(null);
+    }
+  }, [formData.window_min, formData.interval_min, t]);
+
   const handleOpenDialog = (rule: NotificationRule | null = null) => {
     if (rule) {
       setEditingRule(rule);
@@ -187,6 +218,8 @@ const NotificationRuleListTab: React.FC = () => {
       setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
     }
     setJsonError(null);
+    setWindowIntervalError(null);
+    setWindowIntervalWarning(null);
     setOpen(true);
   };
 
@@ -246,32 +279,10 @@ const NotificationRuleListTab: React.FC = () => {
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
 
-      <AlertsControlBar
-        t={t}
-        fromValue={fromValue}
-        fromUnit={fromUnit}
-        toValue={toValue}
-        toUnit={toUnit}
-        fromDate={fromDate}
-        toDate={toDate}
-        onTimeChange={(fv, fu, tv, tu, fd, td) => {
-          setFromValue(fv);
-          setFromUnit(fu);
-          setToValue(tv);
-          setToUnit(tu);
-          setFromDate(fd);
-          setToDate(td);
-          setPage(0);
-        }}
-        searchQuery={searchQuery}
-        onSearchQueryChange={(q) => {
-          setSearchQuery(q);
-          setPage(0);
-        }}
-        onRefresh={() => { setPage(0); loadRules(); }}
-      />
-
-      <Paper {...ALERT_TABLE_STYLES.paper}>
+      <Paper {...ALERT_TABLE_STYLES.paper} sx={{ 
+        ...ALERT_TABLE_STYLES.paper.sx, 
+        height: 'calc(100vh - 170px)'
+      }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2, pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsActiveIcon color="primary"  />
@@ -491,9 +502,25 @@ const NotificationRuleListTab: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, window_min: parseInt(e.target.value) })} 
                   size="small" 
                   helperText={t('windowMinHelper')}
+                  error={!!windowIntervalError}
                   inputProps={{ min: 1, max: 10080, step: 1 }}
                 />
               </Stack>
+              
+              {/* Hard Barrier Error */}
+              {windowIntervalError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {windowIntervalError}
+                </Alert>
+              )}
+              
+              {/* Soft Warning */}
+              {windowIntervalWarning && !windowIntervalError && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  {windowIntervalWarning}
+                </Alert>
+              )}
+              
               <TextField label={t('conditionConfig')} multiline rows={6} fullWidth required value={dslString} onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError} helperText={jsonError || t('dslQueryHelper')} inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }} />
             </Grid>
 
@@ -580,7 +607,12 @@ const NotificationRuleListTab: React.FC = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button variant="outlined" onClick={handleCloseDialog}>{t('cancel')}</Button>
-          <Button variant="contained" color="primary" onClick={handleSave} disabled={!!jsonError || !formData.name}>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleSave} 
+            disabled={!!jsonError || !formData.name || !!windowIntervalError}
+          >
             {t('save')}
           </Button>
         </DialogActions>
