@@ -56,14 +56,19 @@ const NotificationRow: React.FC<{
             {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </TableCell>
-        <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+        <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           {formatDateTime(row.created_at)}
         </TableCell>
-        <TableCell width={120} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+        <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <SeverityChip severity={row.rule_severity || row.severity} />
         </TableCell>
         <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, fontWeight: 'bold' }}>
           {row.rule_name || row.title}
+        </TableCell>
+        <TableCell  sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+            {row.event_source?.agentRealtimeInfo?.accountName}
+          </Typography>
         </TableCell>
         <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <Stack direction="row" spacing={0.5} flexWrap="wrap">
@@ -90,7 +95,7 @@ const NotificationRow: React.FC<{
       </TableRow>
 
       <TableRow sx={{ '& > td': { p: 0, borderBottom: open ? undefined : 'none' } }}>
-        <TableCell colSpan={5}>
+        <TableCell colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
               {/* 좌우 배치를 위한 Flex 컨테이너 (Stack 사용) */}
@@ -347,8 +352,8 @@ const NotificationHistoryTab: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell width={50} sx={{ ...ALERT_TABLE_STYLES.headerCell }} />
-                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('occurrenceDate')}</TableCell>
-                <TableCell width={120} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
+                <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('occurrenceDate')}</TableCell>
+                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {t('severity')}
                     <IconButton
@@ -361,12 +366,13 @@ const NotificationHistoryTab: React.FC = () => {
                   </Box>
                 </TableCell>
                 <TableCell sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('ruleName')}</TableCell>
-                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
+                <TableCell width={150} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>에이전트 사용자</TableCell>
+                <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {notifications.length === 0 ? (
-                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
               ) : (
                 notifications
                   .filter(row => selectedSeverities.length === 0 || (row.severity && selectedSeverities.includes(row.severity.toLowerCase())))
