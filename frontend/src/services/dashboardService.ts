@@ -15,6 +15,19 @@ export interface IndexField {
   type: string;
 }
 
+export interface DashboardPanel {
+  dashboard_id: string;
+  panel_key: string;
+  custom_titles: Record<string, string>;
+  default_title_key: string;
+  grid_width: number;
+  grid_height: number;
+  custom_query: string;
+  default_query: string;
+  is_visible: boolean;
+  display_order: number;
+}
+
 export interface DashboardSummary {
   total_logs: number;
   total_threats: number;
@@ -33,6 +46,11 @@ export interface DashboardStatsResponse {
   detection_stats: SeverityStat[];
   prevalent_threats: SeverityStat[];
   mitigation_stats: SeverityStat[];
+  agent_status_stats: SeverityStat[];
+  agent_os_dist: SeverityStat[];
+  agent_version_dist: SeverityStat[];
+  agent_scan_status: SeverityStat[];
+  panels: DashboardPanel[];
   last_updated: string;
 }
 
@@ -46,7 +64,9 @@ export const getIndexFields = async (indexName: string): Promise<IndexField[]> =
   return response.data;
 };
 
+// --- getIndexLogs 함수 복구 ---
 export const getIndexLogs = async (
+  dashboardId: string = "threat-status",
   fromValue?: number,
   fromUnit?: string,
   toValue?: number,
@@ -57,7 +77,7 @@ export const getIndexLogs = async (
   size: number = 20,
   offset: number = 0
 ): Promise<any[]> => {
-  let url = `/api/v1/dashboard/logs?size=${size}&offset=${offset}`;
+  let url = `/api/v1/dashboard/logs?dashboard_id=${dashboardId}&size=${size}&offset=${offset}`;
   if (fromValue !== undefined) url += `&from_value=${fromValue}`;
   if (fromUnit) url += `&from_unit=${fromUnit}`;
   if (toValue !== undefined) url += `&to_value=${toValue}`;
@@ -71,25 +91,25 @@ export const getIndexLogs = async (
 };
 
 export const getDashboardStats = async (
-  fromValue?: number,
-  fromUnit?: string,
-  toValue?: number,
-  toUnit?: string,
-  fromDate?: string,
-  toDate?: string,
-  query?: string
+  dashboardId: string = "threat-status",
+  fromValue?: number, fromUnit?: string, toValue?: number, toUnit?: string, fromDate?: string, toDate?: string, query?: string
 ): Promise<DashboardStatsResponse> => {
-  let url = `/api/v1/dashboard/stats?`;
-  const params: string[] = [];
-  if (fromValue !== undefined) params.push(`from_value=${fromValue}`);
-  if (fromUnit) params.push(`from_unit=${fromUnit}`);
-  if (toValue !== undefined) params.push(`to_value=${toValue}`);
-  if (toUnit) params.push(`to_unit=${toUnit}`);
-  if (fromDate) params.push(`from_date=${fromDate}`);
-  if (toDate) params.push(`to_date=${toDate}`);
-  if (query) params.push(`q=${encodeURIComponent(query)}`);
-  
-  url += params.join('&');
+  let url = `/api/v1/dashboard/stats?dashboard_id=${dashboardId}`;
+  if (fromValue !== undefined) url += `&from_value=${fromValue}`;
+  if (fromUnit) url += `&from_unit=${fromUnit}`;
+  if (toValue !== undefined) url += `&to_value=${toValue}`;
+  if (toUnit) url += `&to_unit=${toUnit}`;
+  if (fromDate) url += `&from_date=${fromDate}`;
+  if (toDate) url += `&to_date=${toDate}`;
+  if (query) url += `&q=${encodeURIComponent(query)}`;
   const response = await api.get<DashboardStatsResponse>(url);
   return response.data;
+};
+
+export const saveDashboardLayout = async (dashboardId: string, panels: DashboardPanel[]): Promise<void> => {
+  await api.post(`/api/v1/dashboard/save/${dashboardId}`, panels);
+};
+
+export const resetDashboard = async (dashboardId: string): Promise<void> => {
+  await api.post(`/api/v1/dashboard/reset/${dashboardId}`);
 };

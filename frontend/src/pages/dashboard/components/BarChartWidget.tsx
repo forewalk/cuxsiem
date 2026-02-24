@@ -288,15 +288,32 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
 
           <Box sx={{ position: 'absolute', top: '100%', left: 0, right: 0, height: padding.bottom, display: 'flex' }}>
             {data.map((item, i) => {
-              const labelStep = data.length > 20 ? Math.ceil(data.length / (window.innerWidth < 600 ? 4 : 12)) : 1;
+              // 화면 너비와 데이터 길이에 비례하여 라벨 표시 개수 조절
+              const maxLabels = window.innerWidth < 600 ? 4 : 8;
+              const labelStep = Math.ceil(data.length / maxLabels);
               const showLabel = i % labelStep === 0;
+              
               if (!showLabel) return <Box key={i} sx={{ flex: 1 }} />;
-              const isMultiDay = data.length > 0 && !dayjs(data[0].timestamp).isSame(dayjs(data[data.length-1].timestamp), 'day');
+
+              // 시간 범위에 따른 포맷 결정
+              const diffMs = dayjs(data[data.length-1].timestamp).diff(dayjs(data[0].timestamp));
+              const isMultiDay = diffMs > 24 * 60 * 60 * 1000;
+              const isSmallRange = diffMs < 60 * 60 * 1000; // 1시간 미만
+
+              let timeFormat = "HH:mm";
+              if (isSmallRange) timeFormat = "HH:mm:ss";
+              
               return (
                 <Box key={i} sx={{ flex: 1, position: 'relative' }}>
                   <Box sx={{ position: 'absolute', left: '50%', top: { xs: 4, md: 8 }, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
-                    {isMultiDay && <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: { xs: '7px', md: '9px' }, lineHeight: 1, mb: 0.2 }}>{dayjs(item.timestamp).format("MM-DD")}</Typography>}
-                    <Typography variant="caption" sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: { xs: '8px', md: '10px' }, lineHeight: 1 }}>{dayjs(item.timestamp).format("HH:mm")}</Typography>
+                    {isMultiDay && (
+                      <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: { xs: '7px', md: '9px' }, lineHeight: 1, mb: 0.2 }}>
+                        {dayjs(item.timestamp).format("MM-DD")}
+                      </Typography>
+                    )}
+                    <Typography variant="caption" sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: { xs: '8px', md: '10px' }, lineHeight: 1 }}>
+                      {dayjs(item.timestamp).format(timeFormat)}
+                    </Typography>
                   </Box>
                 </Box>
               );

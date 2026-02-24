@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-24 14:18 | 최지호 | 수정 | origin/feature/dashboard push (agent 화면 생성, 대시보드 편집 구현) |
 | 2026-02-19 17:05 | 최지호 | 배포 | origin/develop push (dashboard, alerts 병합) |
 | 2026-02-19 15:50 | 최지호 | 수정 | origin/feature/dashboard push (리스트/대시보드 분리 구현) |
 | 2026-02-18 09:16 | 박지은 | 수정 | 알림 전송 방식 변경: Webhook 제거, 역할 기반 수신자 선택 추가 |

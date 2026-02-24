@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import List, Dict, Any
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 class HistogramItem(BaseModel):
@@ -11,22 +11,51 @@ class SeverityStat(BaseModel):
     value: int
 
 class DashboardSummary(BaseModel):
-    total_logs: int
-    # Threats Row 1
+    total_logs: int = 0
     total_threats: int = 0
     resolved_threats: int = 0
     unresolved_threats: int = 0
     active_threats: int = 0
-    # Threats Row 2
     blocked_threats: int = 0
     mitigated_threats: int = 0
     suspicious_threats: int = 0
 
+class DashboardPanel(BaseModel):
+    dashboard_id: str
+    panel_key: str
+    custom_titles: Dict[str, str] = {}
+    default_title_key: str = ""
+    grid_width: int = 4
+    grid_height: int = 120
+    custom_query: Optional[str] = None
+    default_query: Optional[str] = None
+    is_visible: bool = True
+    display_order: int = 0
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 class DashboardStatsResponse(BaseModel):
     summary: DashboardSummary
-    histogram: List[HistogramItem]
-    severity_stats: List[SeverityStat]
+    histogram: List[HistogramItem] = []
+    severity_stats: List[SeverityStat] = []
     detection_stats: List[SeverityStat] = []
     prevalent_threats: List[SeverityStat] = []
+    agent_status_stats: List[SeverityStat] = []
     mitigation_stats: List[SeverityStat] = []
-    last_updated: datetime
+    mitigation_mode_stats: List[SeverityStat] = []
+    confidence_level_stats: List[SeverityStat] = []
+    file_extension_stats: List[SeverityStat] = []
+    incident_status_stats: List[SeverityStat] = []
+    threat_technique_stats: List[SeverityStat] = []
+    infected_agent_stats: List[SeverityStat] = []
+    agent_os_dist: List[SeverityStat] = []
+    agent_version_dist: List[SeverityStat] = []
+    agent_scan_status: List[SeverityStat] = []
+    panels: List[DashboardPanel] = []
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
+
+class DashboardPanelUpdate(BaseModel):
+    title: Optional[str] = None
+    language: Optional[str] = None
+    grid_width: Optional[int] = None
+    grid_height: Optional[int] = None
+    custom_query: Optional[str] = None
