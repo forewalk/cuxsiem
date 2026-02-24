@@ -41,7 +41,6 @@ export const AlertTableFilterMenu: React.FC<AlertTableFilterMenuProps> = ({
 }) => {
   const handleItemClick = (value: string | boolean | null) => {
     onToggle(value);
-    // Single select인 경우 선택 후 자동으로 메뉴 닫기
     if (!multiSelect) {
       onClose();
     }

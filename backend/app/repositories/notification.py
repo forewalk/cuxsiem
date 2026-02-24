@@ -115,13 +115,24 @@ class NotificationRepository:
                     }
                 }
 
+            # last_triggered_at 정렬 시 null 값 처리
+            if sort_by == "last_triggered_at":
+                sort_config = {
+                    sort_by: {
+                        "order": order,
+                        "missing": "_last" if order == "asc" else "_first"
+                    }
+                }
+            else:
+                sort_config = {sort_by: {"order": order}}
+            
             result = self.client.search(
                 index=self.rules_index,
                 body={
                     "from": skip,
                     "size": limit,
                     "query": search_query,
-                    "sort": [{sort_by: {"order": order}}]
+                    "sort": [sort_config]
                 }
             )
             total = result.get("hits", {}).get("total", {}).get("value", 0)
@@ -215,6 +226,30 @@ class NotificationRepository:
             )
             return alert_data
         return await loop.run_in_executor(None, insert)
+
+    async def get_alert_by_dedup_key(self, dedup_key: str) -> Optional[Dict[str, Any]]:
+        """dedup_key로 기존 알림 조회"""
+        loop = asyncio.get_event_loop()
+        def search():
+            try:
+                result = self.client.search(
+                    index=self.alerts_index,
+                    body={
+                        "query": {
+                            "term": {
+                                "dedup_key.keyword": dedup_key
+                            }
+                        },
+                        "size": 1
+                    }
+                )
+                hits = result.get("hits", {}).get("hits", [])
+                if hits:
+                    return hits[0]["_source"]
+                return None
+            except Exception:
+                return None
+        return await loop.run_in_executor(None, search)
     
     # 하위 호환성을 위한 별칭
     async def create_notification(self, notification_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -226,6 +261,7 @@ class NotificationRepository:
         skip: int = 0,
         limit: int = 100,
         query: Optional[str] = None,
+        severities: Optional[List[str]] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
         user_role: Optional[str] = None
@@ -261,6 +297,14 @@ class NotificationRepository:
                             }
                         ],
                         "minimum_should_match": 1
+                    }
+                })
+
+            # 중요도 필터 (OR 조건)
+            if severities:
+                must_clauses.append({
+                    "terms": {
+                        "severity": severities
                     }
                 })
 

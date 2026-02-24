@@ -22,8 +22,8 @@ class NotificationRuleBase(BaseModel):
     
     # 중복 제거 설정
     dedup_key_template: str = Field(
-        default="{{rule_id}}",
-        description="중복 키 생성을 위한 템플릿 (예: {{rule_id}}_{{source_ip}})"
+        default="{{rule_id}}_{{_id}}",
+        description="중복 키 생성을 위한 템플릿 (이벤트 ID 기반 중복 제거)"
     )
     # 수신자 설정 (cs_users의 role 기반)
     receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})

@@ -6,6 +6,7 @@ import re
 
 from app.repositories.notification import NotificationRepository
 from app.schemas.notification import NotificationRuleBase, NotificationRuleUpdate
+from app.core.websocket import manager
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class NotificationService:
         skip: int = 0,
         limit: int = 100,
         query: Optional[str] = None,
+        severities: Optional[List[str]] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
         user_role: Optional[str] = None
@@ -67,24 +69,34 @@ class NotificationService:
             skip=skip,
             limit=limit,
             query=query,
+            severities=severities,
             from_date=from_date,
             to_date=to_date,
             user_role=user_role
         )
 
     def _generate_dedup_key(self, rule: Dict[str, Any], event: Dict[str, Any]) -> str:
-        # 매 실행마다 새로운 알림이 발생하도록 현재 시간(분 단위)을 키에 포함 (느슨한 설정)
-        now_str = datetime.utcnow().strftime("%Y%m%d%H%M")
-        template = rule.get("dedup_key_template", "{{rule_id}}")
+        """
+        중복 제거 키 생성
+        - 룰 ID와 이벤트 고유 ID({{_id}}) 또는 주요 필드 조합을 기반으로 함
+        - 시간 의존성을 제거하여 동일 이벤트에 대해 항상 동일한 키 생성
+        """
+        template = rule.get("dedup_key_template", "{{rule_id}}_{{_id}}")
 
-        key = f"{now_str}_" + template.replace("{{rule_id}}", rule["id"])
+        key = template.replace("{{rule_id}}", rule["id"])
         key = key.replace("{{rule_name}}", rule.get("name", ""))
+        
+        # 이벤트 메타데이터 처리
+        if "{{_id}}" in key:
+            key = key.replace("{{_id}}", str(event.get("_id", "unknown")))
+        if "{{_index}}" in key:
+            key = key.replace("{{_index}}", str(event.get("_index", "unknown")))
 
         matches = re.findall(r"\{\{([^}]+)\}\}", key)
         source = event.get("_source", {})
 
         for field in matches:
-            if field in ["rule_id", "rule_name"]: continue
+            if field in ["rule_id", "rule_name", "_id", "_index"]: continue
             val = str(source.get(field, "unknown"))
             key = key.replace(f"{{{{{field}}}}}", val)
 
@@ -129,7 +141,7 @@ class NotificationService:
         rule_id = rule["id"]
         target_index = rule.get("target_index", "logs-sentinel_one.threats")
         condition_config = rule.get("condition_config", {})
-        window_min = rule.get("window_min", 5)
+        window_min = rule["window_min"]  # 필수 필드 (스키마에서 검증됨)
 
         now = datetime.utcnow()
         # 설정된 window_min을 정확히 따르되, 인덱싱 지연을 고려하여 10초의 미세 버퍼만 추가
@@ -192,6 +204,12 @@ class NotificationService:
                 event_source = first_hit.get("_source", {})
                 dedup_key = self._generate_dedup_key(rule, first_hit)
 
+                # 중복 체크: 이미 동일한 dedup_key를 가진 알림이 있는지 확인
+                existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
+                if existing_alert:
+                    logger.info(f"Duplicate alert skipped for rule '{rule['name']}' with dedup_key: {dedup_key}")
+                    return None
+
                 # 메시지 템플릿 렌더링을 위한 context 구성
                 # event_source의 모든 필드 + 메타 정보 포함
                 template_context = {
@@ -244,6 +262,44 @@ class NotificationService:
 
                 # 터미널에서 즉시 확인할 수 있도록 출력
                 print(f"\n{'='*50}\n[ALERT DETECTED] {created_alert['rule_name']}\nMessage: {created_alert['message']}\nEvent: {event_index}/{event_ref}\n{'='*50}\n")
+
+                # WebSocket으로 실시간 알림 전송
+                try:
+                    receiver_values = rule.get("receiver", {}).get("values", [])
+                    if receiver_values:
+                        # 수신자 역할에 따라 전송
+                        await manager.send_to_roles(
+                            roles=receiver_values,
+                            message={
+                                "type": "new_alert",
+                                "data": {
+                                    "id": created_alert["id"],
+                                    "rule_name": created_alert["rule_name"],
+                                    "message": created_alert["message"],
+                                    "severity": created_alert["severity"],
+                                    "rule_severity": created_alert["rule_severity"],
+                                    "created_at": created_alert["created_at"]
+                                }
+                            }
+                        )
+                        logger.info(f"WebSocket alert sent to roles: {receiver_values}")
+                    else:
+                        # 수신자 없으면 모든 연결에 브로드캐스트
+                        await manager.broadcast({
+                            "type": "new_alert",
+                            "data": {
+                                "id": created_alert["id"],
+                                "rule_name": created_alert["rule_name"],
+                                "message": created_alert["message"],
+                                "severity": created_alert["severity"],
+                                "rule_severity": created_alert["rule_severity"],
+                                "created_at": created_alert["created_at"]
+                            }
+                        })
+                        logger.info("WebSocket alert broadcasted to all users")
+                except Exception as ws_error:
+                    logger.error(f"Failed to send WebSocket alert: {ws_error}")
+                    # WebSocket 실패해도 알림 생성은 계속 진행
 
                 await self.repository.update_rule(rule_id, {
                     "last_triggered_at": now.isoformat(),

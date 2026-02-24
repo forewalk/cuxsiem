@@ -5,6 +5,7 @@ interface GetNotificationsParams {
   skip?: number;
   limit?: number;
   query?: string;
+  severities?: string;
   from_date?: string;
   to_date?: string;
 }

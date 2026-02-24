@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 import {
   Box, Typography, Paper, Stack, Divider, LinearProgress, Chip,
   IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Collapse, TablePagination, Snackbar, Alert
+  TableRow, Collapse, TablePagination
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -14,6 +14,7 @@ import {
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import AlertsControlBar from "../components/AlertsControlBar";
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
@@ -51,21 +52,33 @@ const NotificationRow: React.FC<{
           bgcolor: open ? 'action.selected' : 'inherit'
         }}
       >
-        <TableCell width={50}>
+        <TableCell width={80} sx={{ pl: 7 }}>
           <IconButton size="small">
             {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </TableCell>
-        <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+        <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.bodyCell, pl: 3 }}>
           {formatDateTime(row.created_at)}
         </TableCell>
-        <TableCell width={120} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+        <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <SeverityChip severity={row.rule_severity || row.severity} />
         </TableCell>
-        <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, fontWeight: 'bold' }}>
+        <TableCell width={200} sx={{ 
+          ...ALERT_TABLE_STYLES.bodyCell, 
+          fontWeight: 'bold',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          pl: 7
+        }}>
           {row.rule_name || row.title}
         </TableCell>
-        <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+        <TableCell  sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+            {row.event_source?.agentRealtimeInfo?.accountName}
+          </Typography>
+        </TableCell>
+        <TableCell width={220} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <Stack direction="row" spacing={0.5} flexWrap="wrap">
             {row.receiver?.values && Array.isArray(row.receiver.values) ? (
               row.receiver.values.map((role: string) => (
@@ -90,7 +103,7 @@ const NotificationRow: React.FC<{
       </TableRow>
 
       <TableRow sx={{ '& > td': { p: 0, borderBottom: open ? undefined : 'none' } }}>
-        <TableCell colSpan={5}>
+        <TableCell colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
               {/* 좌우 배치를 위한 Flex 컨테이너 (Stack 사용) */}
@@ -128,8 +141,18 @@ const NotificationRow: React.FC<{
                           border: '1px solid',
                           borderColor: 'divider',
                           minHeight: '100px',
+                          maxHeight: '400px',
+                          overflow: 'auto',
                           whiteSpace: 'pre-wrap',
-                          lineHeight: 1.8
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
+                          lineHeight: 1.8,
+                          '&::-webkit-scrollbar': { width: 6, height: 6 },
+                          '&::-webkit-scrollbar-thumb': { 
+                            bgcolor: 'rgba(0,0,0,0.2)', 
+                            borderRadius: 3,
+                            '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' }
+                          }
                         }}
                       >
                         {row.message}
@@ -169,7 +192,7 @@ const NotificationRow: React.FC<{
                       p: 2,
                       borderRadius: 1,
                       overflow: 'auto',
-                      height: 400,
+                      maxHeight: 457,
                       fontFamily: '"Fira Code", "Cascadia Code", monospace',
                       fontSize: '0.8rem',
                       lineHeight: 1.5,
@@ -208,7 +231,7 @@ const NotificationHistoryTab: React.FC = () => {
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
 
   // 시간 범위 상태
-  const [fromValue, setFromValue] = useState<number | null>(15);
+  const [fromValue, setFromValue] = useState<number | null>(null);
   const [fromUnit, setFromUnit] = useState<string>("m");
   const [toValue, setToValue] = useState<number | null>(null);
   const [toUnit, setToUnit] = useState<string>("m");
@@ -225,12 +248,6 @@ const NotificationHistoryTab: React.FC = () => {
     }
     return text;
   }, [language]);
-
-  // 신규 알림 스낵바 상태
-  const [snackbar, setSnackbar] = useState<{ open: boolean; title: string; severity: string }>({
-    open: false, title: '', severity: 'info'
-  });
-  const lastIdRef = useRef<string | null>(null);
 
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
@@ -269,26 +286,20 @@ const NotificationHistoryTab: React.FC = () => {
       const skip = page * rowsPerPage;
       const { from_date, to_date } = calculateTimeRange();
 
-      const data = await notificationService.getNotifications({
+      const params: any = {
         skip,
         limit: rowsPerPage,
         query: searchQuery || undefined,
         from_date,
         to_date
-      });
+      };
 
-      // 신규 알림 감지 로직 (페이지가 0일 때만)
-      if (data.items.length > 0 && page === 0) {
-        const latestNotif = data.items[0];
-        if (lastIdRef.current && latestNotif.id !== lastIdRef.current) {
-          setSnackbar({
-            open: true,
-            title: latestNotif.title || latestNotif.rule_name || 'Notification',
-            severity: latestNotif.severity || 'info'
-          });
-        }
-        lastIdRef.current = latestNotif.id;
+      // 중요도 필터 추가
+      if (selectedSeverities.length > 0) {
+        params.severities = selectedSeverities.join(',');
       }
+
+      const data = await notificationService.getNotifications(params);
 
       setNotifications(data.items);
       setTotal(data.total);
@@ -297,27 +308,31 @@ const NotificationHistoryTab: React.FC = () => {
     } finally {
       if (!isPolling) setLoading(false);
     }
-  }, [page, rowsPerPage, searchQuery, calculateTimeRange]);
+  }, [page, rowsPerPage, searchQuery, selectedSeverities, calculateTimeRange]);
 
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // 10초 주기 폴링 설정
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadNotifications(true);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [loadNotifications]);
+  // WebSocket으로 실시간 알림 수신 시 자동 새로고침
+  const wsUrl = useMemo(() => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
+    return `${wsBaseUrl}/api/v1/ws/alerts`;
+  }, []);
 
-  const getAlertColor = (severity: string): "info" | "warning" | "error" | "success" => {
-    switch (severity.toLowerCase()) {
-      case 'error': return 'error';
-      case 'warning': return 'warning';
-      default: return 'info';
+  const token = localStorage.getItem('access_token');
+
+  useWebSocket({
+    url: wsUrl,
+    token: token,
+    onMessage: (data: any) => {
+      if (data.type === 'new_alert') {
+        // 새 알림 수신 시 자동 새로고침 (폴링 모드로 조용히)
+        loadNotifications(true);
+      }
     }
-  };
+  });
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
@@ -364,8 +379,8 @@ const NotificationHistoryTab: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell width={50} sx={{ ...ALERT_TABLE_STYLES.headerCell }} />
-                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('occurrenceDate')}</TableCell>
-                <TableCell width={120} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
+                <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 3 }}>{t('occurrenceDate')}</TableCell>
+                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {t('severity')}
                     <IconButton
@@ -377,13 +392,14 @@ const NotificationHistoryTab: React.FC = () => {
                     </IconButton>
                   </Box>
                 </TableCell>
-                <TableCell sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('ruleName')}</TableCell>
-                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
+                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 7 }}>{t('ruleName')}</TableCell>
+                <TableCell width={150} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>에이전트</TableCell>
+                <TableCell width={250} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {notifications.length === 0 ? (
-                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
               ) : (
                 notifications
                   .filter(row => selectedSeverities.length === 0 || (row.severity && selectedSeverities.includes(row.severity.toLowerCase())))
@@ -425,26 +441,6 @@ const NotificationHistoryTab: React.FC = () => {
         }}
         multiSelect
       />
-
-      {/* 우측 하단 실시간 알림 스낵바 */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={getAlertColor(snackbar.severity)}
-          variant="filled"
-          sx={{ width: '100%', boxShadow: 3 }}
-        >
-          <Typography variant="caption" sx={{ display: 'block', fontWeight: 'bold', opacity: 0.9 }}>
-            {snackbar.severity.toUpperCase()}
-          </Typography>
-          <Typography variant="body2">{snackbar.title}</Typography>
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
