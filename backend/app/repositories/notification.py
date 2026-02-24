@@ -115,13 +115,24 @@ class NotificationRepository:
                     }
                 }
 
+            # last_triggered_at 정렬 시 null 값 처리
+            if sort_by == "last_triggered_at":
+                sort_config = {
+                    sort_by: {
+                        "order": order,
+                        "missing": "_last" if order == "asc" else "_first"
+                    }
+                }
+            else:
+                sort_config = {sort_by: {"order": order}}
+            
             result = self.client.search(
                 index=self.rules_index,
                 body={
                     "from": skip,
                     "size": limit,
                     "query": search_query,
-                    "sort": [{sort_by: {"order": order}}]
+                    "sort": [sort_config]
                 }
             )
             total = result.get("hits", {}).get("total", {}).get("value", 0)

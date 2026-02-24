@@ -22,7 +22,7 @@ service = NotificationService()
 async def list_rules(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    sort_by: str = Query("created_at", pattern="^(created_at|updated_at|name)$"),
+    sort_by: str = Query("created_at", pattern="^(created_at|updated_at|name|last_triggered_at)$"),
     order: str = Query("desc", pattern="^(asc|desc)$"),
     query: Optional[str] = Query(None, description="규칙명 검색"),
     severities: Optional[str] = Query(None, description="중요도 필터 (쉼표로 구분)"),

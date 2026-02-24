@@ -345,7 +345,15 @@ const NotificationRuleListTab: React.FC = () => {
                     </IconButton>
                   </Box>
                 </TableCell>
-                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('lastTriggered')}</TableCell>
+                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
+                  <TableSortLabel
+                    active={sortBy === 'last_triggered_at'}
+                    direction={sortBy === 'last_triggered_at' ? order : 'desc'}
+                    onClick={() => handleSort('last_triggered_at')}
+                  >
+                    {t('lastTriggered')}
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <TableSortLabel
                     active={sortBy === 'created_at'}
