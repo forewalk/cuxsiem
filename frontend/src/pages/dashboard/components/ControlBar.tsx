@@ -20,6 +20,11 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -48,7 +53,14 @@ interface ControlBarProps {
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   onRefresh: () => void;
+  onReset?: () => void;
+  onAdd?: () => void;
+  isEditMode?: boolean;
+  onEdit?: () => void;
+  onCancel?: () => void;
+  onSave?: () => void;
   lastUpdated?: string;
+  totalLogs?: number;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({ 
@@ -63,7 +75,14 @@ const ControlBar: React.FC<ControlBarProps> = ({
   searchQuery,
   onSearchQueryChange,
   onRefresh,
-  lastUpdated
+  onReset,
+  onAdd,
+  isEditMode,
+  onEdit,
+  onCancel,
+  onSave,
+  lastUpdated,
+  totalLogs
 }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
@@ -245,24 +264,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
         width: '100%' 
       }}>
         
-        {/* 1. Index Info (More compact) */}
-        <Box sx={{ 
-          display: { xs: 'none', sm: 'flex' }, 
-          alignItems: 'center', 
-          bgcolor: BG_COLOR, 
-          border: `1px solid ${BORDER_COLOR}`, 
-          borderRadius: 1, 
-          px: 1, 
-          gap: 0.75,
-          minHeight: 32
-        }}>
-          <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
-          <Typography variant="body2" sx={{ fontWeight: 'bold', color: TEXT_COLOR, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-            {isMobile ? 'threats' : 'logs-sentinel_one.threats'}
-          </Typography>
-        </Box>
-
-        {/* 2. Search Section (Expanded) */}
+        {/* 1. Search Section (Expanded) */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -374,11 +376,121 @@ const ControlBar: React.FC<ControlBarProps> = ({
         </Box>
       )}
 
-      {lastUpdated && (
-        <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.25 }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
-            {t('lastUpdated')}: {lastUpdated}
-          </Typography>
+      {(lastUpdated || totalLogs !== undefined || onReset || onEdit) && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.25, gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {lastUpdated && (
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                {t('lastUpdated')}: {lastUpdated}
+              </Typography>
+            )}
+            {lastUpdated && totalLogs !== undefined && (
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>•</Typography>
+            )}
+            {totalLogs !== undefined && (
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                {t('totalLogs') || 'Total Logs'}: {totalLogs.toLocaleString()}
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {!isEditMode && onEdit && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<EditIcon sx={{ fontSize: 14 }} />}
+                onClick={onEdit}
+                sx={{ 
+                  fontSize: '0.65rem', color: 'text.secondary', borderColor: 'divider', textTransform: 'none', height: 22, px: 1.5, borderRadius: 1,
+                  '&:hover': { bgcolor: 'action.hover', borderColor: KIBANA_TEAL, color: KIBANA_TEAL } 
+                }}
+              >
+                {t('edit')}
+              </Button>
+            )}
+
+            {isEditMode && (
+              <>
+                {onAdd && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                    onClick={onAdd}
+                    sx={{ 
+                      fontSize: '0.65rem', color: KIBANA_TEAL, borderColor: KIBANA_TEAL, textTransform: 'none', height: 22, px: 1, borderRadius: 1,
+                      '&:hover': { bgcolor: 'action.hover', borderColor: '#004a4d' } 
+                    }}
+                  >
+                    {t('addPanel')}
+                  </Button>
+                )}
+
+                {onReset && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<RestartAltIcon sx={{ fontSize: 14 }} />}
+                    onClick={onReset}
+                    sx={{ 
+                      fontSize: '0.65rem', 
+                      color: 'text.secondary', 
+                      borderColor: 'divider',
+                      textTransform: 'none',
+                      height: 22,
+                      px: 1,
+                      borderRadius: 1,
+                      '&:hover': { bgcolor: 'action.hover', color: 'error.main', borderColor: 'error.main' } 
+                    }}
+                  >
+                    {t('reset')}
+                  </Button>
+                )}
+
+                {onCancel && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={onCancel}
+                    sx={{ 
+                      fontSize: '0.65rem', 
+                      color: 'text.secondary', 
+                      borderColor: 'divider',
+                      textTransform: 'none',
+                      height: 22,
+                      px: 1.5,
+                      borderRadius: 1,
+                      '&:hover': { bgcolor: 'action.hover' } 
+                    }}
+                  >
+                    {t('cancel')}
+                  </Button>
+                )}
+
+                {onSave && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<SaveIcon sx={{ fontSize: 14 }} />}
+                    onClick={onSave}
+                    sx={{ 
+                      fontSize: '0.65rem', 
+                      bgcolor: KIBANA_TEAL,
+                      color: 'white', 
+                      textTransform: 'none',
+                      height: 22,
+                      px: 1.5,
+                      borderRadius: 1,
+                      '&:hover': { bgcolor: '#004a4d' } 
+                    }}
+                  >
+                    {t('save')}
+                  </Button>
+                )}
+              </>
+            )}
+          </Box>
         </Box>
       )}
 

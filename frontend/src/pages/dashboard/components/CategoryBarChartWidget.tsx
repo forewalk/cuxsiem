@@ -18,11 +18,13 @@ interface CategoryBarChartWidgetProps {
   title?: string;
   height?: number;
   emptyMessage?: string;
+  color?: string;
   onBarClick?: (label: string) => void;
 }
 
-const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, title, height, emptyMessage, onBarClick }) => {
+const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, title, height, emptyMessage, color, onBarClick }) => {
   const theme = useTheme();
+  const barColor = color || theme.palette.primary.main;
   const { language } = useLanguageStore();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [actualHeight, setActualHeight] = useState(height || 300);
@@ -87,7 +89,7 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
       </Typography>
       <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.2)', pt: 1, mt: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ width: 4, height: 16, bgcolor: theme.palette.primary.light, borderRadius: 0.5 }} />
+          <Box sx={{ width: 4, height: 16, bgcolor: barColor, borderRadius: 0.5 }} />
           <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>{t('countLabel')}</Typography>
         </Box>
         <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#fff' }}>{count}</Typography>
@@ -156,7 +158,8 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
                       y={`${100 - barHeightPct}%`} 
                       width={`${barWidthPct}%`} 
                       height={`${barHeightPct}%`} 
-                      fill="#20b2aa" 
+                      fill={barColor} 
+                      fillOpacity={0.8}
                       rx="1" 
                       style={{ cursor: 'pointer' }} 
                       onClick={() => onBarClick && onBarClick(item.label)}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,
@@ -10,7 +10,7 @@ import {
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
   ShowChart as ThreatsIcon, Terminal as TerminalIcon, Close as CloseIcon,
   Notifications as NotificationsIcon, ListAlt as ListAltIcon, History as HistoryIcon,
-  Tune as AdvancedIcon,
+  Tune as AdvancedIcon, Devices as AgentIcon
 } from '@mui/icons-material';
 import useTabStore from '../../../stores/tabStore';
 
@@ -28,16 +28,20 @@ const iconMinWidth = 48;
 const listItemHeight = 48;
 
 const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
-  const [openAdminMenu, setOpenAdminMenu] = useState(false);
-  const [openNotificationMenu, setOpenNotificationMenu] = useState(false);
-  const [openDashboardMenu, setOpenDashboardMenu] = useState(true); // 기본적으로 열림
+  // localStorage에서 메뉴 상태 로드 (기본값 false)
+  const [openAdminMenu, setOpenAdminMenu] = useState(() => localStorage.getItem('sidemenu_admin') === 'true');
+  const [openNotificationMenu, setOpenNotificationMenu] = useState(() => localStorage.getItem('sidemenu_notif') === 'true');
+  const [openDashboardMenu, setOpenDashboardMenu] = useState(() => localStorage.getItem('sidemenu_dash') === 'true');
+  
   const theme = useTheme();
   const navigate = useNavigate();
   const { addTab, activeTabId } = useTabStore();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // 사이드바가 닫힐 때 하위 메뉴를 강제로 닫지 않고, UI에서만 숨기도록 제어합니다.
-  // 텍스트와 아이콘 배치는 Drawer의 open 상태에 따라 결정됩니다.
+  // 상태 변경 시 localStorage 저장
+  useEffect(() => { localStorage.setItem('sidemenu_admin', openAdminMenu.toString()); }, [openAdminMenu]);
+  useEffect(() => { localStorage.setItem('sidemenu_notif', openNotificationMenu.toString()); }, [openNotificationMenu]);
+  useEffect(() => { localStorage.setItem('sidemenu_dash', openDashboardMenu.toString()); }, [openDashboardMenu]);
 
   const handleAdminMenuClick = () => {
     if (!drawerOpen && !isMobile) {
@@ -69,7 +73,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
   const handleMenuTabClick = (label: string, component: string, labelKey?: string) => {
     addTab({ label, component, labelKey });
-    if (isMobile) handleDrawerToggle(); // 모바일에서는 클릭 후 사이드바 닫기
+    if (isMobile) handleDrawerToggle(); 
     if (window.location.pathname !== '/main') {
       navigate('/main');
     }
@@ -77,7 +81,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
   const menuBg = theme.palette.mode === 'dark' ? '#1A1A1A' : theme.palette.background.paper;
   const textColor = theme.palette.text.primary;
-
   const isLogStreamingActive = activeTabId === 'LogStreamingTab';
 
   const listItemTextStyle = {
@@ -142,6 +145,13 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               >
                 <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><ThreatsIcon /></ListItemIcon>
                 <ListItemText primary={t('threats')} sx={listItemTextStyle} />
+              </ListItemButton>
+              <ListItemButton
+                sx={{ pl: 4, minHeight: listItemHeight }}
+                onClick={() => handleMenuTabClick(t('agent'), 'AgentDashboardTab', 'agent')}
+              >
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><AgentIcon /></ListItemIcon>
+                <ListItemText primary={t('agent')} sx={listItemTextStyle} />
               </ListItemButton>
             </List>
           </Collapse>
