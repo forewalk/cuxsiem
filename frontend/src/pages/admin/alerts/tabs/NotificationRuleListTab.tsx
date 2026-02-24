@@ -299,7 +299,7 @@ const NotificationRuleListTab: React.FC = () => {
           <Table {...ALERT_TABLE_STYLES.table} size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
-                <TableCell width={250} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
+                <TableCell width={250} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 7 }}>
                   <TableSortLabel
                     active={sortBy === 'name'}
                     direction={sortBy === 'name' ? order : 'desc'}
@@ -368,7 +368,7 @@ const NotificationRuleListTab: React.FC = () => {
               ) : (
                 rules.map((rule) => (
                   <TableRow key={rule.id} hover sx={{ ...ALERT_TABLE_STYLES.bodyRow }}>
-                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>{rule.name}</TableCell>
+                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, pl: 7 }}>{rule.name}</TableCell>
                     <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}><SeverityChip severity={rule.severity} /></TableCell>
                     <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
                       <Switch

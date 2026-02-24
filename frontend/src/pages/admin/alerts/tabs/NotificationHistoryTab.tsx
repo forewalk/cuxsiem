@@ -51,18 +51,25 @@ const NotificationRow: React.FC<{
           bgcolor: open ? 'action.selected' : 'inherit'
         }}
       >
-        <TableCell width={50}>
+        <TableCell width={80} sx={{ pl: 7 }}>
           <IconButton size="small">
             {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </TableCell>
-        <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+        <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.bodyCell, pl: 3 }}>
           {formatDateTime(row.created_at)}
         </TableCell>
         <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <SeverityChip severity={row.rule_severity || row.severity} />
         </TableCell>
-        <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, fontWeight: 'bold' }}>
+        <TableCell width={200} sx={{ 
+          ...ALERT_TABLE_STYLES.bodyCell, 
+          fontWeight: 'bold',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          pl: 7
+        }}>
           {row.rule_name || row.title}
         </TableCell>
         <TableCell  sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
@@ -70,7 +77,7 @@ const NotificationRow: React.FC<{
             {row.event_source?.agentRealtimeInfo?.accountName}
           </Typography>
         </TableCell>
-        <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
+        <TableCell width={220} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <Stack direction="row" spacing={0.5} flexWrap="wrap">
             {row.receiver?.values && Array.isArray(row.receiver.values) ? (
               row.receiver.values.map((role: string) => (
@@ -352,7 +359,7 @@ const NotificationHistoryTab: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell width={50} sx={{ ...ALERT_TABLE_STYLES.headerCell }} />
-                <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('occurrenceDate')}</TableCell>
+                <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 3 }}>{t('occurrenceDate')}</TableCell>
                 <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     {t('severity')}
@@ -365,9 +372,9 @@ const NotificationHistoryTab: React.FC = () => {
                     </IconButton>
                   </Box>
                 </TableCell>
-                <TableCell sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('ruleName')}</TableCell>
-                <TableCell width={150} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>에이전트 사용자</TableCell>
-                <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
+                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 7 }}>{t('ruleName')}</TableCell>
+                <TableCell width={150} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>에이전트</TableCell>
+                <TableCell width={250} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
