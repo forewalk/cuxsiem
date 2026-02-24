@@ -14,6 +14,7 @@ import {
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import AlertsControlBar from "../components/AlertsControlBar";
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
@@ -313,6 +314,25 @@ const NotificationHistoryTab: React.FC = () => {
     loadNotifications();
   }, [loadNotifications]);
 
+  // WebSocket으로 실시간 알림 수신 시 자동 새로고침
+  const wsUrl = useMemo(() => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
+    return `${wsBaseUrl}/api/v1/ws/alerts`;
+  }, []);
+
+  const token = localStorage.getItem('access_token');
+
+  useWebSocket({
+    url: wsUrl,
+    token: token,
+    onMessage: (data: any) => {
+      if (data.type === 'new_alert') {
+        // 새 알림 수신 시 자동 새로고침 (폴링 모드로 조용히)
+        loadNotifications(true);
+      }
+    }
+  });
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>

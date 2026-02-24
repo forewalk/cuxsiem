@@ -38,8 +38,8 @@ export const useWebSocket = ({
   const ws = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const reconnectCount = useRef(0);
-  const reconnectTimeout = useRef<NodeJS.Timeout>();
-  const pingInterval = useRef<NodeJS.Timeout>();
+  const reconnectTimeout = useRef<number | undefined>(undefined);
+  const pingInterval = useRef<number | undefined>(undefined);
   const shouldReconnect = useRef(true);
 
   // 콜백을 ref로 저장하여 재연결 방지
@@ -95,11 +95,10 @@ export const useWebSocket = ({
       };
 
       ws.current.onerror = (error) => {
-        console.error('🔴 WebSocket error:', error);
         onErrorRef.current?.(error);
       };
 
-      ws.current.onclose = (event) => {
+      ws.current.onclose = () => {
         setIsConnected(false);
 
         // Ping 중지
