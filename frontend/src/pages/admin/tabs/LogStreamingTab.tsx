@@ -67,8 +67,7 @@ const LogStreamControlBar: React.FC<{
   indexOptions: string[];
   selectedIndex: string;
   onIndexChange: (idx: string) => void;
-  onRefresh: () => void;
-}> = ({ t, searchQuery, onSearchQueryChange, indexOptions, selectedIndex, onIndexChange, onRefresh }) => {
+}> = ({ t, searchQuery, onSearchQueryChange, indexOptions, selectedIndex, onIndexChange }) => {
   const [tempQuery, setTempQuery] = useState("");
   const [indexAnchorEl, setIndexAnchorEl] = useState<HTMLDivElement | null>(null);
   const KIBANA_TEAL = "#005a5e";
@@ -126,14 +125,6 @@ const LogStreamControlBar: React.FC<{
             </IconButton>
           )}
         </Box>
-
-        {/* 새로고침 버튼 */}
-        <Button 
-          variant="contained" disableElevation onClick={onRefresh}
-          sx={{ bgcolor: KIBANA_TEAL, color: 'white', fontWeight: 'bold', textTransform: 'none', px: 2, height: 36, '&:hover': { bgcolor: '#004a4d' } }}
-        >
-          {t('refresh')}
-        </Button>
       </Box>
 
       {/* 필터 태그 목록 */}
@@ -413,7 +404,6 @@ const LogStreamingTab: React.FC = () => {
       <LogStreamControlBar 
         t={t}
         searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} 
-        onRefresh={() => fetchLogs(true)}
         indexOptions={indexOptions}
         selectedIndex={selectedIndex}
         onIndexChange={setSelectedIndex}
