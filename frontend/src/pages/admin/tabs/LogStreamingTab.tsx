@@ -7,19 +7,31 @@ import {
   Terminal as TerminalIcon,
   Search as DetailIcon,
   Close as CloseIcon,
-  Stop as StopIcon
+  Stop as StopIcon,
+  CalendarMonth as CalendarIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import { 
   Box, Typography, Paper, Stack, Button, IconButton, Tooltip, 
   Divider, LinearProgress, CircularProgress, Chip, TextField,
-  InputAdornment, Table, TableBody, TableCell, TableRow, TableContainer
+  InputAdornment, Table, TableBody, TableCell, TableRow, TableContainer,
+  Popover, Tabs, Tab, MenuItem, Select, FormControl, Divider as MuiDivider
 } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import ControlBar from "../../dashboard/components/ControlBar";
 import { logService } from '../../../services/logService';
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import useTabStore from '../../../stores/tabStore';
 import type { LogEntry } from '../../../types';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
+
+// dayjs 로케일
+import 'dayjs/locale/ko';
+import 'dayjs/locale/ja';
+import 'dayjs/locale/en';
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -44,7 +56,7 @@ const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
   }, {});
 };
 
-// 로그 상세 정보 전용 컴포넌트 (성능 최적화)
+// 로그 상세 정보 전용 컴포넌트
 const LogDetailPanel = React.memo(({ 
   log, 
   onClose, 
@@ -55,13 +67,10 @@ const LogDetailPanel = React.memo(({
   t: any 
 }) => {
   const [search, setSearch] = useState("");
-  const [fieldWidth, setFieldWidth] = useState(200); // 필드 열 너비 상태
+  const [fieldWidth, setFieldWidth] = useState(200);
   const isResizing = useRef(false);
-  
-  // useDeferredValue를 사용하여 검색어 입력 반응성을 확보하고 필터링 렌더링을 지연시킴
   const deferredSearch = useDeferredValue(search);
 
-  // 리사이징 핸들러
   const startResizing = useCallback((e: React.MouseEvent) => {
     isResizing.current = true;
     document.addEventListener('mousemove', handleMouseMove);
@@ -80,8 +89,6 @@ const LogDetailPanel = React.memo(({
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing.current) return;
-    
-    // 상세 패널의 위치를 기준으로 마우스의 상대적 위치 계산
     const panelElement = document.getElementById('log-detail-panel');
     if (panelElement) {
       const rect = panelElement.getBoundingClientRect();
@@ -168,9 +175,8 @@ const LogDetailPanel = React.memo(({
         flexGrow: 1, 
         overflow: 'auto', 
         bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
-        position: 'relative' // 리사이저 배치를 위한 기준점
+        position: 'relative'
       }}>
-        {/* 전체 열 수직 리사이저 바 */}
         <Box
           onMouseDown={startResizing}
           sx={{
@@ -183,17 +189,8 @@ const LogDetailPanel = React.memo(({
             cursor: 'col-resize',
             zIndex: 10,
             transition: 'background-color 0.2s',
-            '&:hover': {
-              bgcolor: 'primary.main',
-              opacity: 0.5
-            },
-            // 드래그 중일 때의 시각적 표시 (ref 기반이므로 스타일로 처리)
-            '&:active': {
-              bgcolor: 'primary.main',
-              opacity: 0.8,
-              width: '2px',
-              marginLeft: '-1px'
-            }
+            '&:hover': { bgcolor: 'primary.main', opacity: 0.5 },
+            '&:active': { bgcolor: 'primary.main', opacity: 0.8, width: '2px', marginLeft: '-1px' }
           }}
         />
 
@@ -257,45 +254,29 @@ const LogStreamingTab: React.FC = () => {
   const { activeTabId } = useTabStore();
   const isActive = activeTabId === 'LogStreamingTab';
 
-  // 인덱스 목록 동적 로드
-  useEffect(() => {
-    const fetchIndices = async () => {
-      try {
-        const response = await logService.getIndices();
-        // '*' (전체 로그)를 항상 최상단에 배치
-        const indices = response.indices.includes('*') 
-          ? response.indices 
-          : ['*', ...response.indices];
-        setIndexOptions(indices);
-        
-        // 현재 선택된 인덱스가 목록에 없으면 '*'로 설정
-        if (indices.length > 0 && !indices.includes(selectedIndex)) {
-          setSelectedIndex('*');
-        }
-      } catch (error) {
-        console.error('Failed to fetch indices:', error);
-        setIndexOptions(['*']);
-      }
-    };
+  const [searchQuery, setSearchQuery] = useState("");
 
-    if (isActive) {
-      fetchIndices();
-    }
-  }, [isActive]);
-
-  // ControlBar states
+  // 시간 설정 상태
   const [fromValue, setFromValue] = useState<number | null>(15);
   const [fromUnit, setFromUnit] = useState("m");
   const [toValue, setToValue] = useState<number | null>(null);
   const [toUnit, setToUnit] = useState("m");
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+
+  // Popover 상태
+  const [timeAnchorEl, setTimeAnchorEl] = useState<HTMLDivElement | null>(null);
+  const [popoverType, setPopoverType] = useState<'quick' | 'detailed'>('quick');
+  const [editingPoint, setEditingPoint] = useState<'from' | 'to'>('from');
+  const [tabValue, setTabValue] = useState(1);
+  const [popoverVal, setPopoverVal] = useState(15);
+  const [popoverUnit, setPopoverUnit] = useState("m");
+  const [popoverDate, setPopoverDate] = useState<Dayjs>(dayjs());
+  const [popoverTime, setPopoverTime] = useState("12:00");
 
   const { language } = useLanguageStore();
   const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   
-  // 표시할 필드 리스트 상태
   const [visibleFields] = useState<string[]>(['timestamp', '_index', 'message']);
 
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
@@ -309,47 +290,38 @@ const LogStreamingTab: React.FC = () => {
     return text;
   }, [language]);
 
-  const handleTimeChange = (
-    fVal: number | null, 
-    fUnit: string, 
-    tVal: number | null, 
-    tUnit: string,
-    fDate: string | null = null,
-    tDate: string | null = null
-  ) => {
-    setFromValue(fVal);
-    setFromUnit(fUnit);
-    setToValue(tVal);
-    setToUnit(tUnit);
-    setFromDate(fDate);
-    setToDate(tDate);
-  };
+  useEffect(() => {
+    const fetchIndices = async () => {
+      try {
+        const response = await logService.getIndices();
+        const indices = response.indices.includes('*') ? response.indices : ['*', ...response.indices];
+        setIndexOptions(indices);
+        if (indices.length > 0 && !indices.includes(selectedIndex)) setSelectedIndex('*');
+      } catch (error) {
+        setIndexOptions(['*']);
+      }
+    };
+    if (isActive) fetchIndices();
+  }, [isActive, selectedIndex]);
 
   const fetchLogs = useCallback(async (isManualRefresh = false) => {
-    // 탭이 활성화되지 않았거나 일시 중지 상태이면 (수동 새로고침이나 초기화가 아닌 경우) 중단
     if ((!isActive || isPaused) && !isManualRefresh) return;
 
     try {
       if (isManualRefresh) setLoading(true);
       
-      // 시간 범위 변환
       let fromTime: string | undefined = undefined;
       let toTime: string | undefined = undefined;
 
-      // 시작 시간 설정
-      if (!lastTimestampRef.current) {
-        if (fromDate) {
-          fromTime = fromDate;
-        } else if (fromValue !== null) {
-          fromTime = `now-${fromValue}${fromUnit}`;
-        }
-      }
+      // 스트리밍 중에는 시간 무시하고 최근 데이터, 일시 정지 중에만 시간 범위 적용
+      if (isPaused) {
+        if (fromDate) fromTime = fromDate;
+        else if (fromValue !== null) fromTime = `now-${fromValue}${fromUnit}`;
 
-      // 종료 시간 설정 (항상 유지)
-      if (toDate) {
-        toTime = toDate;
-      } else if (toValue !== null) {
-        toTime = `now-${toValue}${toUnit}`;
+        if (toDate) toTime = toDate;
+        else if (toValue !== null) toTime = `now-${toValue}${toUnit}`;
+      } else {
+        if (!lastTimestampRef.current) fromTime = "now-15m";
       }
 
       const response = await logService.getLogStream(
@@ -363,15 +335,9 @@ const LogStreamingTab: React.FC = () => {
       
       if (response.logs.length > 0) {
         setLogs(prevLogs => {
-          // 검색어/인덱스/시간이 변경되어 새로 조회를 시작하는 경우 기존 로그 무시
           if (!lastTimestampRef.current) return response.logs.slice(-MAX_LOGS);
-
-          const newLogs = response.logs.filter(
-            newLog => !prevLogs.some(prevLog => prevLog._id === newLog._id)
-          );
-          
+          const newLogs = response.logs.filter(newLog => !prevLogs.some(prevLog => prevLog._id === newLog._id));
           if (newLogs.length === 0) return prevLogs;
-
           const combined = [...prevLogs, ...newLogs];
           return combined.slice(-MAX_LOGS);
         });
@@ -384,7 +350,6 @@ const LogStreamingTab: React.FC = () => {
     }
   }, [isActive, isPaused, searchQuery, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit]);
 
-  // 검색어, 인덱스 또는 시간 범위가 변경되면 로그를 비우고 다시 조회를 시작함
   useEffect(() => {
     if (isActive) {
       setLogs([]);
@@ -394,7 +359,6 @@ const LogStreamingTab: React.FC = () => {
   }, [searchQuery, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit, isActive]);
 
   useEffect(() => {
-    // 탭이 활성화될 때 한 번 즉시 호출 (searchQuery useEffect가 처리하므로 중복 방지 필요)
     const timer = setInterval(() => fetchLogs(), POLL_INTERVAL);
     return () => clearInterval(timer);
   }, [fetchLogs]);
@@ -407,13 +371,9 @@ const LogStreamingTab: React.FC = () => {
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    // 최하단에서 50px 이내에 있으면 바닥에 붙은 것으로 간주
     const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
-    if (!isAtBottom && autoScroll) {
-      setAutoScroll(false);
-    } else if (isAtBottom && !autoScroll) {
-      setAutoScroll(true);
-    }
+    if (!isAtBottom && autoScroll) setAutoScroll(false);
+    else if (isAtBottom && !autoScroll) setAutoScroll(true);
   };
 
   const scrollToBottom = () => {
@@ -423,28 +383,86 @@ const LogStreamingTab: React.FC = () => {
     }
   };
 
-  // 스트리밍 상태 변경 시 처리
   const togglePaused = () => {
     const nextPaused = !isPaused;
     setIsPaused(nextPaused);
-    // 일시정지를 해제(스트리밍 시작)할 때 즉시 최하단으로 이동
-    if (!nextPaused) {
-      setTimeout(scrollToBottom, 50);
-    }
+    if (!nextPaused) setTimeout(scrollToBottom, 50);
   };
 
-  // 필드 값 렌더링 함수
+  const formatPoint = (val: number | null, unit: string, date: string | null, isTo: boolean) => {
+    if (isTo && val === null && date === null) return t('now');
+    if (date) return dayjs(date).locale(language).format("MMM D, YYYY @ HH:mm");
+    const unitText: any = { 'm': t('minutesAgo'), 'h': t('hoursAgo'), 'd': t('daysAgo') };
+    return `~ ${val} ${unitText[unit]}`;
+  };
+
+  const handleQuickTimeClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPaused) return;
+    setPopoverType('quick');
+    setTimeAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
+  };
+
+  const handleDetailedTimeClick = (point: 'from' | 'to', event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isPaused) return;
+    setPopoverType('detailed');
+    setEditingPoint(point);
+    const dateVal = point === 'from' ? fromDate : toDate;
+    const relVal = point === 'from' ? fromValue : toValue;
+    const relUnit = point === 'from' ? fromUnit : toUnit;
+
+    if (dateVal) {
+      const d = dayjs(dateVal);
+      setPopoverDate(d);
+      setPopoverTime(d.format("HH:mm"));
+      setTabValue(0);
+    } else if (relVal !== null) {
+      setPopoverVal(relVal);
+      setPopoverUnit(relUnit);
+      setTabValue(1);
+    } else {
+      setTabValue(point === 'from' ? 1 : 2);
+    }
+    setTimeAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
+  };
+
+  const handleApplyTime = () => {
+    const absoluteISO = popoverDate.hour(parseInt(popoverTime.split(":")[0])).minute(parseInt(popoverTime.split(":")[1])).second(0).toISOString();
+    if (editingPoint === 'from') {
+      if (tabValue === 0) { setFromDate(absoluteISO); setFromValue(null); }
+      else if (tabValue === 1) { setFromValue(popoverVal); setFromUnit(popoverUnit); setFromDate(null); }
+      else { setFromDate(dayjs().toISOString()); setFromValue(null); }
+    } else {
+      if (tabValue === 0) { setToDate(absoluteISO); setToValue(null); }
+      else if (tabValue === 1) { setToValue(popoverVal); setToUnit(popoverUnit); setToDate(null); }
+      else { setToDate(null); setToValue(null); }
+    }
+    setTimeAnchorEl(null);
+  };
+
+  const handleCommonTime = (val: number, unit: string) => {
+    if (val === 0 && unit === 'd') {
+      setFromDate(dayjs().startOf('day').toISOString()); setFromValue(null);
+    } else {
+      setFromValue(val); setFromUnit(unit); setFromDate(null);
+    }
+    setToValue(null); setToUnit("m"); setToDate(null);
+    setTimeAnchorEl(null);
+  };
+
+  const timeOptions = useMemo(() => {
+    const times = [];
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        times.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+      }
+    }
+    return times;
+  }, []);
+
   const renderFieldValue = (log: LogEntry, field: string) => {
-    if (field === 'timestamp') {
-      return `[${dayjs(log.timestamp).format('YYYY-MM-DD HH:mm:ss.SSS')}]`;
-    }
-    if (field === '_index') {
-      return log._index;
-    }
-    if (field === 'message') {
-      return log.message;
-    }
-    // _source 내의 깊은 필드 접근 지원 (예: 'endpoint.name')
+    if (field === 'timestamp') return `[${dayjs(log.timestamp).format('YYYY-MM-DD HH:mm:ss.SSS')}]`;
+    if (field === '_index') return log._index;
+    if (field === 'message') return log.message;
     const source = (log as any)._source || {};
     const value = field.split('.').reduce((obj, key) => obj?.[key], source);
     return value !== undefined ? String(value) : '-';
@@ -454,17 +472,20 @@ const LogStreamingTab: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', p: 3, gap: 1 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
       
-      <ControlBar 
-        t={t}
-        fromValue={fromValue} fromUnit={fromUnit}
-        toValue={toValue} toUnit={toUnit}
-        fromDate={fromDate} toDate={toDate}
-        onTimeChange={handleTimeChange}
-        searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={() => fetchLogs(true)}
-        indexOptions={indexOptions}
-        selectedIndex={selectedIndex}
-        onIndexChange={setSelectedIndex}
-      />
+      <Box sx={{ 
+        "& .MuiButton-root": { display: 'none' },
+        "& .MuiBox-root:has(> .MuiSvgIcon-root[data-testid='CalendarMonthIcon'])": { display: 'none' }
+      }}>
+        <ControlBar 
+          t={t}
+          fromValue={null} fromUnit="m" toValue={null} toUnit="m" fromDate={null} toDate={null}
+          onTimeChange={() => {}} 
+          searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} onRefresh={() => fetchLogs(true)}
+          indexOptions={indexOptions}
+          selectedIndex={selectedIndex}
+          onIndexChange={setSelectedIndex}
+        />
+      </Box>
 
       <Paper elevation={1} sx={{ p: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
@@ -473,7 +494,34 @@ const LogStreamingTab: React.FC = () => {
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('logStreaming')}</Typography>
             <Chip label={`${logs.length} logs`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
           </Box>
+          
           <Stack direction="row" spacing={1} alignItems="center">
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              bgcolor: 'action.hover', 
+              border: '1px solid',
+              borderColor: timeAnchorEl ? 'primary.main' : 'divider',
+              borderRadius: 1,
+              overflow: 'hidden',
+              height: 32,
+              opacity: isPaused ? 1 : 0.6,
+              pointerEvents: isPaused ? 'auto' : 'none',
+              transition: 'all 0.2s'
+            }}>
+              <Box onClick={handleQuickTimeClick} sx={{ px: 0.75, borderRight: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', height: '100%', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}>
+                <CalendarIcon sx={{ color: 'primary.main', fontSize: 18 }} />
+                <ArrowDownIcon sx={{ color: 'primary.main', fontSize: 14 }} />
+              </Box>
+              <Box onClick={(e) => handleDetailedTimeClick('from', e)} sx={{ px: 1, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}>
+                <Typography sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', color: 'text.primary' }}>{formatPoint(fromValue, fromUnit, fromDate, false)}</Typography>
+              </Box>
+              <ArrowForwardIcon sx={{ fontSize: 10, color: 'text.disabled' }} />
+              <Box onClick={(e) => handleDetailedTimeClick('to', e)} sx={{ px: 1, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}>
+                <Typography sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', color: 'text.primary' }}>{formatPoint(toValue, toUnit, toDate, true)}</Typography>
+              </Box>
+            </Box>
+
             <Tooltip title={t('clearLogs')}>
               <IconButton size="small" onClick={() => { setLogs([]); lastTimestampRef.current = null; }}>
                 <ClearIcon />
@@ -502,169 +550,85 @@ const LogStreamingTab: React.FC = () => {
         <Divider />
 
         <Stack direction="row" sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
-          {/* 로그 리스트 영역 */}
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
-            {/* 필드 헤더 영역 */}
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 1, 
-              px: 3, 
-              py: 1, 
-              bgcolor: 'action.selected', 
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              mt: 1,
-              borderRadius: '4px 4px 0 0'
-            }}>
+            <Box sx={{ display: 'flex', gap: 1, px: 3, py: 1, bgcolor: 'action.selected', borderBottom: '1px solid', borderColor: 'divider', mt: 1, borderRadius: '4px 4px 0 0' }}>
               {visibleFields.map((field) => (
-                <Typography 
-                  key={field} 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 'bold', 
-                    color: 'text.secondary',
-                    flexShrink: 0,
-                    width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto',
-                    flexGrow: field === 'message' ? 1 : 0,
-                    minWidth: 0
-                  }}
-                >
-                  {field.toUpperCase()}
-                </Typography>
+                <Typography key={field} variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary', flexShrink: 0, width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto', flexGrow: field === 'message' ? 1 : 0, minWidth: 0 }}>{field.toUpperCase()}</Typography>
               ))}
-              <Box sx={{ width: 40 }} /> {/* 상세 버튼 공간 확보 */}
+              <Box sx={{ width: 40 }} />
             </Box>
 
-            <Box 
-              ref={scrollRef}
-              onScroll={handleScroll}
-              sx={{ 
-                flexGrow: 1, 
-                bgcolor: 'action.hover', 
-                borderRadius: '0 0 4px 4px',
-                p: 1.5, 
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderTop: 'none',
-                // 스크롤바 스타일링
-                '&::-webkit-scrollbar': { width: '8px' },
-                '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: '4px' }
-              }}
-            >
+            <Box ref={scrollRef} onScroll={handleScroll} sx={{ flexGrow: 1, bgcolor: 'action.hover', borderRadius: '0 0 4px 4px', p: 1.5, overflowY: 'auto', overflowX: 'hidden', border: '1px solid', borderColor: 'divider', borderTop: 'none', '&::-webkit-scrollbar': { width: '8px' }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: '4px' } }}>
               {logs.length === 0 ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1, color: 'text.disabled' }}>
                   {loading ? <CircularProgress size={24} /> : <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('waitingForLogs')}</Typography>}
                 </Box>
               ) : (
                 logs.map((log) => (
-                  <Box 
-                    key={log._id} 
-                    sx={{ 
-                      py: 0.5,
-                      borderBottom: '1px solid', 
-                      borderColor: 'divider',
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: 1,
-                      width: '100%',
-                      bgcolor: selectedLog?._id === log._id ? 'action.selected' : 'transparent',
-                      '&:last-child': { borderBottom: 'none' },
-                      '&:hover': { bgcolor: 'action.selected' }
-                    }}
-                  >
+                  <Box key={log._id} sx={{ py: 0.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'baseline', gap: 1, width: '100%', bgcolor: selectedLog?._id === log._id ? 'action.selected' : 'transparent', '&:last-child': { borderBottom: 'none' }, '&:hover': { bgcolor: 'action.selected' } }}>
                     {visibleFields.map((field) => (
-                      <Typography 
-                        key={field}
-                        variant={field === 'message' ? 'body2' : 'caption'}
-                        sx={{ 
-                          fontFamily: 'monospace', 
-                          fontSize: field === 'message' ? '0.85rem' : field === 'timestamp' ? '0.7rem' : '0.7rem', 
-                          color: field === 'timestamp' ? 'text.primary' : field === '_index' ? 'text.secondary' : 'text.primary',
-                          fontWeight: (field === 'timestamp' || field === '_index') ? 'bold' : 'normal',
-                          flexShrink: field === 'message' ? 1 : 0,
-                          width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto',
-                          flexGrow: field === 'message' ? 1 : 0,
-                          minWidth: 0, 
-                          wordBreak: 'break-all', 
-                          whiteSpace: field === 'timestamp' ? 'nowrap' : 'normal', 
-                          lineHeight: 1.4,
-                          ...(field === 'message' && {
-                            display: '-webkit-box',
-                            WebkitLineClamp: 5,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }),
-                          ...(field === '_index' && {
-                            bgcolor: 'action.selected',
-                            px: 0.5,
-                            borderRadius: 0.5,
-                          })
-                        }}
-                      >
-                        {renderFieldValue(log, field)}
-                      </Typography>
+                      <Typography key={field} variant={field === 'message' ? 'body2' : 'caption'} sx={{ fontFamily: 'monospace', fontSize: field === 'message' ? '0.85rem' : '0.7rem', color: field === 'timestamp' ? 'text.primary' : field === '_index' ? 'text.secondary' : 'text.primary', fontWeight: (field === 'timestamp' || field === '_index') ? 'bold' : 'normal', flexShrink: field === 'message' ? 1 : 0, width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto', flexGrow: field === 'message' ? 1 : 0, minWidth: 0, wordBreak: 'break-all', whiteSpace: field === 'timestamp' ? 'nowrap' : 'normal', lineHeight: 1.4, ...(field === 'message' && { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }), ...(field === '_index' && { bgcolor: 'action.selected', px: 0.5, borderRadius: 0.5 }) }}>{renderFieldValue(log, field)}</Typography>
                     ))}
-                    <Box sx={{ flexShrink: 0, ml: 'auto', display: 'flex', alignItems: 'center' }}>
-                      <Tooltip title="View Detail">
-                        <IconButton 
-                          size="small" 
-                          onClick={() => {
-                            setSelectedLog(selectedLog?._id === log._id ? null : log);
-                          }}
-                          color={selectedLog?._id === log._id ? "primary" : "default"}
-                        >
-                          <DetailIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
+                    <Box sx={{ flexShrink: 0, ml: 'auto', display: 'flex', alignItems: 'center' }}><Tooltip title="View Detail"><IconButton size="small" onClick={() => setSelectedLog(selectedLog?._id === log._id ? null : log)} color={selectedLog?._id === log._id ? "primary" : "default"}><DetailIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip></Box>
                   </Box>
                 ))
               )}
             </Box>
 
-            {/* 최하단 이동 부동 버튼 */}
             {!autoScroll && logs.length > 0 && (
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<AutoScrollIcon />}
-                onClick={scrollToBottom}
-                sx={{
-                  position: 'absolute',
-                  bottom: 16,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  borderRadius: 5,
-                  textTransform: 'none',
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  boxShadow: 3,
-                  '&:hover': { bgcolor: 'primary.dark' }
-                }}
-              >
-                Go to Bottom
-              </Button>
+              <Button variant="contained" size="small" startIcon={<AutoScrollIcon />} onClick={scrollToBottom} sx={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', borderRadius: 5, textTransform: 'none', bgcolor: 'primary.main', color: 'white', boxShadow: 3, '&:hover': { bgcolor: 'primary.dark' } }}>Go to Bottom</Button>
             )}
           </Box>
 
-          {/* 로그 상세 정보 패널 */}
-          {selectedLog && (
-            <LogDetailPanel 
-              log={selectedLog} 
-              onClose={() => setSelectedLog(null)} 
-              t={t} 
-            />
-          )}
+          {selectedLog && <LogDetailPanel log={selectedLog} onClose={() => setSelectedLog(null)} t={t} />}
         </Stack>
       </Paper>
+
+      <Popover open={Boolean(timeAnchorEl)} anchorEl={timeAnchorEl} onClose={() => setTimeAnchorEl(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }} PaperProps={{ sx: { width: popoverType === 'quick' ? 450 : 480, mt: 1, borderRadius: 1, boxShadow: 10 } }}>
+        {popoverType === 'quick' ? (
+          <Box sx={{ p: 2 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1.5 }}>{t('quickSelect')}</Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl size="small" sx={{ width: 100 }}><Select value="Last" sx={{ height: 32, fontSize: '0.85rem' }}><MenuItem value="Last">Last</MenuItem></Select></FormControl>
+                <TextField size="small" type="number" value={popoverVal} onChange={(e) => setPopoverVal(Number(e.target.value))} sx={{ width: 80, "& .MuiInputBase-input": { height: 16, fontSize: '0.85rem' } }} />
+                <FormControl size="small" sx={{ flexGrow: 1 }}><Select value={popoverUnit} onChange={(e) => setPopoverUnit(e.target.value)} sx={{ height: 32, fontSize: '0.85rem' }}><MenuItem value="m">{t('unit_m')}</MenuItem><MenuItem value="h">{t('unit_h')}</MenuItem><MenuItem value="d">{t('unit_d')}</MenuItem></Select></FormControl>
+                <Button variant="outlined" size="small" onClick={handleApplyTime} sx={{ height: 32, fontWeight: 'bold', textTransform: 'none' }}>{t('apply')}</Button>
+              </Box>
+            </Box>
+            <MuiDivider sx={{ my: 2 }} />
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary', display: 'block', mb: 1 }}>{t('commonlyUsed')}</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                {['today', 'last24h', 'thisWeek', 'last7d', 'last15m', 'last30d'].map(key => {
+                  const opts: any = { today: { v: 0, u: 'd' }, last24h: { v: 24, u: 'h' }, thisWeek: { v: 7, u: 'd' }, last7d: { v: 7, u: 'd' }, last15m: { v: 15, u: 'm' }, last30d: { v: 30, u: 'd' } };
+                  return <Typography key={key} variant="body2" onClick={() => handleCommonTime(opts[key].v, opts[key].u)} sx={{ color: 'primary.main', fontWeight: 'bold', cursor: 'pointer', '&:hover': { textDecoration: 'underline' }, py: 0.5 }}>{t(key)}</Typography>;
+                })}
+              </Box>
+            </Box>
+          </Box>
+        ) : (
+          <Box>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'action.hover', p: 1, textAlign: 'center' }}><Typography variant="caption" sx={{ fontWeight: 'bold', color: 'primary.main' }}>{editingPoint === 'from' ? t('setStartPoint') : t('setEndPoint')}</Typography></Box>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}><Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} variant="fullWidth" sx={{ "& .MuiTab-root": { textTransform: 'none', fontWeight: 'bold' } }}><Tab label={t('absolute')} /><Tab label={t('relative')} /><Tab label={t('now')} /></Tabs></Box>
+            <Box sx={{ p: 2 }}>
+              {tabValue === 0 && (
+                <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={language}>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <DateCalendar value={popoverDate} onChange={(newValue) => newValue && setPopoverDate(newValue)} sx={{ width: '100%', maxHeight: 280 }} />
+                    <Box sx={{ width: 100, borderLeft: '1px solid', borderColor: 'divider', pl: 1, maxHeight: 280, overflowY: 'auto' }}>{timeOptions.map(time => (<Typography key={time} variant="caption" onClick={() => setPopoverTime(time)} sx={{ display: 'block', p: 0.8, cursor: 'pointer', borderRadius: 0.5, textAlign: 'center', bgcolor: popoverTime === time ? 'action.selected' : 'transparent', fontWeight: popoverTime === time ? 'bold' : 'normal' }}>{time}</Typography>))}</Box>
+                  </Box>
+                </LocalizationProvider>
+              )}
+              {tabValue === 1 && (<Box sx={{ display: 'flex', gap: 1, mb: 2 }}><TextField size="small" type="number" value={popoverVal} onChange={(e) => setPopoverVal(Number(e.target.value))} sx={{ width: 150 }} /><FormControl size="small" sx={{ flexGrow: 1 }}><Select value={popoverUnit} onChange={(e) => setPopoverUnit(e.target.value)}><MenuItem value="m">{t('unit_m')}</MenuItem><MenuItem value="h">{t('unit_h')}</MenuItem><MenuItem value="d">{t('unit_d')}</MenuItem></Select></FormControl></Box>)}
+              {tabValue === 2 && (<Box sx={{ py: 2, textAlign: 'center' }}><Button fullWidth variant="contained" onClick={() => { setTabValue(2); handleApplyTime(); }} sx={{ textTransform: 'none', fontWeight: 'bold' }}>{t('setToNow')}</Button></Box>)}
+            </Box>
+            {tabValue !== 2 && (<Box sx={{ p: 1.5, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><Typography variant="caption" sx={{ fontWeight: 'bold' }}>{tabValue === 0 ? popoverDate.locale(language).hour(parseInt(popoverTime.split(":")[0])).minute(parseInt(popoverTime.split(":")[1])).format("MMM D, YYYY @ HH:mm:ss") : dayjs().locale(language).format("MMM D, YYYY @ HH:mm:ss")}</Typography><Button size="small" variant="contained" onClick={handleApplyTime} sx={{ fontWeight: 'bold', textTransform: 'none' }}>{t('apply')}</Button></Box>)}
+          </Box>
+        )}
+      </Popover>
     </Box>
   );
-
 };
 
 export default LogStreamingTab;
-
-
