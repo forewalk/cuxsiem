@@ -327,7 +327,7 @@ const LogStreamingTab: React.FC = () => {
 
   const formatPoint = (val: number | null, unit: string, date: string | null, isTo: boolean) => {
     if (isTo && val === null && date === null) return t('now');
-    if (date) return dayjs(date).locale(language).format("MMM D, YYYY @ HH:mm");
+    if (date) return dayjs(date).locale(language).format("MMM D, YYYY @ HH:mm:ss");
     const unitText: any = { 'm': t('minutesAgo'), 'h': t('hoursAgo'), 'd': t('daysAgo') };
     return `~ ${val} ${unitText[unit]}`;
   };
