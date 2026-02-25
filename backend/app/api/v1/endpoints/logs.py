@@ -80,7 +80,7 @@ async def stream_logs(
         must_queries.append({
             "query_string": {
                 "query": q,
-                "default_field": "message"
+                "default_field": "*"
             }
         })
 

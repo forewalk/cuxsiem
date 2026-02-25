@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import {
-  Pause as PauseIcon,
+import { 
+  Pause as PauseIcon, 
   PlayArrow as PlayArrowIcon,
   DeleteSweep as ClearIcon,
   VerticalAlignBottom as AutoScrollIcon,
@@ -14,8 +14,8 @@ import {
   Storage as StorageIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
-import {
-  Box, Typography, Paper, Stack, Button, IconButton, Tooltip,
+import { 
+  Box, Typography, Paper, Stack, Button, IconButton, Tooltip, 
   Divider, LinearProgress, CircularProgress, Chip, TextField,
   InputAdornment, Table, TableBody, TableCell, TableRow, TableContainer,
   Popover, Tabs, Tab, MenuItem, Select, FormControl, Divider as MuiDivider
@@ -232,6 +232,16 @@ const LogStreamingTab: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
 
+  // 모든 필드 대상 정밀 검색 필터링 (useMemo)
+  const filteredLogs = useMemo(() => {
+    if (!searchQuery) return logs;
+    const queryParts = searchQuery.split(" AND ").map(p => p.trim().toLowerCase()).filter(Boolean);
+    return logs.filter(log => {
+      const searchableText = `${log._index} ${log.message} ${JSON.stringify(log._source)}`.toLowerCase();
+      return queryParts.every(part => searchableText.includes(part));
+    });
+  }, [logs, searchQuery]);
+
   // 메인 시간 상태
   const [fromValue, setFromValue] = useState<number | null>(15);
   const [fromUnit, setFromUnit] = useState("m");
@@ -313,12 +323,10 @@ const LogStreamingTab: React.FC = () => {
 
   const scrollToBottom = () => { if (scrollRef.current) { scrollRef.current.scrollTop = scrollRef.current.scrollHeight; setAutoScroll(true); } };
 
-  // 실시간 스트리밍 활성화 시 15분 고정 로직 포함
   const togglePaused = () => {
     const nextPaused = !isPaused;
     setIsPaused(nextPaused);
     if (!nextPaused) {
-      // 스트리밍 시작 시 시간 설정 최근 15분으로 강제 고정
       setFromValue(15); setFromUnit("m"); setFromDate(null);
       setToValue(null); setToUnit("m"); setToDate(null);
       setTimeout(scrollToBottom, 50);
@@ -351,7 +359,6 @@ const LogStreamingTab: React.FC = () => {
   const handleApplyTime = (data: any) => {
     const [h, m, s] = data.time.split(":").map(Number);
     const absoluteISO = data.date.hour(h || 0).minute(m || 0).second(s || 0).millisecond(0).toISOString();
-    
     if (data.editingPoint === 'from') {
       if (data.tabValue === 0) { setFromDate(absoluteISO); setFromValue(null); }
       else if (data.tabValue === 1) { setFromValue(data.val); setFromUnit(data.unit); setFromDate(null); }
@@ -367,8 +374,7 @@ const LogStreamingTab: React.FC = () => {
   const handleCommonTime = (val: number, unit: string) => {
     if (val === 0 && unit === 'd') { setFromDate(dayjs().startOf('day').toISOString()); setFromValue(null); }
     else { setFromValue(val); setFromUnit(unit); setFromDate(null); }
-    setToValue(null); setToUnit("m"); setToDate(null);
-    setTimeAnchorEl(null);
+    setToValue(null); setToUnit("m"); setToDate(null); setTimeAnchorEl(null);
   };
 
   const renderFieldValue = (log: LogEntry, field: string) => {
@@ -386,27 +392,24 @@ const LogStreamingTab: React.FC = () => {
       <LogStreamControlBar t={t} searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} indexOptions={indexOptions} selectedIndex={selectedIndex} onIndexChange={setSelectedIndex} />
       <Paper elevation={1} sx={{ p: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TerminalIcon color="primary" /><Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('logStreaming')}</Typography><Chip label={`${logs.length} logs`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} /></Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TerminalIcon color="primary" /><Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('logStreaming')}</Typography><Chip label={`${filteredLogs.length}${searchQuery ? ` / ${logs.length}` : ''} logs`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} /></Box>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Tooltip title={t('clearLogs')}><IconButton size="small" onClick={() => { setLogs([]); lastTimestampRef.current = null; }}><ClearIcon /></IconButton></Tooltip>
             <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'action.hover', border: '1px solid', borderColor: timeAnchorEl ? 'primary.main' : 'divider', borderRadius: 1, overflow: 'hidden', height: 32, opacity: isPaused ? 1 : 0.6, pointerEvents: isPaused ? 'auto' : 'none', transition: 'all 0.2s' }}>
               <Box onClick={(e) => openTimePopover('quick', 'from', e)} sx={{ px: 0.75, borderRight: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', height: '100%', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}><CalendarIcon sx={{ color: 'primary.main', fontSize: 18 }} /><ArrowDownIcon sx={{ color: 'primary.main', fontSize: 14 }} /></Box>
               <Box onClick={(e) => openTimePopover('detailed', 'from', e)} sx={{ px: 1, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}><Typography sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', color: 'text.primary' }}>{formatPoint(fromValue, fromUnit, fromDate, false)}</Typography></Box>
               <ArrowForwardIcon sx={{ fontSize: 10, color: 'text.disabled' }} /><Box onClick={(e) => openTimePopover('detailed', 'to', e)} sx={{ px: 1, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}><Typography sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', color: 'text.primary' }}>{formatPoint(toValue, toUnit, toDate, true)}</Typography></Box>
             </Box>
+            <Tooltip title={t('clearLogs')}><IconButton size="small" onClick={() => { setLogs([]); lastTimestampRef.current = null; }}><ClearIcon /></IconButton></Tooltip>
             <Button variant="contained" size="small" startIcon={isPaused ? <PlayArrowIcon /> : <StopIcon />} onClick={togglePaused} color={isPaused ? 'error' : 'success'} sx={{ textTransform: 'none', borderRadius: 1.5, minWidth: 110, height: 32, fontWeight: 'bold', boxShadow: (theme) => isPaused ? 'none' : `0 0 8px ${theme.palette.success.main}44` }}>{isPaused ? t('paused') : t('streaming')}</Button>
           </Stack>
         </Stack>
         <Divider />
         <Stack direction="row" sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
-            <Box sx={{ display: 'flex', gap: 1, px: 3, py: 1, bgcolor: 'action.selected', borderBottom: '1px solid', borderColor: 'divider', mt: 1, borderRadius: '4px 4px 0 0' }}>
-              {visibleFields.map((field) => (<Typography key={field} variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary', flexShrink: 0, width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto', flexGrow: field === 'message' ? 1 : 0, minWidth: 0 }}>{field.toUpperCase()}</Typography>))}
-              <Box sx={{ width: 40 }} />
-            </Box>
+            <Box sx={{ display: 'flex', gap: 1, px: 3, py: 1, bgcolor: 'action.selected', borderBottom: '1px solid', borderColor: 'divider', mt: 1, borderRadius: '4px 4px 0 0' }}>{visibleFields.map((field) => (<Typography key={field} variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary', flexShrink: 0, width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto', flexGrow: field === 'message' ? 1 : 0, minWidth: 0 }}>{field.toUpperCase()}</Typography>))}<Box sx={{ width: 40 }} /></Box>
             <Box ref={scrollRef} onScroll={handleScroll} sx={{ flexGrow: 1, bgcolor: 'action.hover', borderRadius: '0 0 4px 4px', p: 1.5, overflowY: 'auto', overflowX: 'hidden', border: '1px solid', borderColor: 'divider', borderTop: 'none', '&::-webkit-scrollbar': { width: '8px' }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: '4px' } }}>
-              {logs.length === 0 ? (<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1, color: 'text.disabled' }}>{loading ? <CircularProgress size={24} /> : <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('waitingForLogs')}</Typography>}</Box>) : (
-                logs.map((log) => (
+              {filteredLogs.length === 0 ? (<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1, color: 'text.disabled' }}>{loading ? <CircularProgress size={24} /> : <Typography variant="body2" sx={{ fontStyle: 'italic' }}>{t('waitingForLogs')}</Typography>}</Box>) : (
+                filteredLogs.map((log) => (
                   <Box key={log._id} sx={{ py: 0.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'baseline', gap: 1, width: '100%', bgcolor: selectedLog?._id === log._id ? 'action.selected' : 'transparent', '&:last-child': { borderBottom: 'none' }, '&:hover': { bgcolor: 'action.selected' } }}>
                     {visibleFields.map((field) => (<Typography key={field} variant={field === 'message' ? 'body2' : 'caption'} sx={{ fontFamily: 'monospace', fontSize: field === 'message' ? '0.85rem' : '0.7rem', color: field === 'timestamp' ? 'text.primary' : field === '_index' ? 'text.secondary' : 'text.primary', fontWeight: (field === 'timestamp' || field === '_index') ? 'bold' : 'normal', flexShrink: field === 'message' ? 1 : 0, width: field === 'timestamp' ? 230 : field === '_index' ? 180 : 'auto', flexGrow: field === 'message' ? 1 : 0, minWidth: 0, wordBreak: 'break-all', whiteSpace: field === 'timestamp' ? 'nowrap' : 'normal', lineHeight: 1.4, ...(field === 'message' && { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }), ...(field === '_index' && { bgcolor: 'action.selected', px: 0.5, borderRadius: 0.5 }) }}>{renderFieldValue(log, field)}</Typography>))}
                     <Box sx={{ flexShrink: 0, ml: 'auto', display: 'flex', alignItems: 'center' }}><Tooltip title="View Detail"><IconButton size="small" onClick={() => setSelectedLog(selectedLog?._id === log._id ? null : log)} color={selectedLog?._id === log._id ? "primary" : "default"}><DetailIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip></Box>
@@ -414,7 +417,7 @@ const LogStreamingTab: React.FC = () => {
                 ))
               )}
             </Box>
-            {!autoScroll && logs.length > 0 && (<Button variant="contained" size="small" startIcon={<AutoScrollIcon />} onClick={scrollToBottom} sx={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', borderRadius: 5, textTransform: 'none', bgcolor: 'primary.main', color: 'white', boxShadow: 3, '&:hover': { bgcolor: 'primary.dark' } }}>Go to Bottom</Button>)}
+            {!autoScroll && filteredLogs.length > 0 && (<Button variant="contained" size="small" startIcon={<AutoScrollIcon />} onClick={scrollToBottom} sx={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', borderRadius: 5, textTransform: 'none', bgcolor: 'primary.main', color: 'white', boxShadow: 3, '&:hover': { bgcolor: 'primary.dark' } }}>Go to Bottom</Button>)}
           </Box>
           {selectedLog && <LogDetailPanel log={selectedLog} onClose={() => setSelectedLog(null)} t={t} />}
         </Stack>
