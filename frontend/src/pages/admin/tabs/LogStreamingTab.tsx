@@ -193,11 +193,29 @@ const LogStreamingTab: React.FC = () => {
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+    // 최하단에서 50px 이내에 있으면 바닥에 붙은 것으로 간주
+    const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
     if (!isAtBottom && autoScroll) {
       setAutoScroll(false);
     } else if (isAtBottom && !autoScroll) {
       setAutoScroll(true);
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      setAutoScroll(true);
+    }
+  };
+
+  // 스트리밍 상태 변경 시 처리
+  const togglePaused = () => {
+    const nextPaused = !isPaused;
+    setIsPaused(nextPaused);
+    // 일시정지를 해제(스트리밍 시작)할 때 즉시 최하단으로 이동
+    if (!nextPaused) {
+      setTimeout(scrollToBottom, 50);
     }
   };
 
@@ -248,24 +266,10 @@ const LogStreamingTab: React.FC = () => {
               </IconButton>
             </Tooltip>
             <Button 
-              variant={autoScroll ? "contained" : "outlined"} 
-              size="small" 
-              startIcon={<AutoScrollIcon />}
-              onClick={() => setAutoScroll(!autoScroll)}
-              color="primary"
-              sx={{ 
-                textTransform: 'none', 
-                borderRadius: 1.5,
-                height: 32
-              }}
-            >
-              {t('autoScroll')}
-            </Button>
-            <Button 
               variant="contained"
               size="small" 
               startIcon={isPaused ? <PlayArrowIcon /> : <StopIcon />}
-              onClick={() => setIsPaused(!isPaused)}
+              onClick={togglePaused}
               color={isPaused ? 'error' : 'success'}
               sx={{ 
                 textTransform: 'none', 
@@ -285,7 +289,7 @@ const LogStreamingTab: React.FC = () => {
 
         <Stack direction="row" sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
           {/* 로그 리스트 영역 */}
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
             {/* 필드 헤더 영역 */}
             <Box sx={{ 
               display: 'flex', 
@@ -409,6 +413,30 @@ const LogStreamingTab: React.FC = () => {
                 ))
               )}
             </Box>
+
+            {/* 최하단 이동 부동 버튼 */}
+            {!autoScroll && logs.length > 0 && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AutoScrollIcon />}
+                onClick={scrollToBottom}
+                sx={{
+                  position: 'absolute',
+                  bottom: 16,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  borderRadius: 5,
+                  textTransform: 'none',
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  boxShadow: 3,
+                  '&:hover': { bgcolor: 'primary.dark' }
+                }}
+              >
+                Go to Bottom
+              </Button>
+            )}
           </Box>
 
           {/* 로그 상세 정보 패널 (JSON View) */}
