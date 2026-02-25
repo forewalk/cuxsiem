@@ -6,7 +6,8 @@ import {
   VerticalAlignBottom as AutoScrollIcon,
   Terminal as TerminalIcon,
   Search as DetailIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Stop as StopIcon
 } from '@mui/icons-material';
 import { 
   Box, Typography, Paper, Stack, Button, IconButton, Tooltip, 
@@ -240,12 +241,7 @@ const LogStreamingTab: React.FC = () => {
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('logStreaming')}</Typography>
             <Chip label={`${logs.length} logs`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
           </Box>
-          <Stack direction="row" spacing={1}>
-            <Tooltip title={isPaused ? t('resume') : t('pause')}>
-              <IconButton size="small" onClick={() => setIsPaused(!isPaused)} color={isPaused ? 'secondary' : 'default'}>
-                {isPaused ? <PlayArrowIcon /> : <PauseIcon />}
-              </IconButton>
-            </Tooltip>
+          <Stack direction="row" spacing={1} alignItems="center">
             <Tooltip title={t('clearLogs')}>
               <IconButton size="small" onClick={() => { setLogs([]); lastTimestampRef.current = null; }}>
                 <ClearIcon />
@@ -256,9 +252,31 @@ const LogStreamingTab: React.FC = () => {
               size="small" 
               startIcon={<AutoScrollIcon />}
               onClick={() => setAutoScroll(!autoScroll)}
-              sx={{ textTransform: 'none', borderRadius: 1.5 }}
+              color="primary"
+              sx={{ 
+                textTransform: 'none', 
+                borderRadius: 1.5,
+                height: 32
+              }}
             >
               {t('autoScroll')}
+            </Button>
+            <Button 
+              variant="contained"
+              size="small" 
+              startIcon={isPaused ? <PlayArrowIcon /> : <StopIcon />}
+              onClick={() => setIsPaused(!isPaused)}
+              color={isPaused ? 'error' : 'success'}
+              sx={{ 
+                textTransform: 'none', 
+                borderRadius: 1.5,
+                minWidth: 110,
+                height: 32,
+                fontWeight: 'bold',
+                boxShadow: (theme) => isPaused ? 'none' : `0 0 8px ${theme.palette.success.main}44`
+              }}
+            >
+              {isPaused ? t('paused') : t('streaming')}
             </Button>
           </Stack>
         </Stack>

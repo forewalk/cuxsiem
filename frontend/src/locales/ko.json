@@ -152,6 +152,8 @@
   "pause": "일시 정지",
   "clearLogs": "로그 비우기",
   "autoScroll": "자동 스크롤",
+  "streaming": "스트리밍 중",
+  "paused": "일시 정지됨",
   "waitingForLogs": "로그를 기다리는 중...",
   "notificationCenter": "알림 센터",
   "notificationRuleList": "알림 규칙 목록",

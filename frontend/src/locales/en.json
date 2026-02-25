@@ -154,6 +154,8 @@
   "pause": "Pause",
   "clearLogs": "Clear Logs",
   "autoScroll": "Auto Scroll",
+  "streaming": "Streaming",
+  "paused": "Paused",
   "waitingForLogs": "Waiting for logs...",
   "notificationCenter": "Notification Center",
   "notificationRuleList": "Notification Rule List",
