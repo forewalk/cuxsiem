@@ -15,7 +15,6 @@ import {
 import { notificationService } from '@/services/notificationService.ts';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
-import AlertsControlBar from "../components/AlertsControlBar";
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
 import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS, ACTIVE_STATUS_OPTIONS } from '../components/AlertTableStyles';
@@ -55,21 +54,12 @@ const NotificationRuleListTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { language } = useLanguageStore();
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<boolean | null>(null);
 
   // 정렬 상태
   const [sortBy, setSortBy] = useState<string>("created_at");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
-
-  // 시간 범위 상태
-  const [fromValue, setFromValue] = useState<number | null>(null);
-  const [fromUnit, setFromUnit] = useState<string>("m");
-  const [toValue, setToValue] = useState<number | null>(null);
-  const [toUnit, setToUnit] = useState<string>("m");
-  const [fromDate, setFromDate] = useState<string | null>(null);
-  const [toDate, setToDate] = useState<string | null>(null);
 
   const [open, setOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<NotificationRule | null>(null);
@@ -102,30 +92,10 @@ const NotificationRuleListTab: React.FC = () => {
   // 시간 범위를 ISO 날짜로 변환
   const calculateTimeRange = useCallback(() => {
     const now = dayjs();
-    let from_date: string | undefined;
-    let to_date: string | undefined;
-
-    // fromDate가 있으면 절대 시간 사용
-    if (fromDate) {
-      from_date = fromDate;
-    } else if (fromValue !== null) {
-      // 상대 시간 계산
-      const fromMoment = now.subtract(fromValue, fromUnit as dayjs.ManipulateType);
-      from_date = fromMoment.toISOString();
-    }
-
-    // toDate가 있으면 절대 시간 사용, 없으면 현재 시간
-    if (toDate) {
-      to_date = toDate;
-    } else if (toValue !== null) {
-      const toMoment = now.subtract(toValue, toUnit as dayjs.ManipulateType);
-      to_date = toMoment.toISOString();
-    } else {
-      to_date = now.toISOString();
-    }
-
+    const from_date = now.subtract(15, 'minute').toISOString();
+    const to_date = now.toISOString();
     return { from_date, to_date };
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate]);
+  }, []);
 
   const loadRules = useCallback(async () => {
     setLoading(true);
@@ -153,10 +123,6 @@ const NotificationRuleListTab: React.FC = () => {
         to_date
       };
 
-      if (searchQuery) {
-        params.query = searchQuery;
-      }
-
       if (selectedSeverities.length > 0) {
         params.severities = selectedSeverities.join(',');
       }
@@ -173,7 +139,7 @@ const NotificationRuleListTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, searchQuery, selectedSeverities, activeFilter, sortBy, order, calculateTimeRange]);
+  }, [page, rowsPerPage, selectedSeverities, activeFilter, sortBy, order, calculateTimeRange]);
 
   useEffect(() => {
     loadRules();

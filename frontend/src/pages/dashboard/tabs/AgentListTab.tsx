@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import ControlBar from "../components/ControlBar";
 import BarChartWidget from "../components/BarChartWidget";
-import { getDashboardStats, getIndexFields, getDashboardIndices, getIndexLogs, resetDashboard } from "../../../services/dashboardService";
+import { getDashboardStats, getIndexFields, getIndexLogs } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import dayjs from "dayjs";

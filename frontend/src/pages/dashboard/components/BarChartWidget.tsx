@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from "react";
-import { Box, Typography, useTheme, Tooltip } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import type { HistogramItem } from "../../../services/dashboardService";
 import dayjs from "dayjs";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
@@ -178,7 +178,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, title, emptyMessa
                   y={`${100 - barHeight}%`}
                   width={`${barWidth}%`}
                   height={`${barHeight}%`}
-                  fill={theme.palette.primary.main}
+                  fill="#20b2aa"
                   fillOpacity={0.8}
                   rx="0.2"
                   style={{ cursor: 'pointer' }}

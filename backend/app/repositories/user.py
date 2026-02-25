@@ -162,14 +162,17 @@ class UserRepository:
         loop = asyncio.get_event_loop()
 
         def update():
-            self.client.update(
-                index=self.index,
-                id=user_id,
-                body={
-                    "doc": {"last_login_at": datetime.utcnow().isoformat()}
-                },
-                refresh=True
-            )
+            try:
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={
+                        "doc": {"last_login_at": datetime.utcnow().isoformat()}
+                    },
+                    refresh=True
+                )
+            except Exception as e:
+                print(f"Error updating last login for {user_id}: {e}")
 
         await loop.run_in_executor(None, update)
 

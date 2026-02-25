@@ -29,16 +29,6 @@ const drawerWidth = 273;
 const collapsedWidth = 72;
 const mobileDrawerWidth = 0;
 
-const FIGMA_COLORS = {
-  buttonBg: "#4A5568",
-  inputBorder: "#D1DBE8",
-  labelBg: "#EFF2F6",
-  darkGray: "#5B6B7F",
-  headerBg: "#121212",
-  sidebarBg: "#1A1A1A",
-  contentBg: "#F4F5F7",
-};
-
 function App() {
   const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -52,16 +42,13 @@ function App() {
 
   // 전역 알림 시스템 (WebSocket 기반 - 다중 Snackbar)
   const token = authService.getToken();
-  const { snackbars, handleCloseSnackbar, isConnected } = useGlobalAlertNotification(!!user, token);
+  const { snackbars, handleCloseSnackbar } = useGlobalAlertNotification(!!user, token);
 
   const theme = useMemo(() => createTheme({
     palette: {
       mode: darkMode ? "dark" : "light",
       primary: {
-        main: darkMode ? "#5B9BD5" : "#4A90D9",
-      },
-      secondary: {
-        main: "#4CAF50",
+        main: "#4A5568",
       },
       background: {
         default: darkMode ? "#121212" : "#F4F5F7",

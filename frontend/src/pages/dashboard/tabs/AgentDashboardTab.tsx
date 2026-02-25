@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useSearchParams } from "react-router-dom";
 import { 
   Box, Paper, Typography, LinearProgress, Divider, 
-  IconButton, TextField, Tooltip, useTheme,
+  IconButton, TextField, useTheme,
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Menu, MenuItem, ListItemIcon, ListItemText, Stack,
   Autocomplete, ToggleButton, ToggleButtonGroup
@@ -11,14 +11,13 @@ import ControlBar from "../components/ControlBar";
 import CategoryBarChartWidget from "../components/CategoryBarChartWidget";
 import PieChartWidget from "../components/PieChartWidget";
 import { getDashboardStats, resetDashboard, saveDashboardLayout, getIndexFields } from "../../../services/dashboardService";
-import type { DashboardStatsResponse, DashboardPanel, IndexField } from "../../../services/dashboardService";
+import type { DashboardStatsResponse, DashboardPanel } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import NorthWestIcon from '@mui/icons-material/NorthWest';
-import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';

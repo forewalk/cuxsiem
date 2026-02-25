@@ -41,6 +41,10 @@ async def reset_password(request: PasswordResetRequest):
     사용자 ID를 입력받아 비밀번호를 초기화하고 임시 비밀번호를 반환합니다.
     (관리자용 기능이 아니며, 본인 인증이 어려운 폐쇄망 환경에서 제한적으로 사용)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Received reset-password request for: {request.username}")
+    
     service = AuthService()
     temp_password = await service.reset_password(request.username)
     return PasswordResetResponse(password=temp_password)

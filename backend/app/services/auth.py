@@ -142,27 +142,41 @@ class AuthService:
         """비밀번호 초기화 (임시 비밀번호 발급)"""
         import secrets
         import string
+        import logging
 
-        # 사용자 조회 (ID로 검색)
-        user = await self.user_repo.get_by_id(username)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="사용자를 찾을 수 없습니다"
-            )
+        logger = logging.getLogger(__name__)
+        logger.info(f"Attempting to reset password for user: {username}")
+
+        try:
+            # 사용자 조회 (ID로 검색)
+            user = await self.user_repo.get_by_id(username)
+            if not user:
+                logger.warning(f"User not found: {username}")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="사용자를 찾을 수 없습니다"
+                )
+                
+            # 임시 비밀번호 생성 (12자리 영문+숫자+특수문자)
+            alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+            temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
             
-        # 임시 비밀번호 생성 (12자리 영문+숫자+특수문자)
-        alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-        temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
-        
-        # 비밀번호 업데이트
-        hashed_password = get_password_hash(temp_password)
-        updated = await self.user_repo.update(user.id, {"password_hash": hashed_password})
-        
-        if not updated:
+            # 비밀번호 업데이트
+            hashed_password = get_password_hash(temp_password)
+            updated = await self.user_repo.update(user.id, {"password_hash": hashed_password})
+            
+            if not updated:
+                logger.error(f"Failed to update password in repository for user: {username}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="비밀번호 업데이트 실패"
+                )
+                
+            logger.info(f"Successfully reset password for user: {username}")
+            return temp_password
+        except Exception as e:
+            logger.exception(f"Unexpected error during password reset for {username}: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="비밀번호 업데이트 실패"
+                detail=f"비밀번호 초기화 중 오류 발생: {str(e)}"
             )
-            
-        return temp_password

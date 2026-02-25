@@ -35,7 +35,7 @@ const PieChartWidget: React.FC<PieChartWidgetProps> = ({ data, title, height = 3
   const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
 
   const colors = [
-    theme.palette.primary.main,
+    "#20b2aa",
     theme.palette.secondary.main,
     theme.palette.success.main,
     theme.palette.warning.main,

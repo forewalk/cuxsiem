@@ -24,7 +24,7 @@ interface CategoryBarChartWidgetProps {
 
 const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, title, height, emptyMessage, color, onBarClick }) => {
   const theme = useTheme();
-  const barColor = color || theme.palette.primary.main;
+  const barColor = color || "#20b2aa";
   const { language } = useLanguageStore();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [actualHeight, setActualHeight] = useState(height || 300);
