@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import { 
-  Pause as PauseIcon, 
+import {
+  Pause as PauseIcon,
   PlayArrow as PlayArrowIcon,
   DeleteSweep as ClearIcon,
   VerticalAlignBottom as AutoScrollIcon,
@@ -14,8 +14,8 @@ import {
   Storage as StorageIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
-import { 
-  Box, Typography, Paper, Stack, Button, IconButton, Tooltip, 
+import {
+  Box, Typography, Paper, Stack, Button, IconButton, Tooltip,
   Divider, LinearProgress, CircularProgress, Chip, TextField,
   InputAdornment, Table, TableBody, TableCell, TableRow, TableContainer,
   Popover, Tabs, Tab, MenuItem, Select, FormControl, Divider as MuiDivider
@@ -112,8 +112,8 @@ const TimeSettingPopover = React.memo(({ open, anchorEl, onClose, onApply, onCom
   const [localEditingPoint, setLocalEditingPoint] = useState<'from' | 'to'>('from');
   const [localVal, setLocalVal] = useState(15);
   const [localUnit, setLocalUnit] = useState("m");
-  const [localDate, setLocalDate] = useState<Dayjs>(dayjs());
-  const [localTime, setLocalTime] = useState("12:00");
+  const [localDate, setLocalDate] = useState<Dayjs>(dayjs().second(0).millisecond(0));
+  const [localTime, setLocalTime] = useState("12:00:00");
 
   useEffect(() => {
     if (open && initialData) {
@@ -121,7 +121,7 @@ const TimeSettingPopover = React.memo(({ open, anchorEl, onClose, onApply, onCom
       setLocalTab(initialData.tabValue);
       setLocalVal(initialData.popoverVal);
       setLocalUnit(initialData.popoverUnit);
-      setLocalDate(initialData.popoverDate);
+      setLocalDate(initialData.popoverDate.second(0).millisecond(0));
       setLocalTime(initialData.popoverTime);
     }
   }, [open, initialData]);
@@ -139,9 +139,21 @@ const TimeSettingPopover = React.memo(({ open, anchorEl, onClose, onApply, onCom
 
   const timeOptions = useMemo(() => {
     const times = [];
-    for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 30) { times.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`); } }
+    for (let h = 0; h < 24; h++) { 
+      for (let m = 0; m < 60; m += 30) { 
+        times.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`); 
+      } 
+    }
     return times;
   }, []);
+
+  const formatDisplayTime = () => {
+    if (localTab === 0) {
+      const [h, m, s] = localTime.split(":").map(Number);
+      return localDate.locale(language).hour(h || 0).minute(m || 0).second(s || 0).format("MMM D, YYYY @ HH:mm:ss");
+    }
+    return dayjs().locale(language).format("MMM D, YYYY @ HH:mm:ss");
+  };
 
   return (
     <Popover open={open} anchorEl={anchorEl} onClose={onClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }} PaperProps={{ sx: { width: initialData?.popoverType === 'quick' ? 450 : 480, mt: 1, borderRadius: 1, boxShadow: 10 } }}>
@@ -166,15 +178,15 @@ const TimeSettingPopover = React.memo(({ open, anchorEl, onClose, onApply, onCom
             {localTab === 0 && (
               <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={language}>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <DateCalendar value={localDate} onChange={(nv) => nv && setLocalDate(nv)} sx={{ width: '100%', maxHeight: 280 }} />
-                  <Box sx={{ width: 100, borderLeft: '1px solid', borderColor: 'divider', pl: 1, maxHeight: 280, overflowY: 'auto' }}>{timeOptions.map(time => (<Typography key={time} variant="caption" onClick={() => setLocalTime(time)} sx={{ display: 'block', p: 0.8, cursor: 'pointer', borderRadius: 0.5, textAlign: 'center', bgcolor: localTime === time ? 'action.selected' : 'transparent', fontWeight: localTime === time ? 'bold' : 'normal' }}>{time}</Typography>))}</Box>
+                  <DateCalendar value={localDate} onChange={(nv) => nv && setLocalDate(nv.second(0).millisecond(0))} sx={{ width: '100%', maxHeight: 280 }} />
+                  <Box sx={{ width: 110, borderLeft: '1px solid', borderColor: 'divider', pl: 1, maxHeight: 280, overflowY: 'auto' }}>{timeOptions.map(time => (<Typography key={time} variant="caption" onClick={() => setLocalTime(time)} sx={{ display: 'block', p: 0.8, cursor: 'pointer', borderRadius: 0.5, textAlign: 'center', bgcolor: localTime === time ? 'action.selected' : 'transparent', fontWeight: localTime === time ? 'bold' : 'normal', fontSize: '0.7rem' }}>{time}</Typography>))}</Box>
                 </Box>
               </LocalizationProvider>
             )}
             {localTab === 1 && (<Box sx={{ display: 'flex', gap: 1, mb: 2 }}><TextField size="small" type="number" value={localVal} onChange={(e) => setLocalVal(Number(e.target.value))} sx={{ width: 150 }} /><FormControl size="small" sx={{ flexGrow: 1 }}><Select value={localUnit} onChange={(e) => setLocalUnit(e.target.value)}><MenuItem value="m">{t('unit_m')}</MenuItem><MenuItem value="h">{t('unit_h')}</MenuItem><MenuItem value="d">{t('unit_d')}</MenuItem></Select></FormControl></Box>)}
             {localTab === 2 && (<Box sx={{ py: 2, textAlign: 'center' }}><Button fullWidth variant="contained" onClick={() => { setLocalTab(2); handleApply(); }} sx={{ textTransform: 'none', fontWeight: 'bold' }}>{t('setToNow')}</Button></Box>)}
           </Box>
-          {localTab !== 2 && (<Box sx={{ p: 1.5, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><Typography variant="caption" sx={{ fontWeight: 'bold' }}>{localTab === 0 ? localDate.locale(language).hour(parseInt(localTime.split(":")[0])).minute(parseInt(localTime.split(":")[1])).format("MMM D, YYYY @ HH:mm:ss") : dayjs().locale(language).format("MMM D, YYYY @ HH:mm:ss")}</Typography><Button size="small" variant="contained" onClick={handleApply} sx={{ fontWeight: 'bold', textTransform: 'none' }}>{t('apply')}</Button></Box>)}
+          {localTab !== 2 && (<Box sx={{ p: 1.5, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><Typography variant="caption" sx={{ fontWeight: 'bold' }}>{formatDisplayTime()}</Typography><Button size="small" variant="contained" onClick={handleApply} sx={{ fontWeight: 'bold', textTransform: 'none' }}>{t('apply')}</Button></Box>)}
         </Box>
       )}
     </Popover>
@@ -300,7 +312,7 @@ const LogStreamingTab: React.FC = () => {
   };
 
   const scrollToBottom = () => { if (scrollRef.current) { scrollRef.current.scrollTop = scrollRef.current.scrollHeight; setAutoScroll(true); } };
-  
+
   // 실시간 스트리밍 활성화 시 15분 고정 로직 포함
   const togglePaused = () => {
     const nextPaused = !isPaused;
@@ -322,24 +334,28 @@ const LogStreamingTab: React.FC = () => {
 
   const openTimePopover = (type: 'quick' | 'detailed', point: 'from' | 'to', event: React.MouseEvent<HTMLDivElement>) => {
     if (!isPaused) return;
+    const currentVal = point === 'from' ? (fromDate || undefined) : (toDate || undefined);
+    const d = dayjs(currentVal).second(0).millisecond(0);
     setPopoverInfo({
       popoverType: type,
       editingPoint: point,
       tabValue: (point === 'from' ? (fromDate ? 0 : 1) : (toDate ? 0 : (toValue !== null ? 1 : 2))),
       popoverVal: (point === 'from' ? fromValue || 15 : toValue || 15),
       popoverUnit: (point === 'from' ? fromUnit : toUnit),
-      popoverDate: dayjs(point === 'from' ? (fromDate || undefined) : (toDate || undefined)),
-      popoverTime: dayjs(point === 'from' ? (fromDate || undefined) : (toDate || undefined)).format("HH:mm")
+      popoverDate: d,
+      popoverTime: d.format("HH:mm:ss")
     });
     setTimeAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
   };
 
   const handleApplyTime = (data: any) => {
-    const absoluteISO = data.date.hour(parseInt(data.time.split(":")[0])).minute(parseInt(data.time.split(":")[1])).second(0).toISOString();
+    const [h, m, s] = data.time.split(":").map(Number);
+    const absoluteISO = data.date.hour(h || 0).minute(m || 0).second(s || 0).millisecond(0).toISOString();
+    
     if (data.editingPoint === 'from') {
       if (data.tabValue === 0) { setFromDate(absoluteISO); setFromValue(null); }
       else if (data.tabValue === 1) { setFromValue(data.val); setFromUnit(data.unit); setFromDate(null); }
-      else { setFromDate(dayjs().toISOString()); setFromValue(null); }
+      else { setFromDate(dayjs().second(0).millisecond(0).toISOString()); setFromValue(null); }
     } else {
       if (data.tabValue === 0) { setToDate(absoluteISO); setToValue(null); }
       else if (data.tabValue === 1) { setToValue(data.val); setToUnit(data.unit); setToDate(null); }
@@ -372,12 +388,12 @@ const LogStreamingTab: React.FC = () => {
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><TerminalIcon color="primary" /><Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('logStreaming')}</Typography><Chip label={`${logs.length} logs`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} /></Box>
           <Stack direction="row" spacing={1} alignItems="center">
+            <Tooltip title={t('clearLogs')}><IconButton size="small" onClick={() => { setLogs([]); lastTimestampRef.current = null; }}><ClearIcon /></IconButton></Tooltip>
             <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'action.hover', border: '1px solid', borderColor: timeAnchorEl ? 'primary.main' : 'divider', borderRadius: 1, overflow: 'hidden', height: 32, opacity: isPaused ? 1 : 0.6, pointerEvents: isPaused ? 'auto' : 'none', transition: 'all 0.2s' }}>
               <Box onClick={(e) => openTimePopover('quick', 'from', e)} sx={{ px: 0.75, borderRight: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', height: '100%', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}><CalendarIcon sx={{ color: 'primary.main', fontSize: 18 }} /><ArrowDownIcon sx={{ color: 'primary.main', fontSize: 14 }} /></Box>
               <Box onClick={(e) => openTimePopover('detailed', 'from', e)} sx={{ px: 1, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}><Typography sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', color: 'text.primary' }}>{formatPoint(fromValue, fromUnit, fromDate, false)}</Typography></Box>
               <ArrowForwardIcon sx={{ fontSize: 10, color: 'text.disabled' }} /><Box onClick={(e) => openTimePopover('detailed', 'to', e)} sx={{ px: 1, height: '100%', display: 'flex', alignItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'action.selected' } }}><Typography sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap', color: 'text.primary' }}>{formatPoint(toValue, toUnit, toDate, true)}</Typography></Box>
             </Box>
-            <Tooltip title={t('clearLogs')}><IconButton size="small" onClick={() => { setLogs([]); lastTimestampRef.current = null; }}><ClearIcon /></IconButton></Tooltip>
             <Button variant="contained" size="small" startIcon={isPaused ? <PlayArrowIcon /> : <StopIcon />} onClick={togglePaused} color={isPaused ? 'error' : 'success'} sx={{ textTransform: 'none', borderRadius: 1.5, minWidth: 110, height: 32, fontWeight: 'bold', boxShadow: (theme) => isPaused ? 'none' : `0 0 8px ${theme.palette.success.main}44` }}>{isPaused ? t('paused') : t('streaming')}</Button>
           </Stack>
         </Stack>
