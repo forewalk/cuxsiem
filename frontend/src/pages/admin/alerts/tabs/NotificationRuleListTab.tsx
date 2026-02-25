@@ -18,6 +18,7 @@ import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
 import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS, ACTIVE_STATUS_OPTIONS } from '../components/AlertTableStyles';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 // i18n
 import koMessages from "../../../../locales/ko.json";
@@ -53,6 +54,24 @@ const NotificationRuleListTab: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const { language } = useLanguageStore();
+
+  // WebSocket 실시간 새로고침 연동
+  const token = localStorage.getItem('access_token');
+  // API URL에서 프로토콜과 호스트 추출하여 WS URL 구성
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
+  const wsUrl = `${wsBaseUrl}/api/v1/ws`;
+
+  useWebSocket({
+    url: wsUrl,
+    token,
+    onMessage: (data) => {
+      if (data.type === 'new_alert') {
+        console.log('Real-time rule update triggered by WebSocket');
+        loadRules();
+      }
+    }
+  });
 
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<boolean | null>(null);
