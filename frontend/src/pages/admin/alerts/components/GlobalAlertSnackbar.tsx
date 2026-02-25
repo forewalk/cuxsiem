@@ -16,6 +16,8 @@ interface GlobalAlertSnackbarProps {
  * - useGlobalAlertNotification 훅과 함께 사용
  */
 export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackbars, onClose }) => {
+  console.log('🎨 GlobalAlertSnackbar render - snackbars count:', snackbars.length, snackbars);
+  
   // severity를 MUI Alert severity로 매핑
   const getMuiSeverity = (severity: string): 'error' | 'warning' | 'info' | 'success' => {
     if (!severity) {

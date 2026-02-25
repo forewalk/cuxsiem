@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-25 12:45 | 김장훈 | 수리 | 알림 스낵바 미표시 문제 디버깅 로그 추가 (useGlobalAlertNotification, useWebSocket, App, GlobalAlertSnackbar) |
 | 2026-02-25 09:07 | 최지호 | 수정 | origin/feature/dashboard push (그래프 색상 원복) |
 | 2026-02-25 08:20 | 최지호 | 수정 | origin/feature/dashboard push (대시보드 피드백 반영) |
 | 2026-02-24 14:18 | 최지호 | 수정 | origin/feature/dashboard push (agent 화면 생성, 대시보드 편집 구현) |

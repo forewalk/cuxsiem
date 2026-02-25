@@ -41,6 +41,8 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean, token: stri
 
   // WebSocket 메시지 핸들러
   const handleMessage = useCallback((data: any) => {
+    console.log('🔔 WebSocket message received:', data);
+    
     if (data.type === 'new_alert' && data.data) {
       const alert = data.data;
       
@@ -53,12 +55,19 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean, token: stri
         timestamp: Date.now()
       };
       
-      setSnackbars((prev) => [...prev, newSnackbar]);
+      console.log('✅ New snackbar created:', newSnackbar);
+      setSnackbars((prev) => {
+        const updated = [...prev, newSnackbar];
+        console.log('📊 Updated snackbars:', updated);
+        return updated;
+      });
       
       // 10초 후 자동 제거
       setTimeout(() => {
         setSnackbars((prev) => prev.filter(s => s.id !== newSnackbar.id));
       }, 10000);
+    } else {
+      console.log('⚠️ Message ignored - type or data missing:', { type: data.type, hasData: !!data.data });
     }
   }, []);
 

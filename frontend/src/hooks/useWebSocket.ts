@@ -84,10 +84,14 @@ export const useWebSocket = ({
       ws.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('📨 WebSocket raw message:', data);
 
           // Pong/Connection 응답은 처리 안 함
           if (data.type !== 'pong' && data.type !== 'connection') {
+            console.log('📤 Forwarding message to handler:', data);
             onMessageRef.current?.(data);
+          } else {
+            console.log('⏭️ Skipping pong/connection message');
           }
         } catch (error) {
           console.error('WebSocket: Failed to parse message', error);
