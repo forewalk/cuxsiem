@@ -358,7 +358,7 @@ const LogStreamingTab: React.FC = () => {
                           lineHeight: 1.4,
                           ...(field === 'message' && {
                             display: '-webkit-box',
-                            WebkitLineClamp: 3,
+                            WebkitLineClamp: 5,
                             WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis'
