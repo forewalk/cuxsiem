@@ -316,9 +316,19 @@ const NotificationHistoryTab: React.FC = () => {
 
   // WebSocket으로 실시간 알림 수신 시 자동 새로고침
   const wsUrl = useMemo(() => {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-    const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
-    return `${wsBaseUrl}/api/v1/ws/alerts`;
+    // 배포 환경에서는 현재 호스트를 기반으로 WebSocket URL 생성
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    
+    // 개발 환경에서는 환경 변수 사용, 없으면 현재 호스트 사용
+    if (import.meta.env.DEV && import.meta.env.VITE_API_BASE_URL) {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+      const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
+      return `${wsBaseUrl}/api/v1/ws/alerts`;
+    }
+    
+    // 배포 환경: 현재 호스트 사용 (Nginx 리버스 프록시 통과)
+    return `${protocol}//${host}/api/v1/ws/alerts`;
   }, []);
 
   const token = localStorage.getItem('access_token');
