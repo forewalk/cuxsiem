@@ -167,8 +167,36 @@ const LogDetailPanel = React.memo(({
       <TableContainer sx={{ 
         flexGrow: 1, 
         overflow: 'auto', 
-        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
+        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+        position: 'relative' // 리사이저 배치를 위한 기준점
       }}>
+        {/* 전체 열 수직 리사이저 바 */}
+        <Box
+          onMouseDown={startResizing}
+          sx={{
+            position: 'absolute',
+            left: fieldWidth,
+            top: 0,
+            bottom: 0,
+            width: '6px',
+            marginLeft: '-3px',
+            cursor: 'col-resize',
+            zIndex: 10,
+            transition: 'background-color 0.2s',
+            '&:hover': {
+              bgcolor: 'primary.main',
+              opacity: 0.5
+            },
+            // 드래그 중일 때의 시각적 표시 (ref 기반이므로 스타일로 처리)
+            '&:active': {
+              bgcolor: 'primary.main',
+              opacity: 0.8,
+              width: '2px',
+              marginLeft: '-1px'
+            }
+          }}
+        />
+
         <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
           <TableBody>
             {filteredDetail.map((item) => (
@@ -189,21 +217,6 @@ const LogDetailPanel = React.memo(({
                   whiteSpace: 'nowrap'
                 }}>
                   {item.key}
-                  {/* 리사이징 핸들 */}
-                  <Box
-                    onMouseDown={startResizing}
-                    sx={{
-                      position: 'absolute',
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: '4px',
-                      cursor: 'col-resize',
-                      '&:hover': {
-                        bgcolor: 'primary.main',
-                      }
-                    }}
-                  />
                 </TableCell>
                 <TableCell sx={{ 
                   fontSize: '0.75rem', 
