@@ -561,7 +561,6 @@ const LogStreamingTab: React.FC = () => {
                 logs.map((log) => (
                   <Box 
                     key={log._id} 
-                    onClick={() => setSelectedLog(selectedLog?._id === log._id ? null : log)}
                     sx={{ 
                       py: 0.5,
                       borderBottom: '1px solid', 
@@ -570,7 +569,6 @@ const LogStreamingTab: React.FC = () => {
                       alignItems: 'baseline',
                       gap: 1,
                       width: '100%',
-                      cursor: 'pointer',
                       bgcolor: selectedLog?._id === log._id ? 'action.selected' : 'transparent',
                       '&:last-child': { borderBottom: 'none' },
                       '&:hover': { bgcolor: 'action.selected' }
@@ -613,8 +611,7 @@ const LogStreamingTab: React.FC = () => {
                       <Tooltip title="View Detail">
                         <IconButton 
                           size="small" 
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={() => {
                             setSelectedLog(selectedLog?._id === log._id ? null : log);
                           }}
                           color={selectedLog?._id === log._id ? "primary" : "default"}
