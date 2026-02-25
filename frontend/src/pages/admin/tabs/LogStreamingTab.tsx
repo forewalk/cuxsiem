@@ -55,8 +55,42 @@ const LogDetailPanel = React.memo(({
   t: any 
 }) => {
   const [search, setSearch] = useState("");
+  const [fieldWidth, setFieldWidth] = useState(200); // 필드 열 너비 상태
+  const isResizing = useRef(false);
+  
   // useDeferredValue를 사용하여 검색어 입력 반응성을 확보하고 필터링 렌더링을 지연시킴
   const deferredSearch = useDeferredValue(search);
+
+  // 리사이징 핸들러
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    isResizing.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', stopResizing);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', stopResizing);
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing.current) return;
+    
+    // 상세 패널의 위치를 기준으로 마우스의 상대적 위치 계산
+    const panelElement = document.getElementById('log-detail-panel');
+    if (panelElement) {
+      const rect = panelElement.getBoundingClientRect();
+      const newWidth = e.clientX - rect.left;
+      if (newWidth > 100 && newWidth < rect.width - 100) {
+        setFieldWidth(newWidth);
+      }
+    }
+  }, []);
 
   const flattenedDetail = useMemo(() => {
     const combinedData = {
@@ -84,21 +118,23 @@ const LogDetailPanel = React.memo(({
   }, [flattenedDetail, deferredSearch]);
 
   return (
-    <Box sx={{ 
-      width: { xs: '100%', md: '45%' }, 
-      ml: 1, 
-      display: 'flex', 
-      flexDirection: 'column',
-      border: '1px solid',
-      borderColor: 'divider',
-      borderRadius: 1,
-      bgcolor: 'background.paper',
-      mt: 1,
-      overflow: 'hidden',
-      // 지연된 값으로 렌더링 중일 때 투명도 조절 (UX 가이드)
-      opacity: search !== deferredSearch ? 0.7 : 1,
-      transition: 'opacity 0.2s'
-    }}>
+    <Box 
+      id="log-detail-panel"
+      sx={{ 
+        width: { xs: '100%', md: '45%' }, 
+        ml: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+        bgcolor: 'background.paper',
+        mt: 1,
+        overflow: 'hidden',
+        opacity: search !== deferredSearch ? 0.7 : 1,
+        transition: 'opacity 0.2s'
+      }}
+    >
       <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'action.selected', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
           <DetailIcon fontSize="small" color="primary" />
@@ -133,12 +169,12 @@ const LogDetailPanel = React.memo(({
         overflow: 'auto', 
         bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
       }}>
-        <Table size="small" stickyHeader>
+        <Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}>
           <TableBody>
             {filteredDetail.map((item) => (
               <TableRow key={item.key} hover>
                 <TableCell sx={{ 
-                  width: '40%', 
+                  width: fieldWidth, 
                   fontWeight: 'bold', 
                   fontSize: '0.75rem', 
                   color: 'primary.main',
@@ -146,9 +182,28 @@ const LogDetailPanel = React.memo(({
                   verticalAlign: 'top',
                   borderRight: '1px solid',
                   borderColor: 'divider',
-                  py: 1
+                  py: 1,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
                 }}>
                   {item.key}
+                  {/* 리사이징 핸들 */}
+                  <Box
+                    onMouseDown={startResizing}
+                    sx={{
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: '4px',
+                      cursor: 'col-resize',
+                      '&:hover': {
+                        bgcolor: 'primary.main',
+                      }
+                    }}
+                  />
                 </TableCell>
                 <TableCell sx={{ 
                   fontSize: '0.75rem', 
