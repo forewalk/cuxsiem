@@ -11,7 +11,8 @@ import {
 } from '@mui/icons-material';
 import { 
   Box, Typography, Paper, Stack, Button, IconButton, Tooltip, 
-  Divider, LinearProgress, CircularProgress, Chip
+  Divider, LinearProgress, CircularProgress, Chip, TextField,
+  InputAdornment, Table, TableBody, TableCell, TableRow, TableContainer
 } from '@mui/material';
 import ControlBar from "../../dashboard/components/ControlBar";
 import { logService } from '../../../services/logService';
@@ -37,11 +38,51 @@ const LogStreamingTab: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState('*');
   const [indexOptions, setIndexOptions] = useState<string[]>(['*']);
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [detailSearch, setDetailSearch] = useState("");
   const lastTimestampRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { activeTabId } = useTabStore();
   const isActive = activeTabId === 'LogStreamingTab';
+
+  // 객체 평탄화 함수 (Nested JSON -> Flat Key.Subkey)
+  const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
+    if (!obj) return {};
+    return Object.keys(obj).reduce((acc: Record<string, any>, k: string) => {
+      const pre = prefix.length ? prefix + '.' : '';
+      if (typeof obj[k] === 'object' && obj[k] !== null && !Array.isArray(obj[k])) {
+        Object.assign(acc, flattenObject(obj[k], pre + k));
+      } else {
+        acc[pre + k] = obj[k];
+      }
+      return acc;
+    }, {});
+  };
+
+  // 선택된 로그의 평탄화된 데이터와 필터링된 결과
+  const flattenedDetail = useMemo(() => {
+    if (!selectedLog) return [];
+    // _source와 기본 메타데이터(_id, _index 등)를 합쳐서 표시
+    const combinedData = {
+      _id: selectedLog._id,
+      _index: selectedLog._index,
+      timestamp: selectedLog.timestamp,
+      ...(selectedLog._source || {})
+    };
+    const flat = flattenObject(combinedData);
+    return Object.entries(flat)
+      .map(([key, value]) => ({ key, value: typeof value === 'object' ? JSON.stringify(value) : String(value) }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+  }, [selectedLog]);
+
+  const filteredDetail = useMemo(() => {
+    if (!detailSearch) return flattenedDetail;
+    const search = detailSearch.toLowerCase();
+    return flattenedDetail.filter(item => 
+      item.key.toLowerCase().includes(search) || 
+      item.value.toLowerCase().includes(search)
+    );
+  }, [flattenedDetail, detailSearch]);
 
   // 인덱스 목록 동적 로드
   useEffect(() => {
@@ -439,7 +480,7 @@ const LogStreamingTab: React.FC = () => {
             )}
           </Box>
 
-          {/* 로그 상세 정보 패널 (JSON View) */}
+          {/* 로그 상세 정보 패널 (Table View) */}
           {selectedLog && (
             <Box sx={{ 
               width: { xs: '100%', md: '45%' }, 
@@ -450,38 +491,81 @@ const LogStreamingTab: React.FC = () => {
               borderColor: 'divider',
               borderRadius: 1,
               bgcolor: 'background.paper',
-              mt: 1
+              mt: 1,
+              overflow: 'hidden'
             }}>
               <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'action.selected', borderBottom: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
                   <DetailIcon fontSize="small" color="primary" />
-                  Log Details
+                  {t('logDetails')}
                 </Typography>
-                <IconButton size="small" onClick={() => setSelectedLog(null)}>
+                <IconButton size="small" onClick={() => { setSelectedLog(null); setDetailSearch(""); }}>
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Box>
-              <Box sx={{ 
-                p: 2, 
+              
+              {/* 필드 검색 바 */}
+              <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder={t('searchFields')}
+                  value={detailSearch}
+                  onChange={(e) => setDetailSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <DetailIcon fontSize="small" color="action" />
+                      </InputAdornment>
+                    ),
+                    sx: { fontSize: '0.8rem' }
+                  }}
+                />
+              </Box>
+
+              <TableContainer sx={{ 
                 flexGrow: 1, 
                 overflow: 'auto', 
-                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', 
-                color: 'text.primary', 
-                borderRadius: '0 0 4px 4px',
-                borderTop: '1px solid',
-                borderColor: 'divider'
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
               }}>
-                <pre style={{ 
-                  margin: 0, 
-                  fontFamily: 'monospace', 
-                  fontSize: '0.8rem', 
-                  whiteSpace: 'pre-wrap', 
-                  wordBreak: 'break-all',
-                  color: 'inherit'
-                }}>
-                  {JSON.stringify((selectedLog as any)._source || selectedLog, null, 2)}
-                </pre>
-              </Box>
+                <Table size="small" stickyHeader>
+                  <TableBody>
+                    {filteredDetail.map((item) => (
+                      <TableRow key={item.key} hover>
+                        <TableCell sx={{ 
+                          width: '40%', 
+                          fontWeight: 'bold', 
+                          fontSize: '0.75rem', 
+                          color: 'primary.main',
+                          fontFamily: 'monospace',
+                          verticalAlign: 'top',
+                          borderRight: '1px solid',
+                          borderColor: 'divider',
+                          py: 1
+                        }}>
+                          {item.key}
+                        </TableCell>
+                        <TableCell sx={{ 
+                          fontSize: '0.75rem', 
+                          fontFamily: 'monospace',
+                          wordBreak: 'break-all',
+                          color: 'text.primary',
+                          py: 1
+                        }}>
+                          {item.value}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredDetail.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={2} align="center" sx={{ py: 3, color: 'text.disabled', fontStyle: 'italic' }}>
+                          {t('noResults')}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Box>
           )}
         </Stack>
