@@ -197,80 +197,100 @@ class NotificationService:
             if total > 0:
                 logger.info(f"Rule '{rule['name']}' triggered: {total} events found.")
 
-                # 첫 번째 히트를 기준으로 알림 생성
-                first_hit = hits[0]
-                event_ref = first_hit.get("_id")
-                event_index = first_hit.get("_index")
-                event_source = first_hit.get("_source", {})
-                dedup_key = self._generate_dedup_key(rule, first_hit)
+                created_alerts = []
+                newly_created_count = 0
 
-                # 중복 체크: 이미 동일한 dedup_key를 가진 알림이 있는지 확인
-                existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
-                if existing_alert:
-                    logger.info(f"Duplicate alert skipped for rule '{rule['name']}' with dedup_key: {dedup_key}")
-                    return None
+                # 모든 히트에 대해 개별 알림 생성 루프
+                for hit in hits:
+                    event_ref = hit.get("_id")
+                    event_index = hit.get("_index")
+                    event_source = hit.get("_source", {})
+                    dedup_key = self._generate_dedup_key(rule, hit)
 
-                # 메시지 템플릿 렌더링을 위한 context 구성
-                # event_source의 모든 필드 + 메타 정보 포함
-                template_context = {
-                    # 기본 정보
-                    "total": total,
-                    "window_min": window_min,
-                    "rule_name": rule.get("name"),
-                    "rule_id": rule_id,
-                    "rule_severity": rule.get("severity"),
-                    "target_index": target_index,
-                    "_id": event_ref,
-                    "_index": event_index,
-                    # event_source의 모든 필드 포함 (중첩 접근 지원)
-                    **event_source
-                }
-                
-                message_template = rule.get("message_template", "Detected {{total}} events in the last {{window_min}} minutes.")
-                rendered_message = self._render_message_template(message_template, template_context)
+                    # 중복 체크: 이미 동일한 dedup_key를 가진 알림이 있는지 확인
+                    existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
+                    if existing_alert:
+                        logger.info(f"Duplicate alert skipped for rule '{rule['name']}' with dedup_key: {dedup_key}")
+                        continue
 
-                # cs_alerts 인덱스에 저장할 알림 데이터
-                alert_data = {
-                    "rule_id": rule_id,
+                    # 메시지 템플릿 렌더링을 위한 context 구성
+                    # event_source의 모든 필드 + 메타 정보 포함
+                    template_context = {
+                        # 기본 정보
+                        "total": total,
+                        "window_min": window_min,
+                        "rule_name": rule.get("name"),
+                        "rule_id": rule_id,
+                        "rule_severity": rule.get("severity"),
+                        "target_index": target_index,
+                        "_id": event_ref,
+                        "_index": event_index,
+                        # event_source의 모든 필드 포함 (중첩 접근 지원)
+                        **event_source
+                    }
                     
-                    # 규칙 메타데이터
-                    "rule_name": rule.get("name", "Unknown Rule"),
-                    "rule_description": rule.get("description"),
-                    "rule_severity": rule.get("severity", "info"),
-                    "rule_target_index": target_index,
-                    
-                    # 메시지 관련
-                    "message": rendered_message,
-                    "message_template": message_template,
-                    
-                    # 이벤트 관련
-                    "event_ref": event_ref,
-                    "event_index": event_index,
-                    "event_source": event_source,
-                    
-                    # 중복 제거 및 수신자
-                    "dedup_key": dedup_key,
-                    "severity": rule.get("severity", "info"),
-                    "receiver": rule.get("receiver"),
-                    
-                    # 상태
-                    "status": "created",
-                    "created_at": now.isoformat()
-                }
+                    message_template = rule.get("message_template", "Detected {{total}} events in the last {{window_min}} minutes.")
+                    rendered_message = self._render_message_template(message_template, template_context)
 
-                created_alert = await self.repository.create_alert(alert_data)
+                    # cs_alerts 인덱스에 저장할 알림 데이터
+                    alert_data = {
+                        "rule_id": rule_id,
+                        
+                        # 규칙 메타데이터
+                        "rule_name": rule.get("name", "Unknown Rule"),
+                        "rule_description": rule.get("description"),
+                        "rule_severity": rule.get("severity", "info"),
+                        "rule_target_index": target_index,
+                        
+                        # 메시지 관련
+                        "message": rendered_message,
+                        "message_template": message_template,
+                        
+                        # 이벤트 관련
+                        "event_ref": event_ref,
+                        "event_index": event_index,
+                        "event_source": event_source,
+                        
+                        # 중복 제거 및 수신자
+                        "dedup_key": dedup_key,
+                        "severity": rule.get("severity", "info"),
+                        "receiver": rule.get("receiver"),
+                        
+                        # 상태
+                        "status": "created",
+                        "created_at": now.isoformat()
+                    }
 
-                # 터미널에서 즉시 확인할 수 있도록 출력
-                print(f"\n{'='*50}\n[ALERT DETECTED] {created_alert['rule_name']}\nMessage: {created_alert['message']}\nEvent: {event_index}/{event_ref}\n{'='*50}\n")
+                    created_alert = await self.repository.create_alert(alert_data)
+                    created_alerts.append(created_alert)
+                    newly_created_count += 1
 
-                # WebSocket으로 실시간 알림 전송
-                try:
-                    receiver_values = rule.get("receiver", {}).get("values", [])
-                    if receiver_values:
-                        # 수신자 역할에 따라 전송
-                        await manager.send_to_roles(
-                            roles=receiver_values,
-                            message={
+                    # 터미널에서 즉시 확인할 수 있도록 출력
+                    print(f"\n{'='*50}\n[ALERT DETECTED] {created_alert['rule_name']}\nMessage: {created_alert['message']}\nEvent: {event_index}/{event_ref}\n{'='*50}\n")
+
+                    # WebSocket으로 실시간 알림 전송
+                    try:
+                        receiver_values = rule.get("receiver", {}).get("values", [])
+                        if receiver_values:
+                            # 수신자 역할에 따라 전송
+                            await manager.send_to_roles(
+                                roles=receiver_values,
+                                message={
+                                    "type": "new_alert",
+                                    "data": {
+                                        "id": created_alert["id"],
+                                        "rule_name": created_alert["rule_name"],
+                                        "message": created_alert["message"],
+                                        "severity": created_alert["severity"],
+                                        "rule_severity": created_alert["rule_severity"],
+                                        "created_at": created_alert["created_at"]
+                                    }
+                                }
+                            )
+                            logger.info(f"WebSocket alert sent to roles: {receiver_values}")
+                        else:
+                            # 수신자 없으면 모든 연결에 브로드캐스트
+                            await manager.broadcast({
                                 "type": "new_alert",
                                 "data": {
                                     "id": created_alert["id"],
@@ -280,33 +300,20 @@ class NotificationService:
                                     "rule_severity": created_alert["rule_severity"],
                                     "created_at": created_alert["created_at"]
                                 }
-                            }
-                        )
-                        logger.info(f"WebSocket alert sent to roles: {receiver_values}")
-                    else:
-                        # 수신자 없으면 모든 연결에 브로드캐스트
-                        await manager.broadcast({
-                            "type": "new_alert",
-                            "data": {
-                                "id": created_alert["id"],
-                                "rule_name": created_alert["rule_name"],
-                                "message": created_alert["message"],
-                                "severity": created_alert["severity"],
-                                "rule_severity": created_alert["rule_severity"],
-                                "created_at": created_alert["created_at"]
-                            }
-                        })
-                        logger.info("WebSocket alert broadcasted to all users")
-                except Exception as ws_error:
-                    logger.error(f"Failed to send WebSocket alert: {ws_error}")
-                    # WebSocket 실패해도 알림 생성은 계속 진행
+                            })
+                            logger.info("WebSocket alert broadcasted to all users")
+                    except Exception as ws_error:
+                        logger.error(f"Failed to send WebSocket alert: {ws_error}")
+                        # WebSocket 실패해도 알림 생성은 계속 진행
 
-                await self.repository.update_rule(rule_id, {
-                    "last_triggered_at": now.isoformat(),
-                    "total_alerts_count": rule.get("total_alerts_count", 0) + total
-                })
+                # 룰 통계 업데이트: 실제 생성된 알림 수 가산
+                if newly_created_count > 0:
+                    await self.repository.update_rule(rule_id, {
+                        "last_triggered_at": now.isoformat(),
+                        "total_alerts_count": rule.get("total_alerts_count", 0) + newly_created_count
+                    })
 
-                return created_alert
+                return created_alerts[0] if created_alerts else None
 
             return None
 
