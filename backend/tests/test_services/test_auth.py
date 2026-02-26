@@ -30,10 +30,10 @@ async def test_login_success(auth_service):
         updated_at=datetime.utcnow(),
     )
 
-    request = LoginRequest(email="admin@example.com", password="password123")
+    request = LoginRequest(username="admin", password="password123")
 
-    # user_repo.get_by_email mock
-    auth_service.user_repo.get_by_email = AsyncMock(return_value=user)
+    # user_repo.get_by_id mock
+    auth_service.user_repo.get_by_id = AsyncMock(return_value=user)
     auth_service.user_repo.update_last_login = AsyncMock()
 
     # login_attempt_repo mocks
@@ -56,9 +56,9 @@ async def test_login_success(auth_service):
 @pytest.mark.asyncio
 async def test_login_user_not_found(auth_service):
     """사용자 없음 테스트"""
-    request = LoginRequest(email="notfound@example.com", password="password123")
+    request = LoginRequest(username="notfound", password="password123")
 
-    auth_service.user_repo.get_by_email = AsyncMock(return_value=None)
+    auth_service.user_repo.get_by_id = AsyncMock(return_value=None)
     auth_service.login_attempt_repo.count_failed_attempts = AsyncMock(return_value=0)
     auth_service.login_attempt_repo.record = AsyncMock()
 
@@ -82,9 +82,9 @@ async def test_login_inactive_user(auth_service):
         updated_at=datetime.utcnow(),
     )
 
-    request = LoginRequest(email="inactive@example.com", password="password123")
+    request = LoginRequest(username="inactive", password="password123")
 
-    auth_service.user_repo.get_by_email = AsyncMock(return_value=user)
+    auth_service.user_repo.get_by_id = AsyncMock(return_value=user)
     auth_service.login_attempt_repo.count_failed_attempts = AsyncMock(return_value=0)
     auth_service.login_attempt_repo.record = AsyncMock()
 
@@ -97,7 +97,7 @@ async def test_login_inactive_user(auth_service):
 @pytest.mark.asyncio
 async def test_login_too_many_attempts(auth_service):
     """로그인 시도 횟수 초과 테스트"""
-    request = LoginRequest(email="bruteforce@example.com", password="password123")
+    request = LoginRequest(username="bruteforce", password="password123")
 
     auth_service.login_attempt_repo.count_failed_attempts = AsyncMock(return_value=5)
     auth_service.login_attempt_repo.record = AsyncMock()
@@ -122,9 +122,9 @@ async def test_login_wrong_password(auth_service):
         updated_at=datetime.utcnow(),
     )
 
-    request = LoginRequest(email="admin@example.com", password="wrongpassword123")
+    request = LoginRequest(username="admin", password="wrongpassword123")
 
-    auth_service.user_repo.get_by_email = AsyncMock(return_value=user)
+    auth_service.user_repo.get_by_id = AsyncMock(return_value=user)
     auth_service.login_attempt_repo.count_failed_attempts = AsyncMock(return_value=0)
     auth_service.login_attempt_repo.record = AsyncMock()
 

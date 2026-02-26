@@ -1,15 +1,17 @@
 import asyncio
 import os
 import sys
+import pytest
 from dotenv import load_dotenv
 
 # Load .env before importing app modules
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 load_dotenv(os.path.join(ROOT_DIR, ".env"))
 
 from app.services.dashboard import DashboardService
 from app.repositories.dashboard import DashboardRepository
 
+@pytest.mark.asyncio
 async def test_add_and_stats():
     service = DashboardService()
     repo = DashboardRepository()

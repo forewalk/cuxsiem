@@ -1,5 +1,5 @@
 from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from datetime import datetime
 
 
@@ -69,8 +69,7 @@ class NotificationRuleResponse(NotificationRuleBase):
     updated_at: datetime
     deleted_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class NotificationRuleListResponse(BaseModel):
     total: int
@@ -113,8 +112,7 @@ class AlertResponse(AlertBase):
     severity: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AlertListResponse(BaseModel):
     """알림 내역 목록 응답"""
