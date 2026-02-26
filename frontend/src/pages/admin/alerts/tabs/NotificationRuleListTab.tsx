@@ -78,7 +78,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   severity: 'info',
   interval_min: 1,
   dedup_key_template: '{{rule_id}}_{{_id}}',
-  receiver: {type: 'role', values: []},
+  receiver: {type: 'role', values: ['admin']},
   is_active: true
 };
 
@@ -492,10 +492,6 @@ const NotificationRuleListTab: React.FC = () => {
                     <MenuItem value="error">{t('severityError')}</MenuItem>
                   </TextField>
                 </Stack>
-                <FormControlLabel control={<Switch checked={formData.is_active} onChange={(e) => setFormData({
-                  ...formData,
-                  is_active: e.target.checked
-                })}/>} label={t('status')}/>
               </Stack>
             </Grid>
 
