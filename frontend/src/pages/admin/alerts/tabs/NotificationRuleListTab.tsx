@@ -1,5 +1,4 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import dayjs from 'dayjs';
 import {
   Alert,
   Box,
@@ -70,7 +69,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
     query: {
       bool: {
         must: [{match_all: {}}],
-        filter: [{range: {"@timestamp": {gte: "now-5m"}}}]
+        filter: [{range: {"@timestamp": {gte: "now-2m"}}}]
       }
     }
   },
@@ -152,19 +151,10 @@ const NotificationRuleListTab: React.FC = () => {
     return text;
   }, [language]);
 
-  // 시간 범위를 ISO 날짜로 변환
-  const calculateTimeRange = useCallback(() => {
-    const now = dayjs();
-    const from_date = now.subtract(15, 'minute').toISOString();
-    const to_date = now.toISOString();
-    return {from_date, to_date};
-  }, []);
-
   const loadRules = useCallback(async () => {
     setLoading(true);
     try {
       const skip = page * rowsPerPage;
-      const {from_date, to_date} = calculateTimeRange();
 
       // 서버 사이드 필터링 파라미터 구성
       const params: {
@@ -175,15 +165,11 @@ const NotificationRuleListTab: React.FC = () => {
         query?: string;
         severities?: string;
         is_active?: boolean;
-        from_date?: string;
-        to_date?: string;
       } = {
         skip,
         limit: rowsPerPage,
         sort_by: sortBy,
-        order,
-        from_date,
-        to_date
+        order
       };
 
       if (selectedSeverities.length > 0) {
@@ -202,7 +188,7 @@ const NotificationRuleListTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, selectedSeverities, activeFilter, sortBy, order, calculateTimeRange]);
+  }, [page, rowsPerPage, selectedSeverities, activeFilter, sortBy, order]);
 
   useEffect(() => {
     loadRules();
