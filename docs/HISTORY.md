@@ -27,7 +27,7 @@
 |------|--------|------|------|
 | 2026-02-26 17:00 | 김장훈 | 배포 | origin/develop push (백엔드 테스트 수정: 인증 스키마 username 변경, Pydantic V2 마이그레이션, 비동기 테스트 데코레이터 추가) |
 | 2026-02-26 16:30 | 김장훈 | 배포 | origin/develop push (프로젝트 구조 재정비: docs/sh→scripts, HISTORY/ROADMAP→docs, 픽셀모드 로드맵 추가) |
-| 2026-02-26 15:40 | Gemini | 배포 | origin/develop push (LogStreaming 리팩토링 및 인덱스 멀티 선택 고도화) |
+| 2026-02-26 15:40 | 박상현 | 배포 | origin/develop push (LogStreaming 리팩토링 및 인덱스 멀티 선택 고도화) |
 | 2026-02-26 15:40 | 박재현 | 추가 | origin/feature/admin push 고급 설정 내 사용자 역할명 관리 기능 구현 (cs_code 인덱스 연동), 사용자 관리 페이지와 역할명 동적 연동, 로그인 페이지 신청 버튼 동적 제어 로직 적용 |
 | 2026-02-26 15:27 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합) |
 | 2026-02-26 15:25 | 최지호 | 수정 | origin/feature/dashboard push (대시보드 쿼리 수정 버그 픽스) |
