@@ -103,7 +103,7 @@ docker save cruxsiem-frontend:latest | gzip > cruxsiem-frontend.tar.gz
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 시스템 아키텍처 |
 | [GIT_GUIDE.md](docs/GIT_GUIDE.md) | Git 브랜치 전략 및 작업 가이드 |
 | [DEPLOY.md](docs/DEPLOY.md) | Docker 빌드 및 서버 배포 가이드 |
-| [ROADMAP.md](ROADMAP.md) | 기능 개발 로드맵 |
+| [ROADMAP.md](docs/ROADMAP.md) | 기능 개발 로드맵 |
 | [ASSISTANT.md](ASSISTANT.md) | AI 공통 개발 가이드 (프로젝트 규칙, 아키텍처, 워크플로우) |
 | [CLAUDE.md](CLAUDE.md) | AI 진입점 - Claude (ASSISTANT.md 참조) |
 | [GEMINI.md](GEMINI.md) | AI 진입점 - Gemini (ASSISTANT.md 참조) |
@@ -112,11 +112,11 @@ docker save cruxsiem-frontend:latest | gzip > cruxsiem-frontend.tar.gz
 
 | 이름 | 역할 |
 |------|------|
-| 김장훈 | 오케스트레이터 |
-| 박지은 | 메인 개발 |
-| 김경인 | 서브 개발 |
-| 최지호 | 서브 개발 |
-| 김경수 | 서브 개발 |
-| 박상현 | 서브 개발 |
-| 박재현 | 서브 개발 |
-| 전성욱 | 서브 개발 |
+| 김장훈 | orchestrator |
+| 박지은 | full-builder |
+| 최지호 | full-builder |
+| 김경인 | advisor |
+| 김경수 | supporter |
+| 박상현 | supporter |
+| 박재현 | supporter |
+| 전성욱 | supporter |

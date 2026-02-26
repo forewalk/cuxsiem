@@ -169,12 +169,23 @@ const ThreatListTab: React.FC = () => {
 
   const handleTimeChange = (fVal: number | null, fUnit: string, tVal: number | null, tUnit: string, fDate: string | null = null, tDate: string | null = null) => {
     const newParams = new URLSearchParams(searchParams);
-    if (fVal !== null) newParams.set("from_value", fVal.toString()); else newParams.delete("from_value");
-    newParams.set("from_unit", fUnit);
-    if (tVal !== null) newParams.set("to_value", tVal.toString()); else newParams.delete("to_value");
-    newParams.set("to_unit", tUnit);
-    if (fDate) newParams.set("from_date", fDate); else newParams.delete("from_date");
-    if (tDate) newParams.set("to_date", tDate); else newParams.delete("to_date");
+    
+    if (fDate && tDate) {
+      // 절대 시간 모드
+      newParams.delete("from_value");
+      newParams.delete("to_value");
+      newParams.set("from_date", fDate);
+      newParams.set("to_date", tDate);
+    } else {
+      // 상대 시간 모드
+      if (fVal !== null) newParams.set("from_value", fVal.toString()); else newParams.delete("from_value");
+      newParams.set("from_unit", fUnit);
+      if (tVal !== null) newParams.set("to_value", tVal.toString()); else newParams.delete("to_value");
+      newParams.set("to_unit", tUnit);
+      newParams.delete("from_date");
+      newParams.delete("to_date");
+    }
+    
     setSearchParams(newParams);
   };
 

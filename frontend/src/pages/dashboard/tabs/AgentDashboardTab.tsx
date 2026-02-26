@@ -342,7 +342,27 @@ const AgentDashboardTab: React.FC = () => {
       );
     }
     const chartData = panel.chart_data || [];
-    const widget = panel.widget_type === "pie" ? <PieChartWidget data={chartData} /> : <CategoryBarChartWidget data={chartData} />;
+    const widget = panel.widget_type === "pie" ? (
+      <PieChartWidget 
+        data={chartData} 
+        onSliceClick={(label) => {
+          if (panel.target_field) {
+            const filter = `${panel.target_field}:"${label}"`;
+            handleSearchQueryChange(searchQuery ? `${searchQuery} AND ${filter}` : filter);
+          }
+        }}
+      />
+    ) : (
+      <CategoryBarChartWidget 
+        data={chartData} 
+        onBarClick={(label) => {
+          if (panel.target_field) {
+            const filter = `${panel.target_field}:"${label}"`;
+            handleSearchQueryChange(searchQuery ? `${searchQuery} AND ${filter}` : filter);
+          }
+        }}
+      />
+    );
     return (
       <Paper elevation={1} sx={{ p: 2, height: "100%", display: 'flex', flexDirection: 'column', borderRadius: 1.5, overflow: 'hidden' }}>
         <EditableTitle panelKey={pk} initialTitle={panel.custom_titles[language] || panel.custom_titles["ko"] || t(panel.default_title_key)} onSave={handleTitleSave} isEditing={editingTitleKey === pk} setIsEditing={(v) => setEditingTitleKey(v ? pk : null)} />

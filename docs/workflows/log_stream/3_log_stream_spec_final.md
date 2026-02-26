@@ -15,25 +15,30 @@
 - **UI:**
     - 어두운 배경의 Monospace 폰트 사용 (Terminal Style).
     - 표시 데이터: `Timestamp`, `Index`, `Message(Raw Source)`.
-    - `i18n`을 준수하여 다국어 지원 (ko, en, ja).
+    - `i18n`을 준수하여 다국어 지원 (ko, en, ja, cn).
+    - **ControlBar 통합:** 시간 범위 선택, 인덱스 선택, 검색어 입력 기능 제공.
 - **성능:**
     - 브라우저 메모리 보호를 위해 최대 1,000줄까지만 유지 (FIFO).
+    - 메시지 표시 제한: 가독성을 위해 메시지는 최대 5줄까지만 표시하고 나머지는 말줄임 처리.
 - **인터랙션:**
     - 스트리밍 일시 정지/재개 버튼.
     - 자동 스크롤 ON/OFF 토글.
+    - 로그 상세 정보 패널 (JSON View) 제공.
 
 ### 3.2 백엔드
 - **API:** `GET /api/v1/logs/stream`
-    - 파라미터: `last_timestamp` (최초 요청 시 생략 가능), `limit` (기본 100).
+    - 파라미터: `last_timestamp`, `index` (와일드카드 지원), `q` (Lucene 검색어), `from_time`, `to_time`, `limit`.
 - **데이터 조회:**
     - OpenSearch 와일드카드 인덱스(`*`) 또는 전체 검색을 통해 최신 `timestamp` 순으로 조회.
+    - **타임스탬프 필드 자동 감지:** `@timestamp`와 `timestamp` 필드를 모두 고려하여 정렬 및 필터링.
     - 동일 타임스탬프 데이터의 중복 방지를 위한 로직 포함.
+- **인덱스 목록 제공:** `GET /api/v1/logs/indices` 엔드포인트를 통해 사용 가능한 인덱스 목록 반환.
 
 ### 3.3 보안
 - `AdminRoute` 또는 일반 인증 라우트를 통해 접근 제어 (로그인 필수).
 
 ## 4. 데이터 흐름
-1. (Frontend) 페이지 마운트 시 최초 100개 로그 요청.
+1. (Frontend) 페이지 마운트 시 최초 1000개 로그 요청.
 2. (Frontend) 10초 주기로 `last_timestamp` 이후의 로그를 폴링.
 3. (Frontend) 수신된 로그 중 이미 존재하는 `_id`를 제외하고 리스트에 추가.
 4. (Frontend) 리스트 크기가 1,000개를 초과하면 상단(오래된 데이터)부터 제거.

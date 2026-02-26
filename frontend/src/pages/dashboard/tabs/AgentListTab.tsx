@@ -137,12 +137,23 @@ const AgentListTab: React.FC = () => {
 
   const handleTimeChange = (fVal: number | null, fUnit: string, tVal: number | null, tUnit: string, fDate: string | null = null, tDate: string | null = null) => {
     const newParams = new URLSearchParams(searchParams);
-    if (fVal !== null) newParams.set("a_from_value", fVal.toString()); else newParams.delete("a_from_value");
-    newParams.set("a_from_unit", fUnit);
-    if (tVal !== null) newParams.set("a_to_value", tVal.toString()); else newParams.delete("a_to_value");
-    newParams.set("a_to_unit", tUnit);
-    if (fDate) newParams.set("a_from_date", fDate); else newParams.delete("a_from_date");
-    if (tDate) newParams.set("a_to_date", tDate); else newParams.delete("a_to_date");
+    
+    if (fDate && tDate) {
+      // 절대 시간 모드
+      newParams.delete("a_from_value");
+      newParams.delete("a_to_value");
+      newParams.set("a_from_date", fDate);
+      newParams.set("a_to_date", tDate);
+    } else {
+      // 상대 시간 모드
+      if (fVal !== null) newParams.set("a_from_value", fVal.toString()); else newParams.delete("a_from_value");
+      newParams.set("a_from_unit", fUnit);
+      if (tVal !== null) newParams.set("a_to_value", tVal.toString()); else newParams.delete("a_to_value");
+      newParams.set("a_to_unit", tUnit);
+      newParams.delete("a_from_date");
+      newParams.delete("a_to_date");
+    }
+    
     setSearchParams(newParams);
   };
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Typography, useTheme, Tooltip } from "@mui/material";
 import type { HistogramItem } from "../../../services/dashboardService";
 import dayjs from "dayjs";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
@@ -88,7 +88,17 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, title, emptyMessa
     const end = Math.max(selectionStart, selectionEnd);
     if (end - start > 1 && data.length > 0) {
       const getIdx = (pct: number) => Math.min(data.length - 1, Math.floor((pct / 100) * data.length));
-      onRangeSelect?.(data[getIdx(start)].timestamp, data[getIdx(end)].timestamp);
+      const startIdx = getIdx(start);
+      const endIdx = getIdx(end);
+      
+      // 인터벌 간격 계산 (기본 1분, 데이터가 충분하면 다음 데이터 시간까지)
+      const startTime = data[startIdx].timestamp;
+      let endTime = dayjs(data[endIdx].timestamp).add(1, 'minute').toISOString();
+      if (endIdx < data.length - 1) {
+        endTime = data[endIdx + 1].timestamp;
+      }
+      
+      onRangeSelect?.(startTime, endTime);
     }
     setIsSelecting(false);
     setSelectionStart(null);
@@ -105,6 +115,17 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, title, emptyMessa
 
   const Y_AXIS_WIDTH = 55;
   const X_AXIS_HEIGHT = 25;
+
+  const CustomTooltip = ({ item }: { item: HistogramItem }) => (
+    <Box sx={{ p: 0.5 }}>
+      <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.7)' }}>
+        {dayjs(item.timestamp).format("YYYY-MM-DD HH:mm:ss")}
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+        {t('countLabel') || 'Count'}: {item.count.toLocaleString()}
+      </Typography>
+    </Box>
+  );
 
   return (
     <Box sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
@@ -172,18 +193,29 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, title, emptyMessa
               const barHeight = (item.count / Math.max(1, Math.ceil(maxValue))) * 100;
 
               return (
-                <rect
-                  key={i}
-                  x={`${x}%`}
-                  y={`${100 - barHeight}%`}
-                  width={`${barWidth}%`}
-                  height={`${barHeight}%`}
-                  fill="#20b2aa"
-                  fillOpacity={0.8}
-                  rx="0.2"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => onBarClick?.(item.timestamp, dayjs(item.timestamp).add(1, 'minute').toISOString())}
-                />
+                <Tooltip 
+                  key={i} 
+                  title={<CustomTooltip item={item} />} 
+                  arrow 
+                  placement="top"
+                  enterNextDelay={0}
+                  enterTouchDelay={0}
+                >
+                  <rect
+                    x={`${x}%`}
+                    y={`${100 - barHeight}%`}
+                    width={`${barWidth}%`}
+                    height={`${barHeight}%`}
+                    fill="#20b2aa"
+                    fillOpacity={0.8}
+                    rx="0.2"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      const endTime = i < data.length - 1 ? data[i+1].timestamp : dayjs(item.timestamp).add(1, 'minute').toISOString();
+                      onBarClick?.(item.timestamp, endTime);
+                    }}
+                  />
+                </Tooltip>
               );
             })}
 
