@@ -101,109 +101,52 @@ const NotificationRow: React.FC<{
         <TableCell colSpan={5}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
-              {/* 좌우 배치를 위한 Flex 컨테이너 (Stack 사용) */}
-              <Stack direction="row" spacing={4} sx={{ alignItems: 'flex-start' }}>
-
-                {/* 좌측: 알림 메시지 (비중 4) */}
-                <Box sx={{ flex: 4, minWidth: 0 }}>
-                  <Stack spacing={2}>
-                    {/* 규칙명 */}
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
-                        {t('triggeredRule')}
-                      </Typography>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                          {row.rule_name || row.title}
-                        </Typography>
-                        <SeverityChip severity={row.rule_severity || row.severity} />
-                      </Stack>
-                    </Box>
-                    
-                    {/* 알림 메시지 */}
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
-                        {t('alertMessage')}
-                      </Typography>
-                      <Typography 
-                        variant="body1" 
-                        sx={{ 
-                          color: 'text.primary',
-                          fontWeight: 'medium',
-                          p: 2,
-                          bgcolor: 'action.selected',
-                          borderRadius: 1,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          minHeight: '100px',
-                          maxHeight: '400px',
-                          overflow: 'auto',
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                          overflowWrap: 'break-word',
-                          lineHeight: 1.8,
-                          '&::-webkit-scrollbar': { width: 6, height: 6 },
-                          '&::-webkit-scrollbar-thumb': { 
-                            bgcolor: 'rgba(0,0,0,0.2)', 
-                            borderRadius: 3,
-                            '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' }
-                          }
-                        }}
-                      >
-                        {row.message}
-                      </Typography>
-                    </Box>
+              <Stack spacing={2}>
+                {/* 규칙명 */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                    {t('triggeredRule')}
+                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                      {row.rule_name || row.title}
+                    </Typography>
+                    <SeverityChip severity={row.rule_severity || row.severity} />
                   </Stack>
                 </Box>
-
-                <Divider orientation="vertical" flexItem />
-
-                {/* 우측: 원본 Document _source (비중 6) */}
-                <Box sx={{ flex: 6, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                      {t('originalDocument')}
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} alignItems="center">
-                      <Chip 
-                        label={`Index: ${row.event_index}`} 
-                        size="small" 
-                        variant="outlined"
-                        sx={{ fontSize: '0.65rem', height: 18 }}
-                      />
-                      <Chip 
-                        label={`ID: ${row.event_ref}`} 
-                        size="small" 
-                        variant="outlined"
-                        sx={{ fontSize: '0.65rem', height: 18 }}
-                      />
-                    </Stack>
-                  </Stack>
-                  
-                  <Box
-                    sx={{
-                      bgcolor: '#1e1e1e',
-                      color: '#9cdcfe',
+                
+                {/* 알림 메시지 */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                    {t('alertMessage')}
+                  </Typography>
+                  <Typography 
+                    variant="body1" 
+                    sx={{ 
+                      color: 'text.primary',
+                      fontWeight: 'medium',
                       p: 2,
+                      bgcolor: 'action.selected',
                       borderRadius: 1,
-                      overflow: 'auto',
-                      maxHeight: 457,
-                      fontFamily: '"Fira Code", "Cascadia Code", monospace',
-                      fontSize: '0.8rem',
-                      lineHeight: 1.5,
                       border: '1px solid',
                       borderColor: 'divider',
-                      '&::-webkit-scrollbar': { width: 8, height: 8 },
-                      '&::-webkit-scrollbar-thumb': { bgcolor: '#333', borderRadius: 4 }
+                      minHeight: '100px',
+                      maxHeight: '400px',
+                      overflow: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      lineHeight: 1.8,
+                      '&::-webkit-scrollbar': { width: 6, height: 6 },
+                      '&::-webkit-scrollbar-thumb': { 
+                        bgcolor: 'rgba(0,0,0,0.2)', 
+                        borderRadius: 3,
+                        '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' }
+                      }
                     }}
                   >
-                    <pre style={{ margin: 0 }}>
-                      {row.event_source 
-                        ? JSON.stringify(row.event_source, null, 2)
-                        : t('noEventSourceData')
-                      }
-                    </pre>
-                  </Box>
+                    {row.message}
+                  </Typography>
                 </Box>
               </Stack>
             </Box>
