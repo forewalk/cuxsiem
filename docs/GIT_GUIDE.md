@@ -248,6 +248,8 @@ git commit -m "merge: 충돌 해결"
 ## 참고 문서
 
 - [CLAUDE.md](../CLAUDE.md) / [GEMINI.md](../GEMINI.md) -- 개발 가이드
-- [INSTALL.md](./INSTALL.md) -- 환경 설치 가이드
-- [DEPLOY.md](./DEPLOY.md) -- 배포 가이드
-- [ARCHITECTURE.md](./ARCHITECTURE.md) -- 아키텍처
+- [INSTALL.md](INSTALL.md) -- 환경 설치 가이드
+- [DEPLOY.md](DEPLOY.md) -- 배포 가이드
+- [ARCHITECTURE.md](ARCHITECTURE.md) -- 아키텍처
+- [HISTORY.md](HISTORY.md) -- 작업 이력
+- [ROADMAP.md](ROADMAP.md) -- 기능 로드맵
