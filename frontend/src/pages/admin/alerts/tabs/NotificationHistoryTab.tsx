@@ -73,11 +73,6 @@ const NotificationRow: React.FC<{
         }}>
           {row.rule_name || row.title}
         </TableCell>
-        <TableCell  sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-            {row.event_source?.agentRealtimeInfo?.accountName}
-          </Typography>
-        </TableCell>
         <TableCell width={220} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <Stack direction="row" spacing={0.5} flexWrap="wrap">
             {row.receiver?.values && Array.isArray(row.receiver.values) ? (
@@ -103,7 +98,7 @@ const NotificationRow: React.FC<{
       </TableRow>
 
       <TableRow sx={{ '& > td': { p: 0, borderBottom: open ? undefined : 'none' } }}>
-        <TableCell colSpan={6}>
+        <TableCell colSpan={5}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
               {/* 좌우 배치를 위한 Flex 컨테이너 (Stack 사용) */}
@@ -403,13 +398,12 @@ const NotificationHistoryTab: React.FC = () => {
                   </Box>
                 </TableCell>
                 <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 7 }}>{t('ruleName')}</TableCell>
-                <TableCell width={150} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>에이전트</TableCell>
                 <TableCell width={250} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {notifications.length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
               ) : (
                 notifications
                   .filter(row => selectedSeverities.length === 0 || (row.severity && selectedSeverities.includes(row.severity.toLowerCase())))
