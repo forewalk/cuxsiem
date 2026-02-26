@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-26 18:01 | 김장훈 | 배포 | origin/develop push (Docker 빌드 TypeScript 컴파일 에러 수정: MUI v7 호환성, LogEntry _source 타입 추가, 미사용 임포트 제거) |
 | 2026-02-26 17:30 | 김장훈 | 배포 | origin/develop push (ROADMAP 초기 설정 자동화 항목 추가, HISTORY 작업자 정정, 프론트엔드 패키지 설치) |
 | 2026-02-26 17:00 | 김장훈 | 배포 | origin/develop push (백엔드 테스트 수정: 인증 스키마 username 변경, Pydantic V2 마이그레이션, 비동기 테스트 데코레이터 추가) |
 | 2026-02-26 16:30 | 김장훈 | 배포 | origin/develop push (프로젝트 구조 재정비: docs/sh→scripts, HISTORY/ROADMAP→docs, 픽셀모드 로드맵 추가) |
