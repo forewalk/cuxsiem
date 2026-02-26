@@ -62,10 +62,9 @@ try:
                 "target_index": {"type": "keyword"},
                 "condition_type": {"type": "keyword"},
                 "condition_config": {"type": "object", "enabled": True},
+                "message_template": {"type": "text"},
                 "severity": {"type": "keyword"},
                 "interval_min": {"type": "integer"},
-                "window_min": {"type": "integer"},
-                "dedup_ttl_min": {"type": "integer"},
                 "dedup_key_template": {"type": "keyword"},
                 "trigger_condition": {"type": "text"},
                 "channels": { 
@@ -109,7 +108,7 @@ try:
         }
     }
 
-    # 2. cs_notifications mapping (알림 로그)
+    # 2. cs_notifications mapping (알림 로그) - 하위 호환성 유지
     notifications_mapping = {
         "settings": {
             "number_of_shards": 1,
@@ -132,8 +131,48 @@ try:
         }
     }
 
+    # 3. cs_alerts mapping (실제 알림 내역 저장소)
+    alerts_mapping = {
+        "settings": {
+            "number_of_shards": 1,
+            "number_of_replicas": 0
+        },
+        "mappings": {
+            "properties": {
+                "id": {"type": "keyword"},
+                "rule_id": {"type": "keyword"},
+                
+                # 규칙 메타데이터
+                "rule_name": {"type": "text"},
+                "rule_description": {"type": "text"},
+                "rule_severity": {"type": "keyword"},
+                "rule_target_index": {"type": "keyword"},
+                
+                # 메시지
+                "message": {"type": "text"},
+                "message_template": {"type": "text"},
+                
+                # 이벤트 관련
+                "event_ref": {"type": "keyword"},
+                "event_index": {"type": "keyword"},
+                "event_source": {"type": "object", "enabled": True},
+                
+                # 중복 제거 및 수신자
+                "dedup_key": {"type": "keyword"},
+                "severity": {"type": "keyword"},
+                "receiver": {"type": "object", "enabled": True},
+                
+                # 상태
+                "status": {"type": "keyword"},
+                "error_message": {"type": "text"},
+                "created_at": {"type": "date"}
+            }
+        }
+    }
+
     recreate_index("cs_notification_rules", rules_mapping)
     recreate_index("cs_notifications", notifications_mapping)
+    recreate_index("cs_alerts", alerts_mapping)
 
     logger.info("=" * 60)
     logger.info("[+] Notification system re-initialized cleanly!")

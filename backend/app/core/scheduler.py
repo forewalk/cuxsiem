@@ -6,7 +6,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.services.notification import NotificationService
 
-logger = logging.getLogger(__name__)
+# uvicorn 로거 사용 (콘솔 출력을 위해)
+logger = logging.getLogger("uvicorn.error")
 
 
 class DetectionScheduler:
@@ -32,7 +33,11 @@ class DetectionScheduler:
                     continue
 
                 # 규칙별 interval_min을 체크하여 실행 시점 결정
-                interval_min = rule["interval_min"]
+                interval_min = rule.get("interval_min")
+                if interval_min is None:
+                    logger.warning(f"[스케줄러] 규칙 '{rule.get('name')}' (ID: {rule.get('id')})에 interval_min 필드가 없습니다. 규칙을 건너뜁니다.")
+                    continue
+                    
                 last_run_at = rule.get("last_run_at")
 
                 # 마지막 실행 시각이 없거나, interval_min이 지났으면 실행
@@ -81,11 +86,16 @@ class DetectionScheduler:
                 misfire_grace_time=30
             )
             self.scheduler.start()
+            logger.info("=" * 60)
+            logger.info("[스케줄러] 알림 탐지 스케줄러 시작됨 - 1분마다 실행")
+            logger.info("=" * 60)
 
     def stop(self):
         """스케줄러 종료"""
         if self.scheduler.running:
+            logger.info("[스케줄러] 알림 탐지 스케줄러 종료 중...")
             self.scheduler.shutdown()
+            logger.info("[스케줄러] 알림 탐지 스케줄러 종료됨")
 
 
 # 싱글톤 인스턴스
