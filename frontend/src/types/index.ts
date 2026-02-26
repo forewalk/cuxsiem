@@ -87,6 +87,11 @@ export interface LogStreamResponse {
   last_timestamp: string;
 }
 
+export interface IndexListResponse {
+  indices: string[];
+}
+
+
 
 // 알림 규칙
 export interface NotificationRule {

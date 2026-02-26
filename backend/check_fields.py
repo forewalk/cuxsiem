@@ -1,40 +1,38 @@
+import os
 from opensearchpy import OpenSearch
-import json
+from dotenv import load_dotenv
 
-client = OpenSearch(
-    hosts=[{'host': 'ns1.cruxdata.co.kr', 'port': 11723}],
-    http_auth=('admin', 'admin'),
-    use_ssl=False,
-    verify_certs=False,
-)
+load_dotenv()
 
-print("--- Checking field mapping and values for Detections ---")
-# 1. 실제 데이터 1건에서 detectionEngines 경로 확인
-sample = client.search(index="logs-sentinel_one.threats", body={"size": 1})
-if sample['hits']['hits']:
-    source = sample['hits']['hits'][0]['_source']
-    print("Data Sample (threatInfo):")
-    print(json.dumps(source.get('threatInfo', {}), indent=2))
+def check_mapping():
+    host = os.getenv("OPENSEARCH_HOST", "localhost")
+    port = int(os.getenv("OPENSEARCH_PORT", 9200))
+    auth = (os.getenv("OPENSEARCH_USER", "admin"), os.getenv("OPENSEARCH_PASSWORD", "admin"))
+    
+    client = OpenSearch(
+        hosts=[{'host': host, 'port': port}],
+        http_auth=auth,
+        use_ssl=os.getenv("OPENSEARCH_USE_SSL", "false").lower() == "true",
+        verify_certs=False,
+        ssl_show_warn=False
+    )
+    
+    indices = ["logs-sentinel_one.threats-000001", "activities*"]
+    
+    for index in indices:
+        print(f"\n--- Mapping for {index} ---")
+        try:
+            mapping = client.indices.get_mapping(index=index)
+            # 타임스탬프와 관련된 필드 검색
+            properties = mapping[list(mapping.keys())[0]]['mappings']['properties']
+            time_fields = [f for f in properties.keys() if 'time' in f.lower() or 'date' in f.lower() or f == '@timestamp']
+            print(f"Time-related fields: {time_fields}")
+            if 'timestamp' in properties:
+                print("Confirmed: 'timestamp' field exists.")
+            else:
+                print("WARNING: 'timestamp' field NOT found!")
+        except Exception as e:
+            print(f"Error checking {index}: {e}")
 
-# 2. 여러 필드 후보로 집계 시도
-body = {
-    "size": 0,
-    "aggs": {
-        "with_keyword": {
-            "terms": {"field": "threatInfo.detectionEngines.title.keyword", "size": 5}
-        },
-        "without_keyword": {
-            "terms": {"field": "threatInfo.detectionEngines.title", "size": 5}
-        },
-        "engine_key": {
-            "terms": {"field": "threatInfo.detectionEngines.key.keyword", "size": 5}
-        }
-    }
-}
-
-try:
-    result = client.search(index="logs-sentinel_one.threats", body=body)
-    print("\n--- Aggregation Results ---")
-    print(json.dumps(result['aggregations'], indent=2))
-except Exception as e:
-    print(f"\nError: {e}")
+if __name__ == "__main__":
+    check_mapping()

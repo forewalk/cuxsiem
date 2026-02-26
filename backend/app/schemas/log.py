@@ -22,3 +22,7 @@ class LogStreamResponse(BaseModel):
         "populate_by_name": True,
         "from_attributes": True
     }
+
+class IndexListResponse(BaseModel):
+    indices: List[str]
+
