@@ -80,6 +80,7 @@ export interface LogEntry {
   timestamp: string;
   _index: string;
   message: string;
+  _source?: Record<string, any>;
 }
 
 export interface LogStreamResponse {

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Box, Typography, Button, Popover, TextField, List, ListItem, 
-  ListItemIcon, ListItemText, ListSubheader, Checkbox 
+import {
+  Box, Typography, Button, Popover, TextField, List, ListItemButton,
+  ListItemIcon, ListItemText, ListSubheader, Checkbox
 } from '@mui/material';
 import { RestartAlt as ResetIcon } from '@mui/icons-material';
 
@@ -57,8 +57,7 @@ const FieldSelectorPopover = React.memo(({
         />
       </Box>
       <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 0.5 }}>
-        <List 
-          size="small" 
+        <List
           subheader={
             <ListSubheader sx={{ bgcolor: 'background.paper', lineHeight: '32px', fontSize: '0.7rem' }}>
               {search ? t('searchResults') : t('availableFields')}
@@ -69,18 +68,18 @@ const FieldSelectorPopover = React.memo(({
             const isVisible = visibleFields.includes(field);
             const isRequired = field === 'timestamp';
             return (
-              <ListItem key={field} dense button onClick={() => !isRequired && onToggleField(field)} disabled={isRequired} sx={{ py: 0 }}>
+              <ListItemButton key={field} dense onClick={() => !isRequired && onToggleField(field)} disabled={isRequired} sx={{ py: 0 }}>
                 <ListItemIcon sx={{ minWidth: 36 }}>
                   <Checkbox size="small" edge="start" checked={isVisible} disableRipple disabled={isRequired} />
                 </ListItemIcon>
-                <ListItemText 
-                  primary={field} 
-                  primaryTypographyProps={{ 
-                    fontSize: '0.8rem', fontFamily: 'monospace', 
-                    sx: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } 
-                  }} 
+                <ListItemText
+                  primary={field}
+                  primaryTypographyProps={{
+                    fontSize: '0.8rem', fontFamily: 'monospace',
+                    sx: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+                  }}
                 />
-              </ListItem>
+              </ListItemButton>
             );
           })}
         </List>

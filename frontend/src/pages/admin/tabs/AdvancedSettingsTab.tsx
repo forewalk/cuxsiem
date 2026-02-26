@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { advancedSettingsService, type AdvancedSettings } from '../../../services/advancedSettingsService';
-import { codeService, type CodeResponse } from '../../../services/codeService';
+import { codeService } from '../../../services/codeService';
 import useTabStore from '../../../stores/tabStore';
 
 // i18n
@@ -64,7 +64,12 @@ const AdvancedSettingsTab: React.FC = () => {
 
       // DB에서 가져온 코드를 상태에 매핑
       if (codesData.length > 0) {
-        const roleNames = { ...settings.role_names };
+        const roleNames = {
+          admin: settings.role_names?.admin || '관리자',
+          user: settings.role_names?.user || '사용자',
+          monitoring: settings.role_names?.monitoring || '모니터링',
+          approver: settings.role_names?.approver || '결재자'
+        };
         codesData.forEach(c => {
           if (c.id === 'role-1') roleNames.admin = c.code_name;
           if (c.id === 'role-2') roleNames.monitoring = c.code_name;

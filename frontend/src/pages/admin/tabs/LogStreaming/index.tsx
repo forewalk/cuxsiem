@@ -2,14 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { 
   Box, Paper, Stack, Typography, Divider, LinearProgress, Chip, Button, Tooltip, IconButton
 } from '@mui/material';
-import { 
-  Terminal as TerminalIcon, 
-  Settings as SettingsIcon, 
-  DeleteSweep as ClearIcon, 
-  PlayArrow as PlayArrowIcon, 
+import {
+  Terminal as TerminalIcon,
+  Settings as SettingsIcon,
+  DeleteSweep as ClearIcon,
+  PlayArrow as PlayArrowIcon,
   Stop as StopIcon,
   FilterList as FilterIcon,
-  VerticalAlignBottom as AutoScrollIcon,
   ArrowForward as ArrowForwardIcon,
   CalendarMonth as CalendarIcon,
   KeyboardArrowDown as ArrowDownIcon
