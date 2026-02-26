@@ -7,7 +7,7 @@ export const useLogStreaming = (isActive: boolean) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState('*');
+  const [selectedIndices, setSelectedIndices] = useState<string[]>(['*']);
   const [indexOptions, setIndexOptions] = useState<string[]>(['*']);
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
@@ -27,11 +27,16 @@ export const useLogStreaming = (isActive: boolean) => {
       const r = await logService.getIndices();
       const i = r.indices.includes('*') ? r.indices : ['*', ...r.indices];
       setIndexOptions(i);
-      if (i.length > 0 && !i.includes(selectedIndex)) setSelectedIndex('*');
+      // 현재 선택된 인덱스들 중 유효하지 않은 것 필터링
+      setSelectedIndices(prev => {
+        const valid = prev.filter(p => i.includes(p));
+        return valid.length > 0 ? valid : ['*'];
+      });
     } catch (e) {
       setIndexOptions(['*']);
+      setSelectedIndices(['*']);
     }
-  }, [selectedIndex]);
+  }, []);
 
   const fetchLogs = useCallback(async (isManual = false) => {
     if ((!isActive || isPaused) && !isManual) return;
@@ -54,7 +59,9 @@ export const useLogStreaming = (isActive: boolean) => {
         .map(q => `(${q})`)
         .join(" AND ");
         
-      const r = await logService.getLogStream(lastTimestampRef.current, MAX_LOGS, combinedQuery, selectedIndex, ft, tt);
+      // 멀티 인덱스를 콤마로 연결
+      const indexParam = selectedIndices.join(',');
+      const r = await logService.getLogStream(lastTimestampRef.current, MAX_LOGS, combinedQuery, indexParam, ft, tt);
       
       if (r.logs.length > 0) {
         setLogs(prev => {
@@ -73,7 +80,7 @@ export const useLogStreaming = (isActive: boolean) => {
     } finally {
       setLoading(false);
     }
-  }, [isActive, isPaused, appliedKeyword, filters, selectedIndex, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
+  }, [isActive, isPaused, appliedKeyword, filters, selectedIndices, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
 
   // 초기 로드 및 인덱스 조회
   useEffect(() => {
@@ -86,7 +93,7 @@ export const useLogStreaming = (isActive: boolean) => {
       lastTimestampRef.current = null;
       fetchLogs(true);
     }
-  }, [appliedKeyword, filters, selectedIndex, fromISO, toISO, fromValue, fromUnit, toValue, toUnit, isActive, fetchLogs]);
+  }, [appliedKeyword, filters, selectedIndices, fromISO, toISO, fromValue, fromUnit, toValue, toUnit, isActive, fetchLogs]);
 
   // 폴링 설정
   useEffect(() => {
@@ -112,8 +119,8 @@ export const useLogStreaming = (isActive: boolean) => {
     loading,
     isPaused,
     setIsPaused,
-    selectedIndex,
-    setSelectedIndex,
+    selectedIndices,
+    setSelectedIndices,
     indexOptions,
     keyword,
     setKeyword,

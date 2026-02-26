@@ -60,7 +60,7 @@ const LogStreaming: React.FC = () => {
 
   // Hooks
   const {
-    logs, loading, isPaused, setIsPaused, selectedIndex, setSelectedIndex,
+    logs, loading, isPaused, setIsPaused, selectedIndices, setSelectedIndices,
     indexOptions, keyword, setKeyword, appliedKeyword, setAppliedKeyword,
     filters, setFilters, clearLogs, handleFilterAdd, timeRange
   } = useLogStreaming(isActive);
@@ -114,7 +114,7 @@ const LogStreaming: React.FC = () => {
         keyword={keyword} onKeywordChange={setKeyword}
         filters={filters} onFiltersChange={setFilters}
         indexOptions={indexOptions} 
-        selectedIndex={selectedIndex} onIndexChange={setSelectedIndex} 
+        selectedIndices={selectedIndices} onIndicesChange={setSelectedIndices} 
         onRefresh={() => setAppliedKeyword(keyword)}
         onClearKeyword={() => { setKeyword(""); setAppliedKeyword(""); }}
       />

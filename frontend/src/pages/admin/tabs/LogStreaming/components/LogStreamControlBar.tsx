@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  Box, Typography, TextField, IconButton, Popover, MenuItem, Chip
+  Box, Typography, TextField, IconButton, Popover, MenuItem, Chip, Checkbox, ListItemText, Divider, Button
 } from '@mui/material';
 import {
   Storage as StorageIcon, 
@@ -17,22 +17,52 @@ interface LogStreamControlBarProps {
   filters: string[];
   onFiltersChange: (filters: string[]) => void;
   indexOptions: string[];
-  selectedIndex: string;
-  onIndexChange: (index: string) => void;
+  selectedIndices: string[];
+  onIndicesChange: (indices: string[]) => void;
   onRefresh: () => void;
   onClearKeyword: () => void;
 }
 
 const LogStreamControlBar = React.memo(({ 
   t, keyword, onKeywordChange, filters, onFiltersChange, 
-  indexOptions, selectedIndex, onIndexChange, onRefresh, onClearKeyword 
+  indexOptions, selectedIndices, onIndicesChange, onRefresh, onClearKeyword 
 }: LogStreamControlBarProps) => {
   const [indexAnchorEl, setIndexAnchorEl] = useState<HTMLDivElement | null>(null);
+  const [indexSearch, setIndexSearch] = useState("");
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     onRefresh();
   };
+
+  const toggleIndex = (index: string) => {
+    if (index === '*') {
+      onIndicesChange(['*']);
+      return;
+    }
+    
+    let next: string[];
+    const withoutAll = selectedIndices.filter(i => i !== '*');
+    
+    if (withoutAll.includes(index)) {
+      next = withoutAll.filter(i => i !== index);
+    } else {
+      next = [...withoutAll, index];
+    }
+    
+    if (next.length === 0) next = ['*'];
+    onIndicesChange(next);
+  };
+
+  const filteredIndexOptions = indexOptions.filter(opt => 
+    opt.toLowerCase().includes(indexSearch.toLowerCase())
+  );
+
+  const displayLabel = useMemo(() => {
+    if (selectedIndices.includes('*')) return t('allLogs');
+    if (selectedIndices.length === 1) return selectedIndices[0];
+    return `${selectedIndices[0]} + ${selectedIndices.length - 1}`;
+  }, [selectedIndices, t]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, mb: 2, width: '100%' }}>
@@ -47,7 +77,7 @@ const LogStreamControlBar = React.memo(({
         >
           <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
           <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-            {selectedIndex === '*' ? t('allLogs') : selectedIndex}
+            {displayLabel}
           </Typography>
           <ArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
         </Box>
@@ -106,31 +136,52 @@ const LogStreamControlBar = React.memo(({
         open={Boolean(indexAnchorEl)} 
         anchorEl={indexAnchorEl} 
         onClose={() => setIndexAnchorEl(null)} 
-        PaperProps={{ sx: { width: 300, mt: 1, maxHeight: 400 } }}
+        PaperProps={{ sx: { width: 350, mt: 1, maxHeight: 500, display: 'flex', flexDirection: 'column' } }}
       >
         <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
           <TextField 
             fullWidth size="small" placeholder={t('search')} 
-            onChange={(e) => { 
-              const val = e.target.value.toLowerCase(); 
-              document.querySelectorAll('.index-menu-item').forEach((item: any) => { 
-                item.style.display = item.innerText.toLowerCase().includes(val) ? 'flex' : 'none'; 
-              }); 
-            }} 
+            value={indexSearch}
+            onChange={(e) => setIndexSearch(e.target.value)}
           />
         </Box>
-        <Box sx={{ overflowY: 'auto', py: 0.5 }}>
-          {indexOptions.map((index: string) => (
+        <Box sx={{ overflowY: 'auto', py: 0.5, flexGrow: 1 }}>
+          <MenuItem 
+            onClick={() => toggleIndex('*')} 
+            selected={selectedIndices.includes('*')}
+            sx={{ fontSize: '0.85rem', py: 0.5 }}
+          >
+            <Checkbox size="small" checked={selectedIndices.includes('*')} />
+            <ListItemText primary={t('allLogs')} primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 'bold' }} />
+          </MenuItem>
+          <Divider sx={{ my: 0.5 }} />
+          {filteredIndexOptions.filter(opt => opt !== '*').map((index: string) => (
             <MenuItem 
               key={index} 
-              className="index-menu-item" 
-              onClick={() => { onIndexChange(index); setIndexAnchorEl(null); }} 
-              selected={selectedIndex === index} 
-              sx={{ fontSize: '0.85rem', py: 1 }}
+              onClick={() => toggleIndex(index)} 
+              selected={selectedIndices.includes(index)} 
+              sx={{ fontSize: '0.85rem', py: 0.5 }}
             >
-              {index === '*' ? t('allLogs') : index}
+              <Checkbox size="small" checked={selectedIndices.includes(index)} />
+              <ListItemText 
+                primary={index} 
+                primaryTypographyProps={{ 
+                  fontSize: '0.85rem', 
+                  sx: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } 
+                }} 
+              />
             </MenuItem>
           ))}
+          {filteredIndexOptions.length === 0 && (
+            <Box sx={{ p: 2, textAlign: 'center', color: 'text.disabled' }}>
+              <Typography variant="caption">{t('noResults')}</Typography>
+            </Box>
+          )}
+        </Box>
+        <Box sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end' }}>
+          <Button size="small" onClick={() => setIndexAnchorEl(null)} variant="contained" sx={{ textTransform: 'none' }}>
+            {t('close')}
+          </Button>
         </Box>
       </Popover>
     </Box>
