@@ -51,7 +51,10 @@ class DashboardService:
         }
 
         for p in panels_raw:
-            p["default_query"] = default_queries.get(p["panel_key"], "*")
+            if p["panel_key"] in default_queries:
+                p["default_query"] = default_queries[p["panel_key"]]
+            elif "default_query" not in p or not p["default_query"]:
+                p["default_query"] = "*"
 
         # 2. 통계 데이터 조회 (동적 집계 포함)
         raw_data = await self.repository.get_stats(target_index, panels_raw, from_value, from_unit, to_value, to_unit, from_date, to_date, query)
@@ -66,7 +69,13 @@ class DashboardService:
 
         def get_doc_count(agg_key):
             node = aggs.get(agg_key, {})
-            return node.get("doc_count", 0)
+            # filter 집계인 경우 doc_count가 직접 있고, 
+            # 커스텀 쿼리로 인해 래핑된 경우에도 top-level doc_count를 사용하면 됨
+            if "doc_count" in node: return node["doc_count"]
+            # 만약 래핑되지 않은 terms 집계에서 호출되었다면 sum(buckets)를 반환 (안전장치)
+            buckets = node.get("buckets", [])
+            if buckets: return sum(b.get("doc_count", 0) for b in buckets)
+            return 0
 
         histogram = [HistogramItem(timestamp=datetime.fromtimestamp(b["key"]/1000.0), count=b["doc_count"]) 
                      for b in get_buckets("logs_over_time")]

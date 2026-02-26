@@ -37,8 +37,9 @@ const translations: Record<string, Record<string, string>> = { ko: koMessages, e
 const PanelSettingsModal: React.FC<{
   open: boolean; onClose: () => void; panel: DashboardPanel | null;
   onSave: (key: string, type: string, query: string, field?: string) => void;
+  onCancel: () => void;
   t: (k: string) => string;
-}> = ({ open, onClose, panel, onSave, t }) => {
+}> = ({ open, onClose, panel, onSave, onCancel, t }) => {
   const [type, setType] = useState("metric");
   const [query, setQuery] = useState("");
   const [field, setField] = useState("");
@@ -47,7 +48,9 @@ const PanelSettingsModal: React.FC<{
   useEffect(() => {
     if (open && panel) {
       setType(panel.widget_type || "metric");
-      setQuery(panel.custom_query || panel.default_query || "");
+      // 현재 패널에 적용된 쿼리를 표시 (사용자가 수정한게 있으면 그것을, 없으면 시스템 기본값을 보여줌)
+      const currentQuery = panel.custom_query !== null ? panel.custom_query : (panel.default_query || "*");
+      setQuery(currentQuery);
       setField(panel.target_field || "");
       const fetchFields = async () => {
         try {
@@ -59,9 +62,9 @@ const PanelSettingsModal: React.FC<{
     }
   }, [open, panel]);
 
-  const handleSave = () => { 
-    if (panel) onSave(panel.panel_key, type, query, field); 
-    onClose(); 
+  const handleApply = () => {
+    if (panel) onSave(panel.panel_key, type, query, field);
+    onClose();
   };
 
   if (!panel) return null;
@@ -94,8 +97,8 @@ const PanelSettingsModal: React.FC<{
         </Stack>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
-        <Button onClick={onClose} color="inherit">{t('cancel')}</Button>
-        <Button onClick={handleSave} variant="contained" color="primary">{t('apply')}</Button>
+        <Button onClick={() => { onCancel(); onClose(); }} color="inherit">{t('cancel')}</Button>
+        <Button onClick={handleApply} variant="contained" color="primary">{t('apply')}</Button>
       </DialogActions>
     </Dialog>
   );
@@ -262,6 +265,7 @@ const DashboardTab: React.FC = () => {
   const [settingsEditPanelKey, setSettingsEditPanelKey] = useState<string | null>(null);
   const [editingTitleKey, setEditingTitleKey] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [modalSnapshot, setModalSnapshot] = useState<DashboardPanel[] | null>(null);
   const lastMoveRef = useRef<{ dragged: string, target: string } | null>(null);
 
   const fromValue = searchParams.get("from_value") ? Number(searchParams.get("from_value")) : 15;
@@ -314,7 +318,13 @@ const DashboardTab: React.FC = () => {
   const handleClonePanel = (pk: string) => { if (!data) return; const original = data.panels.find(p => p.panel_key === pk); if (!original) return; const newPanel = { ...JSON.parse(JSON.stringify(original)), panel_key: `${original.panel_key}_copy_${Date.now()}` }; const updated = [...data.panels, newPanel]; setData({ ...data, panels: updated }); fetchData(updated); };
   const handleDeletePanel = (pk: string) => { if (!data) return; const updated = data.panels.filter(p => p.panel_key !== pk); setData({ ...data, panels: updated }); fetchData(updated); };
   const handleTitleSave = (pk: string, newTitle: string) => { if (data) setData({...data, panels: data.panels.map(p => p.panel_key === pk ? { ...p, custom_titles: { ...(p.custom_titles || {}), [language]: newTitle } } : p)}); };
-  const handleSettingsSave = (pk: string, newType: string, newQuery: string, newField?: string) => { if (data) { const updated = data.panels.map(p => p.panel_key === pk ? { ...p, widget_type: newType, custom_query: newQuery, target_field: newField || p.target_field } : p); setData({ ...data, panels: updated }); fetchData(updated); } };
+  const handleSettingsSave = (pk: string, newType: string, newQuery: string, newField?: string) => { 
+    if (data) { 
+      const updated = data.panels.map(p => p.panel_key === pk ? { ...p, widget_type: newType, custom_query: newQuery, target_field: newField || p.target_field } : p); 
+      setData({ ...data, panels: updated }); 
+      fetchData(updated); 
+    } 
+  };
 
   const handleDragStart = (key: string) => setDraggedKey(key);
   const handleDragEnd = () => { setDraggedKey(null); setOverKey(null); lastMoveRef.current = null; };
@@ -376,18 +386,32 @@ const DashboardTab: React.FC = () => {
 
   const selectedPanelForSettings = useMemo(() => data?.panels.find(p => p.panel_key === settingsEditPanelKey) || null, [data, settingsEditPanelKey]);
 
+  const handleModalCancel = () => {
+    if (modalSnapshot && data) {
+      setData({ ...data, panels: JSON.parse(JSON.stringify(modalSnapshot)) });
+      setModalSnapshot(null);
+    }
+  };
+
+  const handleSettingsEditOpen = (key: string) => {
+    if (data) {
+      setModalSnapshot(JSON.parse(JSON.stringify(data.panels)));
+      setSettingsEditPanelKey(key);
+    }
+  };
+
   return (
     <Box sx={{ flexGrow: 1, overflowY: "auto", height: "100%", p: { xs: 1.5, sm: 2, md: 3 }, bgcolor: "background.default", position: 'relative' }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
       <Box sx={{ mb: 1 }}><ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={() => fetchData(isEditMode ? data?.panels : undefined)} onReset={() => setResetDialogOpen(true)} onAdd={() => setAddDialogOpen(true)} isEditMode={isEditMode} onEdit={handleEditToggle} onCancel={handleCancel} onSave={handleSave} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary?.total_logs} /></Box>
       <Box id="threat-dashboard-grid-container" sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
         {data?.panels?.map((panel) => (
-          <DraggablePanel key={panel.panel_key} panel={panel} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDrop={() => {}} onResizeEnd={handleResizeEnd} onSettingsEdit={setSettingsEditPanelKey} onTitleEdit={setEditingTitleKey} onClone={handleClonePanel} onDelete={handleDeletePanel} isDragging={draggedKey === panel.panel_key} isOver={overKey === panel.panel_key} isEditMode={isEditMode} t={t}>{renderPanelContent(panel)}</DraggablePanel>
+          <DraggablePanel key={panel.panel_key} panel={panel} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDrop={() => {}} onResizeEnd={handleResizeEnd} onSettingsEdit={handleSettingsEditOpen} onTitleEdit={setEditingTitleKey} onClone={handleClonePanel} onDelete={handleDeletePanel} isDragging={draggedKey === panel.panel_key} isOver={overKey === panel.panel_key} isEditMode={isEditMode} t={t}>{renderPanelContent(panel)}</DraggablePanel>
         ))}
       </Box>
       <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}><DialogTitle>{t('resetDashboardConfirmTitle')}</DialogTitle><DialogContent><Typography>{t('resetDashboardConfirmMessage')}</Typography></DialogContent><DialogActions><Button onClick={() => setResetDialogOpen(false)}>{t('cancel')}</Button><Button onClick={async () => { await resetDashboard("threat-status"); fetchData(); setResetDialogOpen(false); setIsEditMode(false); }} variant="contained">{t('reset')}</Button></DialogActions></Dialog>
       <AddPanelDialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} onAdd={handleAddPanel} t={t} />
-      <PanelSettingsModal open={!!settingsEditPanelKey} onClose={() => setSettingsEditPanelKey(null)} panel={selectedPanelForSettings} onSave={handleSettingsSave} t={t} />
+      <PanelSettingsModal open={!!settingsEditPanelKey} onClose={() => { setSettingsEditPanelKey(null); setModalSnapshot(null); }} panel={selectedPanelForSettings} onSave={handleSettingsSave} onCancel={handleModalCancel} t={t} />
     </Box>
   );
 };
