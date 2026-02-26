@@ -74,9 +74,10 @@ interface LogStreamControlBarProps {
   selectedIndex: string;
   onIndexChange: (index: string) => void;
   onRefresh: () => void;
+  onClearKeyword: () => void;
 }
 
-const LogStreamControlBar = React.memo(({ t, keyword, onKeywordChange, filters, onFiltersChange, indexOptions, selectedIndex, onIndexChange, onRefresh }: LogStreamControlBarProps) => {
+const LogStreamControlBar = React.memo(({ t, keyword, onKeywordChange, filters, onFiltersChange, indexOptions, selectedIndex, onIndexChange, onRefresh, onClearKeyword }: LogStreamControlBarProps) => {
   const [indexAnchorEl, setIndexAnchorEl] = useState<HTMLDivElement | null>(null);
   const KIBANA_TEAL = "#005a5e";
 
@@ -103,7 +104,7 @@ const LogStreamControlBar = React.memo(({ t, keyword, onKeywordChange, filters, 
             />
           </Box>
           {keyword && (
-            <IconButton size="small" onClick={() => onKeywordChange("")} sx={{ p: 0.5, mr: 0.5 }}>
+            <IconButton size="small" onClick={onClearKeyword} sx={{ p: 0.5, mr: 0.5 }}>
               <CloseIcon sx={{ fontSize: 16 }} />
             </IconButton>
           )}
@@ -360,6 +361,7 @@ const LogStreamingTab: React.FC = () => {
   
   // 검색어(Input)와 필터(Chips) 분리
   const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState(""); // 실제 검색에 적용된 검색어
   const [filters, setFilters] = useState<string[]>([]);
 
   // 사용 가능한 모든 필드 추출
@@ -432,8 +434,8 @@ const LogStreamingTab: React.FC = () => {
         if (toDate) tt = toDate; else if (toValue !== null) tt = `now-${toValue}${toUnit}`;
       } else { if (!lastTimestampRef.current) ft = "now-15m"; }
       
-      // 검색어와 필터를 AND로 결합
-      const combinedQuery = [keyword, ...filters].filter(Boolean).map(q => `(${q})`).join(" AND ");
+      // 검색어(적용된 것)와 필터를 AND로 결합
+      const combinedQuery = [appliedKeyword, ...filters].filter(Boolean).map(q => `(${q})`).join(" AND ");
       const r = await logService.getLogStream(lastTimestampRef.current, MAX_LOGS, combinedQuery, selectedIndex, ft, tt);
       if (r.logs.length > 0) {
         setLogs(prev => {
@@ -445,9 +447,9 @@ const LogStreamingTab: React.FC = () => {
         lastTimestampRef.current = r.last_timestamp;
       }
     } catch (e) { console.error(e); } finally { if (isManual) setLoading(true); setLoading(false); }
-  }, [isActive, isPaused, keyword, filters, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit]);
+  }, [isActive, isPaused, appliedKeyword, filters, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit]);
 
-  useEffect(() => { if (isActive) { setLogs([]); lastTimestampRef.current = null; fetchLogs(true); } }, [keyword, filters, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit, isActive, fetchLogs]);
+  useEffect(() => { if (isActive) { setLogs([]); lastTimestampRef.current = null; fetchLogs(true); } }, [appliedKeyword, filters, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit, isActive, fetchLogs]);
   useEffect(() => { const timer = setInterval(() => fetchLogs(), POLL_INTERVAL); return () => clearInterval(timer); }, [fetchLogs]);
   useEffect(() => { if (autoScroll && scrollRef.current && isActive) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [logs, autoScroll, isActive]);
   
@@ -480,7 +482,7 @@ const LogStreamingTab: React.FC = () => {
   const handleCommonT = (v: number, u: string) => { if (v === 0 && u === 'd') { setFromDate(dayjs().startOf('day').toISOString()); setFromValue(null); } else { setFromValue(v); setFromUnit(u); setFromDate(null); } setToValue(null); setToUnit("m"); setToDate(null); setTimeAnchorEl(null); };
   const renderFV = (l: LogEntry, f: string) => { if (f === 'timestamp') return dayjs(l.timestamp).format('HH:mm:ss.SSS'); if (f === '_index') return l._index; if (f === 'message') return l.message; const s = (l as any)._source || {}; const v = f.split('.').reduce((o, k) => o?.[k], s); return v !== undefined ? String(v) : '-'; };
 
-  const hasSearchOrFilter = keyword || filters.length > 0;
+  const hasSearchOrFilter = appliedKeyword || filters.length > 0;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', p: 3, gap: 1 }}>
@@ -494,7 +496,8 @@ const LogStreamingTab: React.FC = () => {
         indexOptions={indexOptions} 
         selectedIndex={selectedIndex} 
         onIndexChange={setSelectedIndex} 
-        onRefresh={() => fetchLogs(true)}
+        onRefresh={() => setAppliedKeyword(keyword)} // 엔터 시 현재 입력어를 적용
+        onClearKeyword={() => { setKeyword(""); setAppliedKeyword(""); }} // 지우기 시 즉시 초기화
       />
       <Paper elevation={1} sx={{ p: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
