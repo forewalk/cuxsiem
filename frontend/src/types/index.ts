@@ -104,6 +104,7 @@ export interface NotificationRule {
   severity: string;
   interval_min: number;
   dedup_key_template: string;
+  trigger_condition?: string;
   receiver: Record<string, any>;
   is_active: boolean;
   last_run_at?: string;
@@ -125,6 +126,7 @@ export interface NotificationRuleCreate {
   severity: string;
   interval_min: number;
   dedup_key_template: string;
+  trigger_condition?: string;
   receiver: Record<string, any>;
   is_active: boolean;
 }
@@ -138,6 +140,7 @@ export interface NotificationRuleUpdate {
   severity?: string;
   interval_min?: number;
   dedup_key_template?: string;
+  trigger_condition?: string;
   receiver?: Record<string, any>;
   is_active?: boolean;
 }

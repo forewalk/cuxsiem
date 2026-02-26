@@ -133,6 +133,39 @@ class NotificationService:
         # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
         return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
     
+    def _evaluate_trigger_condition(self, condition: str, context: Dict[str, Any]) -> bool:
+        """
+        트리거 조건 평가
+        - Python 표현식을 안전하게 평가
+        - 예: "total > 0", "total > 50 and bucket_count >= 3"
+        """
+        if not condition or not condition.strip():
+            return True  # 조건이 없으면 항상 true
+        
+        try:
+            # 안전한 네임스페이스 설정 (math 함수 등 허용)
+            import math
+            safe_namespace = {
+                '__builtins__': {},
+                'math': math,
+                'abs': abs,
+                'min': min,
+                'max': max,
+                'sum': sum,
+                'len': len,
+                **context  # 쿼리 결과 컨텍스트
+            }
+            
+            # Python 표현식 평가
+            result = eval(condition, safe_namespace)
+            logger.info(f"[트리거] 조건 평가: '{condition}' = {result}")
+            return bool(result)
+        
+        except Exception as e:
+            logger.error(f"[트리거] 조건 평가 실패: '{condition}' - {e}")
+            # 평가 실패 시 안전하게 true 반환 (알림 생성)
+            return True
+    
     def _format_aggregation_results(self, aggregations: Dict[str, Any]) -> str:
         """
         집계 결과를 포맷팅된 문자열로 변환
@@ -182,6 +215,21 @@ class NotificationService:
             if "buckets" in agg_data:
                 bucket_count = len(agg_data["buckets"])
                 break
+        
+        # 트리거 조건 체크
+        trigger_condition = rule.get("trigger_condition")
+        if trigger_condition:
+            trigger_context = {
+                "total": total,
+                "bucket_count": bucket_count,
+                "pc_count": bucket_count,
+                "aggregations": aggregations
+            }
+            
+            if not self._evaluate_trigger_condition(trigger_condition, trigger_context):
+                logger.info(f"[탐지] 트리거 조건 미충족 - 규칙: '{rule['name']}', 조건: '{trigger_condition}'")
+                logger.info(f"[탐지] 현재 값: total={total}, bucket_count={bucket_count}")
+                return None
         
         # 중복 제거 키: 규칙 ID + 시간 윈도우 (분 단위로 동일 규칙은 하나의 알림만)
         time_window = now.replace(second=0, microsecond=0).isoformat()

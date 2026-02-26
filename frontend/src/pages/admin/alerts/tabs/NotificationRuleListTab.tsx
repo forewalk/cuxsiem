@@ -77,6 +77,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   severity: 'info',
   interval_min: 1,
   dedup_key_template: '{{rule_id}}_{{_id}}',
+  trigger_condition: '',
   receiver: {type: 'role', values: ['admin']},
   is_active: true
 };
@@ -207,6 +208,7 @@ const NotificationRuleListTab: React.FC = () => {
         severity: rule.severity,
         interval_min: rule.interval_min,
         dedup_key_template: rule.dedup_key_template,
+        trigger_condition: rule.trigger_condition || '',
         receiver: JSON.parse(JSON.stringify(rule.receiver)),
         is_active: rule.is_active
       });
@@ -536,6 +538,17 @@ const NotificationRuleListTab: React.FC = () => {
                          onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError}
                          helperText={jsonError || t('dslQueryHelper')}
                          inputProps={{style: {fontFamily: 'monospace', fontSize: '0.85rem'}}}/>
+              
+              <TextField 
+                label="트리거 조건 (선택사항)"
+                fullWidth
+                value={formData.trigger_condition || ''}
+                onChange={(e) => setFormData({...formData, trigger_condition: e.target.value})}
+                size="small"
+                placeholder='예: total > 50 and bucket_count >= 3'
+                helperText="알림 발송 조건을 Python 표현식으로 입력 (예: total > 0, total > 50 and pc_count >= 3). 비워두면 항상 알림 발송"
+                sx={{mt: 2}}
+              />
             </Grid>
 
             <Grid size={12}><Divider/></Grid>

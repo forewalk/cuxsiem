@@ -67,6 +67,7 @@ try:
                 "window_min": {"type": "integer"},
                 "dedup_ttl_min": {"type": "integer"},
                 "dedup_key_template": {"type": "keyword"},
+                "trigger_condition": {"type": "text"},
                 "channels": { 
                     "properties": {
                         "webhooks": {

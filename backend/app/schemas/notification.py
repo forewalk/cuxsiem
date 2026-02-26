@@ -24,6 +24,13 @@ class NotificationRuleBase(BaseModel):
         default="{{rule_id}}_{{_id}}",
         description="중복 키 생성을 위한 템플릿 (이벤트 ID 기반 중복 제거)"
     )
+    
+    # 트리거 조건 (선택적)
+    trigger_condition: Optional[str] = Field(
+        default=None,
+        description="알림 발송 조건 (Python 표현식, 예: 'total > 0', 'total > 50 and bucket_count >= 3')"
+    )
+    
     # 수신자 설정 (cs_users의 role 기반)
     receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})
     is_active: bool = True
@@ -37,6 +44,7 @@ class NotificationRuleUpdate(BaseModel):
     severity: Optional[str] = None
     interval_min: Optional[int] = Field(None, ge=1)
     dedup_key_template: Optional[str] = None
+    trigger_condition: Optional[str] = None
     receiver: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
