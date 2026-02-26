@@ -203,8 +203,10 @@ const LogDetailPanel = React.memo(({ log, onClose, onFilterAdd, t }: LogDetailPa
   const isResizing = useRef(false);
   const deferredSearch = useDeferredValue(search);
   const startResizing = useCallback(() => { isResizing.current = true; document.addEventListener('mousemove', handleMouseMove); document.addEventListener('mouseup', stopResizing); document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; }, []);
-  const stopResizing = useCallback(() => { isResizing.current = false; document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', stopResizing); document.body.style.cursor = 'default'; document.body.style.userSelect = 'auto'; }, []);
   const handleMouseMove = useCallback((e: MouseEvent) => { if (!isResizing.current) return; const pe = document.getElementById('log-detail-panel'); if (pe) { const r = pe.getBoundingClientRect(); const nw = e.clientX - r.left; if (nw > 100 && nw < r.width - 100) setFieldWidth(nw); } }, []);
+  const stopResizing = useCallback(() => { isResizing.current = false; document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', stopResizing); document.body.style.cursor = 'default'; document.body.style.userSelect = 'auto'; }, [handleMouseMove]);
+  const startResizingBound = useCallback(() => startResizing(), [startResizing]);
+
   const flatD = useMemo(() => { const c = { _id: log._id, _index: log._index, timestamp: log.timestamp, ...(log._source || {}) }; const f = flattenObject(c); return Object.entries(f).map(([k, v]) => ({ k, v: typeof v === 'object' ? JSON.stringify(v) : String(v) })).sort((a, b) => a.k.localeCompare(b.k)); }, [log]);
   const filteredD = useMemo(() => { if (!deferredSearch) return flatD; const s = deferredSearch.toLowerCase(); return flatD.filter(i => i.k.toLowerCase().includes(s) || i.v.toLowerCase().includes(s)); }, [flatD, deferredSearch]);
 
@@ -212,7 +214,7 @@ const LogDetailPanel = React.memo(({ log, onClose, onFilterAdd, t }: LogDetailPa
     <Box id="log-detail-panel" sx={{ width: { xs: '100%', md: '45%' }, ml: 1, display: 'flex', flexDirection: 'column', border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper', mt: 1, overflow: 'hidden', opacity: search !== deferredSearch ? 0.7 : 1, transition: 'opacity 0.2s' }}>
       <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'action.selected', borderBottom: '1px solid', borderColor: 'divider' }}><Typography variant="subtitle2" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}><DetailIcon fontSize="small" color="primary" />{t('logDetails')}</Typography><IconButton size="small" onClick={onClose}><CloseIcon fontSize="small" /></IconButton></Box>
       <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}><TextField fullWidth size="small" autoFocus placeholder={t('searchFields')} value={search} onChange={(e) => setSearch(e.target.value)} InputProps={{ startAdornment: (<InputAdornment position="start"><DetailIcon fontSize="small" color="action" /></InputAdornment>), sx: { fontSize: '0.8rem' } }} /></Box>
-      <TableContainer sx={{ flexGrow: 1, overflow: 'auto', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', position: 'relative' }}><Box onMouseDown={startResizing} sx={{ position: 'absolute', left: fieldWidth, top: 0, bottom: 0, width: '6px', marginLeft: '-3px', cursor: 'col-resize', zIndex: 10, transition: 'background-color 0.2s', '&:hover': { bgcolor: 'primary.main', opacity: 0.5 }, '&:active': { bgcolor: 'primary.main', opacity: 0.8, width: '2px', marginLeft: '-1px' } }} /><Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}><TableBody>{filteredD.map((i) => (
+      <TableContainer sx={{ flexGrow: 1, overflow: 'auto', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50', position: 'relative' }}><Box onMouseDown={startResizingBound} sx={{ position: 'absolute', left: fieldWidth, top: 0, bottom: 0, width: '6px', marginLeft: '-3px', cursor: 'col-resize', zIndex: 10, transition: 'background-color 0.2s', '&:hover': { bgcolor: 'primary.main', opacity: 0.5 }, '&:active': { bgcolor: 'primary.main', opacity: 0.8, width: '2px', marginLeft: '-1px' } }} /><Table size="small" stickyHeader sx={{ tableLayout: 'fixed' }}><TableBody>{filteredD.map((i) => (
         <TableRow key={i.k} hover sx={{ '&:hover .add-filter-btn': { opacity: 1 } }}>
           <TableCell sx={{ width: fieldWidth, fontWeight: 'bold', fontSize: '0.75rem', color: 'primary.main', fontFamily: 'monospace', verticalAlign: 'top', borderRight: '1px solid', borderColor: 'divider', py: 1, position: 'relative', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {i.k}
@@ -321,6 +323,22 @@ const LogStreamingTab: React.FC = () => {
     return Array.from(fieldSet).sort();
   }, [logs]);
 
+  // 정밀 검색 필터링 (Server-Side와 연동되지만 Client-Side에서 한번 더 보정)
+  const filteredLogs = useMemo(() => {
+    if (!searchQuery) return logs;
+    const parts = searchQuery.split(" AND ").map(p => p.trim().toLowerCase()).filter(Boolean);
+    return logs.filter(l => {
+      const text = `${l._index} ${l.message} ${JSON.stringify(l._source)}`.toLowerCase();
+      return parts.every(p => text.includes(p));
+    });
+  }, [logs, searchQuery]);
+
+  // 현재 보고 있는 로그의 날짜 (헤더용)
+  const currentLogDate = useMemo(() => {
+    if (filteredLogs.length === 0) return dayjs().format('YYYY-MM-DD');
+    return dayjs(filteredLogs[0].timestamp).format('YYYY-MM-DD');
+  }, [filteredLogs]);
+
   const [visibleFields, setVisibleFields] = useState<string[]>(['timestamp', '_index', 'message']);
   const [fieldAnchorEl, setFieldAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [timeAnchorEl, setTimeAnchorEl] = useState<HTMLDivElement | null>(null);
@@ -340,22 +358,13 @@ const LogStreamingTab: React.FC = () => {
     setSearchQuery(prev => prev ? `${prev} AND ${newFilter}` : newFilter);
   }, [searchQuery]);
 
-  // 정밀 검색 필터링 (Server-Side와 연동되지만 Client-Side에서 한번 더 보정)
-  const filteredLogs = useMemo(() => {
-    if (!searchQuery) return logs;
-    const parts = searchQuery.split(" AND ").map(p => p.trim().toLowerCase()).filter(Boolean);
-    return logs.filter(l => {
-      const text = `${l._index} ${l.message} ${JSON.stringify(l._source)}`.toLowerCase();
-      return parts.every(p => text.includes(p));
-    });
-  }, [logs, searchQuery]);
-
   const [fromValue, setFromValue] = useState<number | null>(15);
   const [fromUnit, setFromUnit] = useState("m");
   const [toValue, setToValue] = useState<number | null>(null);
   const [toUnit, setToUnit] = useState("m");
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
+
   const { language } = useLanguageStore();
   const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => { const ct = translations[language] || translations["ko"] || {}; let text = ct[key] || key; if (params) Object.entries(params).forEach(([pk, v]) => { text = text.replace(`{${pk}}`, v); }); return text; }, [language, translations]);
@@ -390,10 +399,12 @@ const LogStreamingTab: React.FC = () => {
   useEffect(() => { if (isActive) { setLogs([]); lastTimestampRef.current = null; fetchLogs(true); } }, [searchQuery, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit, isActive, fetchLogs]);
   useEffect(() => { const timer = setInterval(() => fetchLogs(), POLL_INTERVAL); return () => clearInterval(timer); }, [fetchLogs]);
   useEffect(() => { if (autoScroll && scrollRef.current && isActive) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [logs, autoScroll, isActive]);
+  
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => { const t = e.currentTarget; const b = t.scrollHeight - t.scrollTop <= t.clientHeight + 50; if (!b && autoScroll) setAutoScroll(false); else if (b && !autoScroll) setAutoScroll(true); };
   const scrollToBottom = () => { if (scrollRef.current) { scrollRef.current.scrollTop = scrollRef.current.scrollHeight; setAutoScroll(true); } };
   const togglePaused = () => { const np = !isPaused; setIsPaused(np); if (!np) { setFromValue(15); setFromUnit("m"); setFromDate(null); setToValue(null); setToUnit("m"); setToDate(null); setTimeout(scrollToBottom, 50); } };
   const formatP = (v: number | null, u: string, d: string | null, isTo: boolean) => { if (isTo && v === null && d === null) return t('now'); if (d) return dayjs(d).locale(language).format("MMM D, YYYY @ HH:mm:ss"); const ut: any = { 'm': t('minutesAgo'), 'h': t('hoursAgo'), 'd': t('daysAgo') }; return `~ ${v} ${ut[u]}`; };
+  
   const openTimeP = (type: 'quick' | 'detailed', point: 'from' | 'to', e: React.MouseEvent<HTMLDivElement>) => { 
     if (!isPaused) return; 
     const cv = point === 'from' ? (fromDate || undefined) : (toDate || undefined); 
@@ -413,9 +424,10 @@ const LogStreamingTab: React.FC = () => {
     }); 
     setTimeAnchorEl(e.currentTarget.parentElement as HTMLDivElement); 
   };
-  const handleApplyT = (d: any) => { const [h, m, s] = d.time.split(":").map(Number); const iso = d.date.hour(h || 0).minute(m || 0).second(s || 0).millisecond(0).toISOString(); if (d.editingPoint === 'from') { if (d.tabValue === 0) { setFromDate(iso); setFromValue(null); } else if (d.tabValue === 1) { setFromValue(d.val); setFromUnit(d.unit); setFromDate(null); } else { setFromDate(dayjs().second(0).millisecond(0).toISOString()); setFromValue(null); } } else { if (d.tabValue === 0) { setToDate(iso); setToValue(null); } else if (d.tabValue === 1) { setToValue(d.val); setToUnit(d.unit); setToDate(null); } else { setToDate(null); setToValue(null); } } setTimeAnchorEl(null); };
+
+  const handleApplyT = (d: TimeSettingData) => { const [h, m, s] = d.time.split(":").map(Number); const iso = d.date.hour(h || 0).minute(m || 0).second(s || 0).millisecond(0).toISOString(); if (d.editingPoint === 'from') { if (d.tabValue === 0) { setFromDate(iso); setFromValue(null); } else if (d.tabValue === 1) { setFromValue(d.val); setFromUnit(d.unit); setFromDate(null); } else { setFromDate(dayjs().second(0).millisecond(0).toISOString()); setFromValue(null); } } else { if (d.tabValue === 0) { setToDate(iso); setToValue(null); } else if (d.tabValue === 1) { setToValue(d.val); setToUnit(d.unit); setToDate(null); } else { setToDate(null); setToValue(null); } } setTimeAnchorEl(null); };
   const handleCommonT = (v: number, u: string) => { if (v === 0 && u === 'd') { setFromDate(dayjs().startOf('day').toISOString()); setFromValue(null); } else { setFromValue(v); setFromUnit(u); setFromDate(null); } setToValue(null); setToUnit("m"); setToDate(null); setTimeAnchorEl(null); };
-  const renderFV = (l: LogEntry, f: string) => { if (f === 'timestamp') return `[${dayjs(l.timestamp).format('YYYY-MM-DD HH:mm:ss.SSS')}]`; if (f === '_index') return l._index; if (f === 'message') return l.message; const s = (l as any)._source || {}; const v = f.split('.').reduce((o, k) => o?.[k], s); return v !== undefined ? String(v) : '-'; };
+  const renderFV = (l: LogEntry, f: string) => { if (f === 'timestamp') return dayjs(l.timestamp).format('HH:mm:ss.SSS'); if (f === '_index') return l._index; if (f === 'message') return l.message; const s = (l as any)._source || {}; const v = f.split('.').reduce((o, k) => o?.[k], s); return v !== undefined ? String(v) : '-'; };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', p: 3, gap: 1 }}>
@@ -465,11 +477,11 @@ const LogStreamingTab: React.FC = () => {
                     key={f} variant="caption" 
                     sx={{ 
                       fontWeight: 'bold', color: 'text.secondary', flexShrink: 0, 
-                      width: isTimestamp ? 230 : isIndex ? 180 : (isMessage ? 'auto' : 150),
+                      width: isTimestamp ? 120 : isIndex ? 180 : (isMessage ? 'auto' : 150),
                       flexGrow: isMessage ? 1 : 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis'
                     }}
                   >
-                    {f.toUpperCase()}
+                    {isTimestamp ? currentLogDate : f.toUpperCase()}
                   </Typography>
                 );
               })}
@@ -490,7 +502,7 @@ const LogStreamingTab: React.FC = () => {
                             fontFamily: 'monospace', fontSize: isMessage ? '0.85rem' : '0.7rem', 
                             color: isTimestamp ? 'text.primary' : isIndex ? 'text.secondary' : 'text.primary', 
                             fontWeight: (isTimestamp || isIndex) ? 'bold' : 'normal', flexShrink: isMessage ? 1 : 0, 
-                            width: isTimestamp ? 230 : isIndex ? 180 : (isMessage ? 'auto' : 150),
+                            width: isTimestamp ? 120 : isIndex ? 180 : (isMessage ? 'auto' : 150),
                             flexGrow: isMessage ? 1 : 0, minWidth: 0, wordBreak: 'break-all', 
                             whiteSpace: isTimestamp ? 'nowrap' : 'normal', lineHeight: 1.4, 
                             ...(isMessage && { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }), 
