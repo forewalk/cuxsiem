@@ -11,14 +11,13 @@ class NotificationRuleBase(BaseModel):
     target_index: str = "logs-sentinel_one.threats"
     condition_config: Dict[str, Any]
     message_template: str = Field(
-        default="Detected {{total}} events in the last {{window_min}} minutes.",
+        default="Detected {{total}} events.",
         description="알림 메시지 템플릿"
     )
     severity: str = "info"
     
-    # 주기 및 범위 설정
+    # 주기 설정
     interval_min: int = Field(ge=1, le=1440, description="쿼리 실행 주기(분)")
-    window_min: int = Field(ge=1, le=10080, description="데이터 조회 범위(분)")
     
     # 중복 제거 설정
     dedup_key_template: str = Field(
@@ -28,11 +27,6 @@ class NotificationRuleBase(BaseModel):
     # 수신자 설정 (cs_users의 role 기반)
     receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})
     is_active: bool = True
-    @model_validator(mode='after')
-    def validate_window_and_interval(self) -> 'NotificationRuleBase':
-        if self.window_min < self.interval_min:
-            raise ValueError("window_min must be greater than or equal to interval_min to avoid detection gaps.")
-        return self
 
 class NotificationRuleUpdate(BaseModel):
     name: Optional[str] = None
@@ -42,17 +36,9 @@ class NotificationRuleUpdate(BaseModel):
     message_template: Optional[str] = None
     severity: Optional[str] = None
     interval_min: Optional[int] = Field(None, ge=1)
-    window_min: Optional[int] = Field(None, ge=1)
     dedup_key_template: Optional[str] = None
     receiver: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
-
-    @model_validator(mode='after')
-    def validate_window_and_interval(self) -> 'NotificationRuleUpdate':
-        if self.window_min is not None and self.interval_min is not None:
-            if self.window_min < self.interval_min:
-                raise ValueError("window_min must be greater than or equal to interval_min")
-        return self
 
 class NotificationRuleResponse(NotificationRuleBase):
     id: str

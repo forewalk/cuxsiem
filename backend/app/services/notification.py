@@ -141,43 +141,24 @@ class NotificationService:
         rule_id = rule["id"]
         target_index = rule.get("target_index", "logs-sentinel_one.threats")
         condition_config = rule.get("condition_config", {})
-        window_min = rule["window_min"]  # 필수 필드 (스키마에서 검증됨)
 
         now = datetime.utcnow()
-        # 설정된 window_min을 정확히 따르되, 인덱싱 지연을 고려하여 10초의 미세 버퍼만 추가
-        start_time = now - timedelta(minutes=window_min, seconds=10)
 
         # OpenSearch 쿼리 실행
         try:
             await self.repository.update_rule(rule_id, {"last_run_at": now.isoformat()})
 
-            # 사용자 정의 쿼리가 없으면 match_all 사용
-            original_query = condition_config.get("query", {"match_all": {}})
-
-            # bool query 구조로 감싸서 시간 필터 적용
-            final_query = {
-                "bool": {
-                    "must": [original_query],
-                    "filter": [
-                        {
-                            "range": {
-                                "@timestamp": {
-                                    "gte": start_time.isoformat(),
-                                    "lte": now.isoformat()
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
-
+            # 사용자 정의 쿼리를 그대로 사용 (시간 필터는 사용자가 DSL에 직접 포함해야 함)
             search_body = {
-                "query": final_query,
-                "size": 10,
-                "sort": [{"@timestamp": {"order": "desc"}}]
+                **condition_config,
+                "size": condition_config.get("size", 10)  # 기본값 10유지하되 쿼리에 있으면 따름
             }
+            
+            # sort가 없으면 @timestamp 내림차순 기본값 적용
+            if "sort" not in search_body:
+                search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
 
-            logger.info(f"Running detection for rule '{rule['name']}' on index '{target_index}' (window: {window_min}m)")
+            logger.info(f"Running detection for rule '{rule['name']}' on index '{target_index}' (Custom DSL)")
 
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
@@ -218,7 +199,6 @@ class NotificationService:
                     template_context = {
                         # 기본 정보
                         "total": total,
-                        "window_min": window_min,
                         "rule_name": rule.get("name"),
                         "rule_id": rule_id,
                         "rule_severity": rule.get("severity"),
@@ -229,7 +209,7 @@ class NotificationService:
                         **event_source
                     }
                     
-                    message_template = rule.get("message_template", "Detected {{total}} events in the last {{window_min}} minutes.")
+                    message_template = rule.get("message_template", "Detected {{total}} events.")
                     rendered_message = self._render_message_template(message_template, template_context)
 
                     # cs_alerts 인덱스에 저장할 알림 데이터
