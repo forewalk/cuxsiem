@@ -32,7 +32,7 @@ async def test_login_endpoint_success():
             response = await client.post(
                 "/api/v1/auth/login",
                 json={
-                    "email": "admin@example.com",
+                    "username": "admin",
                     "password": "password123",
                     "remember_me": False,
                 }
@@ -45,20 +45,20 @@ async def test_login_endpoint_success():
 
 
 @pytest.mark.asyncio
-async def test_login_endpoint_invalid_email():
-    """유효하지 않은 이메일 테스트"""
+async def test_login_endpoint_invalid_username():
+    """존재하지 않는 사용자명 테스트"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/v1/auth/login",
             json={
-                "email": "not-an-email",
+                "username": "nonexistent_user",
                 "password": "password123",
                 "remember_me": False,
             }
         )
 
-        assert response.status_code == 422  # Validation error
+        assert response.status_code == 401  # Unauthorized (user not found)
 
 
 @pytest.mark.asyncio
@@ -69,8 +69,8 @@ async def test_login_endpoint_short_password():
         response = await client.post(
             "/api/v1/auth/login",
             json={
-                "email": "admin@example.com",
-                "password": "short",  # 8자 미만
+                "username": "admin",
+                "password": "sho",  # 4자 미만
                 "remember_me": False,
             }
         )
@@ -79,15 +79,14 @@ async def test_login_endpoint_short_password():
 
 
 @pytest.mark.asyncio
-async def test_login_endpoint_no_digit_password():
-    """숫자 없는 비밀번호 테스트"""
+async def test_login_endpoint_missing_username():
+    """사용자명 누락 테스트"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/v1/auth/login",
             json={
-                "email": "admin@example.com",
-                "password": "passwordabc",  # 숫자 없음
+                "password": "password123",
                 "remember_me": False,
             }
         )

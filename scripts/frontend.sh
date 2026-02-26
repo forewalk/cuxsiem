@@ -2,13 +2,16 @@
 
 # 디렉토리 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_DIR="$SCRIPT_DIR/../../logs" # 프로젝트 루트의 logs 디렉토리로 변경
+LOG_DIR="$SCRIPT_DIR/logs"
+PID_DIR="$SCRIPT_DIR/pid"
 
 # 로그 디렉토리 생성 (없으면)
 mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/backend_$(date '+%Y-%m-%d').log"
-PID_FILE="$LOG_DIR/backend.pid"
-BACKEND_DIR="$SCRIPT_DIR/../../backend"
+mkdir -p "$PID_DIR"
+
+LOG_FILE="$LOG_DIR/frontend_$(date '+%Y-%m-%d').log"
+PID_FILE="$PID_DIR/frontend.pid"
+FRONTEND_DIR="$SCRIPT_DIR/../frontend"
 
 # 로그 함수
 log_message() {
@@ -18,32 +21,24 @@ log_message() {
 # start 함수
 start() {
     if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
-        log_message "Backend is already running (PID: $(cat $PID_FILE))"
+        log_message "Frontend is already running (PID: $(cat $PID_FILE))"
         return 1
     fi
 
     log_message "=========================================="
-    log_message "Pre-flight checks before starting Backend"
+    log_message "Pre-flight checks before starting Frontend"
     log_message "=========================================="
 
-    # 1. Conda 환경 확인
-    if ! command -v conda &> /dev/null; then
-        log_message "❌ ERROR: conda not found"
-        log_message "Please install Anaconda/Miniconda first"
+    # 1. Node.js/npm 확인
+    if ! command -v npm &> /dev/null; then
+        log_message "❌ ERROR: npm not found"
+        log_message "Please install Node.js first"
         return 1
     fi
-
-    CURRENT_ENV=$(echo $CONDA_DEFAULT_ENV 2>/dev/null || echo "")
-    if [ "$CURRENT_ENV" != "cruxsiem" ]; then
-        log_message "⚠️  WARNING: Current conda env is '$CURRENT_ENV' (not 'cruxsiem')"
-        log_message "Please activate conda environment first:"
-        log_message "  conda activate cruxsiem"
-        return 1
-    fi
-    log_message "✅ Conda environment: cruxsiem (active)"
+    log_message "✅ npm is available"
 
     # 2. Git status 확인
-    cd "$SCRIPT_DIR/../../"
+    cd "$SCRIPT_DIR/../"
     GIT_STATUS=$(git status --porcelain 2>/dev/null)
 
     if [ -n "$GIT_STATUS" ]; then
@@ -62,7 +57,7 @@ start() {
             read -p "Continue? (y/n) " -n 1 -r
             echo
             if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                log_message "Backend startup cancelled"
+                log_message "Frontend startup cancelled"
                 return 1
             fi
         else
@@ -74,36 +69,36 @@ start() {
     fi
 
     log_message "=========================================="
-    log_message "Starting Backend..."
+    log_message "Starting Frontend..."
     log_message "=========================================="
 
-    cd "$BACKEND_DIR"
-    nohup python -m uvicorn app.main:app --reload --port 8000 >> "$LOG_FILE" 2>&1 &
+    cd "$FRONTEND_DIR"
+    nohup npm run dev >> "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
-    log_message "Backend started (PID: $(cat $PID_FILE))"
-    log_message "Backend available at: http://localhost:8000"
+    log_message "Frontend started (PID: $(cat $PID_FILE))"
+    log_message "Frontend available at: http://localhost:5173/"
 }
 
 # stop 함수
 stop() {
     if [ ! -f "$PID_FILE" ]; then
-        log_message "Backend is not running"
+        log_message "Frontend is not running"
         return 1
     fi
 
     PID=$(cat "$PID_FILE")
     if kill -0 $PID 2>/dev/null; then
-        log_message "Stopping Backend (PID: $PID)..."
+        log_message "Stopping Frontend (PID: $PID)..."
         kill $PID
         sleep 1
         if kill -0 $PID 2>/dev/null; then
-            log_message "Force killing Backend (PID: $PID)..."
+            log_message "Force killing Frontend (PID: $PID)..."
             kill -9 $PID
         fi
         rm "$PID_FILE"
-        log_message "Backend stopped"
+        log_message "Frontend stopped"
     else
-        log_message "Backend process not found (PID: $PID)"
+        log_message "Frontend process not found (PID: $PID)"
         rm "$PID_FILE"
     fi
 }
@@ -113,22 +108,23 @@ status() {
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
         if kill -0 $PID 2>/dev/null; then
-            log_message "Backend is running (PID: $PID)"
+            log_message "Frontend is running (PID: $PID)"
+            log_message "Available at http://localhost:5173/"
             return 0
         else
-            log_message "Backend process not found (PID: $PID)"
+            log_message "Frontend process not found (PID: $PID)"
             rm "$PID_FILE"
             return 1
         fi
     else
-        log_message "Backend is not running"
+        log_message "Frontend is not running"
         return 1
     fi
 }
 
 # restart 함수
 restart() {
-    log_message "Restarting Backend..."
+    log_message "Restarting Frontend..."
     stop
     sleep 2
     start

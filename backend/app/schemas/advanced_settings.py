@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 class AdvancedSettingsBase(BaseModel):
@@ -11,5 +11,4 @@ class AdvancedSettingsUpdate(AdvancedSettingsBase):
 class AdvancedSettingsResponse(AdvancedSettingsBase):
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

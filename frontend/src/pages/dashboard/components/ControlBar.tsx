@@ -11,6 +11,7 @@ import Divider from "@mui/material/Divider";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import SearchIcon from "@mui/icons-material/Search";
@@ -28,6 +29,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import CloseIcon from "@mui/icons-material/Close";
+import StorageIcon from "@mui/icons-material/Storage";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -59,6 +61,9 @@ interface ControlBarProps {
   onSave?: () => void;
   lastUpdated?: string;
   totalLogs?: number;
+  indexOptions?: string[];
+  selectedIndex?: string;
+  onIndexChange?: (index: string) => void;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({ 
@@ -80,14 +85,17 @@ const ControlBar: React.FC<ControlBarProps> = ({
   onCancel,
   onSave,
   lastUpdated,
-  totalLogs
+  totalLogs,
+  indexOptions = [],
+  selectedIndex = 'activities*',
+  onIndexChange
 }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [tempQuery, setTempQuery] = useState("");
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
-  const [popoverType, setPopoverType] = useState<'quick' | 'detailed'>('quick');
+  const [popoverType, setPopoverType] = useState<'quick' | 'detailed' | 'index'>('quick');
   const [editingPoint, setEditingPoint] = useState<'from' | 'to'>('from');
   const [tabValue, setTabValue] = useState(1);
 
@@ -138,6 +146,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
     setAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
   };
 
+  const handleIndexClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (indexOptions.length === 0) return;
+    event.stopPropagation();
+    setPopoverType('index');
+    setAnchorEl(event.currentTarget as HTMLDivElement);
+  };
+
   const handleFromClick = (event: React.MouseEvent<HTMLDivElement>) => {
     setPopoverType('detailed');
     setEditingPoint('from');
@@ -173,6 +188,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
   };
 
   const handleClose = () => { setAnchorEl(null); };
+
+  const handleIndexSelect = (index: string) => {
+    if (onIndexChange) onIndexChange(index);
+    handleClose();
+  };
 
   const handleApplyTime = () => {
     let finalFVal = fromValue;
@@ -262,7 +282,32 @@ const ControlBar: React.FC<ControlBarProps> = ({
         width: '100%' 
       }}>
         
-        {/* 1. Search Section (Expanded) */}
+        {/* 1. Index Info (Interactive) - Only if indexOptions provided */}
+        {indexOptions.length > 0 && (
+          <Box 
+            onClick={handleIndexClick}
+            sx={{ 
+              display: { xs: 'none', sm: 'flex' }, 
+              alignItems: 'center', 
+              bgcolor: BG_COLOR, 
+              border: `1px solid ${popoverType === 'index' && open ? KIBANA_TEAL : BORDER_COLOR}`, 
+              borderRadius: 1, 
+              px: 1, 
+              gap: 0.75,
+              minHeight: 32,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: theme.palette.action.hover }
+            }}
+          >
+            <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
+            <Typography variant="body2" sx={{ fontWeight: 'bold', color: TEXT_COLOR, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+              {selectedIndex === '*' ? t('allLogs') : selectedIndex}
+            </Typography>
+            <KeyboardArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 14 }} />
+          </Box>
+        )}
+
+        {/* 2. Search Section (Expanded) */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -492,8 +537,44 @@ const ControlBar: React.FC<ControlBarProps> = ({
         </Box>
       )}
 
-      <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }} PaperProps={{ sx: { width: popoverType === 'quick' ? 450 : 480, mt: 1, borderRadius: 1, boxShadow: theme.shadows[10], bgcolor: theme.palette.background.paper, overflow: 'hidden' } }}>
-        {popoverType === 'quick' ? (
+      <Popover open={open} anchorEl={anchorEl} onClose={handleClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }} transformOrigin={{ vertical: 'top', horizontal: 'left' }} PaperProps={{ sx: { width: popoverType === 'index' ? 300 : (popoverType === 'quick' ? 450 : 480), mt: 1, borderRadius: 1, boxShadow: theme.shadows[10], bgcolor: theme.palette.background.paper, overflow: 'hidden' } }}>
+        {popoverType === 'index' ? (
+          <Box sx={{ p: 0 }}>
+            <Box sx={{ p: 1, borderBottom: `1px solid ${BORDER_COLOR}`, bgcolor: BG_COLOR }}>
+              <TextField 
+                fullWidth 
+                size="small" 
+                placeholder={t('search')} 
+                autoFocus
+                onChange={(e) => {
+                  const val = e.target.value.toLowerCase();
+                  const items = document.querySelectorAll('.index-item');
+                  items.forEach((item: any) => {
+                    item.style.display = item.innerText.toLowerCase().includes(val) ? 'block' : 'none';
+                  });
+                }}
+                sx={{ "& .MuiInputBase-input": { fontSize: '0.8rem', py: 0.5 } }}
+              />
+            </Box>
+            <Box sx={{ maxHeight: 300, overflowY: 'auto', py: 0.5 }}>
+              {indexOptions.map((index) => (
+                <MenuItem 
+                  key={index} 
+                  className="index-item"
+                  onClick={() => handleIndexSelect(index)}
+                  selected={selectedIndex === index}
+                  sx={{ 
+                    fontSize: '0.8rem', 
+                    py: 1,
+                    '&.Mui-selected': { bgcolor: `${KIBANA_TEAL}22`, color: KIBANA_TEAL, fontWeight: 'bold' }
+                  }}
+                >
+                  {index === '*' ? t('allLogs') : index}
+                </MenuItem>
+              ))}
+            </Box>
+          </Box>
+        ) : popoverType === 'quick' ? (
           <Box sx={{ p: 2 }}>
             <Box sx={{ mb: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>

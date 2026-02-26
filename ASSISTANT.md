@@ -12,13 +12,13 @@
 > - 모든 작업은 로컬에서 완료한 후 사용자의 확인을 거쳐야 함.
 > - "푸시해줘", "원격 저장소에 반영해" 등의 명시적인 요청이 있을 때만 `git push` 수행.
 
-### 원격 Git Push 시 HISTORY.md 기록 의무
+### 원격 Git Push 시 docs/HISTORY.md 기록 의무
 
-> **원격 Git에 Push할 때 반드시 `HISTORY.md`에 이력을 남길 것. 예외 없음.**
+> **원격 Git에 Push할 때 반드시 `docs/HISTORY.md`에 이력을 남길 것. 예외 없음.**
 >
 > - 작업 유형: `배포`
 > - 내용에 브랜치명 명시 (예: `origin/develop push`, `origin/main push`)
-> - Push 직전에 `HISTORY.md`에 기록을 추가한 후 함께 커밋하여 Push
+> - Push 직전에 `docs/HISTORY.md`에 기록을 추가한 후 함께 커밋하여 Push
 > - 날짜 형식: `YYYY-MM-DD HH:MM`
 > - 예시: `| 2026-01-29 21:42 | 김장훈 | 배포 | origin/develop push (ROADMAP, 문서 동기화) |`
 
@@ -183,6 +183,7 @@ frontend/src/
 frontend/src/locales/
 ├── ko.json    # 한국어
 ├── en.json    # 영어
+├── cn.json    # 중국어
 └── ja.json    # 일본어
 ```
 
@@ -369,7 +370,7 @@ EOF
 | `docs/INSTALL.md` | 로컬 PC 개발 환경 설치 가이드 |
 | `docs/GIT_GUIDE.md` | Git 브랜치 전략 및 작업 가이드 |
 | `docs/DEPLOY.md` | Docker 이미지 빌드 및 서버 배포 가이드 |
-| `ROADMAP.md` | 기능 개발 로드맵 및 진행 체크리스트 |
+| `docs/ROADMAP.md` | 기능 개발 로드맵 및 진행 체크리스트 |
 
 ## 프로덕션 아키텍처
 
