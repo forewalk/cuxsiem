@@ -84,7 +84,7 @@
   "unit_m": "분",
   "unit_h": "시간",
   "unit_d": "일",
-  "searchPlaceholder": "로그 검색 (예: SentinelOne)",
+  "searchPlaceholder": "로그 검색 (예: field1: \"value1\" AND field2: \"value2\")",
   "lastUpdated": "마지막 갱신",
   "totalLogs": "전체 로그 (필터링)",
   "logActivityTrend": "로그 발생 추이",
