@@ -66,25 +66,23 @@ const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
  */
 interface LogStreamControlBarProps {
   t: (key: string, params?: Record<string, string>) => string;
-  searchQuery: string;
-  onSearchQueryChange: (query: string) => void;
+  keyword: string;
+  onKeywordChange: (keyword: string) => void;
+  filters: string[];
+  onFiltersChange: (filters: string[]) => void;
   indexOptions: string[];
   selectedIndex: string;
   onIndexChange: (index: string) => void;
+  onRefresh: () => void;
 }
 
-const LogStreamControlBar = React.memo(({ t, searchQuery, onSearchQueryChange, indexOptions, selectedIndex, onIndexChange }: LogStreamControlBarProps) => {
-  const [tempQuery, setTempQuery] = useState("");
+const LogStreamControlBar = React.memo(({ t, keyword, onKeywordChange, filters, onFiltersChange, indexOptions, selectedIndex, onIndexChange, onRefresh }: LogStreamControlBarProps) => {
   const [indexAnchorEl, setIndexAnchorEl] = useState<HTMLDivElement | null>(null);
   const KIBANA_TEAL = "#005a5e";
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const trimmed = tempQuery.trim();
-    if (trimmed) {
-      onSearchQueryChange(searchQuery ? `${searchQuery} AND ${trimmed}` : trimmed);
-      setTempQuery("");
-    }
+    onRefresh(); // 엔터 시 즉시 검색 실행
   };
 
   return (
@@ -95,17 +93,42 @@ const LogStreamControlBar = React.memo(({ t, searchQuery, onSearchQueryChange, i
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider', borderRadius: 1, flexGrow: 1, overflow: 'hidden', minHeight: 36 }}>
           <Box sx={{ px: 1, display: 'flex', alignItems: 'center' }}><SearchIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} /></Box>
-          <Box component="form" onSubmit={handleSearchSubmit} sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}><TextField fullWidth size="small" variant="standard" placeholder={t('searchPlaceholder')} value={tempQuery} onChange={(e) => setTempQuery(e.target.value)} sx={{ "& .MuiInput-underline:before, & .MuiInput-underline:after": { border: 'none' }, "& .MuiInputBase-input": { py: 0.5, px: 0.5, fontSize: '0.85rem' } }} /></Box>
-          {tempQuery && (<IconButton size="small" onClick={() => setTempQuery("")} sx={{ p: 0.5, mr: 0.5 }}><CloseIcon sx={{ fontSize: 16 }} /></IconButton>)}
+          <Box component="form" onSubmit={handleSearchSubmit} sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+            <TextField 
+              fullWidth size="small" variant="standard" 
+              placeholder={t('searchPlaceholder')} 
+              value={keyword} 
+              onChange={(e) => onKeywordChange(e.target.value)} 
+              sx={{ "& .MuiInput-underline:before, & .MuiInput-underline:after": { border: 'none' }, "& .MuiInputBase-input": { py: 0.5, px: 0.5, fontSize: '0.85rem' } }} 
+            />
+          </Box>
+          {keyword && (
+            <IconButton size="small" onClick={() => onKeywordChange("")} sx={{ p: 0.5, mr: 0.5 }}>
+              <CloseIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          )}
         </Box>
       </Box>
-      {searchQuery && (
+      {filters.length > 0 && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5 }}>
-          {searchQuery.split(" AND ").map((filter: string, index: number) => (
-            <Chip key={index} label={filter.trim()} size="small" color="primary" variant="outlined" onDelete={() => {
-              const filters = searchQuery.split(" AND ").map((s: string) => s.trim()).filter((f: string) => f !== filter.trim());
-              onSearchQueryChange(filters.join(" AND "));
-            }} sx={{ borderRadius: 1, height: 24, fontSize: '0.75rem', bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(0, 90, 94, 0.1)' : '#eef6f6' }} />
+          {filters.map((filter: string, index: number) => (
+            <Chip 
+              key={index} 
+              label={filter} 
+              size="small" 
+              color="primary" 
+              variant="outlined" 
+              onDelete={() => {
+                onFiltersChange(filters.filter(f => f !== filter));
+              }} 
+              sx={{ 
+                borderRadius: 1, 
+                height: 24, 
+                fontSize: '0.75rem', 
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(0, 90, 94, 0.1)' : '#eef6f6',
+                "& .MuiChip-label": { userSelect: 'text', cursor: 'text' }
+              }} 
+            />
           ))}
         </Box>
       )}
@@ -162,7 +185,8 @@ const TimeSettingPopover = React.memo(({ open, anchorEl, onClose, onApply, onCom
       setLocalDate(initialData.popoverDate ?? initialData.date);
       setLocalTime(initialData.popoverTime ?? initialData.time);
     }
-  }, [open, initialData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleApply = () => { onApply({ editingPoint: localEditingPoint, tabValue: localTab, val: localVal, unit: localUnit, date: localDate, time: localTime }); };
   const timeOptions = useMemo(() => { const ts = []; for (let h = 0; h < 24; h++) { for (let m = 0; m < 60; m += 30) { ts.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`); } } return ts; }, []);
@@ -202,9 +226,33 @@ const LogDetailPanel = React.memo(({ log, onClose, onFilterAdd, t }: LogDetailPa
   const [fieldWidth, setFieldWidth] = useState(200);
   const isResizing = useRef(false);
   const deferredSearch = useDeferredValue(search);
-  const startResizing = useCallback(() => { isResizing.current = true; document.addEventListener('mousemove', handleMouseMove); document.addEventListener('mouseup', stopResizing); document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; }, []);
-  const handleMouseMove = useCallback((e: MouseEvent) => { if (!isResizing.current) return; const pe = document.getElementById('log-detail-panel'); if (pe) { const r = pe.getBoundingClientRect(); const nw = e.clientX - r.left; if (nw > 100 && nw < r.width - 100) setFieldWidth(nw); } }, []);
-  const stopResizing = useCallback(() => { isResizing.current = false; document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', stopResizing); document.body.style.cursor = 'default'; document.body.style.userSelect = 'auto'; }, [handleMouseMove]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => { 
+    if (!isResizing.current) return; 
+    const pe = document.getElementById('log-detail-panel'); 
+    if (pe) { 
+      const r = pe.getBoundingClientRect(); 
+      const nw = e.clientX - r.left; 
+      if (nw > 100 && nw < r.width - 100) setFieldWidth(nw); 
+    } 
+  }, []);
+
+  const stopResizing = useCallback(() => { 
+    isResizing.current = false; 
+    document.removeEventListener('mousemove', handleMouseMove); 
+    document.removeEventListener('mouseup', stopResizing); 
+    document.body.style.cursor = 'default'; 
+    document.body.style.userSelect = 'auto'; 
+  }, [handleMouseMove]);
+
+  const startResizing = useCallback(() => { 
+    isResizing.current = true; 
+    document.addEventListener('mousemove', handleMouseMove); 
+    document.addEventListener('mouseup', stopResizing); 
+    document.body.style.cursor = 'col-resize'; 
+    document.body.style.userSelect = 'none'; 
+  }, [handleMouseMove, stopResizing]);
+
   const startResizingBound = useCallback(() => startResizing(), [startResizing]);
 
   const flatD = useMemo(() => { const c = { _id: log._id, _index: log._index, timestamp: log.timestamp, ...(log._source || {}) }; const f = flattenObject(c); return Object.entries(f).map(([k, v]) => ({ k, v: typeof v === 'object' ? JSON.stringify(v) : String(v) })).sort((a, b) => a.k.localeCompare(b.k)); }, [log]);
@@ -309,7 +357,10 @@ const LogStreamingTab: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { activeTabId } = useTabStore();
   const isActive = activeTabId === 'LogStreamingTab';
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  // 검색어(Input)와 필터(Chips) 분리
+  const [keyword, setKeyword] = useState("");
+  const [filters, setFilters] = useState<string[]>([]);
 
   // 사용 가능한 모든 필드 추출
   const availableFields = useMemo(() => {
@@ -323,15 +374,10 @@ const LogStreamingTab: React.FC = () => {
     return Array.from(fieldSet).sort();
   }, [logs]);
 
-  // 정밀 검색 필터링 (Server-Side와 연동되지만 Client-Side에서 한번 더 보정)
+  // 백엔드에서 이미 검색 결과가 오므로 클라이언트 측 중복 필터링은 제거하고 정렬이나 형식만 보장
   const filteredLogs = useMemo(() => {
-    if (!searchQuery) return logs;
-    const parts = searchQuery.split(" AND ").map(p => p.trim().toLowerCase()).filter(Boolean);
-    return logs.filter(l => {
-      const text = `${l._index} ${l.message} ${JSON.stringify(l._source)}`.toLowerCase();
-      return parts.every(p => text.includes(p));
-    });
-  }, [logs, searchQuery]);
+    return logs; // 백엔드 검색 결과(logs)를 그대로 사용
+  }, [logs]);
 
   // 현재 보고 있는 로그의 날짜 (헤더용)
   const currentLogDate = useMemo(() => {
@@ -354,9 +400,11 @@ const LogStreamingTab: React.FC = () => {
 
   const handleFilterAdd = useCallback((field: string, value: string) => {
     const newFilter = `${field}: "${value}"`;
-    if (searchQuery.includes(newFilter)) return;
-    setSearchQuery(prev => prev ? `${prev} AND ${newFilter}` : newFilter);
-  }, [searchQuery]);
+    setFilters(prev => {
+      if (prev.includes(newFilter)) return prev;
+      return [...prev, newFilter];
+    });
+  }, []);
 
   const [fromValue, setFromValue] = useState<number | null>(15);
   const [fromUnit, setFromUnit] = useState("m");
@@ -383,7 +431,10 @@ const LogStreamingTab: React.FC = () => {
         if (fromDate) ft = fromDate; else if (fromValue !== null) ft = `now-${fromValue}${fromUnit}`;
         if (toDate) tt = toDate; else if (toValue !== null) tt = `now-${toValue}${toUnit}`;
       } else { if (!lastTimestampRef.current) ft = "now-15m"; }
-      const r = await logService.getLogStream(lastTimestampRef.current, MAX_LOGS, searchQuery, selectedIndex, ft, tt);
+      
+      // 검색어와 필터를 AND로 결합
+      const combinedQuery = [keyword, ...filters].filter(Boolean).map(q => `(${q})`).join(" AND ");
+      const r = await logService.getLogStream(lastTimestampRef.current, MAX_LOGS, combinedQuery, selectedIndex, ft, tt);
       if (r.logs.length > 0) {
         setLogs(prev => {
           if (!lastTimestampRef.current) return r.logs.slice(-MAX_LOGS);
@@ -394,9 +445,9 @@ const LogStreamingTab: React.FC = () => {
         lastTimestampRef.current = r.last_timestamp;
       }
     } catch (e) { console.error(e); } finally { if (isManual) setLoading(true); setLoading(false); }
-  }, [isActive, isPaused, searchQuery, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit]);
+  }, [isActive, isPaused, keyword, filters, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit]);
 
-  useEffect(() => { if (isActive) { setLogs([]); lastTimestampRef.current = null; fetchLogs(true); } }, [searchQuery, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit, isActive, fetchLogs]);
+  useEffect(() => { if (isActive) { setLogs([]); lastTimestampRef.current = null; fetchLogs(true); } }, [keyword, filters, selectedIndex, fromDate, toDate, fromValue, fromUnit, toValue, toUnit, isActive, fetchLogs]);
   useEffect(() => { const timer = setInterval(() => fetchLogs(), POLL_INTERVAL); return () => clearInterval(timer); }, [fetchLogs]);
   useEffect(() => { if (autoScroll && scrollRef.current && isActive) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [logs, autoScroll, isActive]);
   
@@ -429,19 +480,31 @@ const LogStreamingTab: React.FC = () => {
   const handleCommonT = (v: number, u: string) => { if (v === 0 && u === 'd') { setFromDate(dayjs().startOf('day').toISOString()); setFromValue(null); } else { setFromValue(v); setFromUnit(u); setFromDate(null); } setToValue(null); setToUnit("m"); setToDate(null); setTimeAnchorEl(null); };
   const renderFV = (l: LogEntry, f: string) => { if (f === 'timestamp') return dayjs(l.timestamp).format('HH:mm:ss.SSS'); if (f === '_index') return l._index; if (f === 'message') return l.message; const s = (l as any)._source || {}; const v = f.split('.').reduce((o, k) => o?.[k], s); return v !== undefined ? String(v) : '-'; };
 
+  const hasSearchOrFilter = keyword || filters.length > 0;
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', p: 3, gap: 1 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      <LogStreamControlBar t={t} searchQuery={searchQuery} onSearchQueryChange={setSearchQuery} indexOptions={indexOptions} selectedIndex={selectedIndex} onIndexChange={setSelectedIndex} />
+      <LogStreamControlBar 
+        t={t} 
+        keyword={keyword} 
+        onKeywordChange={setKeyword}
+        filters={filters}
+        onFiltersChange={setFilters}
+        indexOptions={indexOptions} 
+        selectedIndex={selectedIndex} 
+        onIndexChange={setSelectedIndex} 
+        onRefresh={() => fetchLogs(true)}
+      />
       <Paper elevation={1} sx={{ p: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', borderRadius: 2, overflow: 'hidden' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <TerminalIcon color="primary" />
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('logStreaming')}</Typography>
             <Chip 
-              icon={searchQuery ? <FilterIcon sx={{ fontSize: '0.8rem !important' }} /> : undefined}
-              label={`${filteredLogs.length}${searchQuery ? ` / ${logs.length}` : ''} logs`} 
-              size="small" variant={searchQuery ? "filled" : "outlined"} color={searchQuery ? "primary" : "default"}
+              icon={hasSearchOrFilter ? <FilterIcon sx={{ fontSize: '0.8rem !important' }} /> : undefined}
+              label={`${filteredLogs.length}${hasSearchOrFilter ? ` / ${logs.length}` : ''} logs`} 
+              size="small" variant={hasSearchOrFilter ? "filled" : "outlined"} color={hasSearchOrFilter ? "primary" : "default"}
               sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} 
             />
           </Box>

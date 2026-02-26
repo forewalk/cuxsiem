@@ -80,7 +80,10 @@ async def stream_logs(
         must_queries.append({
             "query_string": {
                 "query": q,
-                "default_field": "*"
+                "default_field": "*",
+                "allow_leading_wildcard": True,
+                "analyze_wildcard": True,
+                "default_operator": "AND"
             }
         })
 
