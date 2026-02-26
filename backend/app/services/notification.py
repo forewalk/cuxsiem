@@ -158,7 +158,8 @@ class NotificationService:
             if "sort" not in search_body:
                 search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
 
-            logger.info(f"Running detection for rule '{rule['name']}' on index '{target_index}' (Custom DSL)")
+            logger.info(f"[탐지] 규칙 '{rule['name']}' 인덱스 '{target_index}'에서 탐지 실행 (사용자 정의 DSL)")
+            logger.info(f"[탐지] 쿼리: {search_body}")
 
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
@@ -168,6 +169,8 @@ class NotificationService:
 
             hits = result.get("hits", {}).get("hits", [])
             total = result.get("hits", {}).get("total", {}).get("value", 0)
+            
+            logger.info(f"[탐지] 규칙 '{rule['name']}' 쿼리 결과: {total}개 이벤트 발견")
 
             await self.repository.update_rule(rule_id, {
                 "last_success_at": now.isoformat(),
@@ -176,7 +179,7 @@ class NotificationService:
             })
 
             if total > 0:
-                logger.info(f"Rule '{rule['name']}' triggered: {total} events found.")
+                logger.info(f"[탐지] 규칙 '{rule['name']}' 발동: {total}개 이벤트 발견, 처리 시작...")
 
                 created_alerts = []
                 newly_created_count = 0
@@ -191,8 +194,10 @@ class NotificationService:
                     # 중복 체크: 이미 동일한 dedup_key를 가진 알림이 있는지 확인
                     existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
                     if existing_alert:
-                        logger.info(f"Duplicate alert skipped for rule '{rule['name']}' with dedup_key: {dedup_key}")
+                        logger.info(f"[탐지] 중복 알림 건너뜀 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
                         continue
+                    
+                    logger.info(f"[탐지] 새 알림 생성 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
 
                     # 메시지 템플릿 렌더링을 위한 context 구성
                     # event_source의 모든 필드 + 메타 정보 포함
@@ -246,7 +251,7 @@ class NotificationService:
                     newly_created_count += 1
 
                     # 터미널에서 즉시 확인할 수 있도록 출력
-                    print(f"\n{'='*50}\n[ALERT DETECTED] {created_alert['rule_name']}\nMessage: {created_alert['message']}\nEvent: {event_index}/{event_ref}\n{'='*50}\n")
+                    print(f"\n{'='*50}\n[알림 탐지] {created_alert['rule_name']}\n메시지: {created_alert['message']}\n이벤트: {event_index}/{event_ref}\n{'='*50}\n")
 
                     # WebSocket으로 실시간 알림 전송
                     try:
@@ -267,7 +272,7 @@ class NotificationService:
                                     }
                                 }
                             )
-                            logger.info(f"WebSocket alert sent to roles: {receiver_values}")
+                            logger.info(f"WebSocket 알림 전송 완료 - 수신자 역할: {receiver_values}")
                         else:
                             # 수신자 없으면 모든 연결에 브로드캐스트
                             await manager.broadcast({
@@ -281,9 +286,9 @@ class NotificationService:
                                     "created_at": created_alert["created_at"]
                                 }
                             })
-                            logger.info("WebSocket alert broadcasted to all users")
+                            logger.info("WebSocket 알림 브로드캐스트 완료 - 전체 사용자")
                     except Exception as ws_error:
-                        logger.error(f"Failed to send WebSocket alert: {ws_error}")
+                        logger.error(f"WebSocket 알림 전송 실패: {ws_error}")
                         # WebSocket 실패해도 알림 생성은 계속 진행
 
                 # 룰 통계 업데이트: 실제 생성된 알림 수 가산
@@ -294,12 +299,14 @@ class NotificationService:
                     })
 
                 return created_alerts[0] if created_alerts else None
+            else:
+                logger.info(f"[탐지] 규칙 '{rule['name']}' - 조건에 맞는 이벤트 없음 (total: {total})")
 
             return None
 
         except Exception as e:
             error_msg = str(e)
-            logger.error(f"Error running detection for rule {rule_id}: {error_msg}")
+            logger.error(f"규칙 {rule_id} 탐지 실행 오류: {error_msg}")
             await self.repository.update_rule(rule_id, {
                 "last_error": error_msg,
                 "error_count": rule.get("error_count", 0) + 1

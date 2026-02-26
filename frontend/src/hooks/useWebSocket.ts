@@ -99,6 +99,12 @@ export const useWebSocket = ({
       };
 
       ws.current.onerror = (error) => {
+        // React StrictMode에서 발생하는 개발 모드 경고는 무시
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ WebSocket 오류 (개발 모드에서는 무시 가능):', error);
+        } else {
+          console.error('❌ WebSocket 오류:', error);
+        }
         onErrorRef.current?.(error);
       };
 
@@ -142,7 +148,10 @@ export const useWebSocket = ({
     }
 
     if (ws.current) {
-      ws.current.close();
+      // CONNECTING이나 OPEN 상태일 때만 close 호출
+      if (ws.current.readyState === WebSocket.CONNECTING || ws.current.readyState === WebSocket.OPEN) {
+        ws.current.close();
+      }
       ws.current = null;
     }
 

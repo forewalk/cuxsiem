@@ -92,17 +92,29 @@ const NotificationRuleListTab: React.FC = () => {
 
   // WebSocket 실시간 새로고침 연동
   const token = localStorage.getItem('access_token');
-  // API URL에서 프로토콜과 호스트 추출하여 WS URL 구성
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-  const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
-  const wsUrl = `${wsBaseUrl}/api/v1/ws`;
+  
+  // WebSocket URL 생성 (배포 환경 고려)
+  const wsUrl = useMemo(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    
+    // 개발 환경에서는 환경 변수 사용
+    if (import.meta.env.DEV && import.meta.env.VITE_API_BASE_URL) {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+      const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
+      return `${wsBaseUrl}/api/v1/ws/alerts`;
+    }
+    
+    // 배포 환경: 현재 호스트 사용 (Nginx 리버스 프록시 통과)
+    return `${protocol}//${host}/api/v1/ws/alerts`;
+  }, []);
 
   useWebSocket({
     url: wsUrl,
     token,
     onMessage: (data) => {
       if (data.type === 'new_alert') {
-        console.log('Real-time rule update triggered by WebSocket');
+        console.log('실시간 알림 수신 - 규칙 목록 새로고침');
         loadRules();
       }
     }
@@ -199,7 +211,19 @@ const NotificationRuleListTab: React.FC = () => {
   const handleOpenDialog = (rule: NotificationRule | null = null) => {
     if (rule) {
       setEditingRule(rule);
-      setFormData({...rule});
+      // 깊은 복사로 중첩 객체도 복사
+      setFormData({
+        name: rule.name,
+        description: rule.description,
+        target_index: rule.target_index,
+        condition_config: JSON.parse(JSON.stringify(rule.condition_config)),
+        message_template: rule.message_template,
+        severity: rule.severity,
+        interval_min: rule.interval_min,
+        dedup_key_template: rule.dedup_key_template,
+        receiver: JSON.parse(JSON.stringify(rule.receiver)),
+        is_active: rule.is_active
+      });
       setDslString(JSON.stringify(rule.condition_config, null, 2));
     } else {
       setEditingRule(null);
@@ -228,12 +252,18 @@ const NotificationRuleListTab: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      if (editingRule) await notificationService.updateRule(editingRule.id, formData);
-      else await notificationService.createRule(formData);
+      if (editingRule) {
+        console.log('Updating rule:', editingRule.id, formData);
+        await notificationService.updateRule(editingRule.id, formData);
+      } else {
+        console.log('Creating rule:', formData);
+        await notificationService.createRule(formData);
+      }
       setSnackbar({open: true, message: t('ruleSaveSuccess'), severity: 'success'});
       handleCloseDialog();
       loadRules();
-    } catch {
+    } catch (error) {
+      console.error('Failed to save rule:', error);
       setSnackbar({open: true, message: t('saveFailed'), severity: 'error'});
     }
   };
@@ -252,9 +282,12 @@ const NotificationRuleListTab: React.FC = () => {
 
   const handleToggleActive = async (rule: NotificationRule) => {
     try {
+      console.log('Toggling active status for rule:', rule.id, 'to', !rule.is_active);
       await notificationService.updateRule(rule.id, {is_active: !rule.is_active});
+      setSnackbar({open: true, message: t('ruleSaveSuccess'), severity: 'success'});
       loadRules();
-    } catch {
+    } catch (error) {
+      console.error('Failed to toggle active status:', error);
       setSnackbar({open: true, message: t('saveFailed'), severity: 'error'});
     }
   };

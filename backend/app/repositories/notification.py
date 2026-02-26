@@ -1,9 +1,12 @@
 import asyncio
+import logging
 from typing import Optional, List, Tuple, Dict, Any
 from datetime import datetime
 import uuid
 
 from app.core.opensearch import get_opensearch_client
+
+logger = logging.getLogger(__name__)
 
 class NotificationRepository:
     """알림 규칙 및 내역 Repository"""
@@ -171,6 +174,7 @@ class NotificationRepository:
         """규칙 수정"""
         loop = asyncio.get_event_loop()
         data["updated_at"] = datetime.utcnow().isoformat()
+        logger.info(f"규칙 업데이트 시작 - ID: {rule_id}, 데이터: {data}")
         def update_doc():
             try:
                 self.client.update(
@@ -179,8 +183,10 @@ class NotificationRepository:
                     body={"doc": data},
                     refresh=True
                 )
+                logger.info(f"규칙 업데이트 성공 - ID: {rule_id}")
                 return True
-            except Exception:
+            except Exception as e:
+                logger.error(f"규칙 업데이트 실패 - ID: {rule_id}, 오류: {e}")
                 return False
         if await loop.run_in_executor(None, update_doc):
             return await self.get_rule_by_id(rule_id)
