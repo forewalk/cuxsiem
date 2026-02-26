@@ -66,6 +66,15 @@
   - [ ] 레트로 게임 스타일 색상 팔레트 (CRT, VGA, Commodore 64 등)
   - [ ] 픽셀 아트 애니메이션 효과 (로딩, 트랜지션)
 
+### 배포 및 자동화
+- [ ] 초기 설정 자동화 스크립트/쉘
+  - [ ] OpenSearch 설치 자동화
+  - [ ] 기본 인덱스 생성 (cs_users, cs_sessions, cs_login_attempts, cs_dashboards, cs_alerts, cs_code 등)
+  - [ ] 기본 관리자 계정 생성 (administrator)
+  - [ ] 초기 설정값 적용 (패스워드 정책, 고급 설정 등)
+  - [ ] 헬스 체크 및 검증 스크립트
+  - [ ] One-command 배포 스크립트 (./scripts/init.sh)
+
 ---
 
 ## 디자인 리소스

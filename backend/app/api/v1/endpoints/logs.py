@@ -13,28 +13,35 @@ async def get_indices(
     os_client=Depends(get_opensearch)
 ):
     """
-    사용 가능한 OpenSearch 인덱스 목록을 조회합니다.
+    사용 가능한 OpenSearch 인덱스 및 데이터스트림 목록을 조회합니다.
     시스템 인덱스(.)를 제외하고 반환합니다.
     """
     try:
         # 인덱스 목록 조회
-        response = os_client.cat.indices(format="json")
-        
-        # 시스템 인덱스(.) 및 내부용 인덱스 제외 필터링
+        indices_response = os_client.cat.indices(format="json")
         indices = [
-            item["index"] for item in response 
+            item["index"] for item in indices_response 
             if not item["index"].startswith(".") 
             and not item["index"].startswith("security-auditlog")
         ]
         
-        # 중복 제거 및 정렬
-        unique_indices = sorted(list(set(indices)))
+        # 데이터스트림 목록 조회
+        datastreams = []
+        try:
+            ds_response = os_client.indices.get_data_stream()
+            datastreams = [ds["name"] for ds in ds_response.get("data_streams", [])]
+        except Exception:
+            # 데이터스트림이 없거나 지원하지 않는 버전인 경우 무시
+            pass
+        
+        # 전체 목록 병합 (인덱스 + 데이터스트림)
+        all_targets = sorted(list(set(indices + datastreams)))
         
         # activities* 패턴이 목록에 없다면 수동 추가 (기본 인덱스 보장)
-        if not any(idx.startswith("activities") for idx in unique_indices):
-            unique_indices.insert(0, "activities*")
+        if not any(target.startswith("activities") for target in all_targets):
+            all_targets.insert(0, "activities*")
 
-        return {"indices": unique_indices}
+        return {"indices": all_targets}
     except Exception as e:
         return {"indices": ["activities*"]}
 

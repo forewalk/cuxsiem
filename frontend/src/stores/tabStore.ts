@@ -11,20 +11,22 @@ export interface TabInfo {
 interface TabState {
   tabs: TabInfo[];
   activeTabId: string | null;
+  maxTabs: number;
   addTab: (tab: Omit<TabInfo, 'id'>, generateId?: (tab: Omit<TabInfo, 'id'>) => string) => void;
   removeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
+  setMaxTabs: (count: number) => void;
+  reorderTabs: (startIndex: number, endIndex: number) => void;
 }
-
-const MAX_TABS = 10; // 탭 개수 상향
 
 const useTabStore = create<TabState>((set, get) => ({
   tabs: [],
   activeTabId: null,
+  maxTabs: 10,
 
   addTab: (tab, generateId = (t) => t.component) => {
     const newTabId = generateId(tab);
-    const { tabs } = get();
+    const { tabs, maxTabs } = get();
 
     const existingTab = tabs.find((t) => t.id === newTabId);
     if (existingTab) {
@@ -32,8 +34,8 @@ const useTabStore = create<TabState>((set, get) => ({
       return;
     }
 
-    if (tabs.length >= MAX_TABS) {
-      alert(`탭은 최대 ${MAX_TABS}개까지 열 수 있습니다.`);
+    if (tabs.length >= maxTabs) {
+      alert(`탭은 최대 ${maxTabs}개까지 열 수 있습니다.`);
       return;
     }
 
@@ -42,6 +44,14 @@ const useTabStore = create<TabState>((set, get) => ({
       tabs: [...state.tabs, newTab],
       activeTabId: newTabId,
     }));
+  },
+
+  reorderTabs: (startIndex, endIndex) => {
+    const { tabs } = get();
+    const newTabs = Array.from(tabs);
+    const [removed] = newTabs.splice(startIndex, 1);
+    newTabs.splice(endIndex, 0, removed);
+    set({ tabs: newTabs });
   },
 
   removeTab: (id) => {
@@ -61,6 +71,7 @@ const useTabStore = create<TabState>((set, get) => ({
   },
 
   setActiveTab: (id) => set({ activeTabId: id }),
+  setMaxTabs: (count) => set({ maxTabs: count }),
 }));
 
 export default useTabStore;

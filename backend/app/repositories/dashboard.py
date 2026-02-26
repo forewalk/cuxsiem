@@ -84,15 +84,22 @@ class DashboardRepository:
                     if w_type == "metric": agg_body = {"filter": {"match_all": {}}}
                     else: agg_body = {"terms": {"field": t_field or "@timestamp", "size": 10}}
 
-                # 3. 쿼리 필터 적용
-                if c_query and c_query.strip() and c_query != "*":
+                # 3. 쿼리 필터 적용 (시스템 기본 필터를 사용자가 입력한 쿼리로 대체)
+                if c_query and c_query.strip():
                     try:
+                        # JSON 형태의 쿼리인지 확인
                         f_q = json.loads(c_query) if c_query.strip().startswith('{') else {"query_string": {"query": c_query, "analyze_wildcard": True, "default_operator": "AND"}}
-                    except: f_q = {"query_string": {"query": c_query, "analyze_wildcard": True}}
+                    except:
+                        f_q = {"query_string": {"query": c_query, "analyze_wildcard": True}}
                     
-                    if "terms" in agg_body: final_aggs[pk] = {"filter": f_q, "aggs": {"inner": agg_body}}
-                    else: final_aggs[pk] = {"filter": f_q}
+                    if "terms" in agg_body: 
+                        # 차트인 경우: 필터로 감싸고 그 안에 집계 추가
+                        final_aggs[pk] = {"filter": f_q, "aggs": {"inner": agg_body}}
+                    else:
+                        # 메트릭인 경우: 필터 자체를 교체
+                        final_aggs[pk] = {"filter": f_q}
                 else:
+                    # 커스텀 쿼리가 없으면 시스템 기본 집계 사용
                     final_aggs[pk] = agg_body
 
             body = {"size": 0, "track_total_hits": True, "query": {"bool": {"must": must_queries, "must_not": [{"exists": {"field": "deleted_at"}}]}}, "aggs": final_aggs}
