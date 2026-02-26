@@ -132,6 +132,149 @@ class NotificationService:
         
         # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
         return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
+    
+    def _format_aggregation_results(self, aggregations: Dict[str, Any]) -> str:
+        """
+        집계 결과를 포맷팅된 문자열로 변환
+        """
+        formatted_lines = []
+        
+        for agg_name, agg_data in aggregations.items():
+            if "buckets" in agg_data:
+                buckets = agg_data["buckets"]
+                for bucket in buckets:
+                    key = bucket.get("key", "Unknown")
+                    doc_count = bucket.get("doc_count", 0)
+                    
+                    line = f"  - {key}: {doc_count}건"
+                    
+                    # 중첩 집계가 있는 경우
+                    for nested_agg_name, nested_agg_data in bucket.items():
+                        if isinstance(nested_agg_data, dict) and "buckets" in nested_agg_data:
+                            nested_buckets = nested_agg_data["buckets"]
+                            if nested_buckets:
+                                nested_items = [f"{b.get('key', '')} ({b.get('doc_count', 0)}건)" 
+                                              for b in nested_buckets[:3]]  # 상위 3개만
+                                line += f"\n    주요 항목: {', '.join(nested_items)}"
+                    
+                    formatted_lines.append(line)
+        
+        return "\n".join(formatted_lines) if formatted_lines else "집계 결과 없음"
+    
+    async def _create_aggregation_alert(
+        self, 
+        rule: Dict[str, Any], 
+        result: Dict[str, Any],
+        now: datetime,
+        aggregations: Dict[str, Any],
+        total: int
+    ):
+        """집계 결과 기반 알림 생성 (하나의 알림으로 통합)"""
+        rule_id = rule["id"]
+        target_index = rule.get("target_index", "logs-sentinel_one.threats")
+        
+        # 집계 결과 포맷팅
+        aggregation_summary = self._format_aggregation_results(aggregations)
+        
+        # 버킷 개수 계산 (PC 개수 등)
+        bucket_count = 0
+        for agg_name, agg_data in aggregations.items():
+            if "buckets" in agg_data:
+                bucket_count = len(agg_data["buckets"])
+                break
+        
+        # 중복 제거 키: 규칙 ID + 시간 윈도우 (분 단위로 동일 규칙은 하나의 알림만)
+        time_window = now.replace(second=0, microsecond=0).isoformat()
+        dedup_key = f"{rule_id}_{time_window}"
+        
+        # 중복 체크
+        existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
+        if existing_alert:
+            logger.info(f"[탐지] 중복 집계 알림 건너뜀 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
+            return None
+        
+        logger.info(f"[탐지] 새 집계 알림 생성 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
+        
+        # 메시지 템플릿 렌더링을 위한 context 구성
+        template_context = {
+            "total": total,
+            "bucket_count": bucket_count,
+            "pc_count": bucket_count,  # 별칭
+            "rule_name": rule.get("name"),
+            "rule_id": rule_id,
+            "rule_severity": rule.get("severity"),
+            "target_index": target_index,
+            "aggregation_summary": aggregation_summary,
+            "aggregations": aggregations  # 원본 집계 데이터도 제공
+        }
+        
+        message_template = rule.get("message_template", "총 {{total}}개 이벤트, {{bucket_count}}개 그룹 발견\n\n{{aggregation_summary}}")
+        rendered_message = self._render_message_template(message_template, template_context)
+        
+        # cs_alerts 인덱스에 저장할 알림 데이터
+        alert_data = {
+            "rule_id": rule_id,
+            
+            # 규칙 메타데이터
+            "rule_name": rule.get("name", "Unknown Rule"),
+            "rule_description": rule.get("description"),
+            "rule_severity": rule.get("severity", "info"),
+            "rule_target_index": target_index,
+            
+            # 메시지 관련
+            "message": rendered_message,
+            "message_template": message_template,
+            
+            # 집계 알림 특성
+            "event_ref": f"aggregation_{rule_id}",
+            "event_index": target_index,
+            "event_source": {
+                "type": "aggregation",
+                "total": total,
+                "bucket_count": bucket_count,
+                "aggregations": aggregations
+            },
+            
+            # 중복 제거 및 수신자
+            "dedup_key": dedup_key,
+            "severity": rule.get("severity", "info"),
+            "receiver": rule.get("receiver"),
+            
+            # 상태
+            "status": "created",
+            "created_at": now.isoformat()
+        }
+        
+        created_alert = await self.repository.create_alert(alert_data)
+        
+        # 터미널에서 즉시 확인할 수 있도록 출력
+        print(f"\n{'='*50}\n[집계 알림 탐지] {created_alert['rule_name']}\n메시지:\n{created_alert['message']}\n{'='*50}\n")
+        
+        # WebSocket으로 실시간 알림 전송
+        try:
+            receiver_values = rule.get("receiver", {}).get("values", [])
+            ws_message = {
+                "type": "new_alert",
+                "data": {
+                    "id": created_alert["id"],
+                    "rule_name": created_alert["rule_name"],
+                    "message": created_alert["message"],
+                    "severity": created_alert["severity"],
+                    "rule_severity": created_alert["rule_severity"],
+                    "created_at": created_alert["created_at"]
+                }
+            }
+            
+            if receiver_values:
+                await manager.send_to_roles(roles=receiver_values, message=ws_message)
+                logger.info(f"WebSocket 집계 알림 전송 완료 - 수신자 역할: {receiver_values}")
+            else:
+                await manager.broadcast(ws_message)
+                logger.info("WebSocket 집계 알림 브로드캐스트 완료 - 전체 사용자")
+        except Exception as ws_error:
+            logger.error(f"WebSocket 알림 전송 실패: {ws_error}")
+        
+        return created_alert
 
     async def run_detection_for_rule(self, rule: Dict[str, Any]):
         """특정 규칙에 대한 탐지 엔진 실행 및 알림 생성"""
@@ -169,8 +312,9 @@ class NotificationService:
 
             hits = result.get("hits", {}).get("hits", [])
             total = result.get("hits", {}).get("total", {}).get("value", 0)
+            aggregations = result.get("aggregations") or result.get("aggs")
             
-            logger.info(f"[탐지] 규칙 '{rule['name']}' 쿼리 결과: {total}개 이벤트 발견")
+            logger.info(f"[탐지] 규칙 '{rule['name']}' 쿼리 결과: {total}개 이벤트 발견, 집계 결과: {'있음' if aggregations else '없음'}")
 
             await self.repository.update_rule(rule_id, {
                 "last_success_at": now.isoformat(),
@@ -178,6 +322,20 @@ class NotificationService:
                 "last_error": None
             })
 
+            # 집계 결과가 있는 경우 (aggregation 기반 알림)
+            if aggregations:
+                logger.info(f"[탐지] 규칙 '{rule['name']}' - 집계 알림 생성 시작")
+                created_alert = await self._create_aggregation_alert(rule, result, now, aggregations, total)
+                
+                if created_alert:
+                    await self.repository.update_rule(rule_id, {
+                        "last_triggered_at": now.isoformat(),
+                        "total_alerts_count": rule.get("total_alerts_count", 0) + 1
+                    })
+                    return created_alert
+                return None
+            
+            # 기존 로직: 개별 문서 기반 알림
             if total > 0:
                 logger.info(f"[탐지] 규칙 '{rule['name']}' 발동: {total}개 이벤트 발견, 처리 시작...")
 
