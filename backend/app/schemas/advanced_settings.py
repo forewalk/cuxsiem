@@ -3,6 +3,7 @@ from datetime import datetime
 
 class AdvancedSettingsBase(BaseModel):
     user_register: bool
+    tab_count: int = 10
 
 class AdvancedSettingsUpdate(AdvancedSettingsBase):
     pass

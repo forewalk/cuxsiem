@@ -2,6 +2,7 @@ import api from './api';
 
 export interface AdvancedSettings {
   user_register: boolean;
+  tab_count?: number;
   updated_at?: string;
 }
 
