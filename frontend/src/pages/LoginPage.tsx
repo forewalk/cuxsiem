@@ -450,12 +450,13 @@ export const LoginPage: React.FC = () => {
                 )}
               </Button>
 
-              {/* 미구현 기능 박스 */}
+              {/* 비밀번호 재설정 / 계정신청 버튼 영역 */}
               <Box
                 sx={{
                   display: "flex",
                   gap: 1.5,
                   mt: 3,
+                  justifyContent: userRegisterEnabled ? "stretch" : "center",
                 }}
               >
                 <Link
@@ -466,8 +467,9 @@ export const LoginPage: React.FC = () => {
                     handleForgotPassword();
                   }}
                   sx={{
-                    flex: 1,
+                    flex: userRegisterEnabled ? 1 : "none",
                     padding: "10px 16px",
+                    minWidth: userRegisterEnabled ? "auto" : "200px",
                     fontSize: "12px",
                     color: FIGMA_COLORS.buttonBg,
                     textDecoration: "none",
@@ -485,38 +487,36 @@ export const LoginPage: React.FC = () => {
                 >
                   {t("forgotPassword")}
                 </Link>
-                <Link
-                  component="button"
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (userRegisterEnabled) {
+                
+                {userRegisterEnabled && (
+                  <Link
+                    component="button"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
                       setApplyModalOpen(true);
-                    } else {
-                      setError(t("signupDisabled"));
-                      setOpenSnackbar(true);
-                    }
-                  }}
-                  sx={{
-                    flex: 1,
-                    padding: "10px 16px",
-                    fontSize: "12px",
-                    color: FIGMA_COLORS.buttonBg,
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    border: `1px solid ${FIGMA_COLORS.inputBorder}`,
-                    borderRadius: "3px",
-                    backgroundColor: "#fafbfc",
-                    transition: "all 0.2s",
-                    textAlign: "center",
-                    "&:hover": {
-                      backgroundColor: FIGMA_COLORS.labelBg,
-                      borderColor: FIGMA_COLORS.buttonBg,
-                    },
-                  }}
-                >
-                  {t("signup")}
-                </Link>
+                    }}
+                    sx={{
+                      flex: 1,
+                      padding: "10px 16px",
+                      fontSize: "12px",
+                      color: FIGMA_COLORS.buttonBg,
+                      textDecoration: "none",
+                      cursor: "pointer",
+                      border: `1px solid ${FIGMA_COLORS.inputBorder}`,
+                      borderRadius: "3px",
+                      backgroundColor: "#fafbfc",
+                      transition: "all 0.2s",
+                      textAlign: "center",
+                      "&:hover": {
+                        backgroundColor: FIGMA_COLORS.labelBg,
+                        borderColor: FIGMA_COLORS.buttonBg,
+                      },
+                    }}
+                  >
+                    {t("signup")}
+                  </Link>
+                )}
               </Box>
             </Box>
 

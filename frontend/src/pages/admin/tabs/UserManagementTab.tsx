@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
+import { codeService } from '../../../services/codeService';
 import type { User, UserCreate, UserUpdate } from '../../../types';
 
 // i18n: JSON 파일에서 번역 로드
@@ -29,6 +30,13 @@ const UserManagementTab: React.FC = () => {
   const [paginationModel, setPaginationModel] = useState({
     pageSize: 10,
     page: 0,
+  });
+
+  const [roleNames, setRoleNames] = useState<Record<string, string>>({
+    admin: '관리자',
+    monitoring: '모니터링',
+    approver: '결재자',
+    user: '사용자'
   });
 
   // 다이얼로그 상태
@@ -78,12 +86,27 @@ const UserManagementTab: React.FC = () => {
     setLoading(true);
     try {
       const skip = paginationModel.page * paginationModel.pageSize;
-      const response = await userService.getUsers(skip, paginationModel.pageSize);
-      setUsers(response.users);
-      setTotal(response.total);
+      const [userResponse, codesData] = await Promise.all([
+        userService.getUsers(skip, paginationModel.pageSize),
+        codeService.getRoleCodes()
+      ]);
+      
+      setUsers(userResponse.users);
+      setTotal(userResponse.total);
+
+      if (codesData.length > 0) {
+        const newMapping: Record<string, string> = {};
+        codesData.forEach(c => {
+          if (c.id === 'role-1') newMapping.admin = c.code_name;
+          if (c.id === 'role-2') newMapping.monitoring = c.code_name;
+          if (c.id === 'role-3') newMapping.approver = c.code_name;
+          if (c.id === 'role-4') newMapping.user = c.code_name;
+        });
+        setRoleNames(prev => ({ ...prev, ...newMapping }));
+      }
     } catch (error) {
-      console.error('Failed to load users:', error);
-      setSnackbar({ open: true, message: '사용자 목록을 불러오는데 실패했습니다.', severity: 'error' });
+      console.error('Failed to load users or roles:', error);
+      setSnackbar({ open: true, message: '데이터를 불러오는데 실패했습니다.', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -182,12 +205,7 @@ const UserManagementTab: React.FC = () => {
       headerName: t('role'),
       flex: 0.8,
       renderCell: (params: GridRenderCellParams) => {
-        switch (params.value) {
-          case 'admin': return t('userRoleAdmin');
-          case 'monitoring': return t('userRoleMonitoring');
-          case 'approver': return t('userRoleApprover');
-          default: return t('userRoleUser');
-        }
+        return roleNames[params.value as string] || params.value;
       }
     },
     {
@@ -318,10 +336,10 @@ const UserManagementTab: React.FC = () => {
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
-              <MenuItem value="user">{t('userRoleUser')}</MenuItem>
-              <MenuItem value="monitoring">{t('userRoleMonitoring')}</MenuItem>
-              <MenuItem value="approver">{t('userRoleApprover')}</MenuItem>
-              <MenuItem value="admin">{t('userRoleAdmin')}</MenuItem>
+              <MenuItem value="admin">{roleNames.admin}</MenuItem>
+              <MenuItem value="monitoring">{roleNames.monitoring}</MenuItem>
+              <MenuItem value="approver">{roleNames.approver}</MenuItem>
+              <MenuItem value="user">{roleNames.user}</MenuItem>
             </TextField>
             <TextField
               label={t('password')}

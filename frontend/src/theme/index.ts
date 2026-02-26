@@ -19,18 +19,24 @@ const theme = createTheme({
   },
   components: {
     MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          scrollbarColor: "#1e3a5f #0a1929",
-          "&::-webkit-scrollbar, & *::-webkit-scrollbar": {
-            width: 8,
-          },
-          "&::-webkit-scrollbar-thumb, & *::-webkit-scrollbar-thumb": {
-            borderRadius: 8,
-            backgroundColor: "#1e3a5f",
-          },
-        },
-      },
+      styleOverrides: `
+        ::-webkit-scrollbar {
+          width: 10px !important;
+          height: 10px !important;
+        }
+        ::-webkit-scrollbar-track {
+          background: transparent !important;
+        }
+        ::-webkit-scrollbar-thumb {
+          background-color: #5b6b7f !important;
+          border-radius: 10px !important;
+          border: 2px solid transparent !important;
+          background-clip: content-box !important;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background-color: #4a5568 !important;
+        }
+      `,
     },
   },
 });

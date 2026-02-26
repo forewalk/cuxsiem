@@ -26,6 +26,7 @@ class AdvancedSettingsRepository:
                 data = result["_source"]
                 return AdvancedSettings(
                     user_register=data.get("user_register", False),
+                    tab_count=data.get("tab_count", 10),
                     updated_at=datetime.fromisoformat(data["updated_at"])
                 )
             except Exception:
