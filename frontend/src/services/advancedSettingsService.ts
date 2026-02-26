@@ -3,6 +3,12 @@ import api from './api';
 export interface AdvancedSettings {
   user_register: boolean;
   tab_count?: number;
+  role_names?: {
+    admin: string;
+    user: string;
+    monitoring: string;
+    approver: string;
+  };
   updated_at?: string;
 }
 
