@@ -25,6 +25,8 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-26 13:13 | 최지호 | 배포 | origin/feature/dashboard 병합 |
+| 2026-02-26 13:10 | 최지호 | 수정 | origin/feature/dashboard push (버그 수정) |
 | 2026-02-25 09:07 | 최지호 | 수정 | origin/feature/dashboard push (그래프 색상 원복) |
 | 2026-02-25 08:20 | 최지호 | 수정 | origin/feature/dashboard push (대시보드 피드백 반영) |
 | 2026-02-24 14:18 | 최지호 | 수정 | origin/feature/dashboard push (agent 화면 생성, 대시보드 편집 구현) |
