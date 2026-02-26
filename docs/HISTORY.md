@@ -27,6 +27,7 @@
 |------|--------|------|------|
 | 2026-02-26 17:00 | 김장훈 | 배포 | origin/develop push (백엔드 테스트 수정: 인증 스키마 username 변경, Pydantic V2 마이그레이션, 비동기 테스트 데코레이터 추가) |
 | 2026-02-26 16:30 | 김장훈 | 배포 | origin/develop push (프로젝트 구조 재정비: docs/sh→scripts, HISTORY/ROADMAP→docs, 픽셀모드 로드맵 추가) |
+| 2026-02-26 15:40 | Gemini | 배포 | origin/develop push (LogStreaming 리팩토링 및 인덱스 멀티 선택 고도화) |
 | 2026-02-26 15:27 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합) |
 | 2026-02-26 15:25 | 최지호 | 수정 | origin/feature/dashboard push (대시보드 쿼리 수정 버그 픽스) |
 | 2026-02-26 15:05 | 박상현 | 배포 | origin/develop push (feature/logs 병합: 로그 스트리밍 강화 완료) |
@@ -36,7 +37,7 @@
 | 2026-02-26 14:35 | 박상현 | 수리 | 로그 스트리밍 화면의 ReferenceError(searchQuery is not defined) 해결 및 린트 오류 최적화 |
 | 2026-02-26 14:25 | 박상현 | 수정 | 로그 스트리밍 테이블 TIMESTAMP 헤더(날짜)와 행 데이터(시간) 표시 형식 분리 및 너비 최적화 |
 | 2026-02-26 14:15 | 박상현 | 추가 | 로그 스트리밍 필드 동적 선택 기능 및 상세 패널 전용 아이콘을 통한 필터링 구현 |
-| 2026-02-26 13:13 | 최지호 | 배포 | origin/feature/dashboard 병합 |
+| 2026-02-26 13:13 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합) |
 | 2026-02-26 13:10 | 최지호 | 수정 | origin/feature/dashboard push (버그 수정) |
 | 2026-02-25 17:35 | 박상현 | 수정 | 실시간 스트리밍 활성화 시 검색 필터 즉시 적용 및 이중 필터링 시스템 구축 |
 | 2026-02-25 17:25 | 박상현 | 수정 | 로그 스트리밍 모든 필드(값) 대상 검색 기능 구현 (백엔드 * 검색 및 프론트 정밀 필터링) |
