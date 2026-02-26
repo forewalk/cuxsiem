@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-26 17:00 | 김장훈 | 배포 | origin/develop push (백엔드 테스트 수정: 인증 스키마 username 변경, Pydantic V2 마이그레이션, 비동기 테스트 데코레이터 추가) |
 | 2026-02-26 16:30 | 김장훈 | 배포 | origin/develop push (프로젝트 구조 재정비: docs/sh→scripts, HISTORY/ROADMAP→docs, 픽셀모드 로드맵 추가) |
 | 2026-02-26 15:05 | 박상현 | 배포 | origin/develop push (feature/logs 병합: 로그 스트리밍 강화 완료) |
 | 2026-02-26 15:00 | 박상현 | 배포 | origin/feature/logs push (로그 스트리밍 필드 선택 및 검색 고도화 구현 완료) |
