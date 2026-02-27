@@ -569,83 +569,145 @@ const NotificationRuleListTab: React.FC = () => {
                 />
               </Stack>
 
-              <TextField label={t('conditionConfig')} multiline rows={6} fullWidth required value={dslString}
-                         onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError}
-                         helperText={jsonError || t('dslQueryHelper')}
-                         inputProps={{style: {fontFamily: 'monospace', fontSize: '0.85rem'}}}/>
-              
-              <Box sx={{mt: 2, display: 'flex', gap: 2, alignItems: 'center'}}>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={handleTestQuery}
-                  disabled={queryTestLoading || !!jsonError}
-                  size="small"
-                >
-                  {queryTestLoading ? '실행 중...' : '🔍 쿼리 테스트'}
-                </Button>
-                {queryTestResult && (
-                  <Typography variant="caption" color="success.main">
-                    ✅ Total: {queryTestResult.hits?.total?.value || 0}건
-                    {queryTestResult.aggregations && ' | 집계 결과 있음'}
+              {/* 좌우 분할 레이아웃: 왼쪽 쿼리 편집, 오른쪽 결과 */}
+              <Stack direction="row" spacing={2} sx={{height: 500}}>
+                {/* 왼쪽: DSL 쿼리 편집기 */}
+                <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                  <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
+                    📝 Define extraction query
                   </Typography>
-                )}
-              </Box>
+                  <TextField
+                    multiline
+                    fullWidth
+                    required
+                    value={dslString}
+                    onChange={(e) => handleDslChange(e.target.value)}
+                    error={!!jsonError}
+                    helperText={jsonError || t('dslQueryHelper')}
+                    inputProps={{style: {fontFamily: 'monospace', fontSize: '0.85rem'}}}
+                    sx={{
+                      flex: 1,
+                      '& .MuiInputBase-root': {
+                        height: '100%',
+                        alignItems: 'flex-start'
+                      },
+                      '& textarea': {
+                        height: '100% !important',
+                        overflow: 'auto !important'
+                      }
+                    }}
+                  />
+                  <Box sx={{mt: 1, display: 'flex', gap: 1, alignItems: 'center'}}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleTestQuery}
+                      disabled={queryTestLoading || !!jsonError}
+                      size="small"
+                      fullWidth
+                    >
+                      {queryTestLoading ? '⏳ 실행 중...' : '▶️ Run Query'}
+                    </Button>
+                  </Box>
+                </Box>
 
-              {showQueryResult && queryTestResult && (
-                <Paper elevation={1} sx={{mt: 2, p: 2, bgcolor: 'background.default'}}>
-                  <Stack spacing={1}>
-                    <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                      <Typography variant="subtitle2" fontWeight="bold">쿼리 실행 결과</Typography>
-                      <Button size="small" onClick={() => setShowQueryResult(false)}>닫기</Button>
-                    </Box>
-                    <Divider />
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" gutterBottom>
-                        실행 시간: {queryTestResult.took}ms | 
-                        Total: {queryTestResult.hits?.total?.value || 0}건 | 
-                        Shards: {queryTestResult._shards?.successful}/{queryTestResult._shards?.total}
-                      </Typography>
-                    </Box>
-                    
-                    {queryTestResult.aggregations && (
-                      <Box>
-                        <Typography variant="body2" fontWeight="bold" gutterBottom>📊 집계 결과:</Typography>
-                        <TextField
-                          multiline
-                          rows={8}
-                          fullWidth
-                          value={JSON.stringify(queryTestResult.aggregations, null, 2)}
-                          InputProps={{readOnly: true, style: {fontFamily: 'monospace', fontSize: '0.8rem'}}}
-                          size="small"
-                        />
+                {/* 오른쪽: 쿼리 실행 결과 */}
+                <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                  <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
+                    📊 Extraction query response
+                  </Typography>
+                  <Paper 
+                    elevation={0} 
+                    sx={{
+                      flex: 1,
+                      p: 2,
+                      bgcolor: 'background.default',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      overflow: 'auto',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+                    {queryTestLoading ? (
+                      <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
+                        <Stack spacing={2} alignItems="center">
+                          <Typography variant="body2" color="text.secondary">쿼리 실행 중...</Typography>
+                        </Stack>
                       </Box>
-                    )}
+                    ) : queryTestError ? (
+                      <Alert severity="error">
+                        {queryTestError}
+                      </Alert>
+                    ) : queryTestResult ? (
+                      <Stack spacing={2} sx={{flex: 1, overflow: 'auto'}}>
+                        {/* 요약 정보 */}
+                        <Box sx={{p: 1, bgcolor: 'action.hover', borderRadius: 1}}>
+                          <Typography variant="caption" color="text.secondary">
+                            ⏱️ {queryTestResult.took}ms | 
+                            📄 Total: {queryTestResult.hits?.total?.value || 0}건 | 
+                            🔧 Shards: {queryTestResult._shards?.successful}/{queryTestResult._shards?.total}
+                          </Typography>
+                        </Box>
+                        
+                        {/* 집계 결과 */}
+                        {queryTestResult.aggregations && (
+                          <Box>
+                            <Typography variant="body2" fontWeight="bold" gutterBottom>
+                              📊 Aggregations:
+                            </Typography>
+                            <TextField
+                              multiline
+                              fullWidth
+                              value={JSON.stringify(queryTestResult.aggregations, null, 2)}
+                              InputProps={{
+                                readOnly: true,
+                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
+                              }}
+                              size="small"
+                              sx={{
+                                '& .MuiInputBase-root': {
+                                  bgcolor: 'background.paper'
+                                }
+                              }}
+                            />
+                          </Box>
+                        )}
 
-                    {queryTestResult.hits?.hits?.length > 0 && (
-                      <Box>
-                        <Typography variant="body2" fontWeight="bold" gutterBottom>
-                          📄 문서 샘플 (최대 {queryTestResult.hits.hits.length}건):
+                        {/* 문서 샘플 */}
+                        {queryTestResult.hits?.hits?.length > 0 && (
+                          <Box>
+                            <Typography variant="body2" fontWeight="bold" gutterBottom>
+                              📄 Sample Documents ({queryTestResult.hits.hits.length}건):
+                            </Typography>
+                            <TextField
+                              multiline
+                              fullWidth
+                              value={JSON.stringify(queryTestResult.hits.hits.slice(0, 3), null, 2)}
+                              InputProps={{
+                                readOnly: true,
+                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
+                              }}
+                              size="small"
+                              sx={{
+                                '& .MuiInputBase-root': {
+                                  bgcolor: 'background.paper'
+                                }
+                              }}
+                            />
+                          </Box>
+                        )}
+                      </Stack>
+                    ) : (
+                      <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
+                        <Typography variant="body2" color="text.secondary">
+                          ▶️ Run Query 버튼을 눌러 쿼리를 실행하세요
                         </Typography>
-                        <TextField
-                          multiline
-                          rows={6}
-                          fullWidth
-                          value={JSON.stringify(queryTestResult.hits.hits.slice(0, 3), null, 2)}
-                          InputProps={{readOnly: true, style: {fontFamily: 'monospace', fontSize: '0.8rem'}}}
-                          size="small"
-                        />
                       </Box>
                     )}
-                  </Stack>
-                </Paper>
-              )}
-
-              {queryTestError && (
-                <Alert severity="error" sx={{mt: 2}} onClose={() => setQueryTestError(null)}>
-                  {queryTestError}
-                </Alert>
-              )}
+                  </Paper>
+                </Box>
+              </Stack>
               
               <TextField 
                 label="트리거 조건 (선택사항)"
