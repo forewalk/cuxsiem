@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-27 19:40 | 김장훈 | 배포 | origin/develop push (frontend 빌드 오류 및 TypeScript 에러 수정, 누락된 로고 복구) |
 | 2026-02-27 19:35 | 김장훈 | 수리 | frontend 빌드 오류 수정: package-lock.json 불일치 해결을 위해 Dockerfile의 npm ci를 npm install로 변경 |
 | 2026-02-27 19:25 | 김장훈 | 배포 | origin/develop push (ROADMAP 업데이트, Pixel Mode/License 기획서 추가, 로그인 UI 개선, SVG 파비콘 적용, 리소스 제한 설정) |
 | 2026-02-27 16:55 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합: 대시보드 다운로드 기능 구현) |
