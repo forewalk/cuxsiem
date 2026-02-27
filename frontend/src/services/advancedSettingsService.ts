@@ -7,6 +7,7 @@ export interface AdvancedSettings {
   pagination_size?: number;
   time_filter_duration?: number;
   time_filter_unit?: string;
+  pixel_mode?: boolean;
   role_names?: {
     admin: string;
     user: string;

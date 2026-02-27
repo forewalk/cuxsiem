@@ -48,6 +48,16 @@ const LogStreaming: React.FC = () => {
   const { settings, fetchSettings } = useSettingsStore();
   const isActive = activeTabId === 'LogStreamingTab';
 
+  // CRT 효과용 pixelMode 상태 (App.tsx와 동기화)
+  const [pixelMode, setPixelMode] = useState(() => localStorage.getItem("appPixelMode") === "true");
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setPixelMode((e as CustomEvent).detail.pixelMode);
+    };
+    window.addEventListener('pixelModeChanged', handler);
+    return () => window.removeEventListener('pixelModeChanged', handler);
+  }, []);
+
   // i18n
   const translations: Record<string, Record<string, string>> = { 
     ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages 
@@ -122,6 +132,23 @@ const LogStreaming: React.FC = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', p: 3, gap: 1 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
+
+      {/* CRT Scanline 오버레이 (픽셀 모드 전용) */}
+      {pixelMode && (
+        <Box sx={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 9998,
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,156,0.025) 2px, rgba(0,255,156,0.025) 4px)',
+          '&::after': {
+            content: '""', position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.4) 100%)',
+          },
+          animation: 'crtFlicker 0.12s infinite',
+          '@keyframes crtFlicker': {
+            '0%, 100%': { opacity: 0.96 },
+            '50%': { opacity: 1 },
+          },
+        }} />
+      )}
       
       <LogStreamControlBar 
         t={t} 
@@ -191,17 +218,23 @@ const LogStreaming: React.FC = () => {
             <Tooltip title={t('clearLogs')}>
               <IconButton size="small" onClick={clearLogs}><ClearIcon /></IconButton>
             </Tooltip>
-            <Button 
-              variant="contained" size="small" 
-              startIcon={isPaused ? <PlayArrowIcon /> : <StopIcon />} 
-              onClick={togglePaused} color={isPaused ? 'error' : 'success'} 
-              sx={{ 
-                textTransform: 'none', borderRadius: 1.5, minWidth: 110, height: 32, 
-                fontWeight: 'bold', boxShadow: (theme) => isPaused ? 'none' : `0 0 8px ${theme.palette.success.main}44` 
-              }}
+            <Tooltip
+              title={isPaused ? t('streamingGuide') : ''}
+              placement="top"
+              arrow
             >
-              {isPaused ? t('paused') : t('streaming')}
-            </Button>
+              <Button
+                variant="contained" size="small"
+                startIcon={isPaused ? <PlayArrowIcon /> : <StopIcon />}
+                onClick={togglePaused} color={isPaused ? 'error' : 'success'}
+                sx={{
+                  textTransform: 'none', borderRadius: 1.5, minWidth: 110, height: 32,
+                  fontWeight: 'bold', boxShadow: (theme) => isPaused ? 'none' : `0 0 8px ${theme.palette.success.main}44`
+                }}
+              >
+                {isPaused ? t('paused') : t('streaming')}
+              </Button>
+            </Tooltip>
           </Stack>
         </Stack>
         <Divider />

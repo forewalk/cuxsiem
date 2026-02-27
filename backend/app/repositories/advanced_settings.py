@@ -31,7 +31,8 @@ class AdvancedSettingsRepository:
                     updated_at=datetime.fromisoformat(data["updated_at"]),
                     pagination_size=data.get("pagination_size", 10),
                     time_filter_duration=data.get("time_filter_duration", 15),
-                    time_filter_unit=data.get("time_filter_unit", "m")
+                    time_filter_unit=data.get("time_filter_unit", "m"),
+                    pixel_mode=data.get("pixel_mode", False),
                 )
             except Exception:
                 return None

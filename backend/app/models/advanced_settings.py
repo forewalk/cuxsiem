@@ -12,6 +12,7 @@ class AdvancedSettings:
     pagination_size: int = 10
     time_filter_duration: int = 15
     time_filter_unit: str = "m"
+    pixel_mode: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -21,5 +22,6 @@ class AdvancedSettings:
             "updated_at": self.updated_at.isoformat(),
             "pagination_size": self.pagination_size,
             "time_filter_duration": self.time_filter_duration,
-            "time_filter_unit": self.time_filter_unit
+            "time_filter_unit": self.time_filter_unit,
+            "pixel_mode": self.pixel_mode,
         }

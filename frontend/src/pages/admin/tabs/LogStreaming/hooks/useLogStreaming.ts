@@ -5,7 +5,7 @@ import { MAX_LOGS, POLL_INTERVAL } from '../constants';
 
 export const useLogStreaming = (isActive: boolean) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(true); // 탭 열면 일시정지 상태로 시작
   const [loading, setLoading] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState<string[]>(['*']);
   const [indexOptions, setIndexOptions] = useState<string[]>(['*']);

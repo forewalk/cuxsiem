@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -19,6 +19,7 @@ import { GlobalAlertSnackbar } from "./pages/admin/alerts/components";
 import { authService } from "./services/authService";
 import { advancedSettingsService } from "./services/advancedSettingsService";
 import useTabStore from "./stores/tabStore";
+import { createPixelTheme } from "./theme";
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "./locales/ko.json";
@@ -37,7 +38,31 @@ function App() {
   const { language, setLanguage } = useLanguageStore();
   
   const { setMaxTabs } = useTabStore();
-  
+
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem("appDarkMode");
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [pixelMode, setPixelMode] = useState<boolean>(() => {
+    return localStorage.getItem("appPixelMode") === "true";
+  });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // 픽셀 모드 마우스 트레일러 (ref로 DOM 직접 제어 — 상태 변경 없이 성능 유지)
+  const trailRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pixelMode) return;
+    const onMove = (e: MouseEvent) => {
+      if (trailRef.current) {
+        trailRef.current.style.left = `${e.clientX - 4}px`;
+        trailRef.current.style.top = `${e.clientY - 4}px`;
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [pixelMode]);
+
+  // 로그인 후 서버 설정 로드 (탭 수, 픽셀 모드)
   useEffect(() => {
     if (user) {
       const loadSettings = async () => {
@@ -45,6 +70,10 @@ function App() {
           const settings = await advancedSettingsService.getSettings();
           if (settings.tab_count) {
             setMaxTabs(settings.tab_count);
+          }
+          if (settings.pixel_mode !== undefined) {
+            setPixelMode(settings.pixel_mode);
+            localStorage.setItem("appPixelMode", String(settings.pixel_mode));
           }
         } catch (error) {
           console.error("Failed to load advanced settings:", error);
@@ -54,11 +83,31 @@ function App() {
     }
   }, [user, setMaxTabs]);
 
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem("appDarkMode");
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // 픽셀 모드 변경 시 폰트 동적 로드/제거
+  useEffect(() => {
+    if (pixelMode) {
+      if (!document.getElementById("pixel-font-link")) {
+        const link = document.createElement("link");
+        link.id = "pixel-font-link";
+        link.rel = "stylesheet";
+        link.href = "https://fonts.googleapis.com/css2?family=DotGothic16&display=swap";
+        document.head.appendChild(link);
+      }
+    } else {
+      document.getElementById("pixel-font-link")?.remove();
+    }
+  }, [pixelMode]);
+
+  // AdvancedSettingsTab 저장 시 발생하는 픽셀 모드 변경 이벤트 수신
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { pixelMode: newMode } = (e as CustomEvent).detail;
+      setPixelMode(newMode);
+      localStorage.setItem("appPixelMode", String(newMode));
+    };
+    window.addEventListener("pixelModeChanged", handler);
+    return () => window.removeEventListener("pixelModeChanged", handler);
+  }, []);
 
   // 전역 알림 시스템 (WebSocket 기반 - 다중 Snackbar)
   const token = authService.getToken();
@@ -66,7 +115,9 @@ function App() {
   
   console.log('🎯 App.tsx - Snackbars:', snackbars, 'Connected:', isConnected, 'User:', !!user, 'Token:', !!token);
 
-  const theme = useMemo(() => createTheme({
+  const theme = useMemo(() => {
+    if (pixelMode) return createPixelTheme();
+    return createTheme({
     palette: {
       mode: darkMode ? "dark" : "light",
       primary: {
@@ -123,15 +174,33 @@ function App() {
         xl: 1536,
       },
     },
-  }), [darkMode]);
+  }); }, [darkMode, pixelMode]);
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  const ROLE_BADGES: Record<string, string> = {
+    admin: '[ADMIN]',
+    monitoring: '[MON]',
+    approver: '[APV]',
+    user: '[USR]',
+  };
+
   const handleDarkModeChange = useCallback(() => {
+    if (pixelMode) {
+      // 픽셀 모드 해제 후 라이트/다크로 복귀 (UI 즉시 반응, 백엔드 비동기 저장)
+      setPixelMode(false);
+      localStorage.setItem("appPixelMode", "false");
+      // AdvancedSettingsTab 스위치 UI 동기화
+      window.dispatchEvent(new CustomEvent('pixelModeChanged', { detail: { pixelMode: false } }));
+      advancedSettingsService.getSettings()
+        .then((current) => advancedSettingsService.updateSettings({ ...current, pixel_mode: false }))
+        .catch(console.error);
+      return;
+    }
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     localStorage.setItem("appDarkMode", JSON.stringify(newDarkMode));
-  }, [darkMode]);
+  }, [darkMode, pixelMode]);
 
   const translations: Record<string, Record<string, string>> = {
     ko: koMessages,
@@ -313,7 +382,7 @@ function App() {
                   </IconButton>
                 )}
                 <Typography variant="body2" sx={{ color: theme.palette.text.primary, fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                  {user?.name ? `${user.name} (${user.role})` : ''}
+                  {user?.name ? (pixelMode ? `${ROLE_BADGES[user.role] || '[???]'} ${user.name}` : `${user.name} (${user.role})`) : ''}
                 </Typography>
               </Box>
 
@@ -369,13 +438,67 @@ function App() {
               bgcolor: 'background.default'
             }}
           >
-            <Outlet context={{ t, language }} />
+            <Outlet context={{ t, language, pixelMode }} />
           </Box>
         </Box>
 
         {/* 전역 알림 스낵바 (다중 표시) */}
         <GlobalAlertSnackbar snackbars={snackbars} onClose={handleCloseSnackbar} />
       </Box>
+
+      {/* 픽셀 모드: 마우스 트레일러 */}
+      {pixelMode && (
+        <div
+          ref={trailRef}
+          style={{
+            position: 'fixed',
+            left: -20,
+            top: -20,
+            width: 8,
+            height: 8,
+            backgroundColor: '#00FF9C',
+            pointerEvents: 'none',
+            zIndex: 999999,
+            boxShadow: '0 0 6px #00FF9C, 0 0 14px #00FF9C66',
+            transition: 'left 0.07s linear, top 0.07s linear',
+          }}
+        />
+      )}
+
+      {/* 픽셀 모드: 하단 마르키 전광판 */}
+      {pixelMode && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 22,
+          backgroundColor: '#0D0E1A',
+          borderTop: '1px solid #00FF9C44',
+          overflow: 'hidden',
+          zIndex: 9999,
+          pointerEvents: 'none',
+        }}>
+          <style>{`
+            @keyframes pixelMarquee {
+              0%   { transform: translateX(100vw); }
+              100% { transform: translateX(-100%); }
+            }
+          `}</style>
+          <span style={{
+            display: 'inline-block',
+            whiteSpace: 'nowrap',
+            animation: 'pixelMarquee 28s linear infinite',
+            color: '#00FF9C',
+            fontSize: '11px',
+            fontFamily: "'DotGothic16', 'Courier New', monospace",
+            lineHeight: '22px',
+            paddingLeft: '100vw',
+          }}>
+            {'>> CRUX SIEM // PIXEL MODE ACTIVATED // ALL SYSTEMS NOMINAL // THREAT LEVEL: NORMAL // MONITORING ALL CHANNELS // LOGS INCOMING // 픽셀 모드 활성화됨 // 시스템 이상 없음 // 위협 탐지 중 // NO ANOMALIES DETECTED // STAND BY <<'}
+          </span>
+        </div>
+      )}
     </ThemeProvider>
   );
 }

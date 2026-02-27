@@ -32,6 +32,7 @@ const AdvancedSettingsTab: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [nerdUnlocked, setNerdUnlocked] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -96,6 +97,37 @@ const AdvancedSettingsTab: React.FC = () => {
     loadSettings();
   }, [loadSettings]);
 
+  // App.tsx에서 픽셀 모드 해제 시 스위치 UI 동기화
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { pixelMode: newMode } = (e as CustomEvent).detail;
+      setSettings(prev => ({ ...prev, pixel_mode: newMode }));
+    };
+    window.addEventListener('pixelModeChanged', handler);
+    return () => window.removeEventListener('pixelModeChanged', handler);
+  }, []);
+
+  // "pixel?" 키워드 언락 — e.code 사용 (IME/키보드 레이아웃 독립)
+  // p=KeyP i=KeyI x=KeyX e=KeyE l=KeyL ?=Shift+Slash
+  useEffect(() => {
+    const codes = ['KeyP', 'KeyI', 'KeyX', 'KeyE', 'KeyL', 'Slash'];
+    let step = 0;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const matched = step === 5
+        ? (e.code === 'Slash' && e.shiftKey)
+        : e.code === codes[step];
+      if (matched) {
+        step++;
+        if (step === codes.length) { setNerdUnlocked(true); step = 0; }
+      } else {
+        step = e.code === codes[0] ? 1 : 0;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleSave = async () => {
     // 유효성 검사: 역할명이 비어있는지 확인
     if (settings.role_names) {
@@ -133,6 +165,10 @@ const AdvancedSettingsTab: React.FC = () => {
         setMaxTabs(updated.tab_count);
       }
       setSnackbar({ open: true, message: t('saveSuccess'), severity: 'success' });
+      // 픽셀 모드 변경 이벤트 (App.tsx 수신)
+      window.dispatchEvent(new CustomEvent('pixelModeChanged', {
+        detail: { pixelMode: updated.pixel_mode || false }
+      }));
     } catch (error) {
       console.error('Failed to save settings:', error);
       setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
@@ -336,6 +372,31 @@ const AdvancedSettingsTab: React.FC = () => {
                   </Box>
                 </Stack>
               </Box>
+
+              {/* 5. 너드 설정 (고급 설정 화면에서 "pixel?" 입력 시 언락) */}
+              {(nerdUnlocked || settings.pixel_mode) && <Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  {t('nerdSettings')}
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.pixel_mode || false}
+                      onChange={(e) => handleChange('pixel_mode', e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2">{t('pixelMode')}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {t('pixelModeDesc')}
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </Box>}
             </Stack>
           </Paper>
         </Box>
