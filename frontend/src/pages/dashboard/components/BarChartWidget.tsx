@@ -19,7 +19,7 @@ interface BarChartWidgetProps {
   onRangeSelect?: (startTime: string, endTime: string) => void;
 }
 
-const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, title, emptyMessage, onBarClick, onRangeSelect }) => {
+const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, emptyMessage, onBarClick, onRangeSelect }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
   const svgRef = useRef<SVGSVGElement | null>(null);

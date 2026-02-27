@@ -95,6 +95,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   userRole
 }) => {
   const theme = useTheme();
+  const { language } = useLanguageStore();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [tempQuery, setTempQuery] = useState("");
   const [downloading, setDownloading] = useState(false);

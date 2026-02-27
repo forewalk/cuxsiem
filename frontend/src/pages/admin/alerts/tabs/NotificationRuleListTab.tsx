@@ -179,7 +179,6 @@ const NotificationRuleListTab: React.FC = () => {
       const total = queryTestResult.hits?.total?.value || 0;
       const hits = queryTestResult.hits?.hits || [];
       const hitSources = hits.map((h: any) => h._source);
-      const firstDoc = hitSources.length > 0 ? hitSources[0] : {};
       
       // 중첩 필드 접근 헬퍼 함수
       const getNestedValue = (obj: any, path: string): any => {
