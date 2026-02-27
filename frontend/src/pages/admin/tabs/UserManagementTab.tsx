@@ -286,7 +286,7 @@ const UserManagementTab: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ height: '100%', width: '100%' }}>
+    <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('userManagement')}</Typography>
         <Stack direction="row" spacing={1}>
@@ -308,7 +308,7 @@ const UserManagementTab: React.FC = () => {
         </Stack>
       </Stack>
 
-      <Paper sx={{ height: 'calc(100% - 60px)', width: '100%' }}>
+      <Paper sx={{ height: 'calc(100vh - 230px)', width: '100%' }}>
         <DataGrid
           rows={users}
           columns={columns}

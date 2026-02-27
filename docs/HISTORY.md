@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-27 22:00 | 김장훈 | 배포 | origin/develop push (CLAUDE.md/GEMINI.md 진입점 개선, 관리 설정 탭 div 위치 통일, html2canvas/jspdf 패키지 추가) |
 | 2026-02-27 21:05 | 박재현 | 배포 | origin/develop push (feature/admin 병합: 사용자 다중 접속 제한 및 로그인 페이지 엔터 키 지원 개선) |
 | 2026-02-27 19:40 | 김장훈 | 배포 | origin/develop push (frontend 빌드 오류 및 TypeScript 에러 수정, 누락된 로고 복구) |
 | 2026-02-27 19:35 | 김장훈 | 수리 | frontend 빌드 오류 수정: package-lock.json 불일치 해결을 위해 Dockerfile의 npm ci를 npm install로 변경 |

@@ -83,7 +83,7 @@ const PasswordPolicyTab: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 1 }}>
+    <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('passwordPolicy')}</Typography>
         <Stack direction="row" spacing={1}>
