@@ -25,14 +25,17 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-27 21:05 | 박재현 | 배포 | origin/develop push (feature/admin 병합: 사용자 다중 접속 제한 및 로그인 페이지 엔터 키 지원 개선) |
 | 2026-02-27 19:40 | 김장훈 | 배포 | origin/develop push (frontend 빌드 오류 및 TypeScript 에러 수정, 누락된 로고 복구) |
 | 2026-02-27 19:35 | 김장훈 | 수리 | frontend 빌드 오류 수정: package-lock.json 불일치 해결을 위해 Dockerfile의 npm ci를 npm install로 변경 |
 | 2026-02-27 19:25 | 김장훈 | 배포 | origin/develop push (ROADMAP 업데이트, Pixel Mode/License 기획서 추가, 로그인 UI 개선, SVG 파비콘 적용, 리소스 제한 설정) |
+| 2026-02-27 17:13 | 박재현 | 추가 | origin/feature/admin push 사용자 다중 접속 제한 실시간 강제 로그아웃 구현 및 로그인 페이지 엔터 키 입력 지원 개선 |
 | 2026-02-27 16:55 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합: 대시보드 다운로드 기능 구현) |
 | 2026-02-27 16:20 | 박지은 | 배포 | origin/develop push (feature/alerts 병합: 알림 규칙 템플릿 시스템 개선) |
 | 2026-02-27 16:10 | 박지은 | 수정 | 알림 규칙 템플릿 시스템 개선: 중첩 필드 자동 추출({{threatInfo.threatId}}) 및 다중 문서 일괄 처리(size>1) 구현 |
 | 2026-02-27 14:55 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합) |
 | 2026-02-27 14:50 | 최지호 | 수정 | origin/feature/dashboard push (차트 변경 기능 수정) |
+| 2026-02-27 14:00 | 박재현 | 추가 | origin/feature/admin push 고급 설정(페이지네이션, 시간 필터) 전역 연동 및 탭별 URL 파라미터 독립화, 새로고침 시 초기화 로직 구현 |
 | 2026-02-26 18:01 | 김장훈 | 배포 | origin/develop push (Docker 빌드 TypeScript 컴파일 에러 수정: MUI v7 호환성, LogEntry _source 타입 추가, 미사용 임포트 제거) |
 | 2026-02-26 17:30 | 김장훈 | 배포 | origin/develop push (ROADMAP 초기 설정 자동화 항목 추가, HISTORY 작업자 정정, 프론트엔드 패키지 설치) |
 | 2026-02-26 17:00 | 김장훈 | 배포 | origin/develop push (백엔드 테스트 수정: 인증 스키마 username 변경, Pydantic V2 마이그레이션, 비동기 테스트 데코레이터 추가) |

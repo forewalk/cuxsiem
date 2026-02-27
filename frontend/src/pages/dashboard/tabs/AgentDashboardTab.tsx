@@ -14,6 +14,7 @@ import { getDashboardStats, resetDashboard, saveDashboardLayout, getIndexFields 
 import type { DashboardStatsResponse, DashboardPanel } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useAuth } from "../../../hooks/useAuth";
+import { useSettingsStore } from "../../../stores/useSettingsStore";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -49,7 +50,6 @@ const PanelSettingsModal: React.FC<{
   useEffect(() => {
     if (open && panel) {
       setType(panel.widget_type || "metric");
-      // 현재 패널에 적용된 쿼리를 표시 (사용자가 수정한게 있으면 그것을, 없으면 시스템 기본값을 보여줌)
       const currentQuery = panel.custom_query !== null ? panel.custom_query : (panel.default_query || "*");
       setQuery(currentQuery);
       setField(panel.target_field || "");
@@ -257,6 +257,8 @@ const AgentDashboardTab: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { language } = useLanguageStore();
   const { user } = useAuth();
+  const { settings, fetchSettings } = useSettingsStore();
+  
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [originalPanels, setOriginalPanels] = useState<DashboardPanel[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -269,39 +271,73 @@ const AgentDashboardTab: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [modalSnapshot, setModalSnapshot] = useState<DashboardPanel[] | null>(null);
   const lastMoveRef = useRef<{ dragged: string, target: string } | null>(null);
+  const initializedRef = useRef(false);
 
-  const fromValue = searchParams.get("a_from_value") ? Number(searchParams.get("a_from_value")) : 15;
-  const fromUnit = searchParams.get("a_from_unit") || "m";
-  const toValue = searchParams.get("a_to_value") ? Number(searchParams.get("a_to_value")) : null;
-  const toUnit = searchParams.get("a_to_unit") || "m";
-  const fromDate = searchParams.get("a_from_date");
-  const toDate = searchParams.get("a_to_date");
-  const searchQuery = searchParams.get("a_q") || "";
+  // 고급 설정 로드 (초기 1회)
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings && !initializedRef.current) {
+      const newParams = new URLSearchParams(searchParams);
+      // 새로고침/진입 시 고급 설정값으로 강제 조정
+      newParams.set("ad_from_value", settings.time_filter_duration!.toString());
+      newParams.set("ad_from_unit", settings.time_filter_unit!);
+      // 종료 지점은 항상 '현재'로 리셋
+      newParams.delete("ad_to_value");
+      newParams.delete("ad_to_unit");
+      newParams.delete("ad_from_date");
+      newParams.delete("ad_to_date");
+      
+      setSearchParams(newParams, { replace: true });
+      initializedRef.current = true;
+    }
+  }, [settings, searchParams, setSearchParams]);
+
+  const sp_fromValue = searchParams.get("ad_from_value");
+  const fromValue = sp_fromValue !== null 
+    ? Number(sp_fromValue) 
+    : (settings?.time_filter_duration ?? 15);
+    
+  const sp_fromUnit = searchParams.get("ad_from_unit");
+  const fromUnit = sp_fromUnit !== null
+    ? sp_fromUnit
+    : (settings?.time_filter_unit || "m");
+
+  const sp_toValue = searchParams.get("ad_to_value");
+  const toValue = sp_toValue !== null ? Number(sp_toValue) : null;
+  const toUnit = searchParams.get("ad_to_unit") || "m";
+  const fromDate = searchParams.get("ad_from_date");
+  const toDate = searchParams.get("ad_to_date");
+  const searchQuery = searchParams.get("ad_q") || "";
 
   const t = useMemo(() => (key: string): string => (translations[language] || translations["ko"] || {})[key] || key, [language]);
 
   const fetchData = useCallback(async (currentPanels?: DashboardPanel[]) => {
     try { 
       setLoading(true); 
-      const stats = await getDashboardStats("agent-dashboard", fromValue || undefined, fromUnit, toValue ?? undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, currentPanels); 
+      const stats = await getDashboardStats("agent-dashboard", fromValue !== null ? fromValue : undefined, fromUnit, toValue !== null ? toValue : undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, currentPanels); 
       if (stats && stats.summary) { setData(stats); }
     } catch (err) { console.error("Error fetching agent dashboard data:", err); }
     finally { setLoading(false); }
   }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
 
-  useEffect(() => { if (!isEditMode) fetchData(); }, [fetchData, isEditMode]);
+  useEffect(() => { 
+    if (!isEditMode) fetchData(); 
+  }, [fetchData, isEditMode]);
 
   const handleTimeChange = useCallback((fv: number | null, fu: string, tv: number | null, tu: string, fd: string | null, td: string | null) => {
     const np = new URLSearchParams(searchParams);
-    if (fv !== null) np.set("a_from_value", fv.toString()); else np.delete("a_from_value");
-    np.set("a_from_unit", fu); if (tv !== null) np.set("a_to_value", tv.toString()); else np.delete("a_to_value");
-    np.set("a_to_unit", tu); if (fd) np.set("a_from_date", fd); else np.delete("a_from_date"); if (td) np.set("a_to_date", td); else np.delete("a_to_date");
+    if (fv !== null) np.set("ad_from_value", fv.toString()); else np.delete("ad_from_value");
+    np.set("ad_from_unit", fu); if (tv !== null) np.set("ad_to_value", tv.toString()); else np.delete("ad_to_value");
+    np.set("ad_to_unit", tu); if (fd) np.set("ad_from_date", fd); else np.delete("ad_from_date"); if (td) np.set("ad_to_date", td); else np.delete("ad_to_date");
     setSearchParams(np);
   }, [searchParams, setSearchParams]);
 
   const handleSearchQueryChange = useCallback((q: string) => {
     const np = new URLSearchParams(searchParams);
-    if (q) np.set("a_q", q); else np.delete("a_q"); setSearchParams(np);
+    if (q) np.set("ad_q", q); else np.delete("ad_q"); setSearchParams(np);
   }, [searchParams, setSearchParams]);
 
   const handleEditToggle = () => { if (!isEditMode) setOriginalPanels(data?.panels ? JSON.parse(JSON.stringify(data.panels)) : null); setIsEditMode(!isEditMode); };

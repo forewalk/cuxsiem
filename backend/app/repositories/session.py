@@ -36,12 +36,76 @@ class SessionRepository:
         def search():
             try:
                 result = self.client.get(index=self.index, id=session_id)
-                return result["_source"]
+                data = result["_source"]
+                data["id"] = result["_id"]
+                return data
             except Exception:
                 return None
 
         session_data = await loop.run_in_executor(None, search)
         return self._dict_to_session(session_data) if session_data else None
+
+    async def get_by_token_hash(self, token_hash: str) -> Optional[Session]:
+        """토큰 해시로 세션 조회"""
+        loop = asyncio.get_event_loop()
+
+        def search():
+            try:
+                query = {
+                    "query": {
+                        "term": {
+                            "token_hash": token_hash
+                        }
+                    }
+                }
+                result = self.client.search(index=self.index, body=query)
+                hits = result.get("hits", {}).get("hits", [])
+                if hits:
+                    data = hits[0]["_source"]
+                    data["id"] = hits[0]["_id"]
+                    return data
+                return None
+            except Exception:
+                return None
+
+        session_data = await loop.run_in_executor(None, search)
+        return self._dict_to_session(session_data) if session_data else None
+
+    async def get_active_sessions_by_user_id(self, user_id: str) -> list[Session]:
+        """사용자의 활성 세션 목록 조회"""
+        loop = asyncio.get_event_loop()
+
+        def search():
+            try:
+                query = {
+                    "size": 10000,
+                    "query": {
+                        "bool": {
+                            "should": [
+                                {"term": {"user_id": user_id}},
+                                {"term": {"user_id.keyword": user_id}}
+                            ],
+                            "minimum_should_match": 1,
+                            "must": [
+                                {"term": {"is_active": True}}
+                            ]
+                        }
+                    }
+                }
+                result = self.client.search(index=self.index, body=query)
+                sessions = []
+                for hit in result["hits"]["hits"]:
+                    data = hit["_source"]
+                    data["id"] = hit["_id"]
+                    sessions.append(data)
+                return sessions
+            except Exception as e:
+                import logging
+                logging.error(f"Error querying active sessions: {e}")
+                return []
+
+        session_data_list = await loop.run_in_executor(None, search)
+        return [self._dict_to_session(data) for data in session_data_list]
 
     async def invalidate(self, session_id: str) -> None:
         """세션 무효화 (로그아웃)"""

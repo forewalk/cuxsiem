@@ -35,18 +35,19 @@ import {
   FilterList as FilterListIcon,
   NotificationsActive as NotificationsActiveIcon
 } from '@mui/icons-material';
-import {notificationService} from '@/services/notificationService.ts';
-import type {NotificationRule, NotificationRuleCreate} from '@/types';
-import {useLanguageStore} from '@/stores/useLanguageStore.ts';
-import {SeverityChip} from '@/pages/admin/alerts/components/SeverityChip';
-import {AlertTableFilterMenu} from '../components/AlertTableFilterMenu';
+import { notificationService } from '@/services/notificationService.ts';
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import type { NotificationRule, NotificationRuleCreate } from '@/types';
+import { useLanguageStore } from '@/stores/useLanguageStore.ts';
+import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
+import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
 import {
   ACTIVE_STATUS_OPTIONS,
   ALERT_TABLE_STYLES,
   formatDateTime,
   SEVERITY_OPTIONS
 } from '../components/AlertTableStyles';
-import {useWebSocket} from '@/hooks/useWebSocket';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 // i18n
 import koMessages from "../../../../locales/ko.json";
@@ -99,7 +100,9 @@ const NotificationRuleListTab: React.FC = () => {
   const [rules, setRules] = useState<NotificationRule[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
+  const { settings, fetchSettings } = useSettingsStore();
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([10, 25, 50]);
   const [loading, setLoading] = useState(true);
   const {language} = useLanguageStore();
 
@@ -132,6 +135,25 @@ const NotificationRuleListTab: React.FC = () => {
       }
     }
   });
+
+  // 고급 설정 로드 및 연동
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings && settings.pagination_size) {
+      setRowsPerPage(settings.pagination_size);
+      setRowsPerPageOptions(prev => {
+        const newOptions = [...prev];
+        if (!newOptions.includes(settings.pagination_size!)) {
+          newOptions.unshift(settings.pagination_size!);
+          return newOptions.sort((a, b) => a - b);
+        }
+        return newOptions;
+      });
+    }
+  }, [settings]);
 
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<boolean | null>(null);
@@ -561,6 +583,7 @@ const NotificationRuleListTab: React.FC = () => {
             setRowsPerPage(parseInt(e.target.value, 10));
             setPage(0);
           }}
+          rowsPerPageOptions={rowsPerPageOptions}
         />
       </Paper>
 

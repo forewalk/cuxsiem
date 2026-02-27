@@ -12,6 +12,7 @@ import {
   FilterList as FilterListIcon
 } from '@mui/icons-material';
 import { notificationService } from '@/services/notificationService.ts';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -141,7 +142,9 @@ const NotificationHistoryTab: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationHistory[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
+  const { settings, fetchSettings } = useSettingsStore();
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([25, 50, 100]);
   const [loading, setLoading] = useState(true);
   const { language } = useLanguageStore();
 
@@ -149,8 +152,8 @@ const NotificationHistoryTab: React.FC = () => {
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
 
   // 시간 범위 상태
-  const [fromValue, setFromValue] = useState<number | null>(null);
-  const [fromUnit, setFromUnit] = useState<string>("m");
+  const [fromValue, setFromValue] = useState<number | null>(settings?.time_filter_duration ?? null);
+  const [fromUnit, setFromUnit] = useState<string>(settings?.time_filter_unit ?? "m");
   const [toValue, setToValue] = useState<number | null>(null);
   const [toUnit, setToUnit] = useState<string>("m");
   const [fromDate, setFromDate] = useState<string | null>(null);
@@ -170,7 +173,30 @@ const NotificationHistoryTab: React.FC = () => {
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
 
-  // 시간 범위를 ISO 날짜로 변환
+    // 고급 설정 로드 및 연동
+    useEffect(() => {
+      fetchSettings();
+    }, [fetchSettings]);
+  
+    useEffect(() => {
+      if (settings) {
+        if (settings.pagination_size) {
+          setRowsPerPage(settings.pagination_size);
+          setRowsPerPageOptions(prev => {
+            const newOptions = [...prev];
+            if (!newOptions.includes(settings.pagination_size!)) {
+              newOptions.unshift(settings.pagination_size!);
+              return newOptions.sort((a, b) => a - b);
+            }
+            return newOptions;
+          });
+        }
+        if (settings.time_filter_duration && settings.time_filter_unit) {
+          setFromValue(settings.time_filter_duration);
+          setFromUnit(settings.time_filter_unit);
+        }
+      }
+    }, [settings]);  // 시간 범위를 ISO 날짜로 변환
   const calculateTimeRange = useCallback(() => {
     const now = dayjs();
     let from_date: string | undefined;
@@ -350,6 +376,7 @@ const NotificationHistoryTab: React.FC = () => {
           page={page}
           onPageChange={(_, p) => setPage(p)}
           onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+          rowsPerPageOptions={rowsPerPageOptions}
         />
       </Paper>
 

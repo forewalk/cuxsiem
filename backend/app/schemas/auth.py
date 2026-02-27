@@ -5,10 +5,10 @@ from datetime import datetime
 
 
 class LoginRequest(BaseModel):
-    """로그인 요청"""
-    username: str  # 사용자 ID
-    password: str = Field(..., min_length=4, max_length=128)
+    username: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1)
     remember_me: bool = False
+    force: bool = False
 
 
 class UserResponse(BaseModel):

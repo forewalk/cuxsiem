@@ -43,6 +43,14 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean, token: stri
   const handleMessage = useCallback((data: any) => {
     console.log('🔔 WebSocket message received:', data);
     
+    if (data.type === 'force_logout') {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
+      // 필요 시 api 인터셉터 쪽 로직과 동일하게 맞춤
+      window.location.href = "/login?reason=multiple_login";
+      return;
+    }
+
     if (data.type === 'new_alert' && data.data) {
       const alert = data.data;
       

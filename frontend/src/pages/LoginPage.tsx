@@ -178,6 +178,13 @@ export const LoginPage: React.FC = () => {
               // 계정 비활성화
               errorMessage = t("accountDisabled");
               break;
+            case 409:
+              // 다중 접속 감지
+              if (err.response.data?.detail === "MULTIPLE_SESSION_DETECTED") {
+                setConflictDialogOpen(true);
+                return;
+              }
+              break;
             case 429:
               // 시도 횟수 초과
               errorMessage = t("tooManyAttempts");
@@ -199,11 +206,36 @@ export const LoginPage: React.FC = () => {
     [username, password, validateForm, login, navigate, language]
   );
 
+  const handleForceLogin = async () => {
+    setConflictDialogOpen(false);
+    try {
+      await login(username, password, false, true);
+      navigate("/main");
+    } catch (err: any) {
+      console.error("Force Login Error:", err);
+      setError(t("loginFailed"));
+      setOpenSnackbar(true);
+    }
+  };
+
   useEffect(() => {
     if (error) {
       setOpenSnackbar(true);
     }
   }, [error]);
+
+  useEffect(() => {
+    // 다중 접속 강제 로그아웃 감지
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reason") === "multiple_login") {
+      setError(t("multipleSessionLogout", { fallback: "다른 기기에서 로그인하여 로그아웃되었습니다." }));
+      // URL 파라미터 정리
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [language]);
+
+  // 다중 접속 알림 다이얼로그 상태
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
 
   // 비밀번호 초기화 관련 상태
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
@@ -560,6 +592,12 @@ export const LoginPage: React.FC = () => {
                 variant="outlined"
                 value={resetId}
                 onChange={(e) => setResetId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && resetId && !resetLoading) {
+                    e.preventDefault();
+                    handleResetPassword();
+                  }
+                }}
               />
             </>
           ) : (
@@ -594,6 +632,24 @@ export const LoginPage: React.FC = () => {
               {resetLoading ? <CircularProgress size={20} color="inherit" /> : t("reset", { fallback: "초기화" })}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* 다중 접속 확인 다이얼로그 */}
+      <Dialog open={conflictDialogOpen} onClose={() => setConflictDialogOpen(false)}>
+        <DialogTitle>{t("multipleSessionDetected", { fallback: "다중 접속 감지" })}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t("multipleSessionMsg", { fallback: "해당 계정은 이미 다른 기기에서 로그인되어 이용 중입니다. 기존 접속을 끊고 로그인하시겠습니까?" })}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConflictDialogOpen(false)}>
+            {t("multipleSessionCancel", { fallback: "아니오" })}
+          </Button>
+          <Button onClick={handleForceLogin} variant="contained" color="primary">
+            {t("multipleSessionConfirm", { fallback: "예" })}
+          </Button>
         </DialogActions>
       </Dialog>
 

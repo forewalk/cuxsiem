@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { 
   Box, Paper, Typography, Alert, LinearProgress, 
@@ -10,6 +10,7 @@ import BarChartWidget from "../components/BarChartWidget";
 import { getDashboardStats, getIndexFields, getDashboardIndices, getIndexLogs } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
+import { useSettingsStore } from "../../../stores/useSettingsStore";
 import dayjs from "dayjs";
 
 // Icons
@@ -35,16 +36,26 @@ import cnMessages from "../../../locales/cn.json";
 const ThreatListTab: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { language } = useLanguageStore();
+  const { settings, fetchSettings } = useSettingsStore();
   const theme = useTheme();
 
-  // URL 파라미터에서 초기값 읽기
-  const fromValue = searchParams.get("from_value") ? Number(searchParams.get("from_value")) : 15;
-  const fromUnit = searchParams.get("from_unit") || "m";
-  const toValue = searchParams.get("to_value") ? Number(searchParams.get("to_value")) : null;
-  const toUnit = searchParams.get("to_unit") || "m";
-  const fromDate = searchParams.get("from_date");
-  const toDate = searchParams.get("to_date");
-  const searchQuery = searchParams.get("q") || "";
+  // URL 파라미터 또는 고급 설정 기본값 사용
+  const sp_fromValue = searchParams.get("tl_from_value");
+  const fromValue = sp_fromValue !== null 
+    ? Number(sp_fromValue) 
+    : (settings?.time_filter_duration ?? 15);
+    
+  const sp_fromUnit = searchParams.get("tl_from_unit");
+  const fromUnit = sp_fromUnit !== null
+    ? sp_fromUnit
+    : (settings?.time_filter_unit || "m");
+    
+  const sp_toValue = searchParams.get("tl_to_value");
+  const toValue = sp_toValue !== null ? Number(sp_toValue) : null;
+  const toUnit = searchParams.get("tl_to_unit") || "m";
+  const fromDate = searchParams.get("tl_from_date");
+  const toDate = searchParams.get("tl_to_date");
+  const searchQuery = searchParams.get("tl_q") || "";
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -64,11 +75,51 @@ const ThreatListTab: React.FC = () => {
   ]);
   const [fieldSearchQuery, setFieldSearchQuery] = useState("");
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(settings?.pagination_size ?? 20);
+  const [pageSizeOptions, setPageSizeOptions] = useState<number[]>([20, 50, 100, 500]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const initializedRef = useRef(false);
+
+  // 고급 설정 로드 및 초기화 (새로고침 시 강제 적용)
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings && !initializedRef.current) {
+      const newParams = new URLSearchParams(searchParams);
+      // 새로고침/진입 시 고급 설정값으로 강제 조정
+      newParams.set("tl_from_value", settings.time_filter_duration!.toString());
+      newParams.set("tl_from_unit", settings.time_filter_unit!);
+      // 종료 지점은 항상 '현재'로 리셋
+      newParams.delete("tl_to_value");
+      newParams.delete("tl_to_unit");
+      newParams.delete("tl_from_date");
+      newParams.delete("tl_to_date");
+      
+      setSearchParams(newParams, { replace: true });
+      initializedRef.current = true;
+    }
+  }, [settings, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (settings) {
+      if (settings.pagination_size) {
+        setPageSize(settings.pagination_size);
+        setPageSizeOptions(prev => {
+          const newOptions = [...prev];
+          if (!newOptions.includes(settings.pagination_size!)) {
+            newOptions.unshift(settings.pagination_size!);
+            return newOptions.sort((a, b) => a - b);
+          }
+          return newOptions;
+        });
+      }
+    }
+  }, [settings]);
 
   const toggleRow = (idx: number) => {
     setExpandedRows(prev => {
@@ -172,18 +223,18 @@ const ThreatListTab: React.FC = () => {
     
     if (fDate && tDate) {
       // 절대 시간 모드
-      newParams.delete("from_value");
-      newParams.delete("to_value");
-      newParams.set("from_date", fDate);
-      newParams.set("to_date", tDate);
+      newParams.delete("tl_from_value");
+      newParams.delete("tl_to_value");
+      newParams.set("tl_from_date", fDate);
+      newParams.set("tl_to_date", tDate);
     } else {
       // 상대 시간 모드
-      if (fVal !== null) newParams.set("from_value", fVal.toString()); else newParams.delete("from_value");
-      newParams.set("from_unit", fUnit);
-      if (tVal !== null) newParams.set("to_value", tVal.toString()); else newParams.delete("to_value");
-      newParams.set("to_unit", tUnit);
-      newParams.delete("from_date");
-      newParams.delete("to_date");
+      if (fVal !== null) newParams.set("tl_from_value", fVal.toString()); else newParams.delete("tl_from_value");
+      newParams.set("tl_from_unit", fUnit);
+      if (tVal !== null) newParams.set("tl_to_value", tVal.toString()); else newParams.delete("tl_to_value");
+      newParams.set("tl_to_unit", tUnit);
+      newParams.delete("tl_from_date");
+      newParams.delete("tl_to_date");
     }
     
     setSearchParams(newParams);
@@ -191,7 +242,7 @@ const ThreatListTab: React.FC = () => {
 
   const handleSearchQueryChange = (query: string) => {
     const newParams = new URLSearchParams(searchParams);
-    if (query) newParams.set("q", query); else newParams.delete("q");
+    if (query) newParams.set("tl_q", query); else newParams.delete("tl_q");
     setSearchParams(newParams);
   };
 
@@ -202,9 +253,9 @@ const ThreatListTab: React.FC = () => {
       const indices = await getDashboardIndices();
       const targetIndex = indices.length > 0 ? indices[0] : "logs-sentinel_one.threats";
       const [stats, fieldList, logList] = await Promise.all([
-        getDashboardStats("threat-status", fromValue || undefined, fromUnit, toValue ?? undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined),
+        getDashboardStats("threat-status", fromValue !== null ? fromValue : undefined, fromUnit, toValue !== null ? toValue : undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined),
         getIndexFields(targetIndex),
-        getIndexLogs("threat-status", fromValue || undefined, fromUnit, toValue ?? undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize)
+        getIndexLogs("threat-status", fromValue !== null ? fromValue : undefined, fromUnit, toValue !== null ? toValue : undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize)
       ]);
       setData(stats);
       setLogs(logList);
@@ -749,8 +800,16 @@ const ThreatListTab: React.FC = () => {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 250, justifyContent: 'flex-end', mr: 1 }}>
               <Typography variant="caption" color="text.secondary">{t('rowsPerPage') || 'Rows per page:'}</Typography>
-              <Select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} size="small" variant="standard" sx={{ fontSize: '0.75rem', '&:before, &:after': { border: 'none' }, '& .MuiSelect-select': { py: 0.5 } }}>
-                <MenuItem value={20}>20</MenuItem><MenuItem value={50}>50</MenuItem><MenuItem value={100}>100</MenuItem><MenuItem value={500}>500</MenuItem>
+              <Select 
+                value={pageSize} 
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} 
+                size="small" 
+                variant="standard" 
+                sx={{ fontSize: '0.75rem', '&:before, &:after': { border: 'none' }, '& .MuiSelect-select': { py: 0.5 } }}
+              >
+                {pageSizeOptions.map(option => (
+                  <MenuItem key={option} value={option}>{option}</MenuItem>
+                ))}
               </Select>
             </Box>
           </Paper>

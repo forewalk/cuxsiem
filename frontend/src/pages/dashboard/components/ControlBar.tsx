@@ -109,6 +109,20 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const [popoverDate, setPopoverDate] = useState<Dayjs>(dayjs());
   const [popoverTime, setPopoverTime] = useState("12:00");
 
+  // Props 변경 시 내부 상태 동기화
+  useEffect(() => {
+    if (fromValue !== null) setPopoverVal(fromValue);
+    setPopoverUnit(fromUnit);
+  }, [fromValue, fromUnit]);
+
+  useEffect(() => {
+    if (fromDate) {
+      const d = dayjs(fromDate);
+      setPopoverDate(d);
+      setPopoverTime(d.format("HH:mm"));
+    }
+  }, [fromDate]);
+
   const [autoRefreshValue, setAutoRefreshValue] = useState(0);
   const [autoRefreshUnit, setAutoRefreshUnit] = useState<'seconds' | 'minutes'>('seconds');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -210,7 +224,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
       setPopoverTime(d.format("HH:mm"));
       setTabValue(0);
     } else {
-      setPopoverVal(fromValue || 15);
+      setPopoverVal(fromValue !== null ? fromValue : 15);
       setPopoverUnit(fromUnit);
       setTabValue(1);
     }

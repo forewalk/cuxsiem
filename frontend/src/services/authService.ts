@@ -13,6 +13,7 @@ export const authService = {
       username: loginData.username,
       password: loginData.password,
       remember_me: loginData.remember_me || false,
+      force: loginData.force || false,
     });
 
     // 토큰과 사용자 정보 저장
