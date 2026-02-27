@@ -23,6 +23,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
+import ShareIcon from "@mui/icons-material/Share";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -95,6 +96,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const { language } = useLanguageStore();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [tempQuery, setTempQuery] = useState("");
+  const [shareText, setShareText] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [popoverType, setPopoverType] = useState<'quick' | 'detailed' | 'index'>('quick');
   const [editingPoint, setEditingPoint] = useState<'from' | 'to'>('from');
@@ -145,6 +147,16 @@ const ControlBar: React.FC<ControlBarProps> = ({
     event.stopPropagation();
     setPopoverType('quick');
     setAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
+  };
+
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareText(t('copied') || "Copied!");
+      setTimeout(() => setShareText(null), 2000);
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+    });
   };
 
   const handleIndexClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -452,6 +464,23 @@ const ControlBar: React.FC<ControlBarProps> = ({
               >
                 {t('edit')}
               </Button>
+            )}
+
+            {!isEditMode && (
+              <Tooltip title={shareText || t('share') || "Share"}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ShareIcon sx={{ fontSize: 14 }} />}
+                  onClick={handleShare}
+                  sx={{ 
+                    fontSize: '0.65rem', color: 'text.secondary', borderColor: 'divider', textTransform: 'none', height: 22, px: 1.5, borderRadius: 1,
+                    '&:hover': { bgcolor: 'action.hover', borderColor: KIBANA_TEAL, color: KIBANA_TEAL } 
+                  }}
+                >
+                  {t('share')}
+                </Button>
+              </Tooltip>
             )}
 
             {isEditMode && (

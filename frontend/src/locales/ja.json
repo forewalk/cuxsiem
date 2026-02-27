@@ -296,5 +296,7 @@
   "resetDashboardConfirmMessage": "すべてのパネルの名前、サイズ、位置が初期状態に戻ります。追加または削除したパネルもリセットされます。続行しますか？",
   "all": "全て",
   "windowIntervalError": "検知データ参照範囲(window_min)は、検知周期(interval_min)以上である必要があります。",
-  "windowIntervalWarning": "参照範囲が周期の3倍を超えているため、重複通知が多く発生する可能性があります。"
+  "windowIntervalWarning": "参照範囲が周期の3倍を超えているため、重複通知が多く発生하는可能性があります。",
+  "share": "共有",
+  "copied": "コピーされました！"
 }
