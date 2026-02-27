@@ -47,7 +47,13 @@ class NotificationService:
         return await self.repository.create_rule(rule_in.model_dump())
 
     async def update_rule(self, rule_id: str, rule_in: NotificationRuleUpdate):
-        return await self.repository.update_rule(rule_id, rule_in.model_dump(exclude_unset=True))
+        data = rule_in.model_dump(exclude_none=True)
+        logger.info(f"[서비스] update_rule 호출 - rule_id: {rule_id}")
+        logger.info(f"[서비스] 받은 데이터 키: {list(data.keys())}")
+        logger.info(f"[서비스] condition_config 포함 여부: {'condition_config' in data}")
+        if 'condition_config' in data:
+            logger.info(f"[서비스] condition_config 내용: {data['condition_config']}")
+        return await self.repository.update_rule(rule_id, data)
 
     async def delete_rule(self, rule_id: str):
         return await self.repository.delete_rule(rule_id)
@@ -289,6 +295,18 @@ class NotificationService:
             "aggregation_summary": aggregation_summary,
             "aggregations": aggregations  # 원본 집계 데이터도 제공
         }
+        
+        # 각 aggregation을 개별 변수로도 제공 (DSL aggregation 이름 = 템플릿 변수명)
+        for agg_name, agg_data in aggregations.items():
+            if "buckets" in agg_data:
+                buckets = agg_data["buckets"]
+                # 각 버킷을 포맷팅
+                formatted_items = []
+                for bucket in buckets:
+                    key = bucket.get("key", "Unknown")
+                    doc_count = bucket.get("doc_count", 0)
+                    formatted_items.append(f"  - {key}: {doc_count}건")
+                template_context[agg_name] = "\n".join(formatted_items) if formatted_items else "결과 없음"
         
         message_template = rule.get("message_template", "총 {{total}}개 이벤트, {{bucket_count}}개 그룹 발견\n\n{{aggregation_summary}}")
         rendered_message = self._render_message_template(message_template, template_context)

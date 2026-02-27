@@ -26,13 +26,22 @@ export const notificationService = {
   /* 알림 규칙 목록 조회 */
   getRules: async (params: GetRulesParams = {}) => {
     const response = await api.get<{ total: number, items: NotificationRule[] }>('/api/v1/notifications/rules', {
-      params
+      params,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
     return response.data;
   },
 
   getRule: async (id: string) => {
-    const response = await api.get<NotificationRule>(`/api/v1/notifications/rules/${id}`);
+    const response = await api.get<NotificationRule>(`/api/v1/notifications/rules/${id}`, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
     return response.data;
   },
 

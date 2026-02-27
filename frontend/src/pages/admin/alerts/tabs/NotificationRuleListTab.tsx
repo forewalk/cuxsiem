@@ -237,7 +237,7 @@ const NotificationRuleListTab: React.FC = () => {
     setDslString(value);
     try {
       const parsed = JSON.parse(value);
-      setFormData({...formData, condition_config: parsed});
+      setFormData(prev => ({...prev, condition_config: parsed}));
       setJsonError(null);
     } catch {
       setJsonError(t('invalidJson'));
@@ -281,8 +281,10 @@ const NotificationRuleListTab: React.FC = () => {
         await notificationService.createRule(formData);
       }
       setSnackbar({open: true, message: t('ruleSaveSuccess'), severity: 'success'});
+      
+      // 최신 데이터를 먼저 로드한 후 다이얼로그 닫기
+      await loadRules();
       handleCloseDialog();
-      loadRules();
     } catch (error) {
       console.error('Failed to save rule:', error);
       setSnackbar({open: true, message: t('saveFailed'), severity: 'error'});

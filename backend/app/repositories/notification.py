@@ -174,22 +174,50 @@ class NotificationRepository:
         """규칙 수정"""
         loop = asyncio.get_event_loop()
         data["updated_at"] = datetime.utcnow().isoformat()
-        logger.info(f"규칙 업데이트 시작 - ID: {rule_id}, 데이터: {data}")
+        logger.info(f"[리포지토리] 규칙 업데이트 시작 - ID: {rule_id}")
+        logger.info(f"[리포지토리] 업데이트할 데이터 키: {list(data.keys())}")
+        
         def update_doc():
             try:
-                self.client.update(
-                    index=self.rules_index,
-                    id=rule_id,
-                    body={"doc": data},
-                    refresh=True
-                )
-                logger.info(f"규칙 업데이트 성공 - ID: {rule_id}")
+                # condition_config가 있으면 전체 문서를 조회해서 교체 후 저장
+                if 'condition_config' in data:
+                    logger.info(f"[리포지토리] condition_config 포함 - 전체 문서 교체 방식 사용")
+                    # 1. 기존 문서 조회
+                    existing = self.client.get(index=self.rules_index, id=rule_id)
+                    existing_doc = existing['_source']
+                    
+                    # 2. 업데이트할 필드 교체 (condition_config는 완전히 교체됨)
+                    for key, value in data.items():
+                        existing_doc[key] = value
+                    
+                    # 3. 전체 문서 재색인 (완전 교체)
+                    self.client.index(
+                        index=self.rules_index,
+                        id=rule_id,
+                        body=existing_doc,
+                        refresh=True
+                    )
+                    logger.info(f"[리포지토리] condition_config 완전 교체 성공")
+                else:
+                    # condition_config가 없으면 일반 partial update
+                    self.client.update(
+                        index=self.rules_index,
+                        id=rule_id,
+                        body={"doc": data},
+                        refresh=True
+                    )
+                    logger.info(f"[리포지토리] 일반 업데이트 성공")
+                
                 return True
             except Exception as e:
-                logger.error(f"규칙 업데이트 실패 - ID: {rule_id}, 오류: {e}")
+                logger.error(f"[리포지토리] OpenSearch 업데이트 실패 - ID: {rule_id}, 오류: {e}")
                 return False
+                
         if await loop.run_in_executor(None, update_doc):
-            return await self.get_rule_by_id(rule_id)
+            updated_rule = await self.get_rule_by_id(rule_id)
+            if updated_rule and 'condition_config' in data:
+                logger.info(f"[리포지토리] 업데이트 후 조회된 condition_config 키: {list(updated_rule.get('condition_config', {}).keys())}")
+            return updated_rule
         return None
 
     async def delete_rule(self, rule_id: str) -> bool:
