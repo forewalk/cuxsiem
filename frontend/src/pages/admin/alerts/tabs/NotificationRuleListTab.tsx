@@ -136,6 +136,12 @@ const NotificationRuleListTab: React.FC = () => {
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
+  
+  // 쿼리 테스트 상태
+  const [queryTestLoading, setQueryTestLoading] = useState(false);
+  const [queryTestResult, setQueryTestResult] = useState<any | null>(null);
+  const [queryTestError, setQueryTestError] = useState<string | null>(null);
+  const [showQueryResult, setShowQueryResult] = useState(false);
 
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
@@ -235,6 +241,33 @@ const NotificationRuleListTab: React.FC = () => {
       setJsonError(null);
     } catch {
       setJsonError(t('invalidJson'));
+    }
+  };
+
+  const handleTestQuery = async () => {
+    if (jsonError) {
+      setSnackbar({open: true, message: 'DSL 쿼리에 JSON 오류가 있습니다', severity: 'error'});
+      return;
+    }
+
+    setQueryTestLoading(true);
+    setQueryTestError(null);
+    setQueryTestResult(null);
+
+    try {
+      const result = await notificationService.testQuery(
+        formData.target_index,
+        formData.condition_config
+      );
+      setQueryTestResult(result);
+      setShowQueryResult(true);
+      setSnackbar({open: true, message: '쿼리 테스트 성공!', severity: 'success'});
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.detail || error.message || '쿼리 실행 실패';
+      setQueryTestError(errorMsg);
+      setSnackbar({open: true, message: errorMsg, severity: 'error'});
+    } finally {
+      setQueryTestLoading(false);
     }
   };
 
@@ -538,6 +571,79 @@ const NotificationRuleListTab: React.FC = () => {
                          onChange={(e) => handleDslChange(e.target.value)} error={!!jsonError}
                          helperText={jsonError || t('dslQueryHelper')}
                          inputProps={{style: {fontFamily: 'monospace', fontSize: '0.85rem'}}}/>
+              
+              <Box sx={{mt: 2, display: 'flex', gap: 2, alignItems: 'center'}}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleTestQuery}
+                  disabled={queryTestLoading || !!jsonError}
+                  size="small"
+                >
+                  {queryTestLoading ? '실행 중...' : '🔍 쿼리 테스트'}
+                </Button>
+                {queryTestResult && (
+                  <Typography variant="caption" color="success.main">
+                    ✅ Total: {queryTestResult.hits?.total?.value || 0}건
+                    {queryTestResult.aggregations && ' | 집계 결과 있음'}
+                  </Typography>
+                )}
+              </Box>
+
+              {showQueryResult && queryTestResult && (
+                <Paper elevation={1} sx={{mt: 2, p: 2, bgcolor: 'background.default'}}>
+                  <Stack spacing={1}>
+                    <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <Typography variant="subtitle2" fontWeight="bold">쿼리 실행 결과</Typography>
+                      <Button size="small" onClick={() => setShowQueryResult(false)}>닫기</Button>
+                    </Box>
+                    <Divider />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" gutterBottom>
+                        실행 시간: {queryTestResult.took}ms | 
+                        Total: {queryTestResult.hits?.total?.value || 0}건 | 
+                        Shards: {queryTestResult._shards?.successful}/{queryTestResult._shards?.total}
+                      </Typography>
+                    </Box>
+                    
+                    {queryTestResult.aggregations && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold" gutterBottom>📊 집계 결과:</Typography>
+                        <TextField
+                          multiline
+                          rows={8}
+                          fullWidth
+                          value={JSON.stringify(queryTestResult.aggregations, null, 2)}
+                          InputProps={{readOnly: true, style: {fontFamily: 'monospace', fontSize: '0.8rem'}}}
+                          size="small"
+                        />
+                      </Box>
+                    )}
+
+                    {queryTestResult.hits?.hits?.length > 0 && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold" gutterBottom>
+                          📄 문서 샘플 (최대 {queryTestResult.hits.hits.length}건):
+                        </Typography>
+                        <TextField
+                          multiline
+                          rows={6}
+                          fullWidth
+                          value={JSON.stringify(queryTestResult.hits.hits.slice(0, 3), null, 2)}
+                          InputProps={{readOnly: true, style: {fontFamily: 'monospace', fontSize: '0.8rem'}}}
+                          size="small"
+                        />
+                      </Box>
+                    )}
+                  </Stack>
+                </Paper>
+              )}
+
+              {queryTestError && (
+                <Alert severity="error" sx={{mt: 2}} onClose={() => setQueryTestError(null)}>
+                  {queryTestError}
+                </Alert>
+              )}
               
               <TextField 
                 label="트리거 조건 (선택사항)"

@@ -52,6 +52,40 @@ class NotificationService:
     async def delete_rule(self, rule_id: str):
         return await self.repository.delete_rule(rule_id)
 
+    async def test_query(self, target_index: str, condition_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        DSL 쿼리를 실행하여 결과 반환 (테스트용)
+        - 실제 알림 생성 없이 쿼리만 실행
+        - OpenSearch 응답을 그대로 반환
+        """
+        try:
+            # 쿼리 구성 (run_detection_for_rule과 동일한 로직)
+            search_body = {
+                **condition_config,
+                "size": condition_config.get("size", 10)
+            }
+            
+            # sort가 없으면 @timestamp 내림차순 기본값 적용
+            if "sort" not in search_body:
+                search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
+            
+            logger.info(f"[쿼리 테스트] 인덱스: {target_index}, 쿼리: {search_body}")
+            
+            # OpenSearch 쿼리 실행
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: self.repository.client.search(index=target_index, body=search_body)
+            )
+            
+            logger.info(f"[쿼리 테스트] 성공 - Total: {result.get('hits', {}).get('total', {}).get('value', 0)}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"[쿼리 테스트] 실패: {e}")
+            raise Exception(f"Query execution failed: {str(e)}")
+
     # --- Notification Management ---
 
     async def list_notifications(

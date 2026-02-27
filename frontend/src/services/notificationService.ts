@@ -50,6 +50,14 @@ export const notificationService = {
     await api.delete(`/api/v1/notifications/rules/${id}`);
   },
 
+  /* DSL 쿼리 테스트 */
+  testQuery: async (targetIndex: string, conditionConfig: any) => {
+    const response = await api.post<any>('/api/v1/notifications/rules/test-query', {
+      target_index: targetIndex,
+      condition_config: conditionConfig
+    });
+    return response.data;
+  },
 
   /* 알림 목록 조회 */
   getNotifications: async (params: GetNotificationsParams = {}) => {
