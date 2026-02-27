@@ -25,7 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-02-27 19:25 | Gemini | 배포 | origin/develop push (ROADMAP 업데이트, Pixel Mode/License 기획서 추가, 로그인 UI 개선, SVG 파비콘 적용, 리소스 제한 설정) |
+| 2026-02-27 19:25 | 김장훈 | 배포 | origin/develop push (ROADMAP 업데이트, Pixel Mode/License 기획서 추가, 로그인 UI 개선, SVG 파비콘 적용, 리소스 제한 설정) |
 | 2026-02-27 16:55 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합: 대시보드 다운로드 기능 구현) |
 | 2026-02-27 16:20 | 박지은 | 배포 | origin/develop push (feature/alerts 병합: 알림 규칙 템플릿 시스템 개선) |
 | 2026-02-27 16:10 | 박지은 | 수정 | 알림 규칙 템플릿 시스템 개선: 중첩 필드 자동 추출({{threatInfo.threatId}}) 및 다중 문서 일괄 처리(size>1) 구현 |
