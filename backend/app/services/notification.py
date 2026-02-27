@@ -300,12 +300,11 @@ class NotificationService:
         for agg_name, agg_data in aggregations.items():
             if "buckets" in agg_data:
                 buckets = agg_data["buckets"]
-                # 각 버킷을 포맷팅
+                # 각 버킷을 포맷팅 (key만 표시)
                 formatted_items = []
                 for bucket in buckets:
                     key = bucket.get("key", "Unknown")
-                    doc_count = bucket.get("doc_count", 0)
-                    formatted_items.append(f"  - {key}: {doc_count}건")
+                    formatted_items.append(f"  - {key}")
                 template_context[agg_name] = "\n".join(formatted_items) if formatted_items else "결과 없음"
         
         message_template = rule.get("message_template", "총 {{total}}개 이벤트, {{bucket_count}}개 그룹 발견\n\n{{aggregation_summary}}")

@@ -101,54 +101,34 @@ const NotificationRow: React.FC<{
         <TableCell colSpan={5}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
-              <Stack spacing={2}>
-                {/* 규칙명 */}
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
-                    {t('triggeredRule')}
-                  </Typography>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                      {row.rule_name || row.title}
-                    </Typography>
-                    <SeverityChip severity={row.rule_severity || row.severity} />
-                  </Stack>
-                </Box>
-                
-                {/* 알림 메시지 */}
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
-                    {t('alertMessage')}
-                  </Typography>
-                  <Typography 
-                    variant="body1" 
-                    sx={{ 
-                      color: 'text.primary',
-                      fontWeight: 'medium',
-                      p: 2,
-                      bgcolor: 'action.selected',
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      minHeight: '100px',
-                      maxHeight: '400px',
-                      overflow: 'auto',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
-                      lineHeight: 1.8,
-                      '&::-webkit-scrollbar': { width: 6, height: 6 },
-                      '&::-webkit-scrollbar-thumb': { 
-                        bgcolor: 'rgba(0,0,0,0.2)', 
-                        borderRadius: 3,
-                        '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' }
-                      }
-                    }}
-                  >
-                    {row.message}
-                  </Typography>
-                </Box>
-              </Stack>
+              {/* 알림 메시지만 표시 */}
+              <Typography 
+                variant="body1" 
+                sx={{ 
+                  color: 'text.primary',
+                  fontWeight: 'medium',
+                  p: 2,
+                  bgcolor: 'action.selected',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  minHeight: '100px',
+                  maxHeight: '400px',
+                  overflow: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  lineHeight: 1.8,
+                  '&::-webkit-scrollbar': { width: 6, height: 6 },
+                  '&::-webkit-scrollbar-thumb': { 
+                    bgcolor: 'rgba(0,0,0,0.2)', 
+                    borderRadius: 3,
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' }
+                  }
+                }}
+              >
+                {row.message}
+              </Typography>
             </Box>
           </Collapse>
         </TableCell>
