@@ -147,28 +147,50 @@ class NotificationService:
         메시지 템플릿 렌더링
         - {{변수}} 형식 지원
         - {{nested.field}} 중첩 필드 접근 지원
+        - 중첩 필드가 context에 없으면 모든 hits에서 자동 추출
         """
+        def get_nested_value(obj: Any, keys: list) -> Any:
+            """중첩 필드 값 추출"""
+            value = obj
+            for k in keys:
+                if isinstance(value, dict):
+                    value = value.get(k)
+                    if value is None:
+                        return None
+                else:
+                    return None
+            return value
+        
         def replace_var(match):
             key = match.group(1)
             
-            # 중첩 필드 접근 (예: agentDetectionInfo.accountName)
-            if '.' in key:
-                keys = key.split('.')
-                value = context
-                for k in keys:
-                    if isinstance(value, dict):
-                        value = value.get(k)
-                        if value is None:
-                            return f"{{{{{key}}}}}"  # 값이 없으면 원본 유지
-                    else:
-                        return f"{{{{{key}}}}}"
-                return str(value) if value is not None else f"{{{{{key}}}}}"
+            # 단순 키 접근 (total, rule_name 등)
+            if '.' not in key:
+                value = context.get(key)
+                if value is None:
+                    return f"{{{{{key}}}}}"
+                return str(value)
             
-            # 단순 키 접근
-            value = context.get(key)
-            if value is None:
-                return f"{{{{{key}}}}}"
-            return str(value)
+            # 중첩 필드 접근 - 모든 hits에서 추출
+            keys = key.split('.')
+            hits = context.get("hits", [])
+            logger.info(f"[템플릿] 필드 '{key}' 추출 시도 - hits 개수: {len(hits) if hits else 0}")
+            
+            if hits and isinstance(hits, list):
+                values = []
+                for hit in hits:
+                    hit_value = get_nested_value(hit, keys)
+                    if hit_value is not None:
+                        values.append(str(hit_value))
+                
+                logger.info(f"[템플릿] 필드 '{key}' 추출 결과: {len(values)}개 값")
+                if values:
+                    # 중복 제거하고 줄바꿈으로 연결
+                    unique_values = list(dict.fromkeys(values))  # 순서 유지하며 중복 제거
+                    logger.info(f"[템플릿] 중복 제거 후: {len(unique_values)}개 값")
+                    return "\n".join(unique_values)
+            
+            return f"{{{{{key}}}}}"  # 값이 없으면 원본 유지
         
         # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
         return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
@@ -246,29 +268,16 @@ class NotificationService:
         rule_id = rule["id"]
         target_index = rule.get("target_index", "logs-sentinel_one.threats")
         
-        # 집계 결과 포맷팅
-        aggregation_summary = self._format_aggregation_results(aggregations)
-        
-        # 버킷 개수 계산 (PC 개수 등)
-        bucket_count = 0
-        for agg_name, agg_data in aggregations.items():
-            if "buckets" in agg_data:
-                bucket_count = len(agg_data["buckets"])
-                break
-        
         # 트리거 조건 체크
         trigger_condition = rule.get("trigger_condition")
         if trigger_condition:
             trigger_context = {
-                "total": total,
-                "bucket_count": bucket_count,
-                "pc_count": bucket_count,
-                "aggregations": aggregations
+                "total": total
             }
             
             if not self._evaluate_trigger_condition(trigger_condition, trigger_context):
                 logger.info(f"[탐지] 트리거 조건 미충족 - 규칙: '{rule['name']}', 조건: '{trigger_condition}'")
-                logger.info(f"[탐지] 현재 값: total={total}, bucket_count={bucket_count}")
+                logger.info(f"[탐지] 현재 값: total={total}")
                 return None
         
         # 중복 제거 키: 규칙 ID + 시간 윈도우 (분 단위로 동일 규칙은 하나의 알림만)
@@ -283,31 +292,23 @@ class NotificationService:
         
         logger.info(f"[탐지] 새 집계 알림 생성 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
         
+        # 쿼리 결과 문서들 추출
+        hits = result.get("hits", {}).get("hits", [])
+        hit_sources = [hit.get("_source", {}) for hit in hits]
+        
+        logger.info(f"[템플릿] hits 개수: {len(hit_sources)}")
+        
         # 메시지 템플릿 렌더링을 위한 context 구성
         template_context = {
             "total": total,
-            "bucket_count": bucket_count,
-            "pc_count": bucket_count,  # 별칭
             "rule_name": rule.get("name"),
             "rule_id": rule_id,
             "rule_severity": rule.get("severity"),
             "target_index": target_index,
-            "aggregation_summary": aggregation_summary,
-            "aggregations": aggregations  # 원본 집계 데이터도 제공
+            "hits": hit_sources,  # 모든 문서의 _source 배열
         }
         
-        # 각 aggregation을 개별 변수로도 제공 (DSL aggregation 이름 = 템플릿 변수명)
-        for agg_name, agg_data in aggregations.items():
-            if "buckets" in agg_data:
-                buckets = agg_data["buckets"]
-                # 각 버킷을 포맷팅 (key만 표시)
-                formatted_items = []
-                for bucket in buckets:
-                    key = bucket.get("key", "Unknown")
-                    formatted_items.append(f"  - {key}")
-                template_context[agg_name] = "\n".join(formatted_items) if formatted_items else "결과 없음"
-        
-        message_template = rule.get("message_template", "총 {{total}}개 이벤트, {{bucket_count}}개 그룹 발견\n\n{{aggregation_summary}}")
+        message_template = rule.get("message_template", "⚠️ 총 {{total}}건의 이벤트가 탐지되었습니다.")
         rendered_message = self._render_message_template(message_template, template_context)
         
         # cs_alerts 인덱스에 저장할 알림 데이터
@@ -330,8 +331,8 @@ class NotificationService:
             "event_source": {
                 "type": "aggregation",
                 "total": total,
-                "bucket_count": bucket_count,
-                "aggregations": aggregations
+                "aggregations": aggregations,
+                "hits": hit_sources[:10]  # 최대 10개 문서만 저장
             },
             
             # 중복 제거 및 수신자
@@ -421,10 +422,10 @@ class NotificationService:
                 "last_error": None
             })
 
-            # 집계 결과가 있는 경우 (aggregation 기반 알림)
-            if aggregations:
+            # 집계 결과가 있거나, 여러 문서를 한 번에 처리하는 경우
+            if aggregations or (total > 1 and condition_config.get("size", 10) > 1):
                 logger.info(f"[탐지] 규칙 '{rule['name']}' - 집계 알림 생성 시작")
-                created_alert = await self._create_aggregation_alert(rule, result, now, aggregations, total)
+                created_alert = await self._create_aggregation_alert(rule, result, now, aggregations or {}, total)
                 
                 if created_alert:
                     await self.repository.update_rule(rule_id, {
@@ -434,7 +435,7 @@ class NotificationService:
                     return created_alert
                 return None
             
-            # 기존 로직: 개별 문서 기반 알림
+            # 기존 로직: 개별 문서 기반 알림 (total == 1인 경우만)
             if total > 0:
                 logger.info(f"[탐지] 규칙 '{rule['name']}' 발동: {total}개 이벤트 발견, 처리 시작...")
 

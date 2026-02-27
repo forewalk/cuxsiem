@@ -71,9 +71,22 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
         must: [{match_all: {}}],
         filter: [{range: {"@timestamp": {gte: "now-2m"}}}]
       }
-    }
+    },
+    size: 100
   },
-  message_template: 'Detected {{total}} events.',
+  message_template: `⚠️ 총 {{total}}건의 위협이 탐지되었습니다.
+
+📌 위협 ID:
+{{threatInfo.threatId}}
+
+🔍 위협 이름:
+{{threatInfo.threatName}}
+
+💻 영향받은 PC:
+{{agentDetectionInfo.agentComputerName}}
+
+👤 계정:
+{{agentRealtimeInfo.accountName}}`,
   severity: 'info',
   interval_min: 1,
   dedup_key_template: '{{rule_id}}_{{_id}}',
@@ -164,29 +177,62 @@ const NotificationRuleListTab: React.FC = () => {
     if (queryTestResult) {
       // 실제 쿼리 결과로 렌더링
       const total = queryTestResult.hits?.total?.value || 0;
-      const aggregations = queryTestResult.aggregations || {};
+      const hits = queryTestResult.hits?.hits || [];
+      const hitSources = hits.map((h: any) => h._source);
+      const firstDoc = hitSources.length > 0 ? hitSources[0] : {};
       
-      // 기본 변수 치환
-      preview = preview.replace(/\{\{total\}\}/g, String(total));
-      preview = preview.replace(/\{\{bucket_count\}\}/g, String(Object.keys(aggregations).length));
-      preview = preview.replace(/\{\{pc_count\}\}/g, String(Object.keys(aggregations).length));
-      
-      // Aggregation 변수 치환
-      Object.keys(aggregations).forEach(aggName => {
-        const aggData = aggregations[aggName];
-        if (aggData.buckets) {
-          const items = aggData.buckets.map((b: any) => `  - ${b.key}`).join('\n');
-          preview = preview.replace(new RegExp(`\\{\\{${aggName}\\}\\}`, 'g'), items || '결과 없음');
+      // 중첩 필드 접근 헬퍼 함수
+      const getNestedValue = (obj: any, path: string): any => {
+        const keys = path.split('.');
+        let value = obj;
+        for (const key of keys) {
+          if (value && typeof value === 'object' && key in value) {
+            value = value[key];
+          } else {
+            return null;
+          }
         }
+        return value;
+      };
+      
+      // 템플릿 컨텍스트 구성 (백엔드와 동일)
+      const context: any = {
+        total,
+        hits: hitSources
+      };
+      
+      // {{변수}} 형식을 모두 치환
+      preview = preview.replace(/\{\{([\w\.@]+)\}\}/g, (match, key) => {
+        // 단순 키 접근 (total 등)
+        if (!key.includes('.')) {
+          const value = context[key];
+          return value !== null && value !== undefined ? String(value) : match;
+        }
+        
+        // 중첩 필드 처리 - 모든 hits에서 추출
+        if (hitSources.length > 0) {
+          const values: string[] = [];
+          for (const hit of hitSources) {
+            const hitValue = getNestedValue(hit, key);
+            if (hitValue !== null && hitValue !== undefined) {
+              values.push(String(hitValue));
+            }
+          }
+          
+          if (values.length > 0) {
+            // 중복 제거하고 줄바꿈으로 연결
+            const uniqueValues = Array.from(new Set(values));
+            return uniqueValues.join('\n');
+          }
+        }
+        
+        return match;
       });
     } else {
       // 샘플 데이터로 렌더링
       preview = preview.replace(/\{\{total\}\}/g, '15');
-      preview = preview.replace(/\{\{bucket_count\}\}/g, '3');
-      preview = preview.replace(/\{\{pc_count\}\}/g, '3');
-      preview = preview.replace(/\{\{threat_ids\}\}/g, '  - 1234567890\n  - 9876543210\n  - 5555555555');
-      preview = preview.replace(/\{\{threat_names\}\}/g, '  - ransomware.bat\n  - suspicious.ps1\n  - backdoor.exe');
-      preview = preview.replace(/\{\{by_pc\}\}/g, '  - DESKTOP-001\n  - DESKTOP-002\n  - DESKTOP-003');
+      preview = preview.replace(/\{\{threatInfo\.threatName\}\}/g, 'Threat1\nThreat2\nThreat3');
+      preview = preview.replace(/\{\{agentDetectionInfo\.agentComputerName\}\}/g, 'DESKTOP-001\nDESKTOP-002');
     }
     
     return preview;
@@ -683,40 +729,20 @@ const NotificationRuleListTab: React.FC = () => {
                           </Typography>
                         </Box>
                         
-                        {/* 집계 결과 */}
-                        {queryTestResult.aggregations && (
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold" gutterBottom>
-                              📊 Aggregations:
-                            </Typography>
-                            <TextField
-                              multiline
-                              fullWidth
-                              value={JSON.stringify(queryTestResult.aggregations, null, 2)}
-                              InputProps={{
-                                readOnly: true,
-                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
-                              }}
-                              size="small"
-                              sx={{
-                                '& .MuiInputBase-root': {
-                                  bgcolor: 'background.paper'
-                                }
-                              }}
-                            />
-                          </Box>
-                        )}
-
-                        {/* 문서 샘플 */}
+                        {/* 문서 샘플 (_source만) */}
                         {queryTestResult.hits?.hits?.length > 0 && (
                           <Box>
                             <Typography variant="body2" fontWeight="bold" gutterBottom>
-                              📄 Sample Documents ({queryTestResult.hits.hits.length}건):
+                              📄 Sample Documents - _source ({queryTestResult.hits.hits.length}건):
                             </Typography>
                             <TextField
                               multiline
                               fullWidth
-                              value={JSON.stringify(queryTestResult.hits.hits.slice(0, 3), null, 2)}
+                              value={JSON.stringify(
+                                queryTestResult.hits.hits.slice(0, 3).map((hit: any) => hit._source), 
+                                null, 
+                                2
+                              )}
                               InputProps={{
                                 readOnly: true,
                                 style: {fontFamily: 'monospace', fontSize: '0.75rem'}
