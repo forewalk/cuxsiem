@@ -180,6 +180,95 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <style>
+        {`
+          @media print {
+            /* 1. 불필요한 UI 숨기기 */
+            header, nav, .MuiDrawer-root, .no-print, button, .MuiAppBar-root, .MuiTabs-root, footer, .MuiIconButton-root {
+              display: none !important;
+            }
+
+            /* 2. 하단 잘림 방지: 최상위부터 하위까지 높이 제한 완전 해제 */
+            html, body, #root, [role="main"], main {
+              height: auto !important;
+              min-height: 100% !important;
+              overflow: visible !important;
+              display: block !important;
+            }
+
+            /* 대시보드 각 탭의 컨테이너 (id로 직접 타겟팅) */
+            #threat-list-tab-container,
+            #agent-list-tab-container,
+            .MuiBox-root[id$="-tab-container"] {
+              height: auto !important;
+              max-height: none !important;
+              overflow: visible !important;
+              display: block !important;
+            }
+
+            /* 3. 대시보드 그리드 컨테이너: CSS Grid 사용 (인쇄 호환성 및 배치 유지 최적) */
+            #threat-dashboard-grid-container, 
+            #agent-dashboard-grid-container {
+              display: block !important; /* Grid도 인쇄시 불안정할 수 있어 Block을 기반으로 하되 */
+              /* 만약 block으로도 안되면, 아예 float를 씁니다 */
+            }
+
+            /* 4. 패널 배치: float 사용 (가장 고전적이고 확실한 방법) */
+            #threat-dashboard-grid-container > div,
+            #agent-dashboard-grid-container > div {
+              float: left !important; /* 왼쪽으로 붙임 */
+              display: block !important;
+              
+              /* 간격 확보 */
+              padding: 8px !important;
+              margin: 0 !important;
+              
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              height: auto !important;
+              
+              box-sizing: border-box !important;
+            }
+
+            /* Clearfix */
+            #threat-dashboard-grid-container::after, 
+            #agent-dashboard-grid-container::after {
+              content: "";
+              display: table;
+              clear: both;
+            }
+
+            .MuiPaper-root {
+              height: 100% !important;
+              background-color: white !important;
+              border: 1px solid #eee !important;
+              box-shadow: none !important;
+            }
+
+            /* 5. 색상 및 폰트 최적화 */
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            body {
+              background-color: white !important;
+              color: black !important;
+            }
+
+            svg {
+              max-width: 100% !important;
+            }
+
+            /* 차트 내 축 라벨 폰트 크기 축소 (겹침 방지) */
+            #threat-dashboard-grid-container .MuiTypography-caption,
+            #agent-dashboard-grid-container .MuiTypography-caption {
+              font-size: 8px !important;
+              line-height: 1 !important;
+            }
+          }
+        `}
+      </style>
       <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden' }}>
         <AdminSidemenu t={t} userRole={user?.role} drawerOpen={drawerOpen} handleDrawerToggle={handleDrawerToggle} />
 

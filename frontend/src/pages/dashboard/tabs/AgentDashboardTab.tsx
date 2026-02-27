@@ -235,7 +235,7 @@ const DraggablePanel: React.FC<{
         sx={{ opacity: isDragging ? 0.3 : 1, transition: resizing ? 'none' : 'all 0.3s ease', cursor: isEditMode ? (isResizingRef.current ? 'nwse-resize' : 'grab') : 'default', position: resizing ? 'absolute' : 'relative', top: 0, left: 0, height: '100%', width: '100%', borderRadius: 1.5, zIndex: isDragging || resizing ? 1000 : 1, outline: (isOver && !isDragging) || (resizing) ? `2px dashed ${theme.palette.primary.main}` : 'none', outlineOffset: (isOver || resizing) ? '4px' : '0px', bgcolor: resizing ? theme.palette.background.paper : 'transparent' }}>
         {isEditMode && <Box className="drag-handle-area" sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, cursor: 'grab', zIndex: 5, '&:active': { cursor: 'grabbing' } }} />}
         {isEditMode && (
-          <Box sx={{ position: 'absolute', top: 4, right: 4, zIndex: 20 }}>
+          <Box className="no-print" sx={{ position: 'absolute', top: 4, right: 4, zIndex: 20 }}>
             <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'primary.main', bgcolor: 'action.hover' } }}><SettingsIcon fontSize="small" /></IconButton>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
               <MenuItem onClick={() => { onTitleEdit(panel.panel_key); setAnchorEl(null); }}><ListItemIcon><EditIcon fontSize="small" /></ListItemIcon><ListItemText primary={t('editTitle')} /></MenuItem>
@@ -246,7 +246,7 @@ const DraggablePanel: React.FC<{
             </Menu>
           </Box>
         )}
-        {isEditMode && <Box className="resize-handle" onMouseDown={onMouseDownLocal} sx={{ position: 'absolute', right: 8, bottom: 8, width: 32, height: 32, cursor: 'nwse-resize', zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', color: 'primary.main', p: 0.5, '&:hover': { opacity: 1 } }}><NorthWestIcon sx={{ fontSize: 16, transform: 'rotate(180deg)' }} /></Box>}
+        {isEditMode && <Box className="no-print" onMouseDown={onMouseDownLocal} sx={{ position: 'absolute', right: 8, bottom: 8, width: 32, height: 32, cursor: 'nwse-resize', zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', color: 'primary.main', p: 0.5, '&:hover': { opacity: 1 } }}><NorthWestIcon sx={{ fontSize: 16, transform: 'rotate(180deg)' }} /></Box>}
         <Box sx={{ pointerEvents: isDragging || resizing ? 'none' : 'auto', height: '100%' }}>{children}</Box>
       </Box>
     </Box>

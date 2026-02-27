@@ -25,8 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-02-27 15:10 | 최지호 | 추가 | origin/feature/dashboard push (대시보드 공유 버튼 추가) |
-| 2026-02-27 14:55 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합) |
+| 2026-02-27 16:55 | 최지호 | 수정 | origin/feature/dashboard push (대시보드 다운로드 기능 구현) |
 | 2026-02-27 14:50 | 최지호 | 수정 | origin/feature/dashboard push (차트 변경 기능 수정) |
 | 2026-02-26 18:01 | 김장훈 | 배포 | origin/develop push (Docker 빌드 TypeScript 컴파일 에러 수정: MUI v7 호환성, LogEntry _source 타입 추가, 미사용 임포트 제거) |
 | 2026-02-26 17:30 | 김장훈 | 배포 | origin/develop push (ROADMAP 초기 설정 자동화 항목 추가, HISTORY 작업자 정정, 프론트엔드 패키지 설치) |

@@ -66,7 +66,7 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
     top: isSmall ? 10 : 20, 
     right: 10, 
     bottom: isSmall ? 40 : 60, 
-    left: isSmall ? 30 : 40 
+    left: isSmall ? 50 : 60  // Y축 라벨 공간 확보 (기존 30/40 -> 50/60)
   };
   const chartHeight = Math.max(50, actualHeight - padding.top - padding.bottom);
 
@@ -122,7 +122,7 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
           flexGrow: 1, 
           position: 'relative', 
           width: '100%', 
-          minHeight: 0,
+          minHeight: 150,
           display: 'flex',
           justifyContent: 'center'
         }}>

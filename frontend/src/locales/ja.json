@@ -297,6 +297,7 @@
   "all": "全て",
   "windowIntervalError": "検知データ参照範囲(window_min)は、検知周期(interval_min)以上である必要があります。",
   "windowIntervalWarning": "参照範囲が周期の3倍を超えているため、重複通知が多く発生하는可能性があります。",
-  "share": "共有",
+  "download": "ダウンロード",
+  "downloading": "ダウンロード中...",
   "copied": "コピーされました！"
 }

@@ -23,7 +23,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
-import ShareIcon from "@mui/icons-material/Share";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -35,6 +35,8 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import dayjs, { Dayjs } from "dayjs";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 // dayjs 로케일 임포트
 import 'dayjs/locale/ko';
@@ -93,10 +95,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
   userRole
 }) => {
   const theme = useTheme();
-  const { language } = useLanguageStore();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [tempQuery, setTempQuery] = useState("");
-  const [shareText, setShareText] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [popoverType, setPopoverType] = useState<'quick' | 'detailed' | 'index'>('quick');
   const [editingPoint, setEditingPoint] = useState<'from' | 'to'>('from');
@@ -149,14 +150,47 @@ const ControlBar: React.FC<ControlBarProps> = ({
     setAnchorEl(event.currentTarget.parentElement as HTMLDivElement);
   };
 
-  const handleShare = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-      setShareText(t('copied') || "Copied!");
-      setTimeout(() => setShareText(null), 2000);
-    }).catch(err => {
-      console.error('Failed to copy: ', err);
-    });
+  const handleDownloadPdf = async () => {
+    // 두 컨테이너 ID 중 존재하는 것을 찾음
+    const element = document.getElementById('agent-dashboard-grid-container') || 
+                    document.getElementById('threat-dashboard-grid-container');
+    
+    if (!element) {
+      console.warn('Dashboard container not found');
+      return;
+    }
+
+    try {
+      setDownloading(true);
+      
+      // 캡처 시 불필요한 요소 잠시 숨기기 (필요한 경우)
+      const canvas = await html2canvas(element, {
+        scale: 2, // 해상도 향상
+        useCORS: true,
+        logging: false,
+        backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#F4F5F7',
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const margin = 40; // 여백 설정 (px)
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      
+      // 페이지 크기를 이미지 크기 + 여백으로 설정
+      const pdf = new jsPDF({
+        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [imgWidth + (margin * 2), imgHeight + (margin * 2)]
+      });
+
+      pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
+      const filename = `dashboard_${dayjs().format('YYYYMMDD_HHmmss')}.pdf`;
+      pdf.save(filename);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleIndexClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -286,7 +320,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   }, []);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 0.5, md: 0.75 }, mb: { xs: 1, md: 2 }, width: '100%' }}>
+    <Box className="no-print" sx={{ display: "flex", flexDirection: "column", gap: { xs: 0.5, md: 0.75 }, mb: { xs: 1, md: 2 }, width: '100%' }}>
       <Box sx={{ 
         display: "flex", 
         flexDirection: { xs: 'column', lg: 'row' },
@@ -467,20 +501,19 @@ const ControlBar: React.FC<ControlBarProps> = ({
             )}
 
             {!isEditMode && (
-              <Tooltip title={shareText || t('share') || "Share"}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<ShareIcon sx={{ fontSize: 14 }} />}
-                  onClick={handleShare}
-                  sx={{ 
-                    fontSize: '0.65rem', color: 'text.secondary', borderColor: 'divider', textTransform: 'none', height: 22, px: 1.5, borderRadius: 1,
-                    '&:hover': { bgcolor: 'action.hover', borderColor: KIBANA_TEAL, color: KIBANA_TEAL } 
-                  }}
-                >
-                  {t('share')}
-                </Button>
-              </Tooltip>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<PictureAsPdfIcon sx={{ fontSize: 14 }} />}
+                onClick={handleDownloadPdf}
+                disabled={downloading}
+                sx={{ 
+                  fontSize: '0.65rem', color: 'text.secondary', borderColor: 'divider', textTransform: 'none', height: 22, px: 1.5, borderRadius: 1,
+                  '&:hover': { bgcolor: 'action.hover', borderColor: KIBANA_TEAL, color: KIBANA_TEAL } 
+                }}
+              >
+                {downloading ? t('downloading') : t('download')}
+              </Button>
             )}
 
             {isEditMode && (

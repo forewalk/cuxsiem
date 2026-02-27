@@ -37,7 +37,8 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, title, emptyMessa
   const maxValue = useMemo(() => {
     if (!data || data.length === 0) return 10;
     const max = Math.max(...data.map(d => d.count));
-    return max === 0 ? 10 : max;
+    // 상단에 여유 공간 10% 추가
+    return max === 0 ? 10 : Math.ceil(max * 1.1);
   }, [data]);
 
   const gridLines = useMemo(() => {
@@ -128,11 +129,11 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, title, emptyMessa
   );
 
   return (
-    <Box sx={{ width: "100%", height: "100%", display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
+    <Box sx={{ width: "100%", height: height ? height : "100%", display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
       {title && <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold", color: 'text.secondary' }}>{title}</Typography>}
       
       {/* Main Chart Row */}
-      <Box sx={{ flexGrow: 1, display: 'flex', minHeight: 0 }}>
+      <Box sx={{ flexGrow: 1, display: 'flex', minHeight: 150 }}>
         {/* Y-Axis Column */}
         <Box sx={{ width: Y_AXIS_WIDTH, position: 'relative', flexShrink: 0 }}>
           {gridLines.map((line, i) => (
