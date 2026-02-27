@@ -2,6 +2,11 @@ services:
   backend:
     image: cruxsiem/backend:${TAG:-latest}
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
     env_file:
       - .env.production
     ports:
@@ -16,6 +21,11 @@ services:
   frontend:
     image: cruxsiem/frontend:${TAG:-latest}
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
     ports:
       - "80:80"
       - "443:443"

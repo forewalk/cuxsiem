@@ -308,7 +308,7 @@ export const LoginPage: React.FC = () => {
           {/* Figma 스타일 헤더 */}
           <Box
             sx={{
-              background: darkMode ? "#2a2a2a" : FIGMA_COLORS.labelBg,
+              background: darkMode ? "#2a2a2a" : "#ffffff",
               padding: "32px 24px",
               display: "flex",
               flexDirection: "column",
@@ -318,9 +318,9 @@ export const LoginPage: React.FC = () => {
           >
             <Box
               sx={{
-                width: 56,
-                height: 56,
-                borderRadius: "50%",
+                width: 120,
+                height: 120,
+                borderRadius: "8px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -328,27 +328,11 @@ export const LoginPage: React.FC = () => {
               }}
             >
               <img 
-                src="/CRUXDATA_icon.png" 
+                src="/cruxsiem.png" 
                 alt="Logo" 
                 style={{ width: "100%", height: "100%", objectFit: "contain" }} 
               />
             </Box>
-            <Typography
-              variant="h6"
-              fontWeight="bold"
-              sx={{ fontSize: "18px", color: darkMode ? "#ffffff" : "#333" }}
-            >
-              cruxSIEM
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: darkMode ? "#b0b0b0" : FIGMA_COLORS.darkGray,
-                fontSize: "14px",
-              }}
-            >
-              {t("loginTitle")}
-            </Typography>
           </Box>
 
           {/* 폼 영역 */}

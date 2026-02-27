@@ -59,21 +59,39 @@
 ### UI/UX 테마
 - [x] 다크 모드 (Dark Mode)
 - [x] 라이트 모드 (Light Mode)
-- [ ] 픽셀 모드 (Pixel Mode) - 레트로/너드 스타일 테마
-  - [ ] 픽셀 아트 스타일 폰트 적용 (8bit/16bit 폰트)
-  - [ ] 도트 그래픽 UI 컴포넌트 (버튼, 아이콘, 테이블)
-  - [ ] 픽셀 아트 데이터 시각화 (그래프, 차트)
-  - [ ] 레트로 게임 스타일 색상 팔레트 (CRT, VGA, Commodore 64 등)
+- [ ] 픽셀 모드 (Pixel Mode) - [고급 설정]에서 활성화 가능한 레트로/너드 스타일 테마
+  - [ ] 픽셀 아트 스타일 폰트 적용 (Press Start 2P, DotGothic16)
+  - [ ] MUI 전역 테마 오버라이드 (Border-image, box-shadow 활용)
+  - [ ] 도트 그래픽 UI 컴포넌트 및 차트 커스텀 렌더링
   - [ ] 픽셀 아트 애니메이션 효과 (로딩, 트랜지션)
 
-### 배포 및 자동화
-- [ ] 초기 설정 자동화 스크립트/쉘
-  - [ ] OpenSearch 설치 자동화
-  - [ ] 기본 인덱스 생성 (cs_users, cs_sessions, cs_login_attempts, cs_dashboards, cs_alerts, cs_code 등)
-  - [ ] 기본 관리자 계정 생성 (administrator)
-  - [ ] 초기 설정값 적용 (패스워드 정책, 고급 설정 등)
-  - [ ] 헬스 체크 및 검증 스크립트
-  - [ ] One-command 배포 스크립트 (./scripts/init.sh)
+### 솔루션 라이선스 관리
+- [ ] 라이선스 관리 아키텍처 설계
+  - [ ] Elasticsearch 스타일의 JSON 라이선스 파일 규격 정의
+  - [ ] Epoch 타임스탬프 기반 발급/시작/만료일 검증 로직
+- [ ] 라이선스 유효성 체크 및 제어
+  - [ ] 시스템 부팅 시 및 주기적 라이선스 상태 검사 (Background task)
+  - [ ] 라이선스 만료 시 로그인 제한 및 경고 메시지 노출 (Auth Middleware 연동)
+  - [ ] 기기 식별 또는 노드 수 제한 검토 (`max_nodes`)
+- [ ] 라이선스 관리 UI (고급 설정)
+  - [ ] 현재 라이선스 정보 조회 (발급 대상, 만료일, 상태)
+  - [ ] 신규 라이선스 파일 업로드 기능
+
+### 배포 및 자동화 (데모 및 운영 준비)
+- [ ] 인프라 구성 자동화 (.ini 설정 기반)
+  - [ ] Kafka Topic 구조 생성 자동화
+  - [ ] Vector 설치 및 파이프라인 구성 자동화
+  - [ ] OpenSearch 설치 및 클러스터 구성 자동화
+- [ ] OpenSearch 초기 설정 자동화
+  - [ ] 시스템 인덱스(`cs_*`) 스키마 및 매핑 정의
+  - [ ] 인덱스 템플릿(`_index_template`) 및 SLM(Snapshot Lifecycle Management) 정책 생성
+  - [ ] 기본 데이터(사용자, 코드, 설정 등) 인입
+- [ ] 통합 설치 쉘 스크립트 구축 (./scripts/setup.sh)
+  - [ ] 환경 검증 및 헬스 체크
+  - [ ] One-command 데모 환경 배포
+
+### 개인화 (Personalization)
+- [ ] 개인화 설정 (대시보드 위치/크기, 구조 레이아웃, 이름 등)
 
 ---
 
@@ -84,5 +102,5 @@
 | `docs/figma/login/login.svg` | 로그인 화면 디자인 |
 | `docs/figma/resolver/attackline.svg` | 어택라인 디자인 |
 | `docs/figma/resolver/precesstree.svg` | 프로세스 트리 디자인 |
-| `docs/figma/resolver/processtree_exp.png` | 프로세스 트리 예시 1 |
-| `docs/figma/resolver/processtree_exp2.png` | 프로세스 트리 예시 2 |
+| `docs/figma/fixelmode/pixel_mode(1).jpg` | 픽셀 모드 대시보드 시안 1 |
+| `docs/figma/fixelmode/pixel_mode(2).jpg` | 픽셀 모드 대시보드 시안 2 |
