@@ -20,7 +20,8 @@ class AdvancedSettingsService:
                 updated_at=datetime.utcnow(),
                 pagination_size=10,
                 time_filter_duration=15,
-                time_filter_unit="m"
+                time_filter_unit="m",
+                pixel_mode=False,
             )
             await self.repository.update_settings(settings)
         return settings
@@ -34,7 +35,8 @@ class AdvancedSettingsService:
             updated_at=datetime.utcnow(),
             pagination_size=update_data.pagination_size,
             time_filter_duration=update_data.time_filter_duration,
-            time_filter_unit=update_data.time_filter_unit
+            time_filter_unit=update_data.time_filter_unit,
+            pixel_mode=update_data.pixel_mode,
         )
         return await self.repository.update_settings(settings)
 

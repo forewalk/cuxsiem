@@ -8,6 +8,7 @@ class AdvancedSettingsBase(BaseModel):
     pagination_size: int = 10
     time_filter_duration: int = 15
     time_filter_unit: str = "m"
+    pixel_mode: bool = False
 
 class AdvancedSettingsUpdate(AdvancedSettingsBase):
     pass
