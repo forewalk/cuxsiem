@@ -13,6 +13,7 @@ import PieChartWidget from "../components/PieChartWidget";
 import { getDashboardStats, resetDashboard, saveDashboardLayout, getIndexFields } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, DashboardPanel } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
+import { useAuth } from "../../../hooks/useAuth";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -255,6 +256,7 @@ const DraggablePanel: React.FC<{
 const AgentDashboardTab: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { language } = useLanguageStore();
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [originalPanels, setOriginalPanels] = useState<DashboardPanel[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -359,9 +361,13 @@ const AgentDashboardTab: React.FC = () => {
     const widget = panel.widget_type === "pie" ? (
       <PieChartWidget 
         data={chartData} 
+        height={panel.grid_height}
         onSliceClick={(label) => {
           if (panel.target_field) {
-            const filter = `${panel.target_field}:"${label}"`;
+            // 불리언 값인 경우 따옴표 없이 처리
+            const isBool = label.toLowerCase() === 'true' || label.toLowerCase() === 'false';
+            const filterValue = isBool ? label.toLowerCase() : `"${label}"`;
+            const filter = `${panel.target_field}:${filterValue}`;
             handleSearchQueryChange(searchQuery ? `${searchQuery} AND ${filter}` : filter);
           }
         }}
@@ -369,9 +375,13 @@ const AgentDashboardTab: React.FC = () => {
     ) : (
       <CategoryBarChartWidget 
         data={chartData} 
+        height={panel.grid_height}
         onBarClick={(label) => {
           if (panel.target_field) {
-            const filter = `${panel.target_field}:"${label}"`;
+            // 불리언 값인 경우 따옴표 없이 처리
+            const isBool = label.toLowerCase() === 'true' || label.toLowerCase() === 'false';
+            const filterValue = isBool ? label.toLowerCase() : `"${label}"`;
+            const filter = `${panel.target_field}:${filterValue}`;
             handleSearchQueryChange(searchQuery ? `${searchQuery} AND ${filter}` : filter);
           }
         }}
@@ -404,7 +414,7 @@ const AgentDashboardTab: React.FC = () => {
   return (
     <Box sx={{ flexGrow: 1, overflowY: "auto", height: "100%", p: { xs: 1.5, sm: 2, md: 3 }, bgcolor: "background.default", position: 'relative' }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      <Box sx={{ mb: 1 }}><ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={() => fetchData(isEditMode ? data?.panels : undefined)} onReset={() => setResetDialogOpen(true)} onAdd={() => setAddDialogOpen(true)} isEditMode={isEditMode} onEdit={handleEditToggle} onCancel={handleCancel} onSave={handleSave} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary?.total_logs} /></Box>
+      <Box sx={{ mb: 1 }}><ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={() => fetchData(isEditMode ? data?.panels : undefined)} onReset={() => setResetDialogOpen(true)} onAdd={() => setAddDialogOpen(true)} isEditMode={isEditMode} onEdit={handleEditToggle} onCancel={handleCancel} onSave={handleSave} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary?.total_logs} userRole={user?.role} /></Box>
       <Box id="agent-dashboard-grid-container" sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
         {data?.panels?.map((panel) => (
           <DraggablePanel key={panel.panel_key} panel={panel} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDrop={() => {}} onResizeEnd={handleResizeEnd} onSettingsEdit={handleSettingsEditOpen} onTitleEdit={setEditingTitleKey} onClone={handleClonePanel} onDelete={handleDeletePanel} isDragging={draggedKey === panel.panel_key} isOver={overKey === panel.panel_key} isEditMode={isEditMode} t={t}>{renderPanelContent(panel)}</DraggablePanel>

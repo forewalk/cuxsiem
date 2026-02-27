@@ -37,6 +37,10 @@ class DashboardService:
         else:
             panels_raw = await self.repository.get_panels(dashboard_id)
         
+        # 필드 타입 정보 가져오기 (불리언 필드 판별용)
+        field_mappings = await self.repository.get_field_mappings(target_index)
+        bool_fields = {f["name"] for f in field_mappings if f["type"] == "boolean"}
+        
         # 시스템 기본 쿼리 매핑
         default_queries = {
             "resolved_threats": 'threatInfo.incidentStatus: "resolved"',
@@ -95,11 +99,25 @@ class DashboardService:
         processed_panels = []
         for p in panels_raw:
             pk = p["panel_key"]
+            t_field = p.get("target_field")
+            is_bool = t_field in bool_fields
+            
             p["current_value"] = get_doc_count(pk) if p.get("widget_type") == "metric" else 0
-            p["chart_data"] = [SeverityStat(label=str(b["key"]), value=b["doc_count"]) for b in get_buckets(pk)] if p.get("widget_type") != "metric" else []
+            
+            chart_buckets = get_buckets(pk)
+            chart_data = []
+            for b in chart_buckets:
+                label = str(b["key"])
+                if is_bool:
+                    if label == "1" or label.lower() == "true": label = "true"
+                    elif label == "0" or label.lower() == "false": label = "false"
+                chart_data.append(SeverityStat(label=label, value=b["doc_count"]))
+            
+            p["chart_data"] = chart_data if p.get("widget_type") != "metric" else []
             processed_panels.append(DashboardPanel(**p))
 
         def map_stats(agg_key):
+            # 기본 집계 결과도 불리언 처리가 필요한지 확인 (예: agent_status_dist 등은 보통 문자열 필드)
             return [SeverityStat(label=str(b["key"]), value=b["doc_count"]) for b in get_buckets(agg_key)]
 
         return DashboardStatsResponse(
