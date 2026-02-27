@@ -8,10 +8,16 @@ class AdvancedSettings:
     user_register: bool
     tab_count: int
     updated_at: datetime
+    pagination_size: int = 10
+    time_filter_duration: int = 15
+    time_filter_unit: str = "m"
 
     def to_dict(self) -> dict:
         return {
             "user_register": self.user_register,
             "tab_count": self.tab_count,
-            "updated_at": self.updated_at.isoformat()
+            "updated_at": self.updated_at.isoformat(),
+            "pagination_size": self.pagination_size,
+            "time_filter_duration": self.time_filter_duration,
+            "time_filter_unit": self.time_filter_unit
         }

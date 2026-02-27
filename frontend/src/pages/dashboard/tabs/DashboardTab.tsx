@@ -13,6 +13,7 @@ import PieChartWidget from "../components/PieChartWidget";
 import { getDashboardStats, resetDashboard, saveDashboardLayout, getIndexFields } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, DashboardPanel } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
+import { useSettingsStore } from "../../../stores/useSettingsStore";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -255,6 +256,8 @@ const DraggablePanel: React.FC<{
 const DashboardTab: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { language } = useLanguageStore();
+  const { settings, fetchSettings } = useSettingsStore();
+  
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [originalPanels, setOriginalPanels] = useState<DashboardPanel[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -267,39 +270,73 @@ const DashboardTab: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [modalSnapshot, setModalSnapshot] = useState<DashboardPanel[] | null>(null);
   const lastMoveRef = useRef<{ dragged: string, target: string } | null>(null);
+  const initializedRef = useRef(false);
 
-  const fromValue = searchParams.get("from_value") ? Number(searchParams.get("from_value")) : 15;
-  const fromUnit = searchParams.get("from_unit") || "m";
-  const toValue = searchParams.get("to_value") ? Number(searchParams.get("to_value")) : null;
-  const toUnit = searchParams.get("to_unit") || "m";
-  const fromDate = searchParams.get("from_date");
-  const toDate = searchParams.get("to_date");
-  const searchQuery = searchParams.get("q") || "";
+  // 고급 설정 로드 (초기 1회)
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings && !initializedRef.current) {
+      const newParams = new URLSearchParams(searchParams);
+      // 새로고침/진입 시 고급 설정값으로 강제 조정
+      newParams.set("td_from_value", settings.time_filter_duration!.toString());
+      newParams.set("td_from_unit", settings.time_filter_unit!);
+      // 종료 지점은 항상 '현재'로 리셋
+      newParams.delete("td_to_value");
+      newParams.delete("td_to_unit");
+      newParams.delete("td_from_date");
+      newParams.delete("td_to_date");
+      
+      setSearchParams(newParams, { replace: true });
+      initializedRef.current = true;
+    }
+  }, [settings, searchParams, setSearchParams]);
+
+  const sp_fromValue = searchParams.get("td_from_value");
+  const fromValue = sp_fromValue !== null 
+    ? Number(sp_fromValue) 
+    : (settings?.time_filter_duration ?? 15);
+    
+  const sp_fromUnit = searchParams.get("td_from_unit");
+  const fromUnit = sp_fromUnit !== null
+    ? sp_fromUnit
+    : (settings?.time_filter_unit || "m");
+
+  const sp_toValue = searchParams.get("td_to_value");
+  const toValue = sp_toValue !== null ? Number(sp_toValue) : null;
+  const toUnit = searchParams.get("td_to_unit") || "m";
+  const fromDate = searchParams.get("td_from_date");
+  const toDate = searchParams.get("td_to_date");
+  const searchQuery = searchParams.get("td_q") || "";
 
   const t = useMemo(() => (key: string): string => (translations[language] || translations["ko"] || {})[key] || key, [language]);
 
   const fetchData = useCallback(async (currentPanels?: DashboardPanel[]) => {
     try { 
       setLoading(true); 
-      const stats = await getDashboardStats("threat-status", fromValue || undefined, fromUnit, toValue ?? undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, currentPanels); 
+      const stats = await getDashboardStats("threat-status", fromValue !== null ? fromValue : undefined, fromUnit, toValue !== null ? toValue : undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, currentPanels); 
       if (stats && stats.summary) { setData(stats); }
     } catch (err) { console.error("Error fetching dashboard data:", err); }
     finally { setLoading(false); }
   }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
 
-  useEffect(() => { if (!isEditMode) fetchData(); }, [fetchData, isEditMode]);
+  useEffect(() => { 
+    if (!isEditMode) fetchData(); 
+  }, [fetchData, isEditMode]);
 
   const handleTimeChange = useCallback((fv: number | null, fu: string, tv: number | null, tu: string, fd: string | null, td: string | null) => {
     const np = new URLSearchParams(searchParams);
-    if (fv !== null) np.set("from_value", fv.toString()); else np.delete("from_value");
-    np.set("from_unit", fu); if (tv !== null) np.set("to_value", tv.toString()); else np.delete("to_value");
-    np.set("to_unit", tu); if (fd) np.set("from_date", fd); else np.delete("from_date"); if (td) np.set("to_date", td); else np.delete("to_date");
+    if (fv !== null) np.set("td_from_value", fv.toString()); else np.delete("td_from_value");
+    np.set("td_from_unit", fu); if (tv !== null) np.set("td_to_value", tv.toString()); else np.delete("td_to_value");
+    np.set("td_to_unit", tu); if (fd) np.set("td_from_date", fd); else np.delete("td_from_date"); if (td) np.set("td_to_date", td); else np.delete("td_to_date");
     setSearchParams(np);
   }, [searchParams, setSearchParams]);
 
   const handleSearchQueryChange = useCallback((q: string) => {
     const np = new URLSearchParams(searchParams);
-    if (q) np.set("q", q); else np.delete("q"); setSearchParams(np);
+    if (q) np.set("td_q", q); else np.delete("td_q"); setSearchParams(np);
   }, [searchParams, setSearchParams]);
 
   const handleEditToggle = () => { if (!isEditMode) setOriginalPanels(data?.panels ? JSON.parse(JSON.stringify(data.panels)) : null); setIsEditMode(!isEditMode); };

@@ -3,6 +3,9 @@ import api from './api';
 export interface AdvancedSettings {
   user_register: boolean;
   tab_count?: number;
+  pagination_size?: number;
+  time_filter_duration?: number;
+  time_filter_unit?: string;
   role_names?: {
     admin: string;
     user: string;

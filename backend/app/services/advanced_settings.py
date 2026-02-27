@@ -16,7 +16,10 @@ class AdvancedSettingsService:
             settings = AdvancedSettings(
                 user_register=False,
                 tab_count=10,
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
+                pagination_size=10,
+                time_filter_duration=15,
+                time_filter_unit="m"
             )
             await self.repository.update_settings(settings)
         return settings
@@ -26,7 +29,10 @@ class AdvancedSettingsService:
         settings = AdvancedSettings(
             user_register=update_data.user_register,
             tab_count=update_data.tab_count,
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
+            pagination_size=update_data.pagination_size,
+            time_filter_duration=update_data.time_filter_duration,
+            time_filter_unit=update_data.time_filter_unit
         )
         return await self.repository.update_settings(settings)
 

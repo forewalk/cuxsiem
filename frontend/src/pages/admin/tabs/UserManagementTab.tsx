@@ -15,6 +15,7 @@ import {
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
 import { codeService } from '../../../services/codeService';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import type { User, UserCreate, UserUpdate } from '../../../types';
 
 // i18n: JSON 파일에서 번역 로드
@@ -27,10 +28,12 @@ const UserManagementTab: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const { settings, fetchSettings } = useSettingsStore();
   const [paginationModel, setPaginationModel] = useState({
     pageSize: 10,
     page: 0,
   });
+  const [pageSizeOptions, setPageSizeOptions] = useState<number[]>([10, 25, 50]);
 
   const [roleNames, setRoleNames] = useState<Record<string, string>>({
     admin: '관리자',
@@ -81,6 +84,25 @@ const UserManagementTab: React.FC = () => {
     }
     return text;
   }, [savedLanguage]);
+
+  // 고급 설정 로드 (초기 1회)
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings && settings.pagination_size) {
+      setPaginationModel(prev => ({ ...prev, pageSize: settings.pagination_size! }));
+      setPageSizeOptions(prev => {
+        const newOptions = [...prev];
+        if (!newOptions.includes(settings.pagination_size!)) {
+          newOptions.unshift(settings.pagination_size!);
+          return newOptions.sort((a, b) => a - b);
+        }
+        return newOptions;
+      });
+    }
+  }, [settings]);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -295,7 +317,7 @@ const UserManagementTab: React.FC = () => {
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           paginationMode="server"
-          pageSizeOptions={[10, 25, 50]}
+          pageSizeOptions={pageSizeOptions}
           disableRowSelectionOnClick
           slots={{ toolbar: GridToolbar }}
           sx={{

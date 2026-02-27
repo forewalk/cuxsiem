@@ -7,6 +7,7 @@ import {
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { advancedSettingsService, type AdvancedSettings } from '../../../services/advancedSettingsService';
 import { codeService, type CodeResponse } from '../../../services/codeService';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import useTabStore from '../../../stores/tabStore';
 
 // i18n
@@ -17,6 +18,7 @@ import cnMessages from "../../../locales/cn.json";
 
 const AdvancedSettingsTab: React.FC = () => {
   const { setMaxTabs } = useTabStore();
+  const { updateSettings } = useSettingsStore();
   const [settings, setSettings] = useState<AdvancedSettings>({
     user_register: false,
     tab_count: 10,
@@ -58,6 +60,9 @@ const AdvancedSettingsTab: React.FC = () => {
       ]);
       
       setSettings(settingsData);
+      // 전역 스토어 동기화
+      updateSettings(settingsData);
+      
       if (settingsData.tab_count) {
         setMaxTabs(settingsData.tab_count);
       }
@@ -103,6 +108,9 @@ const AdvancedSettingsTab: React.FC = () => {
     try {
       // 1. 고급 설정 저장
       const updated = await advancedSettingsService.updateSettings(settings);
+      
+      // 전역 스토어 업데이트 (다른 탭들이 즉시 반응하도록)
+      updateSettings(updated);
       
       // 2. 역할 코드명들 개별 저장
       if (settings.role_names) {
@@ -261,6 +269,56 @@ const AdvancedSettingsTab: React.FC = () => {
                     ))}
                   </Select>
                 </FormControl>
+              </Box>
+
+              {/* 4. 기본값 설정 */}
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  {t('defaultSettings')}
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <Stack spacing={3}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                      {t('paginationValue')}
+                    </Typography>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder={t('paginationValue')}
+                      type="number"
+                      value={settings.pagination_size || ''}
+                      onChange={(e) => handleChange('pagination_size', Number(e.target.value))}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                      {t('timeFilterValue')}
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder={t('timeFilterValue')}
+                        type="number"
+                        value={settings.time_filter_duration || ''}
+                        onChange={(e) => handleChange('time_filter_duration', Number(e.target.value))}
+                        sx={{ flex: 1, width: '50%' }}
+                      />
+                      <FormControl size="small" sx={{ flex: 1, width: '50%' }}>
+                        <Select
+                          value={settings.time_filter_unit || 'm'}
+                          onChange={(e) => handleChange('time_filter_unit', e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="m">{t('minute')}</MenuItem>
+                          <MenuItem value="h">{t('hour')}</MenuItem>
+                          <MenuItem value="d">{t('day')}</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Stack>
+                  </Box>
+                </Stack>
               </Box>
             </Stack>
           </Paper>

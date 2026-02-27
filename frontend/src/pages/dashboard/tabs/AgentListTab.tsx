@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { 
   Box, Paper, Typography, Alert, LinearProgress, 
@@ -10,6 +10,7 @@ import BarChartWidget from "../components/BarChartWidget";
 import { getDashboardStats, getIndexFields, getIndexLogs } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
+import { useSettingsStore } from "../../../stores/useSettingsStore";
 import dayjs from "dayjs";
 
 // Icons
@@ -35,16 +36,26 @@ import cnMessages from "../../../locales/cn.json";
 const AgentListTab: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { language } = useLanguageStore();
+  const { settings, fetchSettings } = useSettingsStore();
   const theme = useTheme();
 
-  // URL 파라미터에서 초기값 읽기
-  const fromValue = searchParams.get("a_from_value") ? Number(searchParams.get("a_from_value")) : 15;
-  const fromUnit = searchParams.get("a_from_unit") || "m";
-  const toValue = searchParams.get("a_to_value") ? Number(searchParams.get("a_to_value")) : null;
-  const toUnit = searchParams.get("a_to_unit") || "m";
-  const fromDate = searchParams.get("a_from_date");
-  const toDate = searchParams.get("a_to_date");
-  const searchQuery = searchParams.get("a_q") || "";
+  // URL 파라미터 또는 고급 설정 기본값 사용
+  const sp_fromValue = searchParams.get("al_from_value");
+  const fromValue = sp_fromValue !== null 
+    ? Number(sp_fromValue) 
+    : (settings?.time_filter_duration ?? 15);
+    
+  const sp_fromUnit = searchParams.get("al_from_unit");
+  const fromUnit = sp_fromUnit !== null
+    ? sp_fromUnit
+    : (settings?.time_filter_unit || "m");
+    
+  const sp_toValue = searchParams.get("al_to_value");
+  const toValue = sp_toValue !== null ? Number(sp_toValue) : null;
+  const toUnit = searchParams.get("al_to_unit") || "m";
+  const fromDate = searchParams.get("al_from_date");
+  const toDate = searchParams.get("al_to_date");
+  const searchQuery = searchParams.get("al_q") || "";
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -68,11 +79,49 @@ const AgentListTab: React.FC = () => {
   ]);
   const [fieldSearchQuery, setFieldSearchQuery] = useState("");
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(settings?.pagination_size ?? 20);
+  const [pageSizeOptions, setPageSizeOptions] = useState<number[]>([20, 50, 100, 500]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const initializedRef = useRef(false);
+
+  // 고급 설정 로드 및 초기화 (새로고침 시 강제 적용)
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings && !initializedRef.current) {
+      const newParams = new URLSearchParams(searchParams);
+      // 새로고침/진입 시 고급 설정값으로 강제 조정
+      newParams.set("al_from_value", settings.time_filter_duration!.toString());
+      newParams.set("al_from_unit", settings.time_filter_unit!);
+      // 종료 지점은 항상 '현재'로 리셋
+      newParams.delete("al_to_value");
+      newParams.delete("al_to_unit");
+      newParams.delete("al_from_date");
+      newParams.delete("al_to_date");
+      
+      setSearchParams(newParams, { replace: true });
+      initializedRef.current = true;
+    }
+  }, [settings, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (settings && settings.pagination_size) {
+      setPageSize(settings.pagination_size);
+      setPageSizeOptions(prev => {
+        const newOptions = [...prev];
+        if (!newOptions.includes(settings.pagination_size!)) {
+          newOptions.unshift(settings.pagination_size!);
+          return newOptions.sort((a, b) => a - b);
+        }
+        return newOptions;
+      });
+    }
+  }, [settings]);
 
   const toggleRow = (idx: number) => {
     setExpandedRows(prev => {
@@ -140,18 +189,18 @@ const AgentListTab: React.FC = () => {
     
     if (fDate && tDate) {
       // 절대 시간 모드
-      newParams.delete("a_from_value");
-      newParams.delete("a_to_value");
-      newParams.set("a_from_date", fDate);
-      newParams.set("a_to_date", tDate);
+      newParams.delete("al_from_value");
+      newParams.delete("al_to_value");
+      newParams.set("al_from_date", fDate);
+      newParams.set("al_to_date", tDate);
     } else {
       // 상대 시간 모드
-      if (fVal !== null) newParams.set("a_from_value", fVal.toString()); else newParams.delete("a_from_value");
-      newParams.set("a_from_unit", fUnit);
-      if (tVal !== null) newParams.set("a_to_value", tVal.toString()); else newParams.delete("a_to_value");
-      newParams.set("a_to_unit", tUnit);
-      newParams.delete("a_from_date");
-      newParams.delete("a_to_date");
+      if (fVal !== null) newParams.set("al_from_value", fVal.toString()); else newParams.delete("al_from_value");
+      newParams.set("al_from_unit", fUnit);
+      if (tVal !== null) newParams.set("al_to_value", tVal.toString()); else newParams.delete("al_to_value");
+      newParams.set("al_to_unit", tUnit);
+      newParams.delete("al_from_date");
+      newParams.delete("al_to_date");
     }
     
     setSearchParams(newParams);
@@ -159,7 +208,7 @@ const AgentListTab: React.FC = () => {
 
   const handleSearchQueryChange = (query: string) => {
     const newParams = new URLSearchParams(searchParams);
-    if (query) newParams.set("a_q", query); else newParams.delete("a_q");
+    if (query) newParams.set("al_q", query); else newParams.delete("al_q");
     setSearchParams(newParams);
   };
 
@@ -169,9 +218,9 @@ const AgentListTab: React.FC = () => {
       setError(null);
       const targetIndex = "logs-sentinel_one.agents"; // 에이전트 인덱스 고정
       const [stats, fieldList, logList] = await Promise.all([
-        getDashboardStats("agent-dashboard", fromValue || undefined, fromUnit, toValue ?? undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined),
+        getDashboardStats("agent-dashboard", fromValue !== null ? fromValue : undefined, fromUnit, toValue !== null ? toValue : undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined),
         getIndexFields(targetIndex),
-        getIndexLogs("agent-dashboard", fromValue || undefined, fromUnit, toValue ?? undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize)
+        getIndexLogs("agent-dashboard", fromValue !== null ? fromValue : undefined, fromUnit, toValue !== null ? toValue : undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize)
       ]);
       setData(stats);
       setLogs(logList);
@@ -307,7 +356,20 @@ const AgentListTab: React.FC = () => {
               })()}</Box>
               <IconButton size="small" disabled={((page + 1) * pageSize >= (data?.summary.total_logs ?? 0)) || loading} onClick={() => setPage(p => p + 1)} sx={{ border: 1, borderColor: 'divider' }}><ChevronRightIcon fontSize="small" /></IconButton>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 250, justifyContent: 'flex-end', mr: 1 }}><Typography variant="caption" color="text.secondary">{t('rowsPerPage') || 'Rows per page:'}</Typography><Select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} size="small" variant="standard" sx={{ fontSize: '0.75rem', '&:before, &:after': { border: 'none' }, '& .MuiSelect-select': { py: 0.5 } }}><MenuItem value={20}>20</MenuItem><MenuItem value={50}>50</MenuItem><MenuItem value={100}>100</MenuItem><MenuItem value={500}>500</MenuItem></Select></Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 250, justifyContent: 'flex-end', mr: 1 }}>
+              <Typography variant="caption" color="text.secondary">{t('rowsPerPage') || 'Rows per page:'}</Typography>
+              <Select 
+                value={pageSize} 
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} 
+                size="small" 
+                variant="standard" 
+                sx={{ fontSize: '0.75rem', '&:before, &:after': { border: 'none' }, '& .MuiSelect-select': { py: 0.5 } }}
+              >
+                {pageSizeOptions.map(option => (
+                  <MenuItem key={option} value={option}>{option}</MenuItem>
+                ))}
+              </Select>
+            </Box>
           </Paper>
         </Box>
       </Box>

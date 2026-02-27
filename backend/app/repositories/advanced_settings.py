@@ -27,7 +27,10 @@ class AdvancedSettingsRepository:
                 return AdvancedSettings(
                     user_register=data.get("user_register", False),
                     tab_count=data.get("tab_count", 10),
-                    updated_at=datetime.fromisoformat(data["updated_at"])
+                    updated_at=datetime.fromisoformat(data["updated_at"]),
+                    pagination_size=data.get("pagination_size", 10),
+                    time_filter_duration=data.get("time_filter_duration", 15),
+                    time_filter_unit=data.get("time_filter_unit", "m")
                 )
             except Exception:
                 return None

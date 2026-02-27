@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Box, Paper, Stack, Typography, Divider, LinearProgress, Chip, Button, Tooltip, IconButton
 } from '@mui/material';
@@ -41,10 +41,12 @@ import TimeSettingPopover from './components/TimeSettingPopover';
 import { useLogStreaming } from './hooks/useLogStreaming';
 import { useFieldSelection } from './hooks/useFieldSelection';
 import { useTimeSettings } from './hooks/useTimeSettings';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 
 const LogStreaming: React.FC = () => {
   const { language } = useLanguageStore();
   const { activeTabId } = useTabStore();
+  const { settings, fetchSettings } = useSettingsStore();
   const isActive = activeTabId === 'LogStreamingTab';
 
   // i18n
@@ -77,6 +79,18 @@ const LogStreaming: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [fieldAnchorEl, setFieldAnchorEl] = useState<HTMLButtonElement | null>(null);
 
+  // 고급 설정 로드 (초기 1회)
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings && settings.time_filter_duration && settings.time_filter_unit) {
+      timeRange.setFromValue(settings.time_filter_duration);
+      timeRange.setFromUnit(settings.time_filter_unit);
+    }
+  }, [settings]);
+
   // Derived
   const hasSearchOrFilter = appliedKeyword || filters.length > 0;
   const currentLogDate = useMemo(() => {
@@ -88,8 +102,9 @@ const LogStreaming: React.FC = () => {
     const nextPaused = !isPaused;
     setIsPaused(nextPaused);
     if (!nextPaused) {
-      timeRange.setFromValue(15);
-      timeRange.setFromUnit("m");
+      // 스트리밍 재개 시 고급 설정값 적용
+      timeRange.setFromValue(settings?.time_filter_duration ?? 15);
+      timeRange.setFromUnit(settings?.time_filter_unit ?? "m");
       timeRange.setFromISO(null);
       timeRange.setToValue(null);
       timeRange.setToUnit("m");
