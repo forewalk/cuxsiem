@@ -12,6 +12,7 @@ from app.repositories.user import UserRepository
 from app.repositories.session import SessionRepository
 from app.repositories.login_attempt import LoginAttemptRepository
 from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
+from app.services.advanced_settings import advanced_settings_service
 
 
 class AuthService:
@@ -22,7 +23,7 @@ class AuthService:
         self.session_repo = SessionRepository()
         self.login_attempt_repo = LoginAttemptRepository()
 
-    async def login(self, request: LoginRequest, ip_address: str = None) -> LoginResponse:
+    async def login(self, request: LoginRequest, ip_address: str = None, force: bool = False) -> LoginResponse:
         """로그인"""
         # 사용자 ID로 로그인
         username = request.username
@@ -68,6 +69,33 @@ class AuthService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="아이디 또는 비밀번호가 올바르지 않습니다"
             )
+
+        # 다중 접속 허용 여부 체크
+        settings = await advanced_settings_service.get_settings()
+        if not settings.allow_multiple_sessions and not force:
+            active_sessions = await self.session_repo.get_active_sessions_by_user_id(user.id)
+            # 만료시간이 지났는데 is_active가 True인 쓰레기 세션은 필터링
+            now = datetime.utcnow()
+            valid_active_sessions = [s for s in active_sessions if s.expires_at > now]
+            
+            if valid_active_sessions:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="MULTIPLE_SESSION_DETECTED"
+                )
+
+        # 강제 로그인이면 기존 유효한 세션들 무효화
+        if force:
+            active_sessions = await self.session_repo.get_active_sessions_by_user_id(user.id)
+            for s in active_sessions:
+                await self.session_repo.invalidate(s.id)
+            
+            # 기존 사용자(웹소켓)에게 로그아웃 알림 전송
+            from app.core.websocket import manager
+            await manager.send_to_user(user.id, {
+                "type": "force_logout", 
+                "message": "다중 접속으로 인해 로그아웃되었습니다."
+            })
 
         # 마지막 로그인 시간 업데이트
         await self.user_repo.update_last_login(user.id)
