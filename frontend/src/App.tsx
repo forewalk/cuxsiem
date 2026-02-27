@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -17,6 +17,8 @@ import { useLanguageStore } from "./stores/useLanguageStore";
 import { useGlobalAlertNotification } from "./hooks/useGlobalAlertNotification";
 import { GlobalAlertSnackbar } from "./pages/admin/alerts/components";
 import { authService } from "./services/authService";
+import { advancedSettingsService } from "./services/advancedSettingsService";
+import useTabStore from "./stores/tabStore";
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "./locales/ko.json";
@@ -34,6 +36,24 @@ function App() {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguageStore();
   
+  const { setMaxTabs } = useTabStore();
+  
+  useEffect(() => {
+    if (user) {
+      const loadSettings = async () => {
+        try {
+          const settings = await advancedSettingsService.getSettings();
+          if (settings.tab_count) {
+            setMaxTabs(settings.tab_count);
+          }
+        } catch (error) {
+          console.error("Failed to load advanced settings:", error);
+        }
+      };
+      loadSettings();
+    }
+  }, [user, setMaxTabs]);
+
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem("appDarkMode");
     return saved ? JSON.parse(saved) : false;
@@ -52,6 +72,44 @@ function App() {
       },
       background: {
         default: darkMode ? "#121212" : "#F4F5F7",
+      },
+    },
+    components: {
+      MuiCssBaseline: {
+        styleOverrides: `
+          /* 브라우저 전체 페이지 스크롤바 숨김 */
+          html, body {
+            overflow: hidden !important;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+          }
+
+          /* 내부의 모든 요소에 대해서만 스크롤바 스타일 적용 */
+          ::-webkit-scrollbar {
+            width: 10px !important;
+            height: 10px !important;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent !important;
+          }
+          ::-webkit-scrollbar-thumb {
+            background-color: ${darkMode ? '#5b6b7f' : '#8895a5'} !important;
+            border-radius: 10px !important;
+            border: 2px solid transparent !important;
+            background-clip: content-box !important;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background-color: ${darkMode ? '#718096' : '#5b6b7f'} !important;
+          }
+          
+          /* Firefox 지원 */
+          * {
+            scrollbar-width: thin;
+            scrollbar-color: ${darkMode ? '#5b6b7f transparent' : '#8895a5 transparent'};
+          }
+        `,
       },
     },
     breakpoints: {

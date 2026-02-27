@@ -7,6 +7,7 @@ from .notification import router as notification_router
 from .logs import router as logs_router
 from .advanced_settings import router as advanced_settings_router
 from .ws_alerts import router as ws_alerts_router
+from .code import router as code_router
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(auth_router)
@@ -17,3 +18,4 @@ router.include_router(notification_router, prefix="/notifications", tags=["notif
 router.include_router(logs_router)
 router.include_router(advanced_settings_router, prefix="/advanced-settings", tags=["advanced-settings"])
 router.include_router(ws_alerts_router, prefix="/ws", tags=["websocket"])
+router.include_router(code_router, prefix="/codes", tags=["codes"])
