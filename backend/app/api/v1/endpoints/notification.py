@@ -70,6 +70,31 @@ async def delete_rule(rule_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Rule not found")
 
+@router.post("/rules/test-query")
+async def test_query(request: dict):
+    """
+    DSL 쿼리를 실행하여 결과 미리보기
+    - 규칙 생성 전 쿼리 검증용
+    - OpenSearch 응답을 그대로 반환
+    
+    Request Body:
+    {
+        "target_index": "logs-sentinel_one.threats",
+        "condition_config": { ... DSL 쿼리 ... }
+    }
+    """
+    target_index = request.get("target_index")
+    condition_config = request.get("condition_config")
+    
+    if not target_index or not condition_config:
+        raise HTTPException(status_code=400, detail="target_index and condition_config are required")
+    
+    try:
+        result = await service.test_query(target_index, condition_config)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Query execution failed: {str(e)}")
+
 # --- 알림내역 조회 ---
 
 @router.get("/", response_model=NotificationListResponse)

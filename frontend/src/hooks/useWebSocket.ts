@@ -84,10 +84,14 @@ export const useWebSocket = ({
       ws.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('📨 WebSocket raw message:', data);
 
           // Pong/Connection 응답은 처리 안 함
           if (data.type !== 'pong' && data.type !== 'connection') {
+            console.log('📤 Forwarding message to handler:', data);
             onMessageRef.current?.(data);
+          } else {
+            console.log('⏭️ Skipping pong/connection message');
           }
         } catch (error) {
           console.error('WebSocket: Failed to parse message', error);
@@ -95,6 +99,12 @@ export const useWebSocket = ({
       };
 
       ws.current.onerror = (error) => {
+        // React StrictMode에서 발생하는 개발 모드 경고는 무시
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ WebSocket 오류 (개발 모드에서는 무시 가능):', error);
+        } else {
+          console.error('❌ WebSocket 오류:', error);
+        }
         onErrorRef.current?.(error);
       };
 
@@ -138,7 +148,10 @@ export const useWebSocket = ({
     }
 
     if (ws.current) {
-      ws.current.close();
+      // CONNECTING이나 OPEN 상태일 때만 close 호출
+      if (ws.current.readyState === WebSocket.CONNECTING || ws.current.readyState === WebSocket.OPEN) {
+        ws.current.close();
+      }
       ws.current = null;
     }
 

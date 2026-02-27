@@ -26,13 +26,22 @@ export const notificationService = {
   /* 알림 규칙 목록 조회 */
   getRules: async (params: GetRulesParams = {}) => {
     const response = await api.get<{ total: number, items: NotificationRule[] }>('/api/v1/notifications/rules', {
-      params
+      params,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
     return response.data;
   },
 
   getRule: async (id: string) => {
-    const response = await api.get<NotificationRule>(`/api/v1/notifications/rules/${id}`);
+    const response = await api.get<NotificationRule>(`/api/v1/notifications/rules/${id}`, {
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
     return response.data;
   },
 
@@ -50,6 +59,14 @@ export const notificationService = {
     await api.delete(`/api/v1/notifications/rules/${id}`);
   },
 
+  /* DSL 쿼리 테스트 */
+  testQuery: async (targetIndex: string, conditionConfig: any) => {
+    const response = await api.post<any>('/api/v1/notifications/rules/test-query', {
+      target_index: targetIndex,
+      condition_config: conditionConfig
+    });
+    return response.data;
+  },
 
   /* 알림 목록 조회 */
   getNotifications: async (params: GetNotificationsParams = {}) => {
