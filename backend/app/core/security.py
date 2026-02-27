@@ -126,4 +126,17 @@ async def get_current_user(credentials = Depends(security)) -> str:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # 세션 유효성 검사 추가 (강제 로그아웃/다중접속 차단 반영)
+    from app.repositories.session import SessionRepository
+    session_repo = SessionRepository()
+    token_hash = get_token_hash(token)
+    
+    session = await session_repo.get_by_token_hash(token_hash)
+    if not session or not session.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="세션이 만료되었거나 다른 기기에서 접속하여 로그아웃되었습니다.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return user_id

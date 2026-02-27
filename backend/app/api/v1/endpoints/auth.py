@@ -58,10 +58,11 @@ async def login(request: LoginRequest, req: Request):
     - **username**: 사용자 ID
     - **password**: 비밀번호 (최소 8자, 영문+숫자 필수)
     - **remember_me**: 로그인 유지 (기본: false)
+    - **force**: 기존 세션 강제 종료 (기본: false)
     """
     service = AuthService()
     ip_address = req.client.host if req.client else None
-    return await service.login(request, ip_address)
+    return await service.login(request, ip_address, force=request.force)
 
 
 @router.post("/logout", status_code=204)
@@ -76,9 +77,15 @@ async def logout(credentials=Depends(security)):
             detail="토큰이 유효하지 않습니다"
         )
 
+    from app.core.security import get_token_hash
+    from app.repositories.session import SessionRepository
+    token_hash = get_token_hash(token)
+    session_repo = SessionRepository()
+    session = await session_repo.get_by_token_hash(token_hash)
+
     service = AuthService()
-    # session_id는 실제로는 토큰에서 추출해야 함
-    await service.logout(user_id, "")
+    session_id = session.id if session else ""
+    await service.logout(user_id, session_id)
 
 
 @router.get("/me")

@@ -26,6 +26,7 @@ export interface LoginRequest {
   username: string;
   password: string;
   remember_me?: boolean;
+  force?: boolean;
 }
 
 export interface LoginResponse {
@@ -69,7 +70,7 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (username: string, password: string, rememberMe?: boolean, force?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   getCurrentUser: () => Promise<void>;
 }

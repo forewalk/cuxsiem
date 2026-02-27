@@ -2,6 +2,7 @@ import api from './api';
 
 export interface AdvancedSettings {
   user_register: boolean;
+  allow_multiple_sessions: boolean;
   tab_count?: number;
   pagination_size?: number;
   time_filter_duration?: number;

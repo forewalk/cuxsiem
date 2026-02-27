@@ -26,6 +26,7 @@ class AdvancedSettingsRepository:
                 data = result["_source"]
                 return AdvancedSettings(
                     user_register=data.get("user_register", False),
+                    allow_multiple_sessions=data.get("allow_multiple_sessions", False),
                     tab_count=data.get("tab_count", 10),
                     updated_at=datetime.fromisoformat(data["updated_at"]),
                     pagination_size=data.get("pagination_size", 10),

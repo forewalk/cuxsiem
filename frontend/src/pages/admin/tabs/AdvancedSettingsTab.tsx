@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { advancedSettingsService, type AdvancedSettings } from '../../../services/advancedSettingsService';
-import { codeService, type CodeResponse } from '../../../services/codeService';
+import { codeService } from '../../../services/codeService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import useTabStore from '../../../stores/tabStore';
 
@@ -21,6 +21,7 @@ const AdvancedSettingsTab: React.FC = () => {
   const { updateSettings } = useSettingsStore();
   const [settings, setSettings] = useState<AdvancedSettings>({
     user_register: false,
+    allow_multiple_sessions: false,
     tab_count: 10,
     role_names: {
       admin: '관리자',
@@ -193,6 +194,16 @@ const AdvancedSettingsTab: React.FC = () => {
                   />
                 }
                 label={t('userRegistrationActivation')}
+              />
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.allow_multiple_sessions}
+                    onChange={(e) => handleChange('allow_multiple_sessions', e.target.checked)}
+                  />
+                }
+                label={t('allowMultipleSessions')}
               />
               
               {/* 2. 사용자 역할명 (라벨 스타일로 변경) */}
