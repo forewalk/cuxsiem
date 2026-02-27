@@ -64,6 +64,7 @@ interface ControlBarProps {
   indexOptions?: string[];
   selectedIndex?: string;
   onIndexChange?: (index: string) => void;
+  userRole?: string;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({ 
@@ -88,7 +89,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
   totalLogs,
   indexOptions = [],
   selectedIndex = 'activities*',
-  onIndexChange
+  onIndexChange,
+  userRole
 }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
@@ -438,7 +440,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!isEditMode && onEdit && (
+            {!isEditMode && onEdit && userRole === 'admin' && (
               <Button
                 variant="outlined"
                 size="small"

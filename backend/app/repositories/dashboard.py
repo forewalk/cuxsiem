@@ -22,11 +22,30 @@ class DashboardRepository:
         if unit == "d": return timedelta(days=value)
         return timedelta(minutes=15)
 
+    def _preprocess_query(self, query: Optional[str]) -> Optional[str]:
+        if not query: return query
+        # isActive: "1" -> isActive: true, isActive: "0" -> isActive: false 변환
+        # OpenSearch query_string에서 불리언 필드는 따옴표 없는 true/false여야 함
+        import re
+        q = query
+        # : "1" -> : true
+        q = re.sub(r':\s*["\']?1["\']?', ': true', q)
+        # : "0" -> : false
+        q = re.sub(r':\s*["\']?0["\']?', ': false', q)
+        # : "true" -> : true
+        q = re.sub(r':\s*["\']true["\']', ': true', q, flags=re.IGNORECASE)
+        # : "false" -> : false
+        q = re.sub(r':\s*["\']false["\']', ': false', q, flags=re.IGNORECASE)
+        return q
+
     async def get_stats(self, index_name: str, panels: List[Dict[str, Any]], from_value, from_unit, to_value, to_unit, from_date, to_date, query) -> Dict[str, Any]:
         loop = asyncio.get_event_loop()
         now = datetime.utcnow()
         start_time = self._parse_iso_date(from_date) or (now - self._parse_time(from_value or 15, from_unit or "m"))
         end_time = self._parse_iso_date(to_date) or (now - self._parse_time(to_value or 0, to_unit or "m") if to_value else now)
+        
+        # 쿼리 전처리 (불리언 값 등 처리)
+        processed_query = self._preprocess_query(query)
 
         diff = end_time - start_time
         if diff <= timedelta(minutes=10): interval = "10s"
@@ -38,8 +57,8 @@ class DashboardRepository:
 
         def search():
             must_queries = [{"range": {"@timestamp": {"gte": start_time.isoformat(), "lte": end_time.isoformat()}}}]
-            if query and query.strip():
-                must_queries.append({"query_string": {"query": query, "analyze_wildcard": True, "default_operator": "AND"}})
+            if processed_query and processed_query.strip():
+                must_queries.append({"query_string": {"query": processed_query, "analyze_wildcard": True, "default_operator": "AND"}})
 
             # 시스템 기본 집계 템플릿
             agg_templates = {
@@ -74,15 +93,18 @@ class DashboardRepository:
                 t_field = p.get('target_field')
                 c_query = p.get('custom_query')
 
-                # 1. 기본 바디 설정
-                if pk in agg_templates:
+                # 1. 시스템 기본 템플릿 사용 여부 결정
+                # 패널 타입이 변경되었거나 타겟 필드가 명시적으로 있으면 커스텀으로 간주하여 기본 템플릿 무시
+                is_custom_setup = (pk not in agg_templates) or (t_field and agg_templates[pk].get("terms", {}).get("field") != t_field)
+                
+                # 원형/바 차트로 바뀌었거나 신규 패널인 경우 terms 집계 생성
+                if w_type in ["pie", "bar"]:
+                    agg_body = {"terms": {"field": t_field or "@timestamp", "size": 10}}
+                elif pk in agg_templates and not is_custom_setup:
                     agg_body = agg_templates[pk].copy()
-                    # 2. 시스템 패널이라도 사용자가 필드를 바꿨다면 덮어쓰기
-                    if t_field and "terms" in agg_body:
-                        agg_body["terms"]["field"] = t_field
                 else:
-                    if w_type == "metric": agg_body = {"filter": {"match_all": {}}}
-                    else: agg_body = {"terms": {"field": t_field or "@timestamp", "size": 10}}
+                    # 기본은 metric (filter match_all)
+                    agg_body = {"filter": {"match_all": {}}}
 
                 # 3. 쿼리 필터 적용 (시스템 기본 필터를 사용자가 입력한 쿼리로 대체)
                 if c_query and c_query.strip():
@@ -99,7 +121,7 @@ class DashboardRepository:
                         # 메트릭인 경우: 필터 자체를 교체
                         final_aggs[pk] = {"filter": f_q}
                 else:
-                    # 커스텀 쿼리가 없으면 시스템 기본 집계 사용
+                    # 커스텀 쿼리가 없으면 아까 생성한 agg_body 사용
                     final_aggs[pk] = agg_body
 
             body = {"size": 0, "track_total_hits": True, "query": {"bool": {"must": must_queries, "must_not": [{"exists": {"field": "deleted_at"}}]}}, "aggs": final_aggs}
@@ -180,9 +202,13 @@ class DashboardRepository:
         now = datetime.utcnow()
         start_time = self._parse_iso_date(from_date) or (now - self._parse_time(from_value or 15, from_unit or "m"))
         end_time = self._parse_iso_date(to_date) or (now - self._parse_time(to_value or 0, to_unit or "m") if to_value else now)
+        
+        # 쿼리 전처리
+        processed_query = self._preprocess_query(query)
+
         def search():
             must_queries = [{"range": {"@timestamp": {"gte": start_time.isoformat(), "lte": end_time.isoformat()}}}]
-            if query and query.strip(): must_queries.append({"query_string": {"query": query, "analyze_wildcard": True, "default_operator": "AND"}})
+            if processed_query and processed_query.strip(): must_queries.append({"query_string": {"query": processed_query, "analyze_wildcard": True, "default_operator": "AND"}})
             body = {"size": size, "from": offset, "track_total_hits": True, "query": {"bool": {"must": must_queries, "must_not": [{"exists": {"field": "deleted_at"}}]}}, "sort": [{"@timestamp": {"order": sort_order}}]}
             try:
                 res = self.client.search(index=index_name, body=body)
