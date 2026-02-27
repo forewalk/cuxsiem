@@ -141,7 +141,6 @@ const NotificationRuleListTab: React.FC = () => {
   const [queryTestLoading, setQueryTestLoading] = useState(false);
   const [queryTestResult, setQueryTestResult] = useState<any | null>(null);
   const [queryTestError, setQueryTestError] = useState<string | null>(null);
-  const [showQueryResult, setShowQueryResult] = useState(false);
 
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
@@ -157,6 +156,41 @@ const NotificationRuleListTab: React.FC = () => {
     }
     return text;
   }, [language]);
+
+  // 메시지 템플릿 프리뷰 렌더링
+  const renderMessagePreview = useMemo(() => {
+    let preview = formData.message_template;
+    
+    if (queryTestResult) {
+      // 실제 쿼리 결과로 렌더링
+      const total = queryTestResult.hits?.total?.value || 0;
+      const aggregations = queryTestResult.aggregations || {};
+      
+      // 기본 변수 치환
+      preview = preview.replace(/\{\{total\}\}/g, String(total));
+      preview = preview.replace(/\{\{bucket_count\}\}/g, String(Object.keys(aggregations).length));
+      preview = preview.replace(/\{\{pc_count\}\}/g, String(Object.keys(aggregations).length));
+      
+      // Aggregation 변수 치환
+      Object.keys(aggregations).forEach(aggName => {
+        const aggData = aggregations[aggName];
+        if (aggData.buckets) {
+          const items = aggData.buckets.map((b: any) => `  - ${b.key}`).join('\n');
+          preview = preview.replace(new RegExp(`\\{\\{${aggName}\\}\\}`, 'g'), items || '결과 없음');
+        }
+      });
+    } else {
+      // 샘플 데이터로 렌더링
+      preview = preview.replace(/\{\{total\}\}/g, '15');
+      preview = preview.replace(/\{\{bucket_count\}\}/g, '3');
+      preview = preview.replace(/\{\{pc_count\}\}/g, '3');
+      preview = preview.replace(/\{\{threat_ids\}\}/g, '  - 1234567890\n  - 9876543210\n  - 5555555555');
+      preview = preview.replace(/\{\{threat_names\}\}/g, '  - ransomware.bat\n  - suspicious.ps1\n  - backdoor.exe');
+      preview = preview.replace(/\{\{by_pc\}\}/g, '  - DESKTOP-001\n  - DESKTOP-002\n  - DESKTOP-003');
+    }
+    
+    return preview;
+  }, [formData.message_template, queryTestResult]);
 
   const loadRules = useCallback(async () => {
     setLoading(true);
@@ -260,7 +294,6 @@ const NotificationRuleListTab: React.FC = () => {
         formData.condition_config
       );
       setQueryTestResult(result);
-      setShowQueryResult(true);
       setSnackbar({open: true, message: '쿼리 테스트 성공!', severity: 'success'});
     } catch (error: any) {
       const errorMsg = error.response?.data?.detail || error.message || '쿼리 실행 실패';
@@ -725,11 +758,84 @@ const NotificationRuleListTab: React.FC = () => {
 
             {/* 3. 알림 메시지 템플릿 */}
             <Grid size={12}>
-              <Typography variant="subtitle2"
-                          sx={{fontWeight: 'bold', mb: 1}}>3. {t('notificationMessageTemplate')}</Typography>
-              <TextField label={t('messageTemplate')} fullWidth multiline rows={10} value={formData.message_template}
-                         onChange={(e) => setFormData({...formData, message_template: e.target.value})} size="small"
-                         helperText={t('messageTemplateHelper')}/>
+              <Typography variant="subtitle2" sx={{fontWeight: 'bold', mb: 1}}>
+                3. {t('notificationMessageTemplate')}
+              </Typography>
+              
+              {/* 좌우 분할 레이아웃: 왼쪽 템플릿 편집, 오른쪽 프리뷰 */}
+              <Stack direction="row" spacing={2} sx={{height: 400}}>
+                {/* 왼쪽: 메시지 템플릿 편집기 */}
+                <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                  <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
+                    📝 Message Template
+                  </Typography>
+                  <TextField
+                    multiline
+                    fullWidth
+                    required
+                    value={formData.message_template}
+                    onChange={(e) => setFormData({...formData, message_template: e.target.value})}
+                    size="small"
+                    placeholder='예: ⚠️ 지난 1분간 미해결 문제가 {{total}}건 있습니다.\n\n위협 ID:\n{{threat_ids}}'
+                    inputProps={{style: {fontFamily: 'monospace', fontSize: '0.85rem'}}}
+                    sx={{
+                      flex: 1,
+                      '& .MuiInputBase-root': {
+                        height: '100%',
+                        alignItems: 'flex-start'
+                      },
+                      '& textarea': {
+                        height: '100% !important',
+                        overflow: 'auto !important'
+                      }
+                    }}
+                  />
+                </Box>
+
+                {/* 오른쪽: 메시지 프리뷰 */}
+                <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                  <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
+                    👁️ Message Preview
+                  </Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      flex: 1,
+                      p: 2,
+                      bgcolor: 'background.default',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      overflow: 'auto'
+                    }}
+                  >
+                    {formData.message_template ? (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          fontFamily: 'inherit',
+                          lineHeight: 1.8
+                        }}
+                      >
+                        {renderMessagePreview}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{fontStyle: 'italic'}}>
+                        메시지 템플릿을 입력하면 프리뷰가 여기에 표시됩니다
+                      </Typography>
+                    )}
+                    
+                    {!queryTestResult && formData.message_template && (
+                      <Box sx={{mt: 2, p: 1, bgcolor: 'info.lighter', borderRadius: 1, border: '1px solid', borderColor: 'info.light'}}>
+                        <Typography variant="caption" color="info.dark">
+                          💡 실제 데이터로 프리뷰를 보려면 위의 "Run Query" 버튼을 먼저 실행하세요
+                        </Typography>
+                      </Box>
+                    )}
+                  </Paper>
+                </Box>
+              </Stack>
             </Grid>
 
             <Grid size={12}><Divider/></Grid>
