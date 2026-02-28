@@ -3,7 +3,11 @@ import { logService } from '@/services/logService';
 import type { LogEntry } from '@/types';
 import { MAX_LOGS, POLL_INTERVAL } from '../constants';
 
-export const useLogStreaming = (isActive: boolean) => {
+export const useLogStreaming = (
+  isActive: boolean,
+  maxLogs: number = MAX_LOGS,
+  pollIntervalMs: number = POLL_INTERVAL,
+) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isPaused, setIsPaused] = useState(true); // 탭 열면 일시정지 상태로 시작
   const [loading, setLoading] = useState(false);
@@ -13,6 +17,8 @@ export const useLogStreaming = (isActive: boolean) => {
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
   const lastTimestampRef = useRef<string | null>(null);
+  // 탭이 최초 활성화된 이후에만 조건 변경 시 재조회하도록 추적 (초기 진입 시 자동 조회 방지)
+  const isInitializedRef = useRef(false);
 
   // 시간 관련 상태 (일시정지 모드용)
   const [fromValue, setFromValue] = useState<number | null>(15);
@@ -25,11 +31,13 @@ export const useLogStreaming = (isActive: boolean) => {
   const fetchIndices = useCallback(async () => {
     try {
       const r = await logService.getIndices();
-      const i = r.indices.includes('*') ? r.indices : ['*', ...r.indices];
-      setIndexOptions(i);
+      const all = r.indices.includes('*') ? r.indices : ['*', ...r.indices];
+      // 시스템 인덱스(cs_, top_ 접두어) 제외, '*'(전체)는 항상 포함
+      const filtered = all.filter((idx: string) => idx === '*' || (!idx.startsWith('cs_') && !idx.startsWith('top_')));
+      setIndexOptions(filtered);
       // 현재 선택된 인덱스들 중 유효하지 않은 것 필터링
       setSelectedIndices(prev => {
-        const valid = prev.filter(p => i.includes(p));
+        const valid = prev.filter(p => filtered.includes(p));
         return valid.length > 0 ? valid : ['*'];
       });
     } catch (e) {
@@ -61,14 +69,14 @@ export const useLogStreaming = (isActive: boolean) => {
         
       // 멀티 인덱스를 콤마로 연결
       const indexParam = selectedIndices.join(',');
-      const r = await logService.getLogStream(lastTimestampRef.current, MAX_LOGS, combinedQuery, indexParam, ft, tt);
-      
+      const r = await logService.getLogStream(lastTimestampRef.current, maxLogs, combinedQuery, indexParam, ft, tt);
+
       if (r.logs.length > 0) {
         setLogs(prev => {
-          if (!lastTimestampRef.current || isManual) return r.logs.slice(-MAX_LOGS);
+          if (!lastTimestampRef.current || isManual) return r.logs.slice(-maxLogs);
           const nl = r.logs.filter(n => !prev.some(p => p._id === n._id));
           if (nl.length === 0) return prev;
-          return [...prev, ...nl].slice(-MAX_LOGS);
+          return [...prev, ...nl].slice(-maxLogs);
         });
         lastTimestampRef.current = r.last_timestamp;
       } else if (isManual) {
@@ -82,24 +90,32 @@ export const useLogStreaming = (isActive: boolean) => {
     }
   }, [isActive, isPaused, appliedKeyword, filters, selectedIndices, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
 
-  // 초기 로드 및 인덱스 조회
-  useEffect(() => {
-    if (isActive) fetchIndices();
-  }, [isActive, fetchIndices]);
-
-  // 검색 조건 변경 시 재조회
+  // 탭 활성화 시: 인덱스 조회 및 초기화 (자동 조회 없음 - 사용자가 직접 조회해야 함)
   useEffect(() => {
     if (isActive) {
+      fetchIndices();
       lastTimestampRef.current = null;
-      fetchLogs(true);
+      isInitializedRef.current = true;
+    } else {
+      isInitializedRef.current = false;
     }
-  }, [appliedKeyword, filters, selectedIndices, fromISO, toISO, fromValue, fromUnit, toValue, toUnit, isActive, fetchLogs]);
+  }, [isActive, fetchIndices]);
 
-  // 폴링 설정
+  // 검색 조건 변경 시 재조회 (탭 초기 진입 시는 제외 - isInitializedRef 사용)
   useEffect(() => {
-    const timer = setInterval(() => fetchLogs(), POLL_INTERVAL);
+    // 탭이 처음 활성화될 때는 조회하지 않음 (빈 상태로 시작)
+    if (!isInitializedRef.current) return;
+    lastTimestampRef.current = null;
+    fetchLogs(true);
+    // fetchLogs를 deps에서 제외: isActive 변경으로 fetchLogs 재생성 시 자동 조회 방지
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedKeyword, filters, selectedIndices, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
+
+  // 폴링 설정 (pollIntervalMs 또는 POLL_INTERVAL 기준)
+  useEffect(() => {
+    const timer = setInterval(() => fetchLogs(), pollIntervalMs);
     return () => clearInterval(timer);
-  }, [fetchLogs]);
+  }, [fetchLogs, pollIntervalMs]);
 
   const clearLogs = () => {
     setLogs([]);

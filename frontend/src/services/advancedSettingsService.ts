@@ -8,6 +8,8 @@ export interface AdvancedSettings {
   time_filter_duration?: number;
   time_filter_unit?: string;
   pixel_mode?: boolean;
+  log_stream_size?: number;
+  log_stream_refresh?: number;
   role_names?: {
     admin: string;
     user: string;

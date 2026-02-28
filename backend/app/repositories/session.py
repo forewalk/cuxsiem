@@ -72,8 +72,9 @@ class SessionRepository:
         return self._dict_to_session(session_data) if session_data else None
 
     async def get_active_sessions_by_user_id(self, user_id: str) -> list[Session]:
-        """사용자의 활성 세션 목록 조회"""
+        """사용자의 활성 세션 목록 조회 (만료되지 않은 세션만)"""
         loop = asyncio.get_event_loop()
+        now_iso = datetime.utcnow().isoformat()
 
         def search():
             try:
@@ -87,7 +88,8 @@ class SessionRepository:
                             ],
                             "minimum_should_match": 1,
                             "must": [
-                                {"term": {"is_active": True}}
+                                {"term": {"is_active": True}},
+                                {"range": {"expires_at": {"gt": now_iso}}}
                             ]
                         }
                     }

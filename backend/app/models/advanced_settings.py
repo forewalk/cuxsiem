@@ -13,6 +13,8 @@ class AdvancedSettings:
     time_filter_duration: int = 15
     time_filter_unit: str = "m"
     pixel_mode: bool = False
+    log_stream_size: int = 1000       # 로그스트리밍 최대 건수 (100~10000)
+    log_stream_refresh: int = 10      # 로그스트리밍 새로고침 주기(초) (5~60)
 
     def to_dict(self) -> dict:
         return {
@@ -24,4 +26,6 @@ class AdvancedSettings:
             "time_filter_duration": self.time_filter_duration,
             "time_filter_unit": self.time_filter_unit,
             "pixel_mode": self.pixel_mode,
+            "log_stream_size": self.log_stream_size,
+            "log_stream_refresh": self.log_stream_refresh,
         }

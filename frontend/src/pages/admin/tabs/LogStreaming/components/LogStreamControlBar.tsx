@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Box, Typography, TextField, IconButton, Popover, MenuItem, Chip, Checkbox, ListItemText, Divider, Button
+import {
+  Box, Typography, TextField, IconButton, Popover, MenuItem, Chip, Checkbox, ListItemText, Divider, Button, Tooltip
 } from '@mui/material';
 import {
-  Storage as StorageIcon, 
-  Search as SearchIcon, 
-  Close as CloseIcon, 
-  KeyboardArrowDown as ArrowDownIcon 
+  Storage as StorageIcon,
+  Search as SearchIcon,
+  Close as CloseIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  InfoOutlined as InfoIcon
 } from '@mui/icons-material';
 import { KIBANA_TEAL } from '../constants';
 
@@ -67,19 +68,24 @@ const LogStreamControlBar = React.memo(({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, mb: 2, width: '100%' }}>
       <Box sx={{ display: "flex", alignItems: "stretch", gap: 0.5, width: '100%' }}>
-        <Box 
-          onClick={(e) => setIndexAnchorEl(e.currentTarget)} 
-          sx={{ 
-            display: 'flex', alignItems: 'center', bgcolor: 'action.hover', border: '1px solid', 
-            borderColor: 'divider', borderRadius: 1, px: 1.5, gap: 1, minHeight: 36, cursor: 'pointer', 
-            '&:hover': { bgcolor: 'action.selected' } 
-          }}
-        >
-          <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
-          <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-            {displayLabel}
-          </Typography>
-          <ArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box
+            onClick={(e) => setIndexAnchorEl(e.currentTarget)}
+            sx={{
+              display: 'flex', alignItems: 'center', bgcolor: 'action.hover', border: '1px solid',
+              borderColor: 'divider', borderRadius: 1, px: 1.5, gap: 1, minHeight: 36, cursor: 'pointer',
+              '&:hover': { bgcolor: 'action.selected' }
+            }}
+          >
+            <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
+            <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+              {displayLabel}
+            </Typography>
+            <ArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
+          </Box>
+          <Tooltip title={t('timestampRequiredNote')} placement="bottom-start" arrow>
+            <InfoIcon sx={{ fontSize: 16, color: 'warning.main', cursor: 'help' }} />
+          </Tooltip>
         </Box>
         <Box 
           sx={{ 

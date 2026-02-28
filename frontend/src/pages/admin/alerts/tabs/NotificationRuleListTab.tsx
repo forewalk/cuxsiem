@@ -361,9 +361,9 @@ const NotificationRuleListTab: React.FC = () => {
         formData.condition_config
       );
       setQueryTestResult(result);
-      setSnackbar({open: true, message: '쿼리 테스트 성공!', severity: 'success'});
+      setSnackbar({open: true, message: t('queryTestSuccess'), severity: 'success'});
     } catch (error: any) {
-      const errorMsg = error.response?.data?.detail || error.message || '쿼리 실행 실패';
+      const errorMsg = error.response?.data?.detail || error.message || t('queryRunFailed');
       setQueryTestError(errorMsg);
       setSnackbar({open: true, message: errorMsg, severity: 'error'});
     } finally {

@@ -22,6 +22,8 @@ class AdvancedSettingsService:
                 time_filter_duration=15,
                 time_filter_unit="m",
                 pixel_mode=False,
+                log_stream_size=1000,
+                log_stream_refresh=10,
             )
             await self.repository.update_settings(settings)
         return settings
@@ -37,6 +39,8 @@ class AdvancedSettingsService:
             time_filter_duration=update_data.time_filter_duration,
             time_filter_unit=update_data.time_filter_unit,
             pixel_mode=update_data.pixel_mode,
+            log_stream_size=update_data.log_stream_size,
+            log_stream_refresh=update_data.log_stream_refresh,
         )
         return await self.repository.update_settings(settings)
 

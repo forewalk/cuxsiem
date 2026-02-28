@@ -128,7 +128,7 @@ const UserManagementTab: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load users or roles:', error);
-      setSnackbar({ open: true, message: '데이터를 불러오는데 실패했습니다.', severity: 'error' });
+      setSnackbar({ open: true, message: t('loadDataFailed'), severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -215,7 +215,7 @@ const UserManagementTab: React.FC = () => {
       setDeleteId(null);
       loadUsers();
     } catch (error) {
-      setSnackbar({ open: true, message: '삭제에 실패했습니다.', severity: 'error' });
+      setSnackbar({ open: true, message: t('deleteFailed'), severity: 'error' });
     }
   };
 

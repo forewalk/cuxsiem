@@ -69,12 +69,14 @@ const LogStreaming: React.FC = () => {
     return text; 
   }, [language, translations]);
 
-  // Hooks
+  // Hooks (고급 설정에서 최대 건수/갱신 주기 적용)
+  const logStreamSize = settings?.log_stream_size ?? 1000;
+  const logStreamRefreshMs = (settings?.log_stream_refresh ?? 10) * 1000;
   const {
     logs, loading, isPaused, setIsPaused, selectedIndices, setSelectedIndices,
     indexOptions, keyword, setKeyword, appliedKeyword, setAppliedKeyword,
     filters, setFilters, clearLogs, handleFilterAdd, timeRange
-  } = useLogStreaming(isActive);
+  } = useLogStreaming(isActive, logStreamSize, logStreamRefreshMs);
 
   const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs);
   

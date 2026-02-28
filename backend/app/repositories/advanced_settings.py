@@ -33,6 +33,8 @@ class AdvancedSettingsRepository:
                     time_filter_duration=data.get("time_filter_duration", 15),
                     time_filter_unit=data.get("time_filter_unit", "m"),
                     pixel_mode=data.get("pixel_mode", False),
+                    log_stream_size=data.get("log_stream_size", 1000),
+                    log_stream_refresh=data.get("log_stream_refresh", 10),
                 )
             except Exception:
                 return None

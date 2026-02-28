@@ -56,8 +56,8 @@ const TabManager: React.FC = () => {
   if (tabs.length === 0) {
     return (
       <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <Typography variant="h6">{t('noOpenMenus') || '열려있는 메뉴가 없습니다.'}</Typography>
-        <Typography>{t('selectMenuHint') || '왼쪽 메뉴에서 기능을 선택하세요.'}</Typography>
+        <Typography variant="h6">{t('noOpenMenus')}</Typography>
+        <Typography>{t('selectMenuHint')}</Typography>
       </Box>
     );
   }

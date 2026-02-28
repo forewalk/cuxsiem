@@ -87,7 +87,7 @@ const AdvancedSettingsTab: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
-      setSnackbar({ open: true, message: t('loadFailed') || '로드 실패', severity: 'error' });
+      setSnackbar({ open: true, message: t('loadFailed'), severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -135,7 +135,7 @@ const AdvancedSettingsTab: React.FC = () => {
       if (!admin?.trim() || !monitoring?.trim() || !approver?.trim() || !user?.trim()) {
         setSnackbar({ 
           open: true, 
-          message: t('roleNameRequired') || '모든 역할명은 필수 입력 항목입니다.', 
+          message: t('roleNameRequired'),
           severity: 'error' 
         });
         return;
@@ -373,7 +373,53 @@ const AdvancedSettingsTab: React.FC = () => {
                 </Stack>
               </Box>
 
-              {/* 5. 너드 설정 (고급 설정 화면에서 "pixel?" 입력 시 언락) */}
+              {/* 5. 로그 스트리밍 설정 */}
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  {t('logStreamSettings')}
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <Stack spacing={3}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                      {t('logStreamSize')}
+                    </Typography>
+                    <Tooltip title={t('logStreamSizeDesc')} placement="top-start" arrow>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        value={settings.log_stream_size ?? 1000}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (v >= 100 && v <= 10000) handleChange('log_stream_size', v);
+                        }}
+                        inputProps={{ min: 100, max: 10000, step: 100 }}
+                      />
+                    </Tooltip>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                      {t('logStreamRefresh')}
+                    </Typography>
+                    <Tooltip title={t('logStreamRefreshDesc')} placement="top-start" arrow>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        value={settings.log_stream_refresh ?? 10}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (v >= 5 && v <= 60) handleChange('log_stream_refresh', v);
+                        }}
+                        inputProps={{ min: 5, max: 60, step: 1 }}
+                      />
+                    </Tooltip>
+                  </Box>
+                </Stack>
+              </Box>
+
+              {/* 6. 너드 설정 (고급 설정 화면에서 "pixel?" 입력 시 언락) */}
               {(nerdUnlocked || settings.pixel_mode) && <Box>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                   {t('nerdSettings')}
