@@ -369,9 +369,9 @@ cruxSIEM에 TOTP(Time-based One-Time Password) 기반 2단계 인증(2FA)을 추
 3. 신뢰 디바이스 기능 포함 여부?
    > 추후 결정 (현재 스코프 제외)
 4. 관리자가 특정 사용자의 OTP를 강제 해제할 수 있어야 하는가?
-   > 미결정
+   > 관리자가 otp 비활성화하면 그냥 id/pwd 로그인으로 진행
 5. OTP 인증 이력을 별도 인덱스에 기록해야 하는가?
-   > 미결정
+   > cs_login_attempts 에 otp 여부만 불린으로 넣으면 됨
 
 ---
 
