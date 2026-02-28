@@ -336,5 +336,14 @@
   "permanentDeleteSuccess": "ユーザーが完全に削除されました。",
   "deletedAt": "削除日",
   "idUnavailable": "このIDは使用できません。",
-  "noDeletedUsers": "削除されたユーザーはいません。"
+  "noDeletedUsers": "削除されたユーザーはいません。",
+  "otpEnrollTitle": "OTP登録",
+  "otpEnrollStep1": "Google Authenticatorなどのアプリをインストールしてください",
+  "otpEnrollStep2": "OTPアプリで生成された6桁のコードを入力してください",
+  "otpCode": "OTPコード",
+  "otpLoginTitle": "OTP認証",
+  "backupCode": "バックアップコード",
+  "manualKey": "手動入力キー",
+  "manualKeyDesc": "クローズドネットワーク環境では、このキーを手動で入力してください",
+  "codeWarning": "30秒ごとに変わるコードを入力してください"
 }

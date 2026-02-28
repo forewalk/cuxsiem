@@ -245,6 +245,144 @@ class UserRepository:
 
         await loop.run_in_executor(None, update)
 
+    async def update_otp_field(
+        self,
+        user_id: str,
+        field_name: str,
+        value
+    ) -> bool:
+        """단일 OTP 필드 업데이트
+
+        Args:
+            user_id: 사용자 ID
+            field_name: OTP 필드명 (예: otp_secret_enc, otp_pending_secret_enc)
+            value: 필드값
+
+        Returns:
+            업데이트 성공 여부
+        """
+        loop = asyncio.get_event_loop()
+
+        def update():
+            try:
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={
+                        "doc": {field_name: value}
+                    },
+                    refresh=True
+                )
+                return True
+            except Exception:
+                return False
+
+        return await loop.run_in_executor(None, update)
+
+    async def update_otp_config(
+        self,
+        user_id: str,
+        otp_config: dict
+    ) -> bool:
+        """OTP 설정 전체 업데이트
+
+        Args:
+            user_id: 사용자 ID
+            otp_config: OTP 설정 딕셔너리 (otp_enabled, otp_secret_enc 등)
+
+        Returns:
+            업데이트 성공 여부
+        """
+        loop = asyncio.get_event_loop()
+
+        def update():
+            try:
+                # pending secret 제거하고 enrolled_at 추가
+                update_doc = {k: v for k, v in otp_config.items() if k != "otp_pending_secret_enc"}
+                update_doc["otp_pending_secret_enc"] = None
+                update_doc["updated_at"] = datetime.utcnow().isoformat()
+
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={
+                        "doc": update_doc
+                    },
+                    refresh=True
+                )
+                return True
+            except Exception:
+                return False
+
+        return await loop.run_in_executor(None, update)
+
+    async def clear_otp_fields(self, user_id: str) -> bool:
+        """모든 OTP 필드 삭제 (비활성화)
+
+        Args:
+            user_id: 사용자 ID
+
+        Returns:
+            업데이트 성공 여부
+        """
+        loop = asyncio.get_event_loop()
+
+        def update():
+            try:
+                otp_fields = {
+                    "otp_enabled": False,
+                    "otp_secret_enc": None,
+                    "otp_pending_secret_enc": None,
+                    "otp_backup_codes": None,
+                    "otp_enrolled_at": None,
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={
+                        "doc": otp_fields
+                    },
+                    refresh=True
+                )
+                return True
+            except Exception:
+                return False
+
+        return await loop.run_in_executor(None, update)
+
+    async def get_user_otp_status(self, user_id: str) -> Optional[dict]:
+        """사용자 OTP 상태 조회
+
+        Args:
+            user_id: 사용자 ID
+
+        Returns:
+            {
+                "enabled": bool,
+                "enrolled_at": str or None,
+                "backup_codes_count": int,
+                "is_pending": bool
+            }
+        """
+        loop = asyncio.get_event_loop()
+
+        def get():
+            try:
+                result = self.client.get(index=self.index, id=user_id)
+                source = result["_source"]
+                return {
+                    "enabled": source.get("otp_enabled", False),
+                    "enrolled_at": source.get("otp_enrolled_at"),
+                    "backup_codes_count": len(source.get("otp_backup_codes", [])),
+                    "is_pending": bool(source.get("otp_pending_secret_enc")),
+                }
+            except Exception:
+                return None
+
+        return await loop.run_in_executor(None, get)
+
     def _dict_to_user(self, data: dict, doc_id: str = None) -> User:
         """딕셔너리를 User 객체로 변환"""
         return User(

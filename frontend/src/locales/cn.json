@@ -324,5 +324,14 @@
   "permanentDeleteSuccess": "用户已永久删除。",
   "deletedAt": "删除日期",
   "idUnavailable": "该ID不可用。",
-  "noDeletedUsers": "没有已删除的用户。"
+  "noDeletedUsers": "没有已删除的用户。",
+  "otpEnrollTitle": "OTP注册",
+  "otpEnrollStep1": "安装Google Authenticator等OTP应用",
+  "otpEnrollStep2": "输入您的OTP应用生成的6位数代码",
+  "otpCode": "OTP代码",
+  "otpLoginTitle": "OTP认证",
+  "backupCode": "备份代码",
+  "manualKey": "手动输入密钥",
+  "manualKeyDesc": "在隔离网络环境中，请手动输入此密钥",
+  "codeWarning": "输入每30秒更改一次的代码"
 }

@@ -258,7 +258,7 @@ pip install -r requirements.txt
 ```
 
 **중요:**
-- CLAUDE.md의 모든 규칙을 철저히 따르세요
+- ASSISTANT.md의 모든 규칙을 철저히 따르세요
 - 각 레이어의 책임을 명확히 분리하세요
 - 에러 처리를 꼼꼼히 구현하세요
 - 테스트를 작성하며 개발하세요 (TDD)

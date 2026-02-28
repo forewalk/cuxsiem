@@ -2,7 +2,7 @@
 
 **작성일:** {DATE}
 **최종 승인일:** {APPROVAL_DATE}
-**작성자:** Claude AI + {APPROVER}
+**작성자:** AI + {APPROVER}
 **상태:** ✅ 확정
 
 ---

@@ -1,7 +1,7 @@
 # {FEATURE} 기능 테스트 결과
 
 **테스트 실행일:** {DATE}
-**테스터:** Claude AI
+**테스터:** AI
 **개발 문서:** `6_{feature}_implementation.md`
 **상태:** 완료
 

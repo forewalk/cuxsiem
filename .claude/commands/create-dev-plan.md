@@ -97,7 +97,7 @@
    ```
 
 **중요:**
-- CLAUDE.md의 프로젝트 규칙을 철저히 따르세요
+- ASSISTANT.md의 프로젝트 규칙을 철저히 따르세요
 - 데이터베이스 네이밍 컨벤션 준수 (테이블: snake_case plural, 컬럼: snake_case, FK: {table}_id)
 - 레이어 구조 (Model → Schema → Repository → Service → Endpoint) 준수
 - FastAPI + async SQLAlchemy + PostgreSQL 환경에 맞는 코드 제시

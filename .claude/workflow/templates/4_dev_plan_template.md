@@ -1,7 +1,7 @@
 # {FEATURE} 기능 개발 계획서
 
 **작성일:** {DATE}
-**작성자:** Claude AI
+**작성자:** AI
 **기반 문서:** `3_{feature}_spec_final.md`
 **상태:** 초안
 

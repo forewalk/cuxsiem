@@ -1,7 +1,7 @@
 # {FEATURE} 기능 구현 체크리스트
 
 **개발 시작일:** {START_DATE}
-**개발자:** Claude AI
+**개발자:** AI
 **기반 문서:** `5_{feature}_dev_plan_final.md`
 **상태:** 진행 중
 
