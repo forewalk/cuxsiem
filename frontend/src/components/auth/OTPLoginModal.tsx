@@ -4,7 +4,7 @@
  * - 백업 코드 입력 탭
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -18,8 +18,12 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { useTranslation } from 'react-i18next';
 import OTPService from '../../services/otpService';
+
+import koMessages from "../../locales/ko.json";
+import enMessages from "../../locales/en.json";
+import jaMessages from "../../locales/ja.json";
+import cnMessages from "../../locales/cn.json";
 
 interface OTPLoginModalProps {
   open: boolean;
@@ -34,12 +38,24 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
   onSuccess,
   apiClient,
 }) => {
-  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(0);
   const [otpCode, setOtpCode] = useState('');
   const [backupCode, setBackupCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const savedLanguage = localStorage.getItem("appLanguage") || "ko";
+  const translations: Record<string, Record<string, string>> = {
+    ko: koMessages,
+    en: enMessages,
+    ja: jaMessages,
+    cn: cnMessages,
+  };
+
+  const t = useCallback((key: string): string => {
+    const currentTranslations = translations[savedLanguage] || translations["ko"] || {};
+    return currentTranslations[key] || key;
+  }, [savedLanguage]);
 
   const otpService = new OTPService(apiClient);
 
@@ -100,7 +116,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{t('otpLoginTitle') || 'OTP 인증'}</DialogTitle>
+      <DialogTitle>{t('otpLoginTitle')}</DialogTitle>
 
       <DialogContent>
         <Box sx={{ py: 2 }}>
@@ -111,8 +127,8 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
           )}
 
           <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
-            <Tab label={t('otpCode') || 'OTP 코드'} />
-            <Tab label={t('backupCode') || '백업 코드'} />
+            <Tab label={t('otpCode')} />
+            <Tab label={t('backupCode')} />
           </Tabs>
 
           {/* OTP 코드 탭 */}
@@ -120,7 +136,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
             <Box sx={{ mt: 3 }}>
               <TextField
                 fullWidth
-                label={t('otpCode') || 'OTP 코드'}
+                label={t('otpCode')}
                 type="text"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -137,7 +153,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
             <Box sx={{ mt: 3 }}>
               <TextField
                 fullWidth
-                label={t('backupCode') || '백업 코드'}
+                label={t('backupCode')}
                 type="text"
                 value={backupCode}
                 onChange={(e) => setBackupCode(e.target.value.toUpperCase().slice(0, 8))}
@@ -153,7 +169,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
 
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          {t('cancel') || '취소'}
+          {t('cancel')}
         </Button>
         {activeTab === 0 ? (
           <Button

@@ -5,7 +5,7 @@
  * - 백업 코드 다운로드
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -27,8 +27,12 @@ import {
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DownloadIcon from '@mui/icons-material/Download';
-import { useTranslation } from 'react-i18next';
 import OTPService from '../../services/otpService';
+
+import koMessages from "../../locales/ko.json";
+import enMessages from "../../locales/en.json";
+import jaMessages from "../../locales/ja.json";
+import cnMessages from "../../locales/cn.json";
 
 interface OTPEnrollModalProps {
   open: boolean;
@@ -45,9 +49,21 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
   onSuccess,
   apiClient,
 }) => {
-  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  const savedLanguage = localStorage.getItem("appLanguage") || "ko";
+  const translations: Record<string, Record<string, string>> = {
+    ko: koMessages,
+    en: enMessages,
+    ja: jaMessages,
+    cn: cnMessages,
+  };
+
+  const t = useCallback((key: string): string => {
+    const currentTranslations = translations[savedLanguage] || translations["ko"] || {};
+    return currentTranslations[key] || key;
+  }, [savedLanguage]);
   const [error, setError] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [manualKey, setManualKey] = useState<string | null>(null);
@@ -123,7 +139,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{t('otpEnrollTitle') || 'OTP 등록'}</DialogTitle>
+      <DialogTitle>{t('otpEnrollTitle')}</DialogTitle>
 
       <DialogContent>
         <Box sx={{ py: 2 }}>
@@ -148,7 +164,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
               {!qrCode ? (
                 <>
                   <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                    {t('otpEnrollStep1') || 'Google Authenticator 등의 OTP 앱을 설치하세요'}
+                    {t('otpEnrollStep1')}
                   </Typography>
                   <Button
                     variant="contained"
@@ -172,7 +188,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                   {/* 수동 입력 키 */}
                   <Box sx={{ mt: 3 }}>
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                      {t('manualKey') || '수동 입력 키'}
+                      {t('manualKey')}
                     </Typography>
                     <Grid container spacing={1} alignItems="center" justifyContent="center">
                       <Grid item>
@@ -196,7 +212,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                       </Grid>
                     </Grid>
                     <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-                      {t('manualKeyDesc') || '폐쇄망 환경에서는 이 키를 수동으로 입력하세요'}
+                      {t('manualKeyDesc')}
                     </Typography>
                   </Box>
 
@@ -218,11 +234,11 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
           {activeStep === 1 && (
             <Box sx={{ mt: 3 }}>
               <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-                {t('otpEnrollStep2') || 'OTP 앱에서 생성된 6자리 코드를 입력하세요'}
+                {t('otpEnrollStep2')}
               </Typography>
               <TextField
                 fullWidth
-                label={t('otpCode') || 'OTP 코드'}
+                label={t('otpCode')}
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -232,7 +248,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                 inputProps={{ maxLength: 6 }}
               />
               <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-                {t('codeWarning') || '30초마다 변경되는 코드를 입력하세요'}
+                {t('codeWarning')}
               </Typography>
             </Box>
           )}
@@ -241,7 +257,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
 
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          {t('cancel') || '취소'}
+          {t('cancel')}
         </Button>
         {activeStep === 1 && (
           <Button
