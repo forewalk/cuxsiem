@@ -123,7 +123,7 @@ export const useLogStreaming = (
 
   const clearLogs = () => {
     setLogs([]);
-    lastTimestampRef.current = null;
+    lastTimestampRef.current = new Date().toISOString();
   };
 
   // 스트리밍 시작: 로그 클리어 + 현재 시각을 기준점으로 설정
