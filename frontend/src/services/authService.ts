@@ -60,6 +60,16 @@ export const authService = {
   },
 
   /**
+   * ID 중복 체크
+   */
+  async checkId(username: string): Promise<boolean> {
+    const response = await api.get<{ available: boolean }>("/api/v1/auth/check-id", {
+      params: { username },
+    });
+    return response.data.available;
+  },
+
+  /**
    * 비밀번호 초기화 (임시 비밀번호 발급)
    */
   async resetPassword(username: string): Promise<string> {

@@ -135,6 +135,48 @@ class UserService:
 
         return UserResponse.model_validate(updated_user)
 
+    async def get_deleted_users(
+        self, skip: int = 0, limit: int = 100
+    ) -> UserListResponse:
+        """삭제된 사용자 목록 조회"""
+        total, users = await self.user_repo.list_deleted(skip=skip, limit=limit)
+        return UserListResponse(
+            total=total,
+            users=[UserResponse.model_validate(u) for u in users]
+        )
+
+    async def restore_user(self, user_id: str) -> None:
+        """삭제된 사용자 복구"""
+        user = await self.user_repo.get_by_id(user_id)
+        if not user or not user.deleted_at:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="삭제된 사용자를 찾을 수 없습니다"
+            )
+
+        success = await self.user_repo.restore(user_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="사용자 복구에 실패했습니다"
+            )
+
+    async def hard_delete_user(self, user_id: str) -> None:
+        """사용자 완전 삭제"""
+        user = await self.user_repo.get_by_id(user_id)
+        if not user or not user.deleted_at:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="삭제된 사용자를 찾을 수 없습니다"
+            )
+
+        success = await self.user_repo.hard_delete(user_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="사용자 완전 삭제에 실패했습니다"
+            )
+
     async def delete_user(self, user_id: str) -> None:
         """사용자 삭제"""
         user = await self.user_repo.get_by_id(user_id)

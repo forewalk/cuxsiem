@@ -42,4 +42,28 @@ export const userService = {
   async deleteUser(id: string): Promise<void> {
     await api.delete(`/api/v1/users/${id}`);
   },
+
+  /**
+   * 삭제된 사용자 목록 조회
+   */
+  async getDeletedUsers(skip = 0, limit = 100): Promise<UserListResponse> {
+    const response = await api.get<UserListResponse>("/api/v1/users/deleted", {
+      params: { skip, limit },
+    });
+    return response.data;
+  },
+
+  /**
+   * 삭제된 사용자 복구
+   */
+  async restoreUser(id: string): Promise<void> {
+    await api.post(`/api/v1/users/${id}/restore`);
+  },
+
+  /**
+   * 사용자 완전 삭제
+   */
+  async permanentDeleteUser(id: string): Promise<void> {
+    await api.delete(`/api/v1/users/${id}/permanent`);
+  },
 };

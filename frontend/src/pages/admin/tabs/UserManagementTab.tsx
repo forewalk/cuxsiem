@@ -10,7 +10,8 @@ import {
 import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon, DeleteSweep as DeleteSweepIcon,
+  RestoreFromTrash as RestoreIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
@@ -57,6 +58,12 @@ const UserManagementTab: React.FC = () => {
 
   // 삭제 확인 다이얼로그
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // 삭제된 사용자 관리
+  const [deletedUsersOpen, setDeletedUsersOpen] = useState(false);
+  const [deletedUsers, setDeletedUsers] = useState<User[]>([]);
+  const [deletedUsersLoading, setDeletedUsersLoading] = useState(false);
+  const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
 
   // 스낵바 상태
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -219,7 +226,81 @@ const UserManagementTab: React.FC = () => {
     }
   };
 
+  const loadDeletedUsers = useCallback(async () => {
+    setDeletedUsersLoading(true);
+    try {
+      const response = await userService.getDeletedUsers(0, 100);
+      setDeletedUsers(response.users);
+    } catch (error) {
+      setSnackbar({ open: true, message: t('loadDataFailed'), severity: 'error' });
+    } finally {
+      setDeletedUsersLoading(false);
+    }
+  }, []);
+
+  const handleOpenDeletedUsers = () => {
+    setDeletedUsersOpen(true);
+    loadDeletedUsers();
+  };
+
+  const handleRestore = async (userId: string) => {
+    try {
+      await userService.restoreUser(userId);
+      setSnackbar({ open: true, message: t('restoreSuccess'), severity: 'success' });
+      loadDeletedUsers();
+      loadUsers();
+    } catch (error) {
+      setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!permanentDeleteId) return;
+    try {
+      await userService.permanentDeleteUser(permanentDeleteId);
+      setSnackbar({ open: true, message: t('permanentDeleteSuccess'), severity: 'success' });
+      setPermanentDeleteId(null);
+      loadDeletedUsers();
+    } catch (error) {
+      setSnackbar({ open: true, message: t('deleteFailed'), severity: 'error' });
+    }
+  };
+
+  const deletedColumns: GridColDef[] = [
+    { field: 'id', headerName: t('id'), flex: 1.2 },
+    { field: 'name', headerName: t('name'), flex: 1 },
+    { field: 'email', headerName: t('email'), flex: 1.5 },
+    {
+      field: 'deleted_at',
+      headerName: t('deletedAt'),
+      flex: 1.2,
+      valueFormatter: (value) => {
+        if (!value) return '-';
+        return dayjs(value).format('YYYY-MM-DD HH:mm');
+      }
+    },
+    {
+      field: 'actions',
+      headerName: t('actions'),
+      flex: 1.2,
+      sortable: false,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params: GridRenderCellParams) => (
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button size="small" variant="outlined" color="primary" startIcon={<RestoreIcon />} onClick={() => handleRestore(params.row.id)}>
+            {t('restoreUser')}
+          </Button>
+          <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setPermanentDeleteId(params.row.id)}>
+            {t('permanentDelete')}
+          </Button>
+        </Stack>
+      )
+    },
+  ];
+
   const columns: GridColDef[] = [
+    { field: 'id', headerName: t('id'), flex: 1.2 },
     { field: 'name', headerName: t('name'), flex: 1 },
     { field: 'email', headerName: t('email'), flex: 1.5 },
     {
@@ -292,6 +373,13 @@ const UserManagementTab: React.FC = () => {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('userManagement')}</Typography>
         <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<DeleteSweepIcon />}
+            onClick={handleOpenDeletedUsers}
+          >
+            {t('viewDeletedUsers')}
+          </Button>
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
@@ -399,6 +487,43 @@ const UserManagementTab: React.FC = () => {
         <DialogActions>
           <Button variant="outlined" onClick={() => setDeleteId(null)}>{t('cancel')}</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>{t('deleteUser')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 삭제된 사용자 다이얼로그 */}
+      <Dialog open={deletedUsersOpen} onClose={() => setDeletedUsersOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{t('deletedUsers')}</DialogTitle>
+        <DialogContent>
+          {deletedUsers.length === 0 && !deletedUsersLoading ? (
+            <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>{t('noDeletedUsers')}</Typography>
+          ) : (
+            <Box sx={{ height: 400, width: '100%' }}>
+              <DataGrid
+                rows={deletedUsers}
+                columns={deletedColumns}
+                loading={deletedUsersLoading}
+                disableRowSelectionOnClick
+                pageSizeOptions={[10, 25]}
+                initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+                sx={{ border: 'none', '& .MuiDataGrid-cell:focus': { outline: 'none' } }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setDeletedUsersOpen(false)}>{t('close')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 완전 삭제 확인 다이얼로그 */}
+      <Dialog open={!!permanentDeleteId} onClose={() => setPermanentDeleteId(null)}>
+        <DialogTitle>{t('permanentDelete')}</DialogTitle>
+        <DialogContent>
+          <Typography>{t('confirmPermanentDelete')}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setPermanentDeleteId(null)}>{t('cancel')}</Button>
+          <Button variant="contained" color="error" onClick={handlePermanentDelete}>{t('permanentDelete')}</Button>
         </DialogActions>
       </Dialog>
 

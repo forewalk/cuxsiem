@@ -157,6 +157,73 @@ class UserRepository:
 
         return await loop.run_in_executor(None, soft_delete)
 
+    async def list_deleted(self, skip: int = 0, limit: int = 100) -> tuple[int, list[User]]:
+        """삭제된 사용자 목록 조회"""
+        loop = asyncio.get_event_loop()
+
+        def search():
+            result = self.client.search(
+                index=self.index,
+                body={
+                    "from": skip,
+                    "size": limit,
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"exists": {"field": "deleted_at"}}
+                            ]
+                        }
+                    },
+                    "sort": [{"deleted_at": {"order": "desc"}}]
+                }
+            )
+            total = result.get("hits", {}).get("total", {}).get("value", 0)
+            hits = result.get("hits", {}).get("hits", [])
+            users = [self._dict_to_user(hit["_source"], hit["_id"]) for hit in hits]
+            return total, users
+
+        return await loop.run_in_executor(None, search)
+
+    async def restore(self, user_id: str) -> bool:
+        """삭제된 사용자 복구 (deleted_at 제거, is_active=false)"""
+        loop = asyncio.get_event_loop()
+
+        def restore_doc():
+            try:
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={
+                        "script": {
+                            "source": "ctx._source.remove('deleted_at'); ctx._source.is_active = false; ctx._source.updated_at = params.now",
+                            "params": {"now": datetime.utcnow().isoformat()}
+                        }
+                    },
+                    refresh=True
+                )
+                return True
+            except Exception:
+                return False
+
+        return await loop.run_in_executor(None, restore_doc)
+
+    async def hard_delete(self, user_id: str) -> bool:
+        """사용자 완전 삭제 (문서 제거)"""
+        loop = asyncio.get_event_loop()
+
+        def delete_doc():
+            try:
+                self.client.delete(
+                    index=self.index,
+                    id=user_id,
+                    refresh=True
+                )
+                return True
+            except Exception:
+                return False
+
+        return await loop.run_in_executor(None, delete_doc)
+
     async def update_last_login(self, user_id: str) -> None:
         """마지막 로그인 시간 업데이트"""
         loop = asyncio.get_event_loop()

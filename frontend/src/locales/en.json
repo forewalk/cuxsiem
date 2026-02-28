@@ -316,5 +316,15 @@
   "sessionDuration": "Session Duration (min)",
   "sessionDurationDesc": "Set user session duration in minutes (1 ~ 1440 min, max 1 day)",
   "sessionDurationError": "Session duration must be between 1 and 1440 minutes.",
-  "timestamp": "Time"
+  "timestamp": "Time",
+  "deletedUsers": "Deleted Users",
+  "viewDeletedUsers": "View Deleted Users",
+  "restoreUser": "Restore User",
+  "permanentDelete": "Permanent Delete",
+  "confirmPermanentDelete": "Are you sure you want to permanently delete this user? This action cannot be undone.",
+  "restoreSuccess": "User has been restored.",
+  "permanentDeleteSuccess": "User has been permanently deleted.",
+  "deletedAt": "Deleted At",
+  "idUnavailable": "This ID is not available.",
+  "noDeletedUsers": "No deleted users."
 }

@@ -24,6 +24,38 @@ async def create_user(
     return await service.create_user(request)
 
 
+@router.get("/deleted", response_model=UserListResponse)
+async def get_deleted_users(
+    skip: int = 0,
+    limit: int = 100,
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """삭제된 사용자 목록 조회 (관리자 전용)"""
+    service = UserService()
+    return await service.get_deleted_users(skip=skip, limit=limit)
+
+
+@router.post("/{user_id}/restore", status_code=status.HTTP_200_OK)
+async def restore_user(
+    user_id: str,
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """삭제된 사용자 복구 (관리자 전용)"""
+    service = UserService()
+    await service.restore_user(user_id)
+    return {"message": "사용자가 복구되었습니다"}
+
+
+@router.delete("/{user_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
+async def permanent_delete_user(
+    user_id: str,
+    current_admin: UserResponse = Depends(get_current_admin_user)
+):
+    """사용자 완전 삭제 (관리자 전용)"""
+    service = UserService()
+    await service.hard_delete_user(user_id)
+
+
 @router.get("", response_model=UserListResponse)
 async def get_users(
     skip: int = 0,

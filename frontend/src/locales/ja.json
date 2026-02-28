@@ -326,5 +326,15 @@
   "sessionDuration": "セッション維持時間（分）",
   "sessionDurationDesc": "ユーザーセッション維持時間を分単位で設定します（1〜1440分、最大1日）",
   "sessionDurationError": "セッション維持時間は1〜1440分の範囲でなければなりません。",
-  "timestamp": "時刻"
+  "timestamp": "時刻",
+  "deletedUsers": "削除されたユーザー",
+  "viewDeletedUsers": "削除されたユーザーを表示",
+  "restoreUser": "ユーザーを復元",
+  "permanentDelete": "完全削除",
+  "confirmPermanentDelete": "本当にこのユーザーを完全に削除しますか？この操作は元に戻せません。",
+  "restoreSuccess": "ユーザーが復元されました。",
+  "permanentDeleteSuccess": "ユーザーが完全に削除されました。",
+  "deletedAt": "削除日",
+  "idUnavailable": "このIDは使用できません。",
+  "noDeletedUsers": "削除されたユーザーはいません。"
 }

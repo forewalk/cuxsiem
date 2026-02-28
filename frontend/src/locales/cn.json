@@ -314,5 +314,15 @@
   "sessionDuration": "会话保持时间（分钟）",
   "sessionDurationDesc": "以分钟为单位设置用户会话保持时间（1～1440分钟，最长1天）",
   "sessionDurationError": "会话保持时间必须在1～1440分钟之间。",
-  "timestamp": "时间"
+  "timestamp": "时间",
+  "deletedUsers": "已删除的用户",
+  "viewDeletedUsers": "查看已删除的用户",
+  "restoreUser": "恢复用户",
+  "permanentDelete": "永久删除",
+  "confirmPermanentDelete": "确定要永久删除该用户吗？此操作无法撤消。",
+  "restoreSuccess": "用户已恢复。",
+  "permanentDeleteSuccess": "用户已永久删除。",
+  "deletedAt": "删除日期",
+  "idUnavailable": "该ID不可用。",
+  "noDeletedUsers": "没有已删除的用户。"
 }

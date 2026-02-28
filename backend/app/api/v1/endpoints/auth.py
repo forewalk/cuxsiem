@@ -12,6 +12,20 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
 
 
+@router.get("/check-id")
+async def check_id(username: str):
+    """
+    ID 사용 가능 여부 체크
+
+    삭제된 사용자 포함하여 체크합니다.
+    """
+    from app.repositories.user import UserRepository
+    user_repo = UserRepository()
+    user = await user_repo.get_by_id(username)
+    available = user is None
+    return {"available": available}
+
+
 @router.post("/apply", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def apply_account(request: UserApply):
     """

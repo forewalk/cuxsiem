@@ -38,6 +38,8 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
   const [policy, setPolicy] = useState<PasswordPolicy | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [idCheckResult, setIdCheckResult] = useState<boolean | null>(null);
+  const [idChecking, setIdChecking] = useState(false);
 
   // i18n
   const savedLanguage = localStorage.getItem("appLanguage") || "ko";
@@ -67,6 +69,23 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
         .catch(err => console.error("Failed to load password policy:", err));
     }
   }, [open]);
+
+  const handleIdBlur = useCallback(async () => {
+    const username = formData.username.trim();
+    if (!username) {
+      setIdCheckResult(null);
+      return;
+    }
+    setIdChecking(true);
+    try {
+      const available = await authService.checkId(username);
+      setIdCheckResult(available);
+    } catch {
+      setIdCheckResult(null);
+    } finally {
+      setIdChecking(false);
+    }
+  }, [formData.username]);
 
   // 비밀번호 검증 로직 (useMemo로 실시간 반응성 확보)
   const requirements = useMemo(() => {
@@ -106,7 +125,7 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
 
   const allMet = requirements.length > 0 && requirements.every(r => r.met);
   const passwordsMatch = formData.password === confirmPassword;
-  const isFormValid = formData.username && formData.email && formData.name && allMet && passwordsMatch && confirmPassword;
+  const isFormValid = formData.username && formData.email && formData.name && allMet && passwordsMatch && confirmPassword && idCheckResult === true;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
@@ -151,6 +170,7 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
     setFormData({ username: '', email: '', name: '', password: '' });
     setConfirmPassword('');
     setError(null);
+    setIdCheckResult(null);
     onClose();
   };
 
@@ -165,8 +185,21 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
             fullWidth
             required
             value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, username: e.target.value });
+              setIdCheckResult(null);
+            }}
+            onBlur={handleIdBlur}
             placeholder="4자 이상"
+            error={idCheckResult === false}
+            helperText={
+              idChecking ? '...' :
+              idCheckResult === true ? t('idAvailable') :
+              idCheckResult === false ? t('idUnavailable') : ''
+            }
+            FormHelperTextProps={{
+              sx: { color: idCheckResult === true ? 'success.main' : undefined }
+            }}
           />
           <TextField
             label={t('email')}

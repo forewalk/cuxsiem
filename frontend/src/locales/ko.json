@@ -340,5 +340,15 @@
   "sessionDuration": "세션 유지시간 (분)",
   "sessionDurationDesc": "사용자 세션 유지시간을 분 단위로 설정합니다 (1 ~ 1440분, 최대 1일)",
   "sessionDurationError": "세션 유지시간은 1 ~ 1440분 범위여야 합니다.",
-  "timestamp": "시각"
+  "timestamp": "시각",
+  "deletedUsers": "삭제된 사용자",
+  "viewDeletedUsers": "삭제된 사용자 보기",
+  "restoreUser": "사용자 복구",
+  "permanentDelete": "완전 삭제",
+  "confirmPermanentDelete": "정말로 이 사용자를 완전 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "restoreSuccess": "사용자가 복구되었습니다.",
+  "permanentDeleteSuccess": "사용자가 완전 삭제되었습니다.",
+  "deletedAt": "삭제일",
+  "idUnavailable": "사용할 수 없는 아이디입니다.",
+  "noDeletedUsers": "삭제된 사용자가 없습니다."
 }
