@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Box, Typography, TextField, IconButton, Popover, MenuItem, Chip, Checkbox, ListItemText, Divider, Button, Tooltip
+  Box, Typography, TextField, IconButton, Popover, MenuItem, Chip, ListItemText, Divider, Button, Tooltip
 } from '@mui/material';
 import {
   Storage as StorageIcon,
@@ -18,15 +18,15 @@ interface LogStreamControlBarProps {
   filters: string[];
   onFiltersChange: (filters: string[]) => void;
   indexOptions: string[];
-  selectedIndices: string[];
-  onIndicesChange: (indices: string[]) => void;
+  selectedIndex: string;
+  onIndexChange: (index: string) => void;
   onRefresh: () => void;
   onClearKeyword: () => void;
 }
 
-const LogStreamControlBar = React.memo(({ 
-  t, keyword, onKeywordChange, filters, onFiltersChange, 
-  indexOptions, selectedIndices, onIndicesChange, onRefresh, onClearKeyword 
+const LogStreamControlBar = React.memo(({
+  t, keyword, onKeywordChange, filters, onFiltersChange,
+  indexOptions, selectedIndex, onIndexChange, onRefresh, onClearKeyword
 }: LogStreamControlBarProps) => {
   const [indexAnchorEl, setIndexAnchorEl] = useState<HTMLDivElement | null>(null);
   const [indexSearch, setIndexSearch] = useState("");
@@ -36,34 +36,19 @@ const LogStreamControlBar = React.memo(({
     onRefresh();
   };
 
-  const toggleIndex = (index: string) => {
-    if (index === '*') {
-      onIndicesChange(['*']);
-      return;
-    }
-    
-    let next: string[];
-    const withoutAll = selectedIndices.filter(i => i !== '*');
-    
-    if (withoutAll.includes(index)) {
-      next = withoutAll.filter(i => i !== index);
-    } else {
-      next = [...withoutAll, index];
-    }
-    
-    if (next.length === 0) next = ['*'];
-    onIndicesChange(next);
+  const handleSelectIndex = (index: string) => {
+    onIndexChange(index);
+    setIndexAnchorEl(null);
   };
 
-  const filteredIndexOptions = indexOptions.filter(opt => 
+  const filteredIndexOptions = indexOptions.filter(opt =>
     opt.toLowerCase().includes(indexSearch.toLowerCase())
   );
 
   const displayLabel = useMemo(() => {
-    if (selectedIndices.includes('*')) return t('allLogs');
-    if (selectedIndices.length === 1) return selectedIndices[0];
-    return `${selectedIndices[0]} + ${selectedIndices.length - 1}`;
-  }, [selectedIndices, t]);
+    if (!selectedIndex) return t('selectIndex');
+    return selectedIndex;
+  }, [selectedIndex, t]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, mb: 2, width: '100%' }}>
@@ -73,12 +58,12 @@ const LogStreamControlBar = React.memo(({
             onClick={(e) => setIndexAnchorEl(e.currentTarget)}
             sx={{
               display: 'flex', alignItems: 'center', bgcolor: 'action.hover', border: '1px solid',
-              borderColor: 'divider', borderRadius: 1, px: 1.5, gap: 1, minHeight: 36, cursor: 'pointer',
+              borderColor: selectedIndex ? 'divider' : 'warning.main', borderRadius: 1, px: 1.5, gap: 1, minHeight: 36, cursor: 'pointer',
               '&:hover': { bgcolor: 'action.selected' }
             }}
           >
             <StorageIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
-            <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap', color: selectedIndex ? 'text.primary' : 'text.disabled' }}>
               {displayLabel}
             </Typography>
             <ArrowDownIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
@@ -87,25 +72,25 @@ const LogStreamControlBar = React.memo(({
             <InfoIcon sx={{ fontSize: 16, color: 'warning.main', cursor: 'help' }} />
           </Tooltip>
         </Box>
-        <Box 
-          sx={{ 
-            display: 'flex', alignItems: 'center', bgcolor: 'action.hover', border: '1px solid', 
-            borderColor: 'divider', borderRadius: 1, flexGrow: 1, overflow: 'hidden', minHeight: 36 
+        <Box
+          sx={{
+            display: 'flex', alignItems: 'center', bgcolor: 'action.hover', border: '1px solid',
+            borderColor: 'divider', borderRadius: 1, flexGrow: 1, overflow: 'hidden', minHeight: 36
           }}
         >
           <Box sx={{ px: 1, display: 'flex', alignItems: 'center' }}>
             <SearchIcon sx={{ color: KIBANA_TEAL, fontSize: 18 }} />
           </Box>
           <Box component="form" onSubmit={handleSearchSubmit} sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-            <TextField 
-              fullWidth size="small" variant="standard" 
-              placeholder={t('searchPlaceholder')} 
-              value={keyword} 
-              onChange={(e) => onKeywordChange(e.target.value)} 
-              sx={{ 
-                "& .MuiInput-underline:before, & .MuiInput-underline:after": { border: 'none' }, 
-                "& .MuiInputBase-input": { py: 0.5, px: 0.5, fontSize: '0.85rem' } 
-              }} 
+            <TextField
+              fullWidth size="small" variant="standard"
+              placeholder={t('searchPlaceholder')}
+              value={keyword}
+              onChange={(e) => onKeywordChange(e.target.value)}
+              sx={{
+                "& .MuiInput-underline:before, & .MuiInput-underline:after": { border: 'none' },
+                "& .MuiInputBase-input": { py: 0.5, px: 0.5, fontSize: '0.85rem' }
+              }}
             />
           </Box>
           {keyword && (
@@ -118,63 +103,56 @@ const LogStreamControlBar = React.memo(({
       {filters.length > 0 && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.5 }}>
           {filters.map((filter: string, index: number) => (
-            <Chip 
-              key={index} 
-              label={filter} 
-              size="small" 
-              color="primary" 
-              variant="outlined" 
+            <Chip
+              key={index}
+              label={filter}
+              size="small"
+              color="primary"
+              variant="outlined"
               onDelete={() => {
                 onFiltersChange(filters.filter(f => f !== filter));
-              }} 
-              sx={{ 
-                borderRadius: 1, 
-                height: 24, 
-                fontSize: '0.75rem', 
+              }}
+              sx={{
+                borderRadius: 1,
+                height: 24,
+                fontSize: '0.75rem',
                 bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(0, 90, 94, 0.1)' : '#eef6f6',
                 "& .MuiChip-label": { userSelect: 'text', cursor: 'text' }
-              }} 
+              }}
             />
           ))}
         </Box>
       )}
-      <Popover 
-        open={Boolean(indexAnchorEl)} 
-        anchorEl={indexAnchorEl} 
-        onClose={() => setIndexAnchorEl(null)} 
+      <Popover
+        open={Boolean(indexAnchorEl)}
+        anchorEl={indexAnchorEl}
+        onClose={() => setIndexAnchorEl(null)}
         PaperProps={{ sx: { width: 350, mt: 1, maxHeight: 500, display: 'flex', flexDirection: 'column' } }}
       >
         <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
-          <TextField 
-            fullWidth size="small" placeholder={t('search')} 
+          <TextField
+            fullWidth size="small" placeholder={t('search')}
             value={indexSearch}
             onChange={(e) => setIndexSearch(e.target.value)}
           />
         </Box>
         <Box sx={{ overflowY: 'auto', py: 0.5, flexGrow: 1 }}>
-          <MenuItem 
-            onClick={() => toggleIndex('*')} 
-            selected={selectedIndices.includes('*')}
-            sx={{ fontSize: '0.85rem', py: 0.5 }}
-          >
-            <Checkbox size="small" checked={selectedIndices.includes('*')} />
-            <ListItemText primary={t('allLogs')} primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 'bold' }} />
-          </MenuItem>
-          <Divider sx={{ my: 0.5 }} />
-          {filteredIndexOptions.filter(opt => opt !== '*').map((index: string) => (
-            <MenuItem 
-              key={index} 
-              onClick={() => toggleIndex(index)} 
-              selected={selectedIndices.includes(index)} 
-              sx={{ fontSize: '0.85rem', py: 0.5 }}
+          {filteredIndexOptions.map((index: string) => (
+            <MenuItem
+              key={index}
+              onClick={() => handleSelectIndex(index)}
+              selected={selectedIndex === index}
+              sx={{
+                fontSize: '0.85rem', py: 0.75,
+                '&.Mui-selected': { bgcolor: `${KIBANA_TEAL}22`, fontWeight: 'bold' }
+              }}
             >
-              <Checkbox size="small" checked={selectedIndices.includes(index)} />
-              <ListItemText 
-                primary={index} 
-                primaryTypographyProps={{ 
-                  fontSize: '0.85rem', 
-                  sx: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } 
-                }} 
+              <ListItemText
+                primary={index}
+                primaryTypographyProps={{
+                  fontSize: '0.85rem',
+                  sx: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+                }}
               />
             </MenuItem>
           ))}
@@ -183,11 +161,6 @@ const LogStreamControlBar = React.memo(({
               <Typography variant="caption">{t('noResults')}</Typography>
             </Box>
           )}
-        </Box>
-        <Box sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end' }}>
-          <Button size="small" onClick={() => setIndexAnchorEl(null)} variant="contained" sx={{ textTransform: 'none' }}>
-            {t('close')}
-          </Button>
         </Box>
       </Popover>
     </Box>

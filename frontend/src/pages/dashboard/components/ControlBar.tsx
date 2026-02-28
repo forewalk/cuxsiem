@@ -23,7 +23,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -526,7 +526,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={<PictureAsPdfIcon sx={{ fontSize: 14 }} />}
+                startIcon={<CameraAltIcon sx={{ fontSize: 14 }} />}
                 onClick={handleDownloadPdf}
                 disabled={downloading}
                 sx={{ 

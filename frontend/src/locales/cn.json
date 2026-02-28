@@ -307,5 +307,8 @@
   "resetDashboardConfirmMessage": "所有面板的名称、大小和位置将恢复到初始状态。添加或删除的面板也将被重置。您确定要继续吗？",
   "all": "全部",
   "windowIntervalError": "检测数据查询范围 (window_min) 必须大于或等于检测周期 (interval_min)。",
-  "windowIntervalWarning": "查询范围超过周期的 3 倍，可能会产生大量重复通知。"
+  "windowIntervalWarning": "查询范围超过周期的 3 倍，可能会产生大量重复通知。",
+  "download": "截屏保存",
+  "downloading": "保存中...",
+  "selectIndex": "请选择索引"
 }

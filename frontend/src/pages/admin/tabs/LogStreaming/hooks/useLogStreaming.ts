@@ -11,8 +11,8 @@ export const useLogStreaming = (
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isPaused, setIsPaused] = useState(true); // 탭 열면 일시정지 상태로 시작
   const [loading, setLoading] = useState(false);
-  const [selectedIndices, setSelectedIndices] = useState<string[]>(['*']);
-  const [indexOptions, setIndexOptions] = useState<string[]>(['*']);
+  const [selectedIndex, setSelectedIndex] = useState<string>('');
+  const [indexOptions, setIndexOptions] = useState<string[]>([]);
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [filters, setFilters] = useState<string[]>([]);
@@ -20,7 +20,7 @@ export const useLogStreaming = (
   // 탭이 최초 활성화된 이후에만 조건 변경 시 재조회하도록 추적 (초기 진입 시 자동 조회 방지)
   const isInitializedRef = useRef(false);
 
-  // 시간 관련 상태 (일시정지 모드용)
+  // 시간 관련 상태
   const [fromValue, setFromValue] = useState<number | null>(15);
   const [fromUnit, setFromUnit] = useState("m");
   const [fromISO, setFromISO] = useState<string | null>(null);
@@ -31,45 +31,41 @@ export const useLogStreaming = (
   const fetchIndices = useCallback(async () => {
     try {
       const r = await logService.getIndices();
-      const all = r.indices.includes('*') ? r.indices : ['*', ...r.indices];
-      // 시스템 인덱스(cs_, top_ 접두어) 제외, '*'(전체)는 항상 포함
-      const filtered = all.filter((idx: string) => idx === '*' || (!idx.startsWith('cs_') && !idx.startsWith('top_')));
+      // 시스템 인덱스(cs_, top_ 접두어) 제외
+      const filtered = r.indices.filter((idx: string) => !idx.startsWith('cs_') && !idx.startsWith('top_'));
       setIndexOptions(filtered);
-      // 현재 선택된 인덱스들 중 유효하지 않은 것 필터링
-      setSelectedIndices(prev => {
-        const valid = prev.filter(p => filtered.includes(p));
-        return valid.length > 0 ? valid : ['*'];
+      // 현재 선택된 인덱스가 유효하지 않으면 초기화
+      setSelectedIndex(prev => {
+        if (prev && filtered.includes(prev)) return prev;
+        return '';
       });
     } catch (e) {
-      setIndexOptions(['*']);
-      setSelectedIndices(['*']);
+      setIndexOptions([]);
+      setSelectedIndex('');
     }
   }, []);
 
   const fetchLogs = useCallback(async (isManual = false) => {
     if ((!isActive || isPaused) && !isManual) return;
+    if (!selectedIndex) return; // 인덱스 미선택 시 조회하지 않음
     try {
       if (isManual) setLoading(true);
       let ft: string | undefined = undefined, tt: string | undefined = undefined;
-      
-      if (isPaused) {
-        if (fromISO) ft = fromISO; 
-        else if (fromValue !== null) ft = `now-${fromValue}${fromUnit}`;
-        
-        if (toISO) tt = toISO; 
-        else if (toValue !== null) tt = `now-${toValue}${toUnit}`;
-      } else {
-        if (!lastTimestampRef.current) ft = "now-15m";
-      }
-      
+
+      if (fromISO) ft = fromISO;
+      else if (fromValue !== null) ft = `now-${fromValue}${fromUnit}`;
+
+      if (toISO) tt = toISO;
+      else if (toValue !== null) tt = `now-${toValue}${toUnit}`;
+
+      if (!ft && !lastTimestampRef.current) ft = "now-15m";
+
       const combinedQuery = [appliedKeyword, ...filters]
         .filter(Boolean)
         .map(q => `(${q})`)
         .join(" AND ");
-        
-      // 멀티 인덱스를 콤마로 연결
-      const indexParam = selectedIndices.join(',');
-      const r = await logService.getLogStream(lastTimestampRef.current, maxLogs, combinedQuery, indexParam, ft, tt);
+
+      const r = await logService.getLogStream(lastTimestampRef.current, maxLogs, combinedQuery, selectedIndex, ft, tt);
 
       if (r.logs.length > 0) {
         setLogs(prev => {
@@ -88,7 +84,7 @@ export const useLogStreaming = (
     } finally {
       setLoading(false);
     }
-  }, [isActive, isPaused, appliedKeyword, filters, selectedIndices, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
+  }, [isActive, isPaused, appliedKeyword, filters, selectedIndex, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
 
   // 탭 활성화 시: 인덱스 조회 및 초기화 (자동 조회 없음 - 사용자가 직접 조회해야 함)
   useEffect(() => {
@@ -103,13 +99,11 @@ export const useLogStreaming = (
 
   // 검색 조건 변경 시 재조회 (탭 초기 진입 시는 제외 - isInitializedRef 사용)
   useEffect(() => {
-    // 탭이 처음 활성화될 때는 조회하지 않음 (빈 상태로 시작)
     if (!isInitializedRef.current) return;
     lastTimestampRef.current = null;
     fetchLogs(true);
-    // fetchLogs를 deps에서 제외: isActive 변경으로 fetchLogs 재생성 시 자동 조회 방지
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedKeyword, filters, selectedIndices, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
+  }, [appliedKeyword, filters, selectedIndex, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
 
   // 폴링 설정 (pollIntervalMs 또는 POLL_INTERVAL 기준)
   useEffect(() => {
@@ -141,8 +135,8 @@ export const useLogStreaming = (
     loading,
     isPaused,
     setIsPaused,
-    selectedIndices,
-    setSelectedIndices,
+    selectedIndex,
+    setSelectedIndex,
     indexOptions,
     keyword,
     setKeyword,

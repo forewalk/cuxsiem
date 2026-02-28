@@ -73,12 +73,12 @@ const LogStreaming: React.FC = () => {
   const logStreamSize = settings?.log_stream_size ?? 1000;
   const logStreamRefreshMs = (settings?.log_stream_refresh ?? 10) * 1000;
   const {
-    logs, loading, isPaused, setIsPaused, selectedIndices, setSelectedIndices,
+    logs, loading, isPaused, setIsPaused, selectedIndex, setSelectedIndex,
     indexOptions, keyword, setKeyword, appliedKeyword, setAppliedKeyword,
     filters, setFilters, refresh, clearLogs, handleFilterAdd, timeRange
   } = useLogStreaming(isActive, logStreamSize, logStreamRefreshMs);
 
-  const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs, selectedIndices);
+  const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs, selectedIndex);
   
   const { 
     timeAnchorEl, setTimeAnchorEl, popoverInfo, 
@@ -113,13 +113,6 @@ const LogStreaming: React.FC = () => {
     const nextPaused = !isPaused;
     setIsPaused(nextPaused);
     if (!nextPaused) {
-      // 스트리밍 재개 시 고급 설정값 적용
-      timeRange.setFromValue(settings?.time_filter_duration ?? 15);
-      timeRange.setFromUnit(settings?.time_filter_unit ?? "m");
-      timeRange.setFromISO(null);
-      timeRange.setToValue(null);
-      timeRange.setToUnit("m");
-      timeRange.setToISO(null);
       setAutoScroll(true);
     }
   };
@@ -156,8 +149,8 @@ const LogStreaming: React.FC = () => {
         t={t} 
         keyword={keyword} onKeywordChange={setKeyword}
         filters={filters} onFiltersChange={setFilters}
-        indexOptions={indexOptions} 
-        selectedIndices={selectedIndices} onIndicesChange={setSelectedIndices} 
+        indexOptions={indexOptions}
+        selectedIndex={selectedIndex} onIndexChange={setSelectedIndex}
         onRefresh={() => { setAppliedKeyword(keyword); if (keyword === appliedKeyword) refresh(); }}
         onClearKeyword={() => { setKeyword(""); setAppliedKeyword(""); }}
       />

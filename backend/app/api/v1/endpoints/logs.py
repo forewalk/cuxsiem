@@ -34,8 +34,20 @@ async def get_indices(
             # 데이터스트림이 없거나 지원하지 않는 버전인 경우 무시
             pass
         
-        # 전체 목록 병합 (인덱스 + 데이터스트림)
-        all_targets = sorted(list(set(indices + datastreams)))
+        # 알리아스 목록 조회
+        aliases = []
+        try:
+            alias_response = os_client.cat.aliases(format="json")
+            aliases = list(set(
+                item["alias"] for item in alias_response
+                if not item["alias"].startswith(".")
+                and not item["alias"].startswith("security-auditlog")
+            ))
+        except Exception:
+            pass
+
+        # 전체 목록 병합 (인덱스 + 데이터스트림 + 알리아스)
+        all_targets = sorted(list(set(indices + datastreams + aliases)))
 
         return {"indices": all_targets}
     except Exception as e:
@@ -78,7 +90,7 @@ async def stream_logs(
     q: Optional[str] = Query(None, description="검색어 (Lucene 쿼리 문법 지원)"),
     from_time: Optional[str] = Query(None, description="시작 시간 (상대적 -15m 또는 절대적 ISO)"),
     to_time: Optional[str] = Query(None, description="종료 시간"),
-    limit: int = Query(100, ge=1, le=1000, description="최대 조회 개수"),
+    limit: int = Query(100, ge=1, le=10000, description="최대 조회 개수"),
     current_user: UserResponse = Depends(get_current_active_user),
     os_client=Depends(get_opensearch)
 ):
