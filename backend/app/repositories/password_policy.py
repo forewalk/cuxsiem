@@ -12,7 +12,7 @@ class PasswordPolicyRepository:
 
     def __init__(self):
         self.client = get_opensearch_client()
-        self.index = "cs_password_policies"
+        self.index = "cs_policies"
 
     async def get_policy(self) -> Optional[PasswordPolicy]:
         """현재 정책 조회"""
@@ -21,14 +21,14 @@ class PasswordPolicyRepository:
         def get():
             try:
                 # 'default' ID를 가진 문서를 가져옴
-                result = self.client.get(index=self.index, id="default")
+                result = self.client.get(index=self.index, id="password")
                 return result["_source"]
             except Exception:
                 return None
 
         data = await loop.run_in_executor(None, get)
         if data:
-            return self._dict_to_policy(data, "default")
+            return self._dict_to_policy(data, "password")
         return None
 
     async def update_policy(self, policy: PasswordPolicy) -> PasswordPolicy:
@@ -38,7 +38,7 @@ class PasswordPolicyRepository:
         def upsert():
             self.client.index(
                 index=self.index,
-                id="default",
+                id="password",
                 body=policy.to_dict(),
                 refresh=True
             )

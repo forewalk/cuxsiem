@@ -39,9 +39,9 @@ try:
 
     # Check/Create default password policy
     print("[*] Checking password policy...")
-    policy_id = "default"
+    policy_id = "password"
     try:
-        client.get(index="cs_password_policies", id=policy_id)
+        client.get(index="cs_policies", id=policy_id)
         print(f"[*] Default password policy already exists\n")
     except Exception:
         print(f"[*] Creating default password policy...")
@@ -62,7 +62,7 @@ try:
             "updated_at": datetime.utcnow().isoformat()
         }
         client.index(
-            index="cs_password_policies",
+            index="cs_policies",
             id=policy_id,
             body=default_policy,
             refresh=True
