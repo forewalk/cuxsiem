@@ -24,9 +24,9 @@ mkdir -p "$DIST_DIR"
 # 2. Build Docker Images
 # Use --platform linux/amd64 to ensure compatibility when building on Mac arm64 for Linux x86_64
 echo "Building Backend Image (cruxsiem/backend:$VERSION)..."
-cp scripts/test_db.py backend/
+cp scripts/check_db.py backend/
 docker build --platform linux/amd64 -t cruxsiem/backend:"$VERSION" ./backend
-rm backend/test_db.py
+rm backend/check_db.py
 
 echo "Checking frontend dependencies..."
 if [ ! -f "./frontend/package-lock.json" ]; then
@@ -82,8 +82,8 @@ cp scripts/deploy.sh "$DIST_DIR/"
 chmod +x "$DIST_DIR/deploy.sh"
 
 # Copy DB test script
-cp scripts/test_db.py "$DIST_DIR/"
-chmod +x "$DIST_DIR/test_db.py"
+cp scripts/check_db.py "$DIST_DIR/"
+chmod +x "$DIST_DIR/check_db.py"
 
 echo "========================================"
 echo "Build Complete!"
