@@ -57,11 +57,11 @@ def migrate_cs_users():
             index="cs_users",
             body=mapping_update
         )
-        print("✅ cs_users 인덱스 매핑 업데이트 성공")
+        print("[OK] cs_users 인덱스 매핑 업데이트 성공")
         print(f"   응답: {response}")
         return True
     except Exception as e:
-        print(f"❌ cs_users 인덱스 업데이트 실패: {e}")
+        print(f"[ERROR] cs_users 인덱스 업데이트 실패: {e}")
         return False
 
 
@@ -83,11 +83,11 @@ def migrate_cs_sessions():
             index="cs_sessions",
             body=mapping_update
         )
-        print("✅ cs_sessions 인덱스 매핑 업데이트 성공")
+        print("[OK] cs_sessions 인덱스 매핑 업데이트 성공")
         print(f"   응답: {response}")
         return True
     except Exception as e:
-        print(f"❌ cs_sessions 인덱스 업데이트 실패: {e}")
+        print(f"[ERROR] cs_sessions 인덱스 업데이트 실패: {e}")
         return False
 
 
@@ -109,11 +109,11 @@ def migrate_cs_login_attempts():
             index="cs_login_attempts",
             body=mapping_update
         )
-        print("✅ cs_login_attempts 인덱스 매핑 업데이트 성공")
+        print("[OK] cs_login_attempts 인덱스 매핑 업데이트 성공")
         print(f"   응답: {response}")
         return True
     except Exception as e:
-        print(f"❌ cs_login_attempts 인덱스 업데이트 실패: {e}")
+        print(f"[ERROR] cs_login_attempts 인덱스 업데이트 실패: {e}")
         return False
 
 
@@ -139,17 +139,17 @@ def migrate_cs_settings():
             index="cs_settings",
             body=mapping_update
         )
-        print("✅ cs_settings 인덱스 매핑 업데이트 성공")
+        print("[OK] cs_settings 인덱스 매핑 업데이트 성공")
         print(f"   응답: {response}")
         return True
     except Exception as e:
-        print(f"❌ cs_settings 인덱스 업데이트 실패: {e}")
+        print(f"[ERROR] cs_settings 인덱스 업데이트 실패: {e}")
         return False
 
 
 def main():
     """모든 마이그레이션 실행"""
-    print("\n🔄 OpenSearch OTP 인덱스 마이그레이션 시작...\n")
+    print("\n[START] OpenSearch OTP 인덱스 마이그레이션 시작...\n")
 
     results = {
         "cs_users": migrate_cs_users(),
@@ -158,17 +158,17 @@ def main():
         "cs_settings": migrate_cs_settings()
     }
 
-    print("\n📊 마이그레이션 결과:\n")
+    print("\n[RESULT] 마이그레이션 결과:\n")
     for index, success in results.items():
-        status = "✅ 성공" if success else "❌ 실패"
+        status = "[OK]" if success else "[FAILED]"
         print(f"   {index}: {status}")
 
     all_success = all(results.values())
     if all_success:
-        print("\n✅ 모든 마이그레이션 완료!\n")
+        print("\n[OK] 모든 마이그레이션 완료!\n")
         return 0
     else:
-        print("\n❌ 일부 마이그레이션 실패. 위를 참고하세요.\n")
+        print("\n[ERROR] 일부 마이그레이션 실패. 위를 참고하세요.\n")
         return 1
 
 

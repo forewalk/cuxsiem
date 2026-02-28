@@ -308,7 +308,7 @@ class NotificationService:
             "hits": hit_sources,  # 모든 문서의 _source 배열
         }
         
-        message_template = rule.get("message_template", "⚠️ 총 {{total}}건의 이벤트가 탐지되었습니다.")
+        message_template = rule.get("message_template", "[WARNING] 총 {{total}}건의 이벤트가 탐지되었습니다.")
         rendered_message = self._render_message_template(message_template, template_context)
         
         # cs_alerts 인덱스에 저장할 알림 데이터
