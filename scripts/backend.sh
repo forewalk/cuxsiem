@@ -31,26 +31,26 @@ start() {
 
     # 1. Conda 환경 확인
     if ! command -v conda &> /dev/null; then
-        log_message "❌ ERROR: conda not found"
+        log_message "[ERROR] conda not found"
         log_message "Please install Anaconda/Miniconda first"
         return 1
     fi
 
     CURRENT_ENV=$(echo $CONDA_DEFAULT_ENV 2>/dev/null || echo "")
     if [ "$CURRENT_ENV" != "cruxsiem" ]; then
-        log_message "⚠️  WARNING: Current conda env is '$CURRENT_ENV' (not 'cruxsiem')"
+        log_message "[WARNING] Current conda env is '$CURRENT_ENV' (not 'cruxsiem')"
         log_message "Please activate conda environment first:"
         log_message "  conda activate cruxsiem"
         return 1
     fi
-    log_message "✅ Conda environment: cruxsiem (active)"
+    log_message "[OK] Conda environment: cruxsiem (active)"
 
     # 2. Git status 확인
     cd "$SCRIPT_DIR/../"
     GIT_STATUS=$(git status --porcelain 2>/dev/null)
 
     if [ -n "$GIT_STATUS" ]; then
-        log_message "⚠️  WARNING: Git has uncommitted changes:"
+        log_message "[WARNING] Git has uncommitted changes:"
         echo "$GIT_STATUS" | while read line; do
             log_message "  $line"
         done
@@ -70,10 +70,10 @@ start() {
             fi
         else
             # 터미널이 없으면 자동으로 진행
-            log_message "⚠️  (non-interactive mode, continuing...)"
+            log_message "[WARNING] (non-interactive mode, continuing...)"
         fi
     else
-        log_message "✅ Git status: clean"
+        log_message "[OK] Git status: clean"
     fi
 
     log_message "=========================================="
@@ -81,7 +81,7 @@ start() {
     log_message "=========================================="
 
     cd "$BACKEND_DIR"
-    nohup python -m uvicorn app.main:app --reload --port 8000 >> "$LOG_FILE" 2>&1 &
+    nohup env PYTHONIOENCODING=utf-8 python -m uvicorn app.main:app --reload --port 8000 >> "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     log_message "Backend started (PID: $(cat $PID_FILE))"
     log_message "Backend available at: http://localhost:8000"
