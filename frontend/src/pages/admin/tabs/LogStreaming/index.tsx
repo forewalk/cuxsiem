@@ -75,7 +75,7 @@ const LogStreaming: React.FC = () => {
   const {
     logs, loading, isPaused, setIsPaused, selectedIndex, setSelectedIndex,
     indexOptions, keyword, setKeyword, appliedKeyword, setAppliedKeyword,
-    filters, setFilters, refresh, clearLogs, handleFilterAdd, timeRange
+    filters, setFilters, refresh, clearLogs, startStreaming, handleFilterAdd, timeRange
   } = useLogStreaming(isActive, logStreamSize, logStreamRefreshMs);
 
   const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs, selectedIndex);
@@ -113,6 +113,8 @@ const LogStreaming: React.FC = () => {
     const nextPaused = !isPaused;
     setIsPaused(nextPaused);
     if (!nextPaused) {
+      // 스트리밍 시작: 로그 클리어 + 현재 시각 이후 데이터만 수신
+      startStreaming();
       setAutoScroll(true);
     }
   };

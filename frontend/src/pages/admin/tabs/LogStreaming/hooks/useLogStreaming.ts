@@ -52,13 +52,16 @@ export const useLogStreaming = (
       if (isManual) setLoading(true);
       let ft: string | undefined = undefined, tt: string | undefined = undefined;
 
-      if (fromISO) ft = fromISO;
-      else if (fromValue !== null) ft = `now-${fromValue}${fromUnit}`;
+      if (isManual) {
+        // 수동 검색: 시간필터 값 기반 범위 조회
+        if (fromISO) ft = fromISO;
+        else if (fromValue !== null) ft = `now-${fromValue}${fromUnit}`;
+        else ft = "now-15m";
 
-      if (toISO) tt = toISO;
-      else if (toValue !== null) tt = `now-${toValue}${toUnit}`;
-
-      if (!ft && !lastTimestampRef.current) ft = "now-15m";
+        if (toISO) tt = toISO;
+        else if (toValue !== null) tt = `now-${toValue}${toUnit}`;
+      }
+      // 스트리밍 모드: lastTimestamp 이후 데이터만 증분 조회 (ft/tt 불필요)
 
       const combinedQuery = [appliedKeyword, ...filters]
         .filter(Boolean)
@@ -69,7 +72,8 @@ export const useLogStreaming = (
 
       if (r.logs.length > 0) {
         setLogs(prev => {
-          if (!lastTimestampRef.current || isManual) return r.logs.slice(-maxLogs);
+          if (isManual) return r.logs.slice(-maxLogs);
+          // 스트리밍: 새 로그만 추가
           const nl = r.logs.filter(n => !prev.some(p => p._id === n._id));
           if (nl.length === 0) return prev;
           return [...prev, ...nl].slice(-maxLogs);
@@ -122,6 +126,12 @@ export const useLogStreaming = (
     lastTimestampRef.current = null;
   };
 
+  // 스트리밍 시작: 로그 클리어 + 현재 시각을 기준점으로 설정
+  const startStreaming = useCallback(() => {
+    setLogs([]);
+    lastTimestampRef.current = new Date().toISOString();
+  }, []);
+
   const handleFilterAdd = useCallback((field: string, value: string) => {
     const newFilter = `${field}: "${value}"`;
     setFilters(prev => {
@@ -146,6 +156,7 @@ export const useLogStreaming = (
     setFilters,
     refresh,
     clearLogs,
+    startStreaming,
     handleFilterAdd,
     timeRange: {
       fromValue, setFromValue,
