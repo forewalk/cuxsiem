@@ -165,52 +165,122 @@ otp_required: boolean (기본: false)
 
 ### 질문 1: manual_key (시크릿 키 평문) 응답 노출 수용 여부
 **선택한 옵션:**
-
+옵션 A
 **이유:**
-
+편의성 증가, 실재로 사이트에선 카메라를 사용하지 못하는 사이트가 많음
 ---
 
 ### 질문 2: 관리자 타 사용자 OTP 강제 해제 필요 여부
 **선택한 옵션:**
-
+옵션 A
 **이유:**
-
+관리자는 사용자에게 OTP를 우회할 수 있도록 설정이 가능해야 한다.
 ---
 
 ### 질문 3: 백업 코드 재발급 기능 필요 여부
 **선택한 옵션:**
-
+옵션 B
 **이유:**
-
+불필요. 해제 후 재등록 진행.
 ---
 
 ### 질문 4: OTP 인증 실패 이력 기록 위치
 **선택한 옵션:**
-
+옵션 A
 **이유:**
-
+OTP를 사용하는 위치가 로그인에 한해 적용되기에, cs_login_attempts에 포함
 ---
 
 ### 질문 5: OTP 등록 중 이탈 처리
 **선택한 옵션:**
-
+옵션 B
 **이유:**
-
+폐기 후 재방문 시 새 QR 및 key를 주더라도 cost가 낭비되는 로직이 아님.
 ---
 
 ## 11. 답변 기반 업데이트 사항
 
 ### API 명세 확정
 
+**기존 API (유지):**
+- `POST /otp/enroll` - TOTP 시크릿 키 생성, QR코드 + manual_key 반환 (옵션 A에 따라 manual_key 포함)
+- `POST /otp/verify-enroll` - OTP 코드 입력으로 등록 완료
+- `POST /auth/login/otp` - OTP 코드 검증 (임시 토큰 → 정식 토큰)
+- `POST /otp/disable` - OTP 비활성화 (현재 OTP 코드로 인증)
+- `GET /backup-codes` - 백업 코드 목록 (마스킹된 형태)
+- `POST /backup-codes/verify` - 백업 코드로 로그인 (OTP 대체)
+- `GET /admin/otp-policy` - OTP 필수 정책 조회
+- `POST /admin/otp-policy` - OTP 필수 정책 설정
+
+**신규 API (추가, 옵션 A에 따라):**
+- `DELETE /admin/users/{user_id}/otp` - 관리자 사용자 OTP 강제 해제 (관리자 전용)
+
+**미포함 기능 (옵션 B에 따라):**
+- 백업 코드 재발급 API — 해제 후 재등록으로 대체
+
+---
 
 ### 데이터 모델 확정
 
+**cs_users 인덱스 추가 필드:**
+```
+otp_enabled: boolean (기본: false)
+otp_secret_enc: keyword (index: false) — AES-256-GCM 암호화된 시크릿 키
+otp_pending_secret_enc: keyword (index: false) — 등록 중 미확정 시크릿 키 (옵션 B: 이탈 시 폐기)
+otp_backup_codes: keyword[] (index: false) — bcrypt 해싱된 백업 코드 (8개, 1회성)
+otp_enrolled_at: date — OTP 등록 완료 시각
+```
+
+**cs_sessions 인덱스 추가 필드:**
+```
+otp_verified: boolean (기본: false) — 정식 JWT 여부 (otp_verified=false 토큰은 /otp/verify-enroll, /auth/login/otp만 허용)
+```
+
+**cs_policies 인덱스 추가 필드:**
+```
+id=otp-policy
+  otp_required: boolean (기본: false) — OTP 필수 여부
+  otp_grace_period: integer (기본: 0) — OTP 유예 기간 (일, 0=즉시 필수)
+```
+
+---
 
 ### 비기능 요구사항 확정
 
+**보안 (확정사항):**
+1. **임시 토큰 구분** (필수):
+   - 로그인 성공 직후: `{"sub": user_id, "otp_verified": false, "exp": now+5min}`
+   - OTP 검증 후: `{"sub": user_id, "otp_verified": true, "exp": now+session_duration}`
+   - 미들웨어: `otp_verified=false` 토큰은 `/otp/verify-enroll`, `/auth/login/otp` 외 모든 접근 차단
+
+2. **QR코드 응답 명세** (옵션 A에 따라):
+   ```json
+   {
+     "qr_code_image": "data:image/png;base64,...",
+     "manual_key": "JBSWY3DPEBLW64TMMQ======",
+     "enrollment_uri": "otpauth://totp/..."
+   }
+   ```
+
+3. **OTP 인증 실패 기록** (옵션 A에 따라):
+   - cs_login_attempts에 `otp_failure: true` 필드 추가
+   - OTP 실패 5회 시 계정 잠금 (기존 정책과 동일)
+
+4. **OTP 등록 중 이탈 처리** (옵션 B에 따라):
+   - 사용자 A가 `/otp/enroll` 호출 → `otp_pending_secret_enc` 저장
+   - 사용자 A가 페이지 이탈 (확인 안 함)
+   - 사용자 A가 재방문하여 다시 `/otp/enroll` 호출 → 기존 pending 폐기, 새 시크릿 키 생성
+
+5. **관리자 OTP 강제 해제** (옵션 A에 따라):
+   - `DELETE /admin/users/{user_id}/otp` 엔드포인트 추가
+   - `otp_enabled=false`, `otp_secret_enc`, `otp_pending_secret_enc`, `otp_backup_codes` 모두 제거
+   - 감사 로그 기록 (관리자명, 시각)
+
+---
 
 ### 환경변수 목록 확정
-- `OTP_ENCRYPTION_KEY`: TOTP 시크릿 키 AES 암호화 키 (최소 32바이트)
+- `OTP_ENCRYPTION_KEY`: TOTP 시크릿 키 AES 암호화 키 (최소 32바이트, 앱 시작 시 검증)
+- `OTP_ISSUER`: QR코드에 표시될 발급자명 (기본: "cruxSIEM")
 
 ---
 
