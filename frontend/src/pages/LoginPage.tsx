@@ -34,6 +34,8 @@ import { useAuth } from "../hooks/useAuth";
 import { authService } from "../services/authService";
 import { advancedSettingsService } from "../services/advancedSettingsService";
 import AccountApplyModal from "../components/auth/AccountApplyModal";
+import OTPLoginModal from "../components/auth/OTPLoginModal";
+import api from "../services/api";
 
 import koMessages from "../locales/ko.json";
 import enMessages from "../locales/en.json";
@@ -63,6 +65,7 @@ export const LoginPage: React.FC = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [userRegisterEnabled, setUserRegisterEnabled] = useState(false);
+  const [otpLoginModalOpen, setOtpLoginModalOpen] = useState(false);
 
   useEffect(() => {
     // 고급 설정(사용자 가입 활성화 여부) 로드
@@ -162,6 +165,21 @@ export const LoginPage: React.FC = () => {
 
       try {
         await login(username, password, false);
+
+        // 로그인 성공 후 OTP 상태 확인
+        try {
+          const response = await api.get("/api/v1/auth/me");
+          const userOtp = response.data?.otp || response.data?.otp_enabled;
+          if (userOtp?.enabled || userOtp === true) {
+            // OTP가 활성화되어 있으면 모달 띄우기
+            setOtpLoginModalOpen(true);
+            return; // 여기서 리턴해서 navigate하지 않음 (OTP 검증 후 navigate)
+          }
+        } catch (otpErr) {
+          console.error("OTP 상태 확인 실패:", otpErr);
+          // OTP 확인 실패해도 로그인 진행
+        }
+
         navigate("/main");
       } catch (err: any) {
         console.error("Login Error:", err);
@@ -264,9 +282,22 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  const handleOTPSuccess = (accessToken: string) => {
+    setOtpLoginModalOpen(false);
+    navigate("/main");
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+
+      {/* OTP 로그인 모달 */}
+      <OTPLoginModal
+        open={otpLoginModalOpen}
+        onClose={() => setOtpLoginModalOpen(false)}
+        onSuccess={handleOTPSuccess}
+        apiClient={api}
+      />
       <AppBar
         position="static"
         elevation={0}

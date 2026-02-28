@@ -135,6 +135,38 @@ async def get_current_user(credentials=Depends(security)):
 # OTP 2단계 인증 엔드포인트
 # ============================================================================
 
+@router.get("/otp/status", response_model=OTPStatusResponse)
+async def get_otp_status(credentials=Depends(security)):
+    """
+    현재 사용자의 OTP 상태 조회
+
+    - 활성화 여부
+    - 백업 코드 남은 개수
+    - 등록 일자
+    """
+    token = credentials.credentials
+    user_id = decode_access_token(token)
+
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="토큰이 유효하지 않습니다"
+        )
+
+    user_repo = UserRepository()
+    otp_status = await user_repo.get_user_otp_status(user_id)
+
+    if not otp_status:
+        return OTPStatusResponse(
+            enabled=False,
+            enrolled_at=None,
+            backup_codes_count=0,
+            is_pending=False
+        )
+
+    return OTPStatusResponse(**otp_status)
+
+
 @router.post("/otp/enroll", response_model=OTPEnrollResponse)
 async def enroll_otp(credentials=Depends(security)):
     """
