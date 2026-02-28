@@ -12,6 +12,15 @@
 > - 모든 작업은 로컬에서 완료한 후 사용자의 확인을 거쳐야 함.
 > - "푸시해줘", "원격 저장소에 반영해" 등의 명시적인 요청이 있을 때만 `git push` 수행.
 
+### 테스트 없이 기능 구현 금지 (TDD 원칙)
+
+> **기능을 구현하거나 수정할 때 반드시 테스트를 함께 작성할 것. 예외 없음.**
+>
+> - 새 기능 → 테스트 파일 먼저 작성 후 구현 (Red → Green → Refactor)
+> - 버그 수정 → 해당 버그를 재현하는 테스트 먼저 추가
+> - 테스트 위치: 백엔드 `backend/tests/`, 프론트엔드 `frontend/tests/` (src/ 내부 금지)
+> - 기능 파일 패턴 참조: `## 테스트 구조 및 TDD 규칙` 섹션
+
 ### 원격 Git Push 시 docs/HISTORY.md 기록 의무
 
 > **원격 Git에 Push할 때 반드시 `docs/HISTORY.md`에 이력을 남길 것. 예외 없음.**
@@ -68,9 +77,15 @@ npm run dev
 
 ### 테스트
 ```bash
-pytest                                              # 전체 테스트
-pytest tests/test_repositories/test_{feature}.py -v # 단일 테스트 파일
-pytest --cov=app --cov-report=html                  # 커버리지 포함
+# 백엔드 (backend/ 디렉토리에서 실행)
+pytest                                               # 전체 테스트
+pytest tests/test_services/test_{feature}.py -v     # 단일 파일
+pytest --cov=app --cov-report=html                   # 커버리지 포함
+
+# 프론트엔드 (frontend/ 디렉토리에서 실행)
+npm test                                             # 전체 테스트 (1회)
+npm run test:watch                                   # 감시 모드 (개발 중)
+npm run test:coverage                                # 커버리지 포함
 ```
 
 ### 린트 및 타입 체크
@@ -360,6 +375,66 @@ cat << 'EOF' > docs/workflows/{feature}/1_{feature}_spec.md
 # 한글 제목
 내용...
 EOF
+```
+
+## 테스트 구조 및 TDD 규칙
+
+### 백엔드 테스트 (`backend/tests/`)
+
+```
+backend/
+├── pytest.ini                          ← pytest 설정 (asyncio_mode=auto)
+├── requirements-dev.txt                ← 테스트 의존성
+└── tests/
+    ├── conftest.py                     ← 공통 fixture (AsyncClient 등)
+    ├── test_api/                       ← 엔드포인트 통합 테스트
+    │   └── test_{feature}.py
+    ├── test_services/                  ← 서비스 단위 테스트
+    │   └── test_{feature}.py
+    └── test_repositories/              ← 레포지터리 단위 테스트
+        └── test_{feature}.py
+```
+
+**도구:** `pytest` + `pytest-asyncio` + `httpx` + `unittest.mock`
+
+**기능 파일 패턴 (새 기능 추가 시 반드시 같이 생성):**
+```
+app/services/{feature}.py          →  tests/test_services/test_{feature}.py
+app/repositories/{feature}.py      →  tests/test_repositories/test_{feature}.py
+app/api/v1/endpoints/{feature}.py  →  tests/test_api/test_{feature}.py
+```
+
+### 프론트엔드 테스트 (`frontend/tests/`)
+
+```
+frontend/
+├── vitest.config.ts                    ← vitest 설정 (jsdom, coverage)
+└── tests/
+    ├── setup.ts                        ← @testing-library/jest-dom 전역 설정
+    ├── unit/
+    │   ├── components/                 ← 컴포넌트 단위 테스트 (*.test.tsx)
+    │   ├── services/                   ← API 서비스 테스트 (*.test.ts)
+    │   ├── hooks/                      ← 커스텀 훅 테스트
+    │   └── utils/                      ← 유틸리티 함수 테스트
+    └── integration/                    ← 다중 컴포넌트 통합 테스트 (msw 활용)
+```
+
+**도구:** `vitest` + `@testing-library/react` + `@testing-library/user-event` + `msw`
+
+**기능 파일 패턴 (새 기능 추가 시 반드시 같이 생성):**
+```
+src/services/{Feature}Service.ts        →  tests/unit/services/{Feature}Service.test.ts
+src/pages/{Page}.tsx                    →  tests/unit/components/{Page}.test.tsx
+src/hooks/use{Hook}.ts                  →  tests/unit/hooks/use{Hook}.test.ts
+```
+
+### TDD 사이클
+
+```
+1. 실패 테스트 작성 (Red)
+2. 최소 코드로 테스트 통과 (Green)
+3. 리팩터링 (Refactor)
+4. 반복
 ```
 
 ## 프로젝트 문서
