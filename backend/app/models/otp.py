@@ -29,12 +29,17 @@ class OTPConfig:
         Returns:
             OpenSearch 업데이트용 딕셔너리
         """
+        # OpenSearch의 strict_date_time 포맷: 2026-03-01T12:34:56Z
+        enrolled_at_str = None
+        if self.enrolled_at:
+            enrolled_at_str = self.enrolled_at.isoformat() + "Z"
+
         return {
             "otp_enabled": self.enabled,
             "otp_secret_enc": self.secret_enc,
             "otp_pending_secret_enc": self.pending_secret_enc,
             "otp_backup_codes": self.backup_codes,
-            "otp_enrolled_at": self.enrolled_at.isoformat() if self.enrolled_at else None,
+            "otp_enrolled_at": enrolled_at_str,
         }
 
     @classmethod

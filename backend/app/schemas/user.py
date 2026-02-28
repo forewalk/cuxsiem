@@ -42,6 +42,7 @@ class UserResponse(UserBase):
     created_at: datetime
     updated_at: datetime
     last_login_at: Optional[datetime] = None
+    otp_enabled: bool = False
 
     model_config = {"from_attributes": True}
 

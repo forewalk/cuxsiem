@@ -358,6 +358,6 @@
   "otpLoginTitle": "OTP 인증",
   "backupCode": "백업 코드",
   "manualKey": "수동 입력 키",
-  "manualKeyDesc": "폐쇄망 환경에서는 이 키를 수동으로 입력하세요",
+  "manualKeyDesc": "카메라를 사용할 수 없는 환경에선 텍스트로 입력하세요",
   "codeWarning": "30초마다 변경되는 코드를 입력하세요"
 }

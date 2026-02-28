@@ -51,6 +51,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
 }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
   const savedLanguage = localStorage.getItem("appLanguage") || "ko";
   const translations: Record<string, Record<string, string>> = {
@@ -104,14 +105,35 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
 
     try {
       const response = await otpService.verifyEnrollment(code);
-      setActiveStep(1);
-      // 백업 코드를 부모 컴포넌트로 전달
-      onSuccess(response.backup_codes);
+      setBackupCodes(response.backup_codes);
+      setActiveStep(2); // 완료 화면
     } catch (err: any) {
       setError(err.message || 'OTP 검증 실패');
     } finally {
       setLoading(false);
     }
+  };
+
+  /**
+   * 백업 코드 다운로드
+   */
+  const handleDownloadBackupCodes = () => {
+    const text = backupCodes.join('\n');
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', 'otp-backup-codes.txt');
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  /**
+   * 완료 후 모달 닫기
+   */
+  const handleComplete = () => {
+    onSuccess(backupCodes);
+    handleClose();
   };
 
   /**
@@ -252,6 +274,33 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
               </Typography>
             </Box>
           )}
+
+          {/* 완료: 백업 코드 표시 */}
+          {activeStep === 2 && (
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ mb: 2, color: 'success.main' }}>
+                ✓ OTP 등록 완료!
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+                아래 백업 코드를 안전한 장소에 저장하세요.
+              </Typography>
+              <Paper
+                sx={{
+                  p: 2,
+                  mb: 3,
+                  backgroundColor: '#f5f5f5',
+                  fontFamily: 'monospace',
+                  fontSize: '14px',
+                  lineHeight: 1.8,
+                  wordBreak: 'break-all',
+                }}
+              >
+                {backupCodes.map((code, idx) => (
+                  <div key={idx}>{code}</div>
+                ))}
+              </Paper>
+            </Box>
+          )}
         </Box>
       </DialogContent>
 
@@ -267,6 +316,22 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
           >
             {loading ? '검증 중...' : '확인'}
           </Button>
+        )}
+        {activeStep === 2 && (
+          <>
+            <Button
+              variant="outlined"
+              onClick={handleDownloadBackupCodes}
+            >
+              다운로드
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleComplete}
+            >
+              완료
+            </Button>
+          </>
         )}
       </DialogActions>
     </Dialog>

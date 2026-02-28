@@ -169,8 +169,7 @@ export const LoginPage: React.FC = () => {
         // 로그인 성공 후 OTP 상태 확인
         try {
           const response = await api.get("/api/v1/auth/me");
-          const userOtp = response.data?.otp || response.data?.otp_enabled;
-          if (userOtp?.enabled || userOtp === true) {
+          if (response.data?.otp_enabled === true) {
             // OTP가 활성화되어 있으면 모달 띄우기
             setOtpLoginModalOpen(true);
             return; // 여기서 리턴해서 navigate하지 않음 (OTP 검증 후 navigate)

@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
 import os
+import logging
 
 from app.schemas.auth import LoginRequest, LoginResponse, PasswordResetRequest, PasswordResetResponse
 from app.schemas.otp import (
@@ -18,6 +19,7 @@ from app.repositories.user import UserRepository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/check-id")
@@ -176,53 +178,70 @@ async def enroll_otp(credentials=Depends(security)):
     - manual_key 제공 (폐쇄망 환경용 수동 입력)
     - enrollment_uri 제공 (OTP 앱용)
     """
-    token = credentials.credentials
-    user_id = decode_access_token(token)
+    try:
+        token = credentials.credentials
+        user_id = decode_access_token(token)
 
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="토큰이 유효하지 않습니다"
-        )
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="토큰이 유효하지 않습니다"
+            )
 
-    # 사용자 조회
-    user_repo = UserRepository()
-    user = await user_repo.get_by_id(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="사용자를 찾을 수 없습니다"
-        )
+        # 사용자 조회
+        user_repo = UserRepository()
+        user = await user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="사용자를 찾을 수 없습니다"
+            )
 
-    # 이미 OTP 활성화된 사용자
-    otp_status = await user_repo.get_user_otp_status(user_id)
-    if otp_status and otp_status["enabled"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="이미 OTP가 활성화되어 있습니다"
-        )
+        # 이미 OTP 활성화된 사용자
+        otp_status = await user_repo.get_user_otp_status(user_id)
+        if otp_status and otp_status["enabled"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="이미 OTP가 활성화되어 있습니다"
+            )
 
-    # OTP 시크릿 생성
-    encryption_key = os.getenv("OTP_ENCRYPTION_KEY")
-    if not encryption_key:
+        # OTP 시크릿 생성
+        encryption_key = os.getenv("OTP_ENCRYPTION_KEY")
+        if not encryption_key:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="OTP 서버 설정 오류"
+            )
+
+        otp_service = OTPService(encryption_key)
+        secret = await otp_service.generate_secret()
+
+        # Pending secret 저장
+        from app.utils.encryption import AESEncryption
+        encryption = AESEncryption(encryption_key)
+        encrypted_secret = encryption.encrypt(secret)
+        success = await user_repo.update_otp_field(user_id, "otp_pending_secret_enc", encrypted_secret)
+        if not success:
+            logger.error(f"OTP pending secret 저장 실패: user_id={user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="OTP pending secret을 저장할 수 없습니다"
+            )
+
+        # QR코드 생성
+        result = await otp_service.enroll_otp(secret, user.email)
+
+        return OTPEnrollResponse(**result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_msg = f"OTP enroll error: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="OTP 서버 설정 오류"
+            detail=f"OTP 생성 실패: {str(e)}"
         )
-
-    otp_service = OTPService(encryption_key)
-    secret = await otp_service.generate_secret()
-
-    # Pending secret 저장
-    from app.utils.encryption import AESEncryption
-    encryption = AESEncryption(encryption_key)
-    encrypted_secret = encryption.encrypt(secret)
-    await user_repo.update_otp_field(user_id, "otp_pending_secret_enc", encrypted_secret)
-
-    # QR코드 생성
-    result = await otp_service.enroll_otp(secret, user.email)
-
-    return OTPEnrollResponse(**result)
 
 
 @router.post("/otp/verify-enroll", response_model=OTPVerifyEnrollResponse)
@@ -252,7 +271,10 @@ async def verify_enroll(request: OTPVerifyEnrollRequest, credentials=Depends(sec
 
     # Pending secret 조회
     otp_status = await user_repo.get_user_otp_status(user_id)
+    logger.debug(f"OTP 상태 조회: user_id={user_id}, otp_status={otp_status}")
+
     if not otp_status or not otp_status["is_pending"]:
+        logger.warning(f"등록 진행 중인 OTP 없음: user_id={user_id}, otp_status={otp_status}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="등록 진행 중인 OTP가 없습니다"
@@ -260,7 +282,7 @@ async def verify_enroll(request: OTPVerifyEnrollRequest, credentials=Depends(sec
 
     # OTP 검증 및 백업 코드 생성
     user_doc = await user_repo.get_by_id(user_id)
-    pending_secret = user_doc.get("otp_pending_secret_enc") if isinstance(user_doc, dict) else None
+    pending_secret = user_doc.otp_pending_secret_enc if user_doc else None
 
     if not pending_secret:
         raise HTTPException(
@@ -292,7 +314,13 @@ async def verify_enroll(request: OTPVerifyEnrollRequest, credentials=Depends(sec
         enrolled_at=datetime.utcnow()
     )
 
-    await user_repo.update_otp_config(user_id, config.to_dict())
+    success = await user_repo.update_otp_config(user_id, config.to_dict())
+    if not success:
+        logger.error(f"OTP 설정 저장 실패: user_id={user_id}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OTP 설정을 저장할 수 없습니다"
+        )
 
     return OTPVerifyEnrollResponse(
         backup_codes=backup_codes,
@@ -329,7 +357,13 @@ async def login_otp(request: OTPLoginRequest, credentials=Depends(security)):
 
     # 사용자의 OTP 시크릿 조회
     user_doc = await user_repo.get_by_id(user_id)
-    secret_enc = user_doc.get("otp_secret_enc") if isinstance(user_doc, dict) else None
+    if not user_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다"
+        )
+
+    secret_enc = user_doc.otp_secret_enc
 
     if not secret_enc:
         raise HTTPException(
@@ -384,7 +418,13 @@ async def login_backup_code(request: BackupCodeLoginRequest, credentials=Depends
 
     user_repo = UserRepository()
     user_doc = await user_repo.get_by_id(user_id)
-    backup_codes = user_doc.get("otp_backup_codes", []) if isinstance(user_doc, dict) else []
+    if not user_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다"
+        )
+
+    backup_codes = user_doc.otp_backup_codes or []
 
     if not backup_codes:
         raise HTTPException(
@@ -441,7 +481,13 @@ async def disable_otp(request: OTPDisableRequest, credentials=Depends(security))
 
     user_repo = UserRepository()
     user_doc = await user_repo.get_by_id(user_id)
-    secret_enc = user_doc.get("otp_secret_enc") if isinstance(user_doc, dict) else None
+    if not user_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다"
+        )
+
+    secret_enc = user_doc.otp_secret_enc
 
     encryption_key = os.getenv("OTP_ENCRYPTION_KEY")
     otp_service = OTPService(encryption_key)
@@ -459,7 +505,7 @@ async def disable_otp(request: OTPDisableRequest, credentials=Depends(security))
             except Exception:
                 pass
     elif request.backup_code:
-        backup_codes = user_doc.get("otp_backup_codes", []) if isinstance(user_doc, dict) else []
+        backup_codes = user_doc.otp_backup_codes or []
         valid, _ = await otp_service.verify_backup_code(request.backup_code, backup_codes)
 
     if not valid:

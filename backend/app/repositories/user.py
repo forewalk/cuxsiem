@@ -5,9 +5,12 @@ import asyncio
 from typing import Optional
 from datetime import datetime
 import uuid
+import logging
 
 from app.core.opensearch import get_opensearch_client
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 class UserRepository:
@@ -265,6 +268,7 @@ class UserRepository:
 
         def update():
             try:
+                logger.debug(f"OTP 필드 업데이트: user_id={user_id}, field={field_name}, value={'[set]' if value else '[null]'}")
                 self.client.update(
                     index=self.index,
                     id=user_id,
@@ -273,8 +277,10 @@ class UserRepository:
                     },
                     refresh=True
                 )
+                logger.info(f"OTP 필드 업데이트 성공: user_id={user_id}, field={field_name}")
                 return True
-            except Exception:
+            except Exception as e:
+                logger.error(f"OTP 필드 업데이트 실패: user_id={user_id}, field={field_name}, error={str(e)}", exc_info=True)
                 return False
 
         return await loop.run_in_executor(None, update)
@@ -302,6 +308,8 @@ class UserRepository:
                 update_doc["otp_pending_secret_enc"] = None
                 update_doc["updated_at"] = datetime.utcnow().isoformat()
 
+                logger.debug(f"OTP 설정 업데이트: user_id={user_id}, update_doc={update_doc}")
+
                 self.client.update(
                     index=self.index,
                     id=user_id,
@@ -310,8 +318,10 @@ class UserRepository:
                     },
                     refresh=True
                 )
+                logger.info(f"OTP 설정 성공적으로 업데이트됨: user_id={user_id}")
                 return True
-            except Exception:
+            except Exception as e:
+                logger.error(f"OTP 설정 업데이트 실패: user_id={user_id}, error={str(e)}", exc_info=True)
                 return False
 
         return await loop.run_in_executor(None, update)
@@ -338,6 +348,7 @@ class UserRepository:
                     "updated_at": datetime.utcnow().isoformat()
                 }
 
+                logger.debug(f"OTP 필드 전체 삭제: user_id={user_id}")
                 self.client.update(
                     index=self.index,
                     id=user_id,
@@ -346,8 +357,10 @@ class UserRepository:
                     },
                     refresh=True
                 )
+                logger.info(f"OTP 필드 전체 삭제 성공: user_id={user_id}")
                 return True
-            except Exception:
+            except Exception as e:
+                logger.error(f"OTP 필드 삭제 실패: user_id={user_id}, error={str(e)}", exc_info=True)
                 return False
 
         return await loop.run_in_executor(None, update)
@@ -372,13 +385,17 @@ class UserRepository:
             try:
                 result = self.client.get(index=self.index, id=user_id)
                 source = result["_source"]
-                return {
+                backup_codes = source.get("otp_backup_codes") or []
+                otp_status = {
                     "enabled": source.get("otp_enabled", False),
                     "enrolled_at": source.get("otp_enrolled_at"),
-                    "backup_codes_count": len(source.get("otp_backup_codes", [])),
+                    "backup_codes_count": len(backup_codes),
                     "is_pending": bool(source.get("otp_pending_secret_enc")),
                 }
-            except Exception:
+                logger.debug(f"OTP 상태 조회 성공: user_id={user_id}, status={otp_status}")
+                return otp_status
+            except Exception as e:
+                logger.error(f"OTP 상태 조회 실패: user_id={user_id}, error={str(e)}", exc_info=True)
                 return None
 
         return await loop.run_in_executor(None, get)
@@ -396,4 +413,9 @@ class UserRepository:
             updated_at=datetime.fromisoformat(data["updated_at"]),
             deleted_at=datetime.fromisoformat(data["deleted_at"]) if data.get("deleted_at") else None,
             last_login_at=datetime.fromisoformat(data["last_login_at"]) if data.get("last_login_at") else None,
+            otp_pending_secret_enc=data.get("otp_pending_secret_enc"),
+            otp_secret_enc=data.get("otp_secret_enc"),
+            otp_enabled=data.get("otp_enabled", False),
+            otp_backup_codes=data.get("otp_backup_codes"),
+            otp_enrolled_at=datetime.fromisoformat(data["otp_enrolled_at"]) if data.get("otp_enrolled_at") else None,
         )

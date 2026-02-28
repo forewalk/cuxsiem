@@ -334,6 +334,6 @@
   "otpLoginTitle": "OTP Authentication",
   "backupCode": "Backup Code",
   "manualKey": "Manual Entry Key",
-  "manualKeyDesc": "In a closed network environment, please enter this key manually",
+  "manualKeyDesc": "If you cannot use a camera, you can enter this text instead",
   "codeWarning": "Enter the code that changes every 30 seconds"
 }

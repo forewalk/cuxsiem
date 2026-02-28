@@ -2,7 +2,8 @@
  * OTP 2단계 인증 API 서비스
  */
 
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance } from 'axios';
 
 interface OTPEnrollResponse {
   qr_code_image: string;

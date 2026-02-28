@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 1440  # 24 hours
     JWT_EXPIRE_MINUTES_REMEMBER: int = 10080  # 7 days
 
+    # OTP Settings
+    OTP_ENCRYPTION_KEY: str = ""
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

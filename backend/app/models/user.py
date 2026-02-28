@@ -17,6 +17,11 @@ class User:
     updated_at: datetime
     deleted_at: Optional[datetime] = None
     last_login_at: Optional[datetime] = None
+    otp_pending_secret_enc: Optional[str] = None
+    otp_secret_enc: Optional[str] = None
+    otp_enabled: bool = False
+    otp_backup_codes: Optional[list] = None
+    otp_enrolled_at: Optional[datetime] = None
 
     def to_dict(self) -> dict:
         """OpenSearch 문서로 변환"""

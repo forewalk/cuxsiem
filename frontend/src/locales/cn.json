@@ -332,6 +332,6 @@
   "otpLoginTitle": "OTP认证",
   "backupCode": "备份代码",
   "manualKey": "手动输入密钥",
-  "manualKeyDesc": "在隔离网络环境中，请手动输入此密钥",
+  "manualKeyDesc": "如果无法使用摄像头，可以输入文本代替",
   "codeWarning": "输入每30秒更改一次的代码"
 }

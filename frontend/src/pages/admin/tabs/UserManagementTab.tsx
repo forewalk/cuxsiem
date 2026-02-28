@@ -317,11 +317,11 @@ const UserManagementTab: React.FC = () => {
       align: 'center',
       headerAlign: 'center',
       renderCell: (params: GridRenderCellParams) => (
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Button size="small" variant="outlined" color="primary" startIcon={<RestoreIcon />} onClick={() => handleRestore(params.row.id)}>
+        <Stack direction="column" spacing={0.5} alignItems="center" sx={{ width: '100%' }}>
+          <Button size="small" variant="outlined" color="primary" startIcon={<RestoreIcon />} onClick={() => handleRestore(params.row.id)} sx={{ width: '100%', fontSize: '0.75rem' }}>
             {t('restoreUser')}
           </Button>
-          <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setPermanentDeleteId(params.row.id)}>
+          <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setPermanentDeleteId(params.row.id)} sx={{ width: '100%', fontSize: '0.75rem' }}>
             {t('permanentDelete')}
           </Button>
         </Stack>
@@ -353,6 +353,21 @@ const UserManagementTab: React.FC = () => {
           }}
         >
           {params.value ? t('active') : t('inactive')}
+        </Box>
+      )
+    },
+    {
+      field: 'otp_enabled',
+      headerName: 'OTP',
+      flex: 0.6,
+      renderCell: (params: GridRenderCellParams) => (
+        <Box
+          sx={{
+            color: params.value ? 'success.main' : 'text.secondary',
+            fontWeight: 'bold',
+          }}
+        >
+          {params.value ? '활성' : '-'}
         </Box>
       )
     },
@@ -401,6 +416,7 @@ const UserManagementTab: React.FC = () => {
   const handleOtpEnrollSuccess = () => {
     setOtpEnrollModalOpen(false);
     loadMyOtpStatus();
+    loadUsers(); // 사용자 목록 새로고침
   };
 
   const handleOtpDisable = async () => {

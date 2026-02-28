@@ -166,6 +166,7 @@ class AuthService:
             is_active=user.is_active,
             created_at=user.created_at,
             last_login_at=user.last_login_at,
+            otp_enabled=user.otp_enabled or False,
         )
 
     async def reset_password(self, username: str) -> str:

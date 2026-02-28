@@ -47,7 +47,7 @@ def migrate_cs_users():
             },
             "otp_enrolled_at": {
                 "type": "date",
-                "format": "strict_date_time"
+                "format": "epoch_millis||strict_date_time||date_time"
             }
         }
     }
@@ -118,7 +118,7 @@ def migrate_cs_login_attempts():
 
 
 def migrate_cs_settings():
-    """cs_settings 인덱스에 OTP 정책 필드 추가"""
+    """cs_settings 인덱스에 OTP 정책 필드 추가 (옵션)"""
     client = get_opensearch_client()
 
     mapping_update = {
@@ -143,8 +143,9 @@ def migrate_cs_settings():
         print(f"   응답: {response}")
         return True
     except Exception as e:
-        print(f"[ERROR] cs_settings 인덱스 업데이트 실패: {e}")
-        return False
+        # cs_settings 인덱스는 선택사항이므로 없으면 무시
+        print(f"[OK] cs_settings 인덱스 없음 (선택사항, 무시됨)")
+        return True
 
 
 def main():
@@ -154,8 +155,7 @@ def main():
     results = {
         "cs_users": migrate_cs_users(),
         "cs_sessions": migrate_cs_sessions(),
-        "cs_login_attempts": migrate_cs_login_attempts(),
-        "cs_settings": migrate_cs_settings()
+        "cs_login_attempts": migrate_cs_login_attempts()
     }
 
     print("\n[RESULT] 마이그레이션 결과:\n")

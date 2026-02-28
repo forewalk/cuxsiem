@@ -344,6 +344,6 @@
   "otpLoginTitle": "OTP認証",
   "backupCode": "バックアップコード",
   "manualKey": "手動入力キー",
-  "manualKeyDesc": "クローズドネットワーク環境では、このキーを手動で入力してください",
+  "manualKeyDesc": "カメラが使用できない環境では、テキストで入力してください",
   "codeWarning": "30秒ごとに変わるコードを入力してください"
 }
