@@ -13,12 +13,12 @@ class LoginAttemptRepository:
         self.client = get_opensearch_client()
         self.index = "cs_login_attempts"
 
-    async def record(self, email: str, success: bool, ip_address: str = None, error_message: str = None) -> LoginAttempt:
+    async def record(self, account: str, success: bool, ip_address: str = None, error_message: str = None) -> LoginAttempt:
         """로그인 시도 기록"""
         import uuid
         attempt = LoginAttempt(
             id=str(uuid.uuid4()),
-            email=email.lower(),
+            account=account,
             success=success,
             attempted_at=datetime.utcnow(),
             ip_address=ip_address,
@@ -38,7 +38,7 @@ class LoginAttemptRepository:
 
         return await loop.run_in_executor(None, insert)
 
-    async def count_failed_attempts(self, email: str, minutes: int = 10) -> int:
+    async def count_failed_attempts(self, account: str, minutes: int = 10) -> int:
         """최근 N분 내 실패 시도 횟수"""
         loop = asyncio.get_event_loop()
 
@@ -50,7 +50,7 @@ class LoginAttemptRepository:
                     "query": {
                         "bool": {
                             "must": [
-                                {"term": {"email": email.lower()}},
+                                {"term": {"account": account}},
                                 {"term": {"success": False}},
                                 {"range": {"attempted_at": {"gte": since}}}
                             ]

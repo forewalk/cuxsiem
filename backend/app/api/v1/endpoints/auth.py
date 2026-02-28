@@ -61,7 +61,12 @@ async def login(request: LoginRequest, req: Request):
     - **force**: 기존 세션 강제 종료 (기본: false)
     """
     service = AuthService()
-    ip_address = req.client.host if req.client else None
+    # 프록시 환경(nginx/도커)에서 실제 클라이언트 IP 추출
+    x_forwarded_for = req.headers.get("X-Forwarded-For")
+    if x_forwarded_for:
+        ip_address = x_forwarded_for.split(",")[0].strip()
+    else:
+        ip_address = req.headers.get("X-Real-IP") or (req.client.host if req.client else None)
     return await service.login(request, ip_address, force=request.force)
 
 

@@ -63,7 +63,7 @@ class Session:
 class LoginAttempt:
     """로그인 시도 기록"""
     id: str
-    email: str
+    account: str
     success: bool
     attempted_at: datetime
     ip_address: Optional[str] = None
@@ -72,7 +72,7 @@ class LoginAttempt:
     def to_dict(self) -> dict:
         """OpenSearch 문서로 변환"""
         return {
-            "email": self.email,
+            "account": self.account,
             "success": self.success,
             "attempted_at": self.attempted_at.isoformat(),
             "ip_address": self.ip_address,
