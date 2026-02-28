@@ -15,6 +15,14 @@ export const logService = {
    * @param lastTimestamp 마지막으로 확인된 로그의 타임스탬프
    * @param limit 조회할 로그 개수
    */
+  /**
+   * 인덱스의 필드 매핑 목록을 조회합니다.
+   */
+  getIndexFields: async (index: string = "*"): Promise<{ fields: string[] }> => {
+    const response = await api.get<{ fields: string[] }>(`/api/v1/logs/fields?index=${encodeURIComponent(index)}`);
+    return response.data;
+  },
+
   getLogStream: async (
     lastTimestamp?: string | null, 
     limit: number = 100,

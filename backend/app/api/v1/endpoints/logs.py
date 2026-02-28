@@ -41,6 +41,36 @@ async def get_indices(
     except Exception as e:
         return {"indices": []}
 
+@router.get("/fields")
+async def get_index_fields(
+    index: str = Query("*", description="필드를 조회할 인덱스명"),
+    current_user: UserResponse = Depends(get_current_active_user),
+    os_client=Depends(get_opensearch)
+):
+    """선택된 인덱스의 매핑 필드 목록을 반환합니다."""
+    try:
+        mapping = os_client.indices.get_mapping(index=index)
+        fields = set()
+
+        def extract_fields(properties: dict, prefix: str = ""):
+            for field_name, field_info in properties.items():
+                full_name = f"{prefix}{field_name}" if not prefix else f"{prefix}.{field_name}"
+                if not prefix:
+                    full_name = field_name
+                fields.add(full_name)
+                # 중첩 properties 탐색
+                if "properties" in field_info:
+                    extract_fields(field_info["properties"], full_name)
+
+        for idx_name, idx_mapping in mapping.items():
+            properties = idx_mapping.get("mappings", {}).get("properties", {})
+            extract_fields(properties)
+
+        return {"fields": sorted(list(fields))}
+    except Exception as e:
+        return {"fields": []}
+
+
 @router.get("/stream", response_model=LogStreamResponse, response_model_by_alias=True)
 async def stream_logs(
     last_timestamp: Optional[str] = Query(None, description="마지막 로그의 타임스탬프 (ISO 형식)"),

@@ -78,7 +78,7 @@ const LogStreaming: React.FC = () => {
     filters, setFilters, refresh, clearLogs, handleFilterAdd, timeRange
   } = useLogStreaming(isActive, logStreamSize, logStreamRefreshMs);
 
-  const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs);
+  const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs, selectedIndices);
   
   const { 
     timeAnchorEl, setTimeAnchorEl, popoverInfo, 

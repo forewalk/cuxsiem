@@ -72,13 +72,14 @@ class AuthService:
 
         # 다중 접속 허용 여부 체크
         settings = await advanced_settings_service.get_settings()
+
+        # 만료된 세션 정리 (이전 서버 실행 시 남은 쓰레기 세션 제거)
+        await self.session_repo.cleanup_expired_sessions(user.id)
+
         if not settings.allow_multiple_sessions and not force:
             active_sessions = await self.session_repo.get_active_sessions_by_user_id(user.id)
-            # 만료시간이 지났는데 is_active가 True인 쓰레기 세션은 필터링
-            now = datetime.utcnow()
-            valid_active_sessions = [s for s in active_sessions if s.expires_at and s.expires_at > now]
-            
-            if valid_active_sessions:
+
+            if active_sessions:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="MULTIPLE_SESSION_DETECTED"

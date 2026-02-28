@@ -111,6 +111,45 @@ class SessionRepository:
         session_data_list = await loop.run_in_executor(None, search)
         return [self._dict_to_session(data) for data in session_data_list]
 
+    async def cleanup_expired_sessions(self, user_id: str) -> int:
+        """만료된 세션을 일괄 비활성화 (is_active=True이지만 expires_at이 과거인 세션)"""
+        loop = asyncio.get_event_loop()
+        now_iso = datetime.utcnow().isoformat()
+
+        def bulk_update():
+            try:
+                query = {
+                    "query": {
+                        "bool": {
+                            "filter": [
+                                {"bool": {
+                                    "should": [
+                                        {"term": {"user_id": user_id}},
+                                        {"term": {"user_id.keyword": user_id}}
+                                    ],
+                                    "minimum_should_match": 1
+                                }},
+                                {"term": {"is_active": True}},
+                                {"range": {"expires_at": {"lte": now_iso}}}
+                            ]
+                        }
+                    },
+                    "script": {
+                        "source": "ctx._source.is_active = false",
+                        "lang": "painless"
+                    }
+                }
+                result = self.client.update_by_query(
+                    index=self.index, body=query, refresh=True
+                )
+                return result.get("updated", 0)
+            except Exception as e:
+                import logging
+                logging.error(f"Error cleaning up expired sessions: {e}")
+                return 0
+
+        return await loop.run_in_executor(None, bulk_update)
+
     async def invalidate(self, session_id: str) -> None:
         """세션 무효화 (로그아웃)"""
         loop = asyncio.get_event_loop()

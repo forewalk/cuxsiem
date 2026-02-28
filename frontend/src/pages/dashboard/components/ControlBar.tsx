@@ -166,11 +166,16 @@ const ControlBar: React.FC<ControlBarProps> = ({
   };
 
   const handleDownloadPdf = async () => {
-    // 세 컨테이너 ID 중 존재하는 것을 찾음
-    const element = document.getElementById('agent-dashboard-grid-container') ||
-                    document.getElementById('threat-dashboard-grid-container') ||
-                    document.getElementById('threat-list-tab-container') ||
-                    document.getElementById('agent-list-tab-container');
+    // 컨테이너 ID 중 화면에 보이는 것을 찾음 (display:none 탭 제외)
+    const containerIds = [
+      'agent-dashboard-grid-container',
+      'threat-dashboard-grid-container',
+      'threat-list-tab-container',
+      'agent-list-tab-container'
+    ];
+    const element = containerIds
+      .map(id => document.getElementById(id))
+      .find(el => el && el.offsetParent !== null) || null;
 
     if (!element) {
       console.warn('Dashboard container not found');
