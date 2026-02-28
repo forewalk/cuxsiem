@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Copy test script (will be placed in backend dir by build.sh)
-COPY test_db.py ./test_db.py
+COPY check_db.py ./check_db.py
 
 # Expose port
 EXPOSE 8000
