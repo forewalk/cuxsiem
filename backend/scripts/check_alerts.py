@@ -15,23 +15,23 @@ def check_alerts():
     client = get_opensearch_client()
     
     print("=" * 80)
-    print("📊 알림 내역 (cs_alerts) 현황")
+    print("[INFO] 알림 내역 (cs_alerts) 현황")
     print("=" * 80)
     
     # 1. 인덱스 존재 확인
     if not client.indices.exists(index="cs_alerts"):
-        print("❌ cs_alerts 인덱스가 존재하지 않습니다!")
+        print("[ERROR] cs_alerts 인덱스가 존재하지 않습니다!")
         return
     
-    print("✅ cs_alerts 인덱스 존재\n")
+    print("[OK] cs_alerts 인덱스 존재\n")
     
     # 2. 전체 알림 개수 확인
     total_result = client.count(index="cs_alerts", body={"query": {"match_all": {}}})
     total_count = total_result["count"]
-    print(f"📈 전체 알림 개수: {total_count}개\n")
+    print(f"[STAT] 전체 알림 개수: {total_count}개\n")
     
     if total_count == 0:
-        print("⚠️  알림 데이터가 없습니다!")
+        print("[WARNING] 알림 데이터가 없습니다!")
         print("\n가능한 원인:")
         print("  1. 스케줄러가 실행되지 않음")
         print("  2. 알림 규칙이 비활성화 상태")
@@ -50,7 +50,7 @@ def check_alerts():
     )
     
     print("=" * 80)
-    print("📋 최근 알림 5개")
+    print("[LIST] 최근 알림 5개")
     print("=" * 80)
     
     for i, hit in enumerate(recent_alerts["hits"]["hits"], 1):
@@ -66,7 +66,7 @@ def check_alerts():
     
     # 4. 역할별 알림 개수 확인
     print("\n" + "=" * 80)
-    print("👥 역할별 알림 개수")
+    print("[ROLE] 역할별 알림 개수")
     print("=" * 80)
     
     for role in ['admin', 'user', 'monitoring', 'approver']:
@@ -84,7 +84,7 @@ def check_alerts():
     
     # 5. 최근 24시간 알림 개수
     print("\n" + "=" * 80)
-    print("⏰ 최근 24시간 알림")
+    print("[TIME] 최근 24시간 알림")
     print("=" * 80)
     
     from datetime import datetime, timedelta
@@ -106,14 +106,14 @@ def check_alerts():
     print(f"  최근 24시간: {recent_count['count']}개")
     
     print("\n" + "=" * 80)
-    print("✅ 알림 내역 확인 완료")
+    print("[OK] 알림 내역 확인 완료")
     print("=" * 80)
 
 if __name__ == "__main__":
     try:
         check_alerts()
     except Exception as e:
-        print(f"❌ 오류 발생: {e}")
+        print(f"[ERROR] 오류 발생: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
