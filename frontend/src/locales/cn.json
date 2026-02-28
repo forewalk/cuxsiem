@@ -310,5 +310,9 @@
   "windowIntervalWarning": "查询范围超过周期的 3 倍，可能会产生大量重复通知。",
   "download": "截屏保存",
   "downloading": "保存中...",
-  "selectIndex": "请选择索引"
+  "selectIndex": "请选择索引",
+  "sessionDuration": "会话保持时间（分钟）",
+  "sessionDurationDesc": "以分钟为单位设置用户会话保持时间（1～1440分钟，最长1天）",
+  "sessionDurationError": "会话保持时间必须在1～1440分钟之间。",
+  "timestamp": "时间"
 }

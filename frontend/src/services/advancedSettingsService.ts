@@ -10,6 +10,7 @@ export interface AdvancedSettings {
   pixel_mode?: boolean;
   log_stream_size?: number;
   log_stream_refresh?: number;
+  session_duration?: number;
   role_names?: {
     admin: string;
     user: string;

@@ -101,13 +101,13 @@ export const useLogStreaming = (
     }
   }, [isActive, fetchIndices]);
 
-  // 검색 조건 변경 시 재조회 (탭 초기 진입 시는 제외 - isInitializedRef 사용)
+  // 검색 조건 변경 시 재조회 (인덱스 선택만으로는 자동 검색하지 않음)
   useEffect(() => {
     if (!isInitializedRef.current) return;
     lastTimestampRef.current = null;
     fetchLogs(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedKeyword, filters, selectedIndex, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
+  }, [appliedKeyword, filters, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
 
   // 폴링 설정 (pollIntervalMs 또는 POLL_INTERVAL 기준)
   useEffect(() => {

@@ -104,14 +104,15 @@ class AuthService:
         # JWT 토큰 생성
         token, expires_in = create_access_token(user.id, request.remember_me)
 
-        # 세션 생성
+        # 세션 생성 (고급설정의 session_duration 적용)
         from datetime import timedelta
-        from app.core.config import settings
+        from app.core.config import settings as app_config
 
-        expires_delta = timedelta(
-            minutes=settings.JWT_EXPIRE_MINUTES_REMEMBER if request.remember_me
-            else settings.JWT_EXPIRE_MINUTES
-        )
+        session_duration_min = getattr(settings, 'session_duration', 30) or 30
+        if request.remember_me:
+            expires_delta = timedelta(minutes=app_config.JWT_EXPIRE_MINUTES_REMEMBER)
+        else:
+            expires_delta = timedelta(minutes=session_duration_min)
         session = Session(
             id=str(uuid.uuid4()),
             user_id=user.id,

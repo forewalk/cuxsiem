@@ -322,5 +322,9 @@
   "download": "画面保存",
   "downloading": "保存中...",
   "selectIndex": "インデックスを選択してください",
-  "copied": "コピーされました！"
+  "copied": "コピーされました！",
+  "sessionDuration": "セッション維持時間（分）",
+  "sessionDurationDesc": "ユーザーセッション維持時間を分単位で設定します（1〜1440分、最大1日）",
+  "sessionDurationError": "セッション維持時間は1〜1440分の範囲でなければなりません。",
+  "timestamp": "時刻"
 }

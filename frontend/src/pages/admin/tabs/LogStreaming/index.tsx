@@ -104,10 +104,6 @@ const LogStreaming: React.FC = () => {
 
   // Derived
   const hasSearchOrFilter = appliedKeyword || filters.length > 0;
-  const currentLogDate = useMemo(() => {
-    if (logs.length === 0) return dayjs().format('YYYY-MM-DD');
-    return dayjs(logs[0].timestamp).format('YYYY-MM-DD');
-  }, [logs]);
 
   const togglePaused = () => {
     const nextPaused = !isPaused;
@@ -245,7 +241,6 @@ const LogStreaming: React.FC = () => {
             loading={loading}
             autoScroll={autoScroll}
             onAutoScrollChange={setAutoScroll}
-            currentLogDate={currentLogDate}
             t={t}
           />
           {selectedLog && (

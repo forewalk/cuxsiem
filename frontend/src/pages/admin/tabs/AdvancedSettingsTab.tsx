@@ -154,6 +154,13 @@ const AdvancedSettingsTab: React.FC = () => {
       return;
     }
 
+    // 유효성 검사: 세션 유지시간 범위 확인
+    const sessionDur = settings.session_duration ?? 30;
+    if (sessionDur < 1 || sessionDur > 1440) {
+      setSnackbar({ open: true, message: t('sessionDurationError'), severity: 'error' });
+      return;
+    }
+
     setSaving(true);
     try {
       // 1. 고급 설정 저장
@@ -253,7 +260,22 @@ const AdvancedSettingsTab: React.FC = () => {
                 }
                 label={t('allowMultipleSessions')}
               />
-              
+
+              {/* 세션 유지시간 설정 */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                  {t('sessionDuration')}
+                </Typography>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  value={settings.session_duration ?? 30}
+                  onChange={(e) => handleChange('session_duration', Number(e.target.value))}
+                  helperText={t('sessionDurationDesc')}
+                />
+              </Box>
+
               {/* 2. 사용자 역할명 (라벨 스타일로 변경) */}
               <Box>
                 <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 500, color: 'text.primary' }}>

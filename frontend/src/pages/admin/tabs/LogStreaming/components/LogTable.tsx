@@ -17,13 +17,12 @@ interface LogTableProps {
   loading: boolean;
   autoScroll: boolean;
   onAutoScrollChange: (value: boolean) => void;
-  currentLogDate: string;
   t: (key: string, params?: Record<string, string>) => string;
 }
 
 const LogTable = ({ 
-  logs, filteredLogs, visibleFields, selectedLog, onSelectLog, 
-  loading, autoScroll, onAutoScrollChange, currentLogDate, t 
+  logs, filteredLogs, visibleFields, selectedLog, onSelectLog,
+  loading, autoScroll, onAutoScrollChange, t
 }: LogTableProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -59,11 +58,11 @@ const LogTable = ({
               key={f} variant="caption" 
               sx={{ 
                 fontWeight: 'bold', color: 'text.secondary', flexShrink: 0, 
-                width: isTimestamp ? 120 : isIndex ? 180 : (isMessage ? 'auto' : 150),
+                width: isTimestamp ? 180 : isIndex ? 180 : (isMessage ? 'auto' : 150),
                 flexGrow: isMessage ? 1 : 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis'
               }}
             >
-              {isTimestamp ? currentLogDate : f.toUpperCase()}
+              {isTimestamp ? t('time') : f.toUpperCase()}
             </Typography>
           );
         })}
@@ -104,14 +103,14 @@ const LogTable = ({
                       fontFamily: 'monospace', fontSize: isMessage ? '0.85rem' : '0.7rem', 
                       color: isTimestamp ? 'text.primary' : isIndex ? 'text.secondary' : 'text.primary', 
                       fontWeight: (isTimestamp || isIndex) ? 'bold' : 'normal', flexShrink: isMessage ? 1 : 0, 
-                      width: isTimestamp ? 120 : isIndex ? 180 : (isMessage ? 'auto' : 150),
+                      width: isTimestamp ? 180 : isIndex ? 180 : (isMessage ? 'auto' : 150),
                       flexGrow: isMessage ? 1 : 0, minWidth: 0, wordBreak: 'break-all', 
                       whiteSpace: isTimestamp ? 'nowrap' : 'normal', lineHeight: 1.4, 
                       ...(isMessage && { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }), 
                       ...(isIndex && { bgcolor: 'action.selected', px: 0.5, borderRadius: 0.5 }) 
                     }}
                   >
-                    {isTimestamp ? (renderFieldValue(l, f) !== '-' ? dayjs(renderFieldValue(l, f)).format('HH:mm:ss.SSS') : '-') : renderFieldValue(l, f)}
+                    {isTimestamp ? (renderFieldValue(l, f) !== '-' ? dayjs(renderFieldValue(l, f)).format('YYYY-MM-DD HH:mm:ss.SSS') : '-') : renderFieldValue(l, f)}
                   </Typography>
                 );
               })}

@@ -336,5 +336,9 @@
   "download": "화면저장",
   "downloading": "저장 중...",
   "selectIndex": "인덱스를 선택하세요",
-  "copied": "복사됨!"
+  "copied": "복사됨!",
+  "sessionDuration": "세션 유지시간 (분)",
+  "sessionDurationDesc": "사용자 세션 유지시간을 분 단위로 설정합니다 (1 ~ 1440분, 최대 1일)",
+  "sessionDurationError": "세션 유지시간은 1 ~ 1440분 범위여야 합니다.",
+  "timestamp": "시각"
 }
