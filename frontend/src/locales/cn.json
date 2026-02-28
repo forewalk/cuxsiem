@@ -248,6 +248,8 @@
   "logStreamSizeDesc": "日志流单次查询的最大条数 (100 ~ 10000)",
   "logStreamRefresh": "刷新间隔（秒）",
   "logStreamRefreshDesc": "日志流自动刷新间隔 (5 ~ 60秒)",
+  "logStreamSizeError": "日志流条数必须在100到10000之间。",
+  "logStreamRefreshError": "日志流刷新间隔必须在5到60秒之间。",
   "userRoleNames": "用户角色名称",
   "roleAdmin": "管理员角色名称",
   "roleUser": "用户角色名称",

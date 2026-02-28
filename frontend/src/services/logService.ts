@@ -19,7 +19,7 @@ export const logService = {
     lastTimestamp?: string | null, 
     limit: number = 100,
     q?: string,
-    index: string = "activities*",
+    index: string = "*",
     fromTime?: string,
     toTime?: string
   ): Promise<LogStreamResponse> => {

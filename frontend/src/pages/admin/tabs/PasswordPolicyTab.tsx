@@ -106,106 +106,98 @@ const PasswordPolicyTab: React.FC = () => {
         </Stack>
       </Stack>
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+      <Paper sx={{ p: 3 }}>
         {/* 복잡성 규칙 */}
-        <Box flex={1}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>{t('complexityRules')}</Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Stack spacing={2}>
-              <TextField
-                label={t('minLength')}
-                type="number"
-                size="small"
-                value={policy?.min_length || 8}
-                onChange={(e) => handleChange('min_length', parseInt(e.target.value))}
-                fullWidth
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('complexityRules')}</Typography>
+        <Divider sx={{ mb: 2 }} />
+        <Stack spacing={2} sx={{ mb: 4 }}>
+          <TextField
+            label={t('minLength')}
+            type="number"
+            size="small"
+            value={policy?.min_length || 8}
+            onChange={(e) => handleChange('min_length', parseInt(e.target.value))}
+            fullWidth
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={policy?.require_uppercase || false}
+                onChange={(e) => handleChange('require_uppercase', e.target.checked)}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={policy?.require_uppercase || false}
-                    onChange={(e) => handleChange('require_uppercase', e.target.checked)}
-                  />
-                }
-                label={t('requireUppercase')}
+            }
+            label={t('requireUppercase')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={policy?.require_lowercase || false}
+                onChange={(e) => handleChange('require_lowercase', e.target.checked)}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={policy?.require_lowercase || false}
-                    onChange={(e) => handleChange('require_lowercase', e.target.checked)}
-                  />
-                }
-                label={t('requireLowercase')}
+            }
+            label={t('requireLowercase')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={policy?.require_numbers || false}
+                onChange={(e) => handleChange('require_numbers', e.target.checked)}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={policy?.require_numbers || false}
-                    onChange={(e) => handleChange('require_numbers', e.target.checked)}
-                  />
-                }
-                label={t('requireNumbers')}
+            }
+            label={t('requireNumbers')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={policy?.require_special_chars || false}
+                onChange={(e) => handleChange('require_special_chars', e.target.checked)}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={policy?.require_special_chars || false}
-                    onChange={(e) => handleChange('require_special_chars', e.target.checked)}
-                  />
-                }
-                label={t('requireSpecialChars')}
-              />
-            </Stack>
-          </Paper>
-        </Box>
+            }
+            label={t('requireSpecialChars')}
+          />
+        </Stack>
 
         {/* 만료 및 이력 */}
-        <Box flex={1}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>{t('expirationSecurity')}</Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Stack spacing={3}>
-              <TextField
-                label={t('maxPasswordAge')}
-                type="number"
-                size="small"
-                value={policy?.max_password_age_days || 90}
-                onChange={(e) => handleChange('max_password_age_days', parseInt(e.target.value))}
-                helperText={t('passwordAgeHelper')}
-                fullWidth
-              />
-              <TextField
-                label={t('passwordHistory')}
-                type="number"
-                size="small"
-                value={policy?.password_history_count || 3}
-                onChange={(e) => handleChange('password_history_count', parseInt(e.target.value))}
-                helperText={t('passwordHistoryHelper')}
-                fullWidth
-              />
-              <TextField
-                label={t('lockoutThreshold')}
-                type="number"
-                size="small"
-                value={policy?.lockout_threshold || 5}
-                onChange={(e) => handleChange('lockout_threshold', parseInt(e.target.value))}
-                helperText={t('lockoutThresholdHelper')}
-                fullWidth
-              />
-              <TextField
-                label={t('lockoutDuration')}
-                type="number"
-                size="small"
-                value={policy?.lockout_duration_minutes || 30}
-                onChange={(e) => handleChange('lockout_duration_minutes', parseInt(e.target.value))}
-                fullWidth
-              />
-            </Stack>
-          </Paper>
-        </Box>
-      </Stack>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('expirationSecurity')}</Typography>
+        <Divider sx={{ mb: 2 }} />
+        <Stack spacing={3}>
+          <TextField
+            label={t('maxPasswordAge')}
+            type="number"
+            size="small"
+            value={policy?.max_password_age_days || 90}
+            onChange={(e) => handleChange('max_password_age_days', parseInt(e.target.value))}
+            helperText={t('passwordAgeHelper')}
+            fullWidth
+          />
+          <TextField
+            label={t('passwordHistory')}
+            type="number"
+            size="small"
+            value={policy?.password_history_count || 3}
+            onChange={(e) => handleChange('password_history_count', parseInt(e.target.value))}
+            helperText={t('passwordHistoryHelper')}
+            fullWidth
+          />
+          <TextField
+            label={t('lockoutThreshold')}
+            type="number"
+            size="small"
+            value={policy?.lockout_threshold || 5}
+            onChange={(e) => handleChange('lockout_threshold', parseInt(e.target.value))}
+            helperText={t('lockoutThresholdHelper')}
+            fullWidth
+          />
+          <TextField
+            label={t('lockoutDuration')}
+            type="number"
+            size="small"
+            value={policy?.lockout_duration_minutes || 30}
+            onChange={(e) => handleChange('lockout_duration_minutes', parseInt(e.target.value))}
+            fullWidth
+          />
+        </Stack>
+      </Paper>
 
       <Snackbar
         open={snackbar.open}

@@ -82,12 +82,14 @@ class SessionRepository:
                     "size": 10000,
                     "query": {
                         "bool": {
-                            "should": [
-                                {"term": {"user_id": user_id}},
-                                {"term": {"user_id.keyword": user_id}}
-                            ],
-                            "minimum_should_match": 1,
-                            "must": [
+                            "filter": [
+                                {"bool": {
+                                    "should": [
+                                        {"term": {"user_id": user_id}},
+                                        {"term": {"user_id.keyword": user_id}}
+                                    ],
+                                    "minimum_should_match": 1
+                                }},
                                 {"term": {"is_active": True}},
                                 {"range": {"expires_at": {"gt": now_iso}}}
                             ]

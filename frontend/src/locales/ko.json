@@ -264,6 +264,8 @@
   "logStreamSizeDesc": "로그 스트리밍 시 한 번에 조회할 최대 건수 (100 ~ 10000)",
   "logStreamRefresh": "새로고침 주기 (초)",
   "logStreamRefreshDesc": "로그 스트리밍 자동 갱신 주기 (5 ~ 60초)",
+  "logStreamSizeError": "로그 스트리밍 건수는 100 ~ 10000 범위여야 합니다.",
+  "logStreamRefreshError": "로그 스트리밍 갱신 주기는 5 ~ 60초 범위여야 합니다.",
   "userRoleNames": "사용자 역할명",
   "roleAdmin": "관리자 역할명",
   "roleUser": "사용자 역할명",

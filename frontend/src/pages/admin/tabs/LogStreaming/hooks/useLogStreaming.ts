@@ -117,6 +117,12 @@ export const useLogStreaming = (
     return () => clearInterval(timer);
   }, [fetchLogs, pollIntervalMs]);
 
+  // 수동 새로고침 (검색 버튼 클릭 시 항상 조회)
+  const refresh = useCallback(() => {
+    lastTimestampRef.current = null;
+    fetchLogs(true);
+  }, [fetchLogs]);
+
   const clearLogs = () => {
     setLogs([]);
     lastTimestampRef.current = null;
@@ -144,6 +150,7 @@ export const useLogStreaming = (
     setAppliedKeyword,
     filters,
     setFilters,
+    refresh,
     clearLogs,
     handleFilterAdd,
     timeRange: {

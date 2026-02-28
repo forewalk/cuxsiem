@@ -34,18 +34,18 @@ async def test_get_active_sessions_includes_expires_at_filter(repo):
         )
         await repo.get_active_sessions_by_user_id("user123")
 
-    must_clauses = captured["query"]["bool"]["must"]
+    filter_clauses = captured["query"]["bool"]["filter"]
 
     # is_active=True 조건 확인
     is_active_clause = next(
-        (c for c in must_clauses if "term" in c and "is_active" in c["term"]), None
+        (c for c in filter_clauses if "term" in c and "is_active" in c["term"]), None
     )
     assert is_active_clause is not None, "is_active=True 조건이 있어야 합니다"
     assert is_active_clause["term"]["is_active"] is True
 
     # expires_at > now range 조건 확인 (만료 세션 필터링 핵심)
     expires_at_clause = next(
-        (c for c in must_clauses if "range" in c and "expires_at" in c["range"]), None
+        (c for c in filter_clauses if "range" in c and "expires_at" in c["range"]), None
     )
     assert expires_at_clause is not None, "expires_at range 조건이 있어야 합니다"
     assert "gt" in expires_at_clause["range"]["expires_at"], "만료 시간보다 미래인 조건(gt)이어야 합니다"
@@ -74,10 +74,10 @@ async def test_get_active_sessions_returns_only_non_expired(repo):
 
     def mock_search(**kwargs):
         query = kwargs["body"]["query"]
-        must_clauses = query["bool"]["must"]
+        filter_clauses = query["bool"]["filter"]
         # expires_at > now 조건이 있으면 만료된 세션은 반환하지 않음
         has_expires_filter = any(
-            "range" in c and "expires_at" in c["range"] for c in must_clauses
+            "range" in c and "expires_at" in c["range"] for c in filter_clauses
         )
         if has_expires_filter:
             return {"hits": {"hits": []}}  # 만료 세션 필터링됨

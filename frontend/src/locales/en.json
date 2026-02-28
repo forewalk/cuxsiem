@@ -248,6 +248,8 @@
   "logStreamSizeDesc": "Maximum number of logs to retrieve per query (100 ~ 10000)",
   "logStreamRefresh": "Refresh Interval (sec)",
   "logStreamRefreshDesc": "Auto-refresh interval for log streaming (5 ~ 60 seconds)",
+  "logStreamSizeError": "Log stream size must be between 100 and 10000.",
+  "logStreamRefreshError": "Log stream refresh interval must be between 5 and 60 seconds.",
   "userRoleNames": "User Role Names",
   "roleAdmin": "Admin Role Name",
   "roleUser": "User Role Name",

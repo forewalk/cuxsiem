@@ -259,6 +259,8 @@
   "logStreamSizeDesc": "ログストリーミングで一度に取得する最大件数 (100 ~ 10000)",
   "logStreamRefresh": "更新間隔（秒）",
   "logStreamRefreshDesc": "ログストリーミングの自動更新間隔 (5 ~ 60秒)",
+  "logStreamSizeError": "ログストリーミング件数は100〜10000の範囲で入力してください。",
+  "logStreamRefreshError": "ログストリーミング更新間隔は5〜60秒の範囲で入力してください。",
   "userRoleNames": "ユーザー役割名",
   "roleAdmin": "管理者役割名",
   "roleUser": "ユーザー役割名",

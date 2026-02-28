@@ -75,7 +75,7 @@ const LogStreaming: React.FC = () => {
   const {
     logs, loading, isPaused, setIsPaused, selectedIndices, setSelectedIndices,
     indexOptions, keyword, setKeyword, appliedKeyword, setAppliedKeyword,
-    filters, setFilters, clearLogs, handleFilterAdd, timeRange
+    filters, setFilters, refresh, clearLogs, handleFilterAdd, timeRange
   } = useLogStreaming(isActive, logStreamSize, logStreamRefreshMs);
 
   const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs);
@@ -158,7 +158,7 @@ const LogStreaming: React.FC = () => {
         filters={filters} onFiltersChange={setFilters}
         indexOptions={indexOptions} 
         selectedIndices={selectedIndices} onIndicesChange={setSelectedIndices} 
-        onRefresh={() => setAppliedKeyword(keyword)}
+        onRefresh={() => { setAppliedKeyword(keyword); if (keyword === appliedKeyword) refresh(); }}
         onClearKeyword={() => { setKeyword(""); setAppliedKeyword(""); }}
       />
 

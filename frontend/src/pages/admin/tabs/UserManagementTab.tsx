@@ -267,8 +267,10 @@ const UserManagementTab: React.FC = () => {
       headerName: t('actions'),
       flex: 0.8,
       sortable: false,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params: GridRenderCellParams) => (
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} alignItems="center">
           <IconButton size="small" onClick={() => handleOpenDialog(params.row as User)}>
             <EditIcon fontSize="small" />
           </IconButton>

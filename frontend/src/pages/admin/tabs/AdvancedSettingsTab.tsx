@@ -133,13 +133,25 @@ const AdvancedSettingsTab: React.FC = () => {
     if (settings.role_names) {
       const { admin, monitoring, approver, user } = settings.role_names;
       if (!admin?.trim() || !monitoring?.trim() || !approver?.trim() || !user?.trim()) {
-        setSnackbar({ 
-          open: true, 
+        setSnackbar({
+          open: true,
           message: t('roleNameRequired'),
-          severity: 'error' 
+          severity: 'error'
         });
         return;
       }
+    }
+
+    // 유효성 검사: 로그스트리밍 설정 범위 확인
+    const logSize = settings.log_stream_size ?? 1000;
+    const logRefresh = settings.log_stream_refresh ?? 10;
+    if (logSize < 100 || logSize > 10000) {
+      setSnackbar({ open: true, message: t('logStreamSizeError'), severity: 'error' });
+      return;
+    }
+    if (logRefresh < 5 || logRefresh > 60) {
+      setSnackbar({ open: true, message: t('logStreamRefreshError'), severity: 'error' });
+      return;
     }
 
     setSaving(true);
@@ -213,10 +225,10 @@ const AdvancedSettingsTab: React.FC = () => {
         </Stack>
       </Stack>
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
+      <Stack spacing={3}>
         {/* 사용자 설정 */}
-        <Box flex={1}>
-          <Paper sx={{ p: 3, height: '100%' }}>
+        <Box>
+          <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('userSettings')}</Typography>
             <Divider sx={{ mb: 2 }} />
             
@@ -384,37 +396,27 @@ const AdvancedSettingsTab: React.FC = () => {
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
                       {t('logStreamSize')}
                     </Typography>
-                    <Tooltip title={t('logStreamSizeDesc')} placement="top-start" arrow>
-                      <TextField
+                    <TextField
                         fullWidth
                         size="small"
                         type="number"
                         value={settings.log_stream_size ?? 1000}
-                        onChange={(e) => {
-                          const v = Number(e.target.value);
-                          if (v >= 100 && v <= 10000) handleChange('log_stream_size', v);
-                        }}
-                        inputProps={{ min: 100, max: 10000, step: 100 }}
+                        onChange={(e) => handleChange('log_stream_size', Number(e.target.value))}
+                        helperText={t('logStreamSizeDesc')}
                       />
-                    </Tooltip>
                   </Box>
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
                       {t('logStreamRefresh')}
                     </Typography>
-                    <Tooltip title={t('logStreamRefreshDesc')} placement="top-start" arrow>
-                      <TextField
+                    <TextField
                         fullWidth
                         size="small"
                         type="number"
                         value={settings.log_stream_refresh ?? 10}
-                        onChange={(e) => {
-                          const v = Number(e.target.value);
-                          if (v >= 5 && v <= 60) handleChange('log_stream_refresh', v);
-                        }}
-                        inputProps={{ min: 5, max: 60, step: 1 }}
+                        onChange={(e) => handleChange('log_stream_refresh', Number(e.target.value))}
+                        helperText={t('logStreamRefreshDesc')}
                       />
-                    </Tooltip>
                   </Box>
                 </Stack>
               </Box>
@@ -446,9 +448,6 @@ const AdvancedSettingsTab: React.FC = () => {
             </Stack>
           </Paper>
         </Box>
-
-        {/* 오른쪽 빈 공간 (레이아웃 균형 유지용) */}
-        <Box flex={1} />
       </Stack>
 
       <Snackbar

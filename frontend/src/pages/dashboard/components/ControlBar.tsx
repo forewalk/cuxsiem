@@ -90,7 +90,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   lastUpdated,
   totalLogs,
   indexOptions = [],
-  selectedIndex = 'activities*',
+  selectedIndex = '*',
   onIndexChange,
   userRole
 }) => {
@@ -169,7 +169,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
     // 세 컨테이너 ID 중 존재하는 것을 찾음
     const element = document.getElementById('agent-dashboard-grid-container') ||
                     document.getElementById('threat-dashboard-grid-container') ||
-                    document.getElementById('threat-list-tab-container');
+                    document.getElementById('threat-list-tab-container') ||
+                    document.getElementById('agent-list-tab-container');
 
     if (!element) {
       console.warn('Dashboard container not found');

@@ -36,19 +36,15 @@ async def get_indices(
         
         # 전체 목록 병합 (인덱스 + 데이터스트림)
         all_targets = sorted(list(set(indices + datastreams)))
-        
-        # activities* 패턴이 목록에 없다면 수동 추가 (기본 인덱스 보장)
-        if not any(target.startswith("activities") for target in all_targets):
-            all_targets.insert(0, "activities*")
 
         return {"indices": all_targets}
     except Exception as e:
-        return {"indices": ["activities*"]}
+        return {"indices": []}
 
 @router.get("/stream", response_model=LogStreamResponse, response_model_by_alias=True)
 async def stream_logs(
     last_timestamp: Optional[str] = Query(None, description="마지막 로그의 타임스탬프 (ISO 형식)"),
-    index: str = Query("activities*", description="조회할 인덱스명 또는 와일드카드"),
+    index: str = Query("*", description="조회할 인덱스명 또는 와일드카드"),
     q: Optional[str] = Query(None, description="검색어 (Lucene 쿼리 문법 지원)"),
     from_time: Optional[str] = Query(None, description="시작 시간 (상대적 -15m 또는 절대적 ISO)"),
     to_time: Optional[str] = Query(None, description="종료 시간"),

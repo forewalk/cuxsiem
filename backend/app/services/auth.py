@@ -76,7 +76,7 @@ class AuthService:
             active_sessions = await self.session_repo.get_active_sessions_by_user_id(user.id)
             # 만료시간이 지났는데 is_active가 True인 쓰레기 세션은 필터링
             now = datetime.utcnow()
-            valid_active_sessions = [s for s in active_sessions if s.expires_at > now]
+            valid_active_sessions = [s for s in active_sessions if s.expires_at and s.expires_at > now]
             
             if valid_active_sessions:
                 raise HTTPException(
@@ -185,9 +185,15 @@ class AuthService:
                     detail="사용자를 찾을 수 없습니다"
                 )
                 
-            # 임시 비밀번호 생성 (12자리 영문+숫자+특수문자)
-            alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-            temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
+            # 임시 비밀번호 생성 (12자리 영문+숫자+특수문자, 반드시 숫자 1개 + 특수문자 1개 포함)
+            special_chars = "!@#$%^&*[]()"
+            alphabet = string.ascii_letters + string.digits + special_chars
+            while True:
+                temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
+                has_digit = any(c in string.digits for c in temp_password)
+                has_special = any(c in special_chars for c in temp_password)
+                if has_digit and has_special:
+                    break
             
             # 비밀번호 업데이트
             hashed_password = get_password_hash(temp_password)
