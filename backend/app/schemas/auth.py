@@ -6,7 +6,7 @@ from datetime import datetime
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1)
-    password: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=4)
     remember_me: bool = False
     force: bool = False
 

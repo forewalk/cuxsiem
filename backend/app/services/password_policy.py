@@ -18,7 +18,7 @@ class PasswordPolicyService:
             # 기본값으로 초기 정책 생성
             now = datetime.utcnow()
             policy = PasswordPolicy(
-                id="default",
+                id="password",
                 min_length=8,
                 require_uppercase=False,
                 require_lowercase=True,
@@ -43,7 +43,7 @@ class PasswordPolicyService:
         created_at = current.created_at if current else now
         
         policy = PasswordPolicy(
-            id="default",
+            id="password",
             **request.model_dump(),
             created_at=created_at,
             updated_at=now
