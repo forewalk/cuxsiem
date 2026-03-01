@@ -4,6 +4,8 @@ import {
   DialogContent, DialogActions, TextField, MenuItem, Switch, FormControlLabel,
   Stack, Alert, Snackbar
 } from '@mui/material';
+import OTPEnrollModal from '../../../components/auth/OTPEnrollModal';
+import api from '../../../services/api';
 import {
   DataGrid, GridToolbar
 } from '@mui/x-data-grid';
@@ -66,6 +68,10 @@ const UserManagementTab: React.FC = () => {
   const [deletedUsers, setDeletedUsers] = useState<User[]>([]);
   const [deletedUsersLoading, setDeletedUsersLoading] = useState(false);
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
+
+  // 관리자 OTP 등록 권장 배너 상태
+  const [adminOtpEnabled, setAdminOtpEnabled] = useState<boolean | null>(null);
+  const [otpEnrollOpen, setOtpEnrollOpen] = useState(false);
 
   // 스낵바 상태
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -147,6 +153,15 @@ const UserManagementTab: React.FC = () => {
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
+
+  // 관리자 OTP 미등록 시 배너 표시 여부 확인
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      api.get('/api/v1/auth/me').then(res => {
+        setAdminOtpEnabled(res.data.otp_enabled ?? false);
+      }).catch(() => setAdminOtpEnabled(null));
+    }
+  }, [user]);
 
   const handleOpenDialog = (user: User | null = null) => {
     if (user) {
@@ -396,6 +411,22 @@ const UserManagementTab: React.FC = () => {
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
+
+      {/* 관리자 OTP 미등록 권장 배너 */}
+      {adminOtpEnabled === false && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setOtpEnrollOpen(true)}>
+              {t('otpEnrollTitle')}
+            </Button>
+          }
+        >
+          {t('otpAdminEnrollRecommend')}
+        </Alert>
+      )}
+
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('userManagement')}</Typography>
         <Stack direction="row" spacing={1}>
@@ -553,6 +584,14 @@ const UserManagementTab: React.FC = () => {
           <Button variant="contained" color="error" onClick={handlePermanentDelete}>{t('permanentDelete')}</Button>
         </DialogActions>
       </Dialog>
+
+      {/* 관리자 OTP 등록 모달 */}
+      <OTPEnrollModal
+        open={otpEnrollOpen}
+        onClose={() => setOtpEnrollOpen(false)}
+        onSuccess={() => { setOtpEnrollOpen(false); setAdminOtpEnabled(true); }}
+        apiClient={api}
+      />
 
       {/* 알림 메시지 */}
       <Snackbar

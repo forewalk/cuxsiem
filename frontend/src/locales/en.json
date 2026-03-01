@@ -359,6 +359,7 @@
   "confirm": "Confirm",
   "next": "Next",
   "copy": "Copy",
+  "otpAdminEnrollRecommend": "OTP two-factor authentication is not enrolled. We recommend enrolling OTP to secure your admin account.",
   "otpRequired": "Require OTP",
   "otpRequiredDesc": "When enabled, all non-admin users must enroll OTP at login.",
   "noPermission": "You do not have permission to access this page.",

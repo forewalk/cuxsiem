@@ -369,6 +369,7 @@
   "confirm": "確認",
   "next": "次へ",
   "copy": "コピー",
+  "otpAdminEnrollRecommend": "OTP二段階認証が登録されていません。管理者アカウントのセキュリティのためにOTP登録を推奨します。",
   "otpRequired": "OTP必須使用",
   "otpRequiredDesc": "有効化時、管理者以外の全ユーザーはログイン時にOTP登録が強制されます。",
   "noPermission": "アクセス権限がありません。",

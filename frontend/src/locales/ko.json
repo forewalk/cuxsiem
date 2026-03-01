@@ -383,6 +383,7 @@
   "confirm": "확인",
   "next": "다음",
   "copy": "복사",
+  "otpAdminEnrollRecommend": "OTP 2단계 인증이 등록되어 있지 않습니다. 관리자 계정 보안을 위해 OTP 등록을 권장합니다.",
   "otpRequired": "OTP 필수 사용",
   "otpRequiredDesc": "활성화 시 관리자를 제외한 모든 사용자는 로그인 시 OTP 등록이 강제됩니다.",
   "noPermission": "접근 권한이 없습니다.",
