@@ -130,7 +130,6 @@ const NotificationRuleListTab: React.FC = () => {
     token,
     onMessage: (data) => {
       if (data.type === 'new_alert') {
-        console.log('실시간 알림 수신 - 규칙 목록 새로고침');
         loadRules();
       }
     }
@@ -374,10 +373,8 @@ const NotificationRuleListTab: React.FC = () => {
   const handleSave = async () => {
     try {
       if (editingRule) {
-        console.log('Updating rule:', editingRule.id, formData);
         await notificationService.updateRule(editingRule.id, formData);
       } else {
-        console.log('Creating rule:', formData);
         await notificationService.createRule(formData);
       }
       setSnackbar({open: true, message: t('ruleSaveSuccess'), severity: 'success'});
@@ -405,7 +402,6 @@ const NotificationRuleListTab: React.FC = () => {
 
   const handleToggleActive = async (rule: NotificationRule) => {
     try {
-      console.log('Toggling active status for rule:', rule.id, 'to', !rule.is_active);
       await notificationService.updateRule(rule.id, {is_active: !rule.is_active});
       setSnackbar({open: true, message: t('ruleSaveSuccess'), severity: 'success'});
       loadRules();

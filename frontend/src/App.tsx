@@ -113,8 +113,6 @@ function App() {
   const token = authService.getToken();
   const { snackbars, handleCloseSnackbar, isConnected } = useGlobalAlertNotification(!!user, token);
   
-  console.log('🎯 App.tsx - Snackbars:', snackbars, 'Connected:', isConnected, 'User:', !!user, 'Token:', !!token);
-
   const theme = useMemo(() => {
     if (pixelMode) return createPixelTheme();
     return createTheme({

@@ -41,8 +41,6 @@ interface OTPEnrollModalProps {
   apiClient: any;
 }
 
-const steps = ['QR코드 스캔', '코드 입력'];
-
 export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
   open,
   onClose,
@@ -65,6 +63,9 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
     const currentTranslations = translations[savedLanguage] || translations["ko"] || {};
     return currentTranslations[key] || key;
   }, [savedLanguage]);
+
+  const steps = [t('otpStep1Label'), t('otpStep2Label'), t('otpStep3Label')];
+
   const [error, setError] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [manualKey, setManualKey] = useState<string | null>(null);
@@ -85,7 +86,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
       setQrCode(response.qr_code_image);
       setManualKey(response.manual_key);
     } catch (err: any) {
-      setError(err.message || 'OTP 등록 실패');
+      setError(err.message || t('otpEnrollFailed'));
     } finally {
       setLoading(false);
     }
@@ -96,7 +97,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
    */
   const handleVerifyCode = async () => {
     if (!code || code.length !== 6) {
-      setError('6자리 코드를 입력하세요');
+      setError(t('enterOtp6Digit'));
       return;
     }
 
@@ -108,7 +109,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
       setBackupCodes(response.backup_codes);
       setActiveStep(2); // 완료 화면
     } catch (err: any) {
-      setError(err.message || 'OTP 검증 실패');
+      setError(err.message || t('otpVerifyFailed'));
     } finally {
       setLoading(false);
     }
@@ -156,6 +157,8 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
     setCode('');
     setQrCode(null);
     setManualKey(null);
+    setBackupCodes([]);
+    setCopied(false);
     onClose();
   };
 
@@ -193,7 +196,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                     onClick={handleStartEnrollment}
                     disabled={loading}
                   >
-                    {loading ? '준비 중...' : 'QR 코드 생성'}
+                    {loading ? t('preparing') : t('generateQRCode')}
                   </Button>
                 </>
               ) : (
@@ -222,7 +225,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                         />
                       </Grid>
                       <Grid item>
-                        <Tooltip title={copied ? '복사됨!' : '복사'}>
+                        <Tooltip title={copied ? t('copied') : t('copy')}>
                           <IconButton
                             size="small"
                             onClick={handleCopyManualKey}
@@ -245,7 +248,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                     sx={{ mt: 3 }}
                     onClick={() => setActiveStep(1)}
                   >
-                    다음
+                    {t('next')}
                   </Button>
                 </>
               )}
@@ -265,7 +268,6 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="000000"
-                maxLength={6}
                 disabled={loading}
                 inputProps={{ maxLength: 6 }}
               />
@@ -279,10 +281,10 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
           {activeStep === 2 && (
             <Box sx={{ mt: 3, textAlign: 'center' }}>
               <Typography variant="h6" sx={{ mb: 2, color: 'success.main' }}>
-                ✓ OTP 등록 완료!
+                ✓ {t('otpEnrollSuccess')}
               </Typography>
               <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                아래 백업 코드를 안전한 장소에 저장하세요.
+                {t('saveBackupCodesMsg')}
               </Typography>
               <Paper
                 sx={{
@@ -314,22 +316,23 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
             onClick={handleVerifyCode}
             disabled={!code || code.length !== 6 || loading}
           >
-            {loading ? '검증 중...' : '확인'}
+            {loading ? t('verifying') : t('confirm')}
           </Button>
         )}
         {activeStep === 2 && (
           <>
             <Button
               variant="outlined"
+              startIcon={<DownloadIcon />}
               onClick={handleDownloadBackupCodes}
             >
-              다운로드
+              {t('download')}
             </Button>
             <Button
               variant="contained"
               onClick={handleComplete}
             >
-              완료
+              {t('done')}
             </Button>
           </>
         )}

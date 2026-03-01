@@ -64,7 +64,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
    */
   const handleOTPLogin = async () => {
     if (!otpCode || otpCode.length !== 6) {
-      setError('6자리 OTP 코드를 입력하세요');
+      setError(t('enterOtp6Digit'));
       return;
     }
 
@@ -75,7 +75,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
       const response = await otpService.loginWithOTP(otpCode);
       onSuccess(response.access_token);
     } catch (err: any) {
-      setError(err.message || 'OTP 인증 실패');
+      setError(err.message || t('otpAuthFailed'));
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
    */
   const handleBackupCodeLogin = async () => {
     if (!backupCode || backupCode.length !== 8) {
-      setError('8자리 백업 코드를 입력하세요');
+      setError(t('enterBackup8Digit'));
       return;
     }
 
@@ -97,7 +97,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
       const response = await otpService.loginWithBackupCode(backupCode);
       onSuccess(response.access_token);
     } catch (err: any) {
-      setError(err.message || '백업 코드 인증 실패');
+      setError(err.message || t('backupCodeAuthFailed'));
     } finally {
       setLoading(false);
     }
@@ -114,6 +114,11 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
     onClose();
   };
 
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+    setError(null);
+  };
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>{t('otpLoginTitle')}</DialogTitle>
@@ -126,7 +131,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
             </Alert>
           )}
 
-          <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
+          <Tabs value={activeTab} onChange={handleTabChange}>
             <Tab label={t('otpCode')} />
             <Tab label={t('backupCode')} />
           </Tabs>
@@ -141,7 +146,6 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="000000"
-                maxLength={6}
                 disabled={loading}
                 inputProps={{ maxLength: 6 }}
               />
@@ -158,7 +162,6 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
                 value={backupCode}
                 onChange={(e) => setBackupCode(e.target.value.toUpperCase().slice(0, 8))}
                 placeholder="ABCD1234"
-                maxLength={8}
                 disabled={loading}
                 inputProps={{ maxLength: 8 }}
               />
@@ -177,7 +180,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
             onClick={handleOTPLogin}
             disabled={!otpCode || otpCode.length !== 6 || loading}
           >
-            {loading ? <CircularProgress size={24} /> : '확인'}
+            {loading ? <CircularProgress size={24} /> : t('confirm')}
           </Button>
         ) : (
           <Button
@@ -185,7 +188,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
             onClick={handleBackupCodeLogin}
             disabled={!backupCode || backupCode.length !== 8 || loading}
           >
-            {loading ? <CircularProgress size={24} /> : '확인'}
+            {loading ? <CircularProgress size={24} /> : t('confirm')}
           </Button>
         )}
       </DialogActions>

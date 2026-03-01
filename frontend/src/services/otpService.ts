@@ -137,13 +137,15 @@ export class OTPService {
 
   /**
    * 사용자 OTP 상태 조회
-   * @param userId - 사용자 ID
    * @returns OTP 상태 정보
    */
-  async getOTPStatus(userId?: string): Promise<OTPStatusResponse | null> {
-    // NOTE: 별도의 상태 조회 엔드포인트는 정의되지 않음
-    // 로그인 후 사용자 정보에서 OTP 상태를 확인
-    return null;
+  async getOTPStatus(): Promise<OTPStatusResponse | null> {
+    try {
+      const response = await this.api.get<OTPStatusResponse>(`${this.API_BASE}/otp/status`);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, 'OTP 상태 조회 실패');
+    }
   }
 
   /**

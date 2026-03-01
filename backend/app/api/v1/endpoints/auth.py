@@ -237,7 +237,7 @@ async def enroll_otp(credentials=Depends(security)):
     except Exception as e:
         import traceback
         error_msg = f"OTP enroll error: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
+        logger.error(error_msg)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"OTP 생성 실패: {str(e)}"

@@ -11,17 +11,12 @@ import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   Refresh as RefreshIcon, DeleteSweep as DeleteSweepIcon,
-  RestoreFromTrash as RestoreIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
 import { codeService } from '../../../services/codeService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { useAuth } from '../../../hooks/useAuth';
 import type { User, UserCreate, UserUpdate } from '../../../types';
-import OTPEnrollModal from '../../../components/auth/OTPEnrollModal';
-import OTPLoginModal from '../../../components/auth/OTPLoginModal';
-import api from '../../../services/api';
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../../locales/ko.json";
@@ -30,18 +25,11 @@ import jaMessages from "../../../locales/ja.json";
 import cnMessages from "../../../locales/cn.json";
 
 const UserManagementTab: React.FC = () => {
-  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const { settings, fetchSettings } = useSettingsStore();
 
-  // OTP 관리 상태
-  const [myOtpEnabled, setMyOtpEnabled] = useState(false);
-  const [myOtpLoading, setMyOtpLoading] = useState(false);
-  const [otpEnrollModalOpen, setOtpEnrollModalOpen] = useState(false);
-  const [otpDisableModalOpen, setOtpDisableModalOpen] = useState(false);
-  const [otpDisableCode, setOtpDisableCode] = useState('');
   const [paginationModel, setPaginationModel] = useState({
     pageSize: 10,
     page: 0,
@@ -49,10 +37,10 @@ const UserManagementTab: React.FC = () => {
   const [pageSizeOptions, setPageSizeOptions] = useState<number[]>([10, 25, 50]);
 
   const [roleNames, setRoleNames] = useState<Record<string, string>>({
-    admin: '관리자',
-    monitoring: '모니터링',
-    approver: '결재자',
-    user: '사용자'
+    admin: '',
+    monitoring: '',
+    approver: '',
+    user: '',
   });
 
   // 다이얼로그 상태
@@ -108,24 +96,6 @@ const UserManagementTab: React.FC = () => {
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
-
-  // 내 OTP 상태 로드
-  const loadMyOtpStatus = useCallback(async () => {
-    try {
-      setMyOtpLoading(true);
-      const response = await api.get('/api/v1/auth/otp/status');
-      setMyOtpEnabled(response.data?.enabled || false);
-    } catch (err) {
-      console.error('OTP 상태 로드 실패:', err);
-    } finally {
-      setMyOtpLoading(false);
-    }
-  }, []);
-
-  // 초기 로드
-  useEffect(() => {
-    loadMyOtpStatus();
-  }, [loadMyOtpStatus]);
 
   useEffect(() => {
     if (settings && settings.pagination_size) {
@@ -317,11 +287,11 @@ const UserManagementTab: React.FC = () => {
       align: 'center',
       headerAlign: 'center',
       renderCell: (params: GridRenderCellParams) => (
-        <Stack direction="column" spacing={0.5} alignItems="center" sx={{ width: '100%' }}>
-          <Button size="small" variant="outlined" color="primary" startIcon={<RestoreIcon />} onClick={() => handleRestore(params.row.id)} sx={{ width: '100%', fontSize: '0.75rem' }}>
+        <Stack direction="column" spacing={0.5} alignItems="center" justifyContent="center" sx={{ width: '100%', height: '100%', py: 0.5 }}>
+          <Button size="small" variant="outlined" color="primary" onClick={() => handleRestore(params.row.id)} sx={{ width: '100%', fontSize: '0.7rem', py: 0.3 }}>
             {t('restoreUser')}
           </Button>
-          <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setPermanentDeleteId(params.row.id)} sx={{ width: '100%', fontSize: '0.75rem' }}>
+          <Button size="small" variant="outlined" color="error" onClick={() => setPermanentDeleteId(params.row.id)} sx={{ width: '100%', fontSize: '0.7rem', py: 0.3 }}>
             {t('permanentDelete')}
           </Button>
         </Stack>
@@ -367,7 +337,7 @@ const UserManagementTab: React.FC = () => {
             fontWeight: 'bold',
           }}
         >
-          {params.value ? '활성' : '-'}
+          {params.value ? t('active') : '-'}
         </Box>
       )
     },
@@ -413,81 +383,8 @@ const UserManagementTab: React.FC = () => {
     },
   ];
 
-  const handleOtpEnrollSuccess = () => {
-    setOtpEnrollModalOpen(false);
-    loadMyOtpStatus();
-    loadUsers(); // 사용자 목록 새로고침
-  };
-
-  const handleOtpDisable = async () => {
-    if (!otpDisableCode) {
-      setSnackbar({
-        open: true,
-        message: t('otpCode') + '을(를) 입력해주세요',
-        severity: 'error'
-      });
-      return;
-    }
-
-    try {
-      setMyOtpLoading(true);
-      await api.delete('/api/v1/auth/otp', {
-        data: { code: otpDisableCode }
-      });
-      setOtpDisableModalOpen(false);
-      setOtpDisableCode('');
-      setMyOtpEnabled(false);
-      setSnackbar({ open: true, message: 'OTP가 비활성화되었습니다', severity: 'success' });
-    } catch (err: any) {
-      setSnackbar({
-        open: true,
-        message: err.response?.data?.detail || 'OTP 비활성화 실패',
-        severity: 'error'
-      });
-    } finally {
-      setMyOtpLoading(false);
-    }
-  };
-
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
-      {/* 내 OTP 설정 섹션 */}
-      <Paper sx={{ p: 2, mb: 3, backgroundColor: 'rgba(76, 175, 80, 0.05)' }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              {t('otpEnrollTitle') || 'OTP 2단계 인증'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {myOtpEnabled
-                ? t('otpLoginTitle') + '이(가) 활성화되어 있습니다'
-                : 'OTP 2단계 인증을 활성화하면 더 안전하게 계정을 보호할 수 있습니다'}
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1}>
-            {myOtpEnabled ? (
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={() => setOtpDisableModalOpen(true)}
-                disabled={myOtpLoading}
-              >
-                비활성화
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="success"
-                onClick={() => setOtpEnrollModalOpen(true)}
-                disabled={myOtpLoading}
-              >
-                활성화
-              </Button>
-            )}
-          </Stack>
-        </Stack>
-      </Paper>
-
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('userManagement')}</Typography>
         <Stack direction="row" spacing={1}>
@@ -516,7 +413,7 @@ const UserManagementTab: React.FC = () => {
         </Stack>
       </Stack>
 
-      <Paper sx={{ height: 'calc(100vh - 230px)', width: '100%' }}>
+      <Paper sx={{ height: 'calc(100vh - 160px)', width: '100%' }}>
         <DataGrid
           rows={users}
           columns={columns}
@@ -608,49 +505,6 @@ const UserManagementTab: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* OTP 등록 모달 */}
-      <OTPEnrollModal
-        open={otpEnrollModalOpen}
-        onClose={() => setOtpEnrollModalOpen(false)}
-        onSuccess={handleOtpEnrollSuccess}
-        apiClient={api}
-      />
-
-      {/* OTP 비활성화 다이얼로그 */}
-      <Dialog open={otpDisableModalOpen} onClose={() => setOtpDisableModalOpen(false)}>
-        <DialogTitle>OTP 비활성화</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ mb: 2 }}>
-            OTP를 비활성화하려면 현재 OTP 코드를 입력해주세요.
-          </Typography>
-          <TextField
-            fullWidth
-            label={t('otpCode') || 'OTP 코드'}
-            value={otpDisableCode}
-            onChange={(e) => setOtpDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="000000"
-            maxLength={6}
-            disabled={myOtpLoading}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => { setOtpDisableModalOpen(false); setOtpDisableCode(''); }}
-            disabled={myOtpLoading}
-          >
-            취소
-          </Button>
-          <Button
-            onClick={handleOtpDisable}
-            color="error"
-            variant="contained"
-            disabled={!otpDisableCode || otpDisableCode.length !== 6 || myOtpLoading}
-          >
-            비활성화
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {/* 삭제된 사용자 다이얼로그 */}
       <Dialog open={deletedUsersOpen} onClose={() => setDeletedUsersOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>{t('deletedUsers')}</DialogTitle>
@@ -664,6 +518,7 @@ const UserManagementTab: React.FC = () => {
                 columns={deletedColumns}
                 loading={deletedUsersLoading}
                 disableRowSelectionOnClick
+                rowHeight={80}
                 pageSizeOptions={[10, 25]}
                 initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
                 sx={{ border: 'none', '& .MuiDataGrid-cell:focus': { outline: 'none' } }}

@@ -11,6 +11,7 @@ export interface AdvancedSettings {
   log_stream_size?: number;
   log_stream_refresh?: number;
   session_duration?: number;
+  otp_required?: boolean;
   role_names?: {
     admin: string;
     user: string;

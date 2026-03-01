@@ -24,6 +24,8 @@ class AdvancedSettingsService:
                 pixel_mode=False,
                 log_stream_size=1000,
                 log_stream_refresh=10,
+                session_duration=30,
+                otp_required=False,
             )
             await self.repository.update_settings(settings)
         return settings
@@ -41,6 +43,8 @@ class AdvancedSettingsService:
             pixel_mode=update_data.pixel_mode,
             log_stream_size=update_data.log_stream_size,
             log_stream_refresh=update_data.log_stream_refresh,
+            session_duration=update_data.session_duration,
+            otp_required=update_data.otp_required,
         )
         return await self.repository.update_settings(settings)
 

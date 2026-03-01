@@ -35,6 +35,7 @@ import { authService } from "../services/authService";
 import { advancedSettingsService } from "../services/advancedSettingsService";
 import AccountApplyModal from "../components/auth/AccountApplyModal";
 import OTPLoginModal from "../components/auth/OTPLoginModal";
+import OTPEnrollModal from "../components/auth/OTPEnrollModal";
 import api from "../services/api";
 
 import koMessages from "../locales/ko.json";
@@ -66,6 +67,8 @@ export const LoginPage: React.FC = () => {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [userRegisterEnabled, setUserRegisterEnabled] = useState(false);
   const [otpLoginModalOpen, setOtpLoginModalOpen] = useState(false);
+  const [otpEnrollAfterSignupOpen, setOtpEnrollAfterSignupOpen] = useState(false);
+  const [signupSuccessMsg, setSignupSuccessMsg] = useState('');
 
   useEffect(() => {
     // 고급 설정(사용자 가입 활성화 여부) 로드
@@ -286,6 +289,24 @@ export const LoginPage: React.FC = () => {
     navigate("/main");
   };
 
+  const handleApplySuccess = async (credentials: { username: string; password: string }) => {
+    // 신청 완료 후 자동 로그인 시도, 성공 시 OTP 등록 모달 표시
+    try {
+      await login(credentials.username, credentials.password, false);
+      // OTP 필수 여부와 관계없이 OTP 등록 권유
+      setOtpEnrollAfterSignupOpen(true);
+    } catch {
+      // 자동 로그인 실패 (관리자 승인 필요 등) 시 일반 안내
+      setSignupSuccessMsg(t('applySuccess'));
+      setOpenSnackbar(true);
+    }
+  };
+
+  const handleEnrollAfterSignupSuccess = () => {
+    setOtpEnrollAfterSignupOpen(false);
+    navigate("/main");
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -295,6 +316,14 @@ export const LoginPage: React.FC = () => {
         open={otpLoginModalOpen}
         onClose={() => setOtpLoginModalOpen(false)}
         onSuccess={handleOTPSuccess}
+        apiClient={api}
+      />
+
+      {/* 회원가입 후 OTP 등록 모달 */}
+      <OTPEnrollModal
+        open={otpEnrollAfterSignupOpen}
+        onClose={() => { setOtpEnrollAfterSignupOpen(false); navigate("/main"); }}
+        onSuccess={handleEnrollAfterSignupSuccess}
         apiClient={api}
       />
       <AppBar
@@ -583,24 +612,24 @@ export const LoginPage: React.FC = () => {
       <Snackbar
         open={openSnackbar}
         autoHideDuration={6000}
-        onClose={() => setOpenSnackbar(false)}
+        onClose={() => { setOpenSnackbar(false); setSignupSuccessMsg(''); }}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setOpenSnackbar(false)}
-          severity="error"
+          onClose={() => { setOpenSnackbar(false); setSignupSuccessMsg(''); }}
+          severity={signupSuccessMsg ? "success" : "error"}
           sx={{
             width: "100%",
             fontSize: "14px",
             fontWeight: 500,
-            backgroundColor: "#d32f2f",
-            color: "white",
-            "& .MuiAlert-icon": {
+            ...(signupSuccessMsg ? {} : {
+              backgroundColor: "#d32f2f",
               color: "white",
-            },
+              "& .MuiAlert-icon": { color: "white" },
+            }),
           }}
         >
-          {error}
+          {signupSuccessMsg || error}
         </Alert>
       </Snackbar>
 
@@ -683,9 +712,10 @@ export const LoginPage: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <AccountApplyModal 
-        open={applyModalOpen} 
-        onClose={() => setApplyModalOpen(false)} 
+      <AccountApplyModal
+        open={applyModalOpen}
+        onClose={() => setApplyModalOpen(false)}
+        onSuccess={handleApplySuccess}
       />
     </Container>
     </ThemeProvider>

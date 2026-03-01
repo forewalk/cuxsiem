@@ -35,6 +35,8 @@ class AdvancedSettingsRepository:
                     pixel_mode=data.get("pixel_mode", False),
                     log_stream_size=data.get("log_stream_size", 1000),
                     log_stream_refresh=data.get("log_stream_refresh", 10),
+                    session_duration=data.get("session_duration", 30),
+                    otp_required=data.get("otp_required", False),
                 )
             except Exception:
                 return None

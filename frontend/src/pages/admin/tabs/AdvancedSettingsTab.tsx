@@ -250,7 +250,25 @@ const AdvancedSettingsTab: React.FC = () => {
                 }
                 label={t('userRegistrationActivation')}
               />
-              
+
+              {/* OTP 필수 사용 */}
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.otp_required || false}
+                    onChange={(e) => handleChange('otp_required', e.target.checked)}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2">{t('otpRequired')}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {t('otpRequiredDesc')}
+                    </Typography>
+                  </Box>
+                }
+              />
+
               <FormControlLabel
                 control={
                   <Switch

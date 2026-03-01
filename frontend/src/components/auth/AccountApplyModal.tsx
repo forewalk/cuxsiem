@@ -24,9 +24,10 @@ import cnMessages from "../../locales/cn.json";
 interface AccountApplyModalProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: (credentials: { username: string; password: string }) => void;
 }
 
-const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) => {
+const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose, onSuccess }) => {
   const [formData, setFormData] = useState<UserApply>({
     username: '',
     email: '',
@@ -140,8 +141,13 @@ const AccountApplyModal: React.FC<AccountApplyModalProps> = ({ open, onClose }) 
     setError(null);
     try {
       await authService.applyAccount(formData);
-      alert(t('applySuccess'));
+      const credentials = { username: formData.username, password: formData.password };
       handleClose();
+      if (onSuccess) {
+        onSuccess(credentials);
+      } else {
+        alert(t('applySuccess'));
+      }
     } catch (err: any) {
       console.error("Account application failed:", err);
       let detail = err.response?.data?.detail || t('saveFailed');
