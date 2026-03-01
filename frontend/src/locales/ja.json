@@ -370,7 +370,8 @@
   "next": "次へ",
   "copy": "コピー",
   "otpRequired": "OTP必須使用",
-  "otpRequiredDesc": "有効化時、すべてのユーザーにOTP二段階認証を強制します。",
+  "otpRequiredDesc": "有効化時、管理者以外の全ユーザーはログイン時にOTP登録が強制されます。",
+  "noPermission": "アクセス権限がありません。",
   "otpStep1Label": "アプリ設定",
   "otpStep2Label": "コード確認",
   "otpStep3Label": "バックアップコード"

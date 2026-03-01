@@ -6,6 +6,7 @@ import {
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { passwordPolicyService } from '../../../services/passwordPolicyService';
 import type { PasswordPolicy } from '../../../services/passwordPolicyService';
+import { useAuth } from '../../../hooks/useAuth';
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -14,6 +15,7 @@ import jaMessages from "../../../locales/ja.json";
 import cnMessages from "../../../locales/cn.json";
 
 const PasswordPolicyTab: React.FC = () => {
+  const { user } = useAuth();
   const [policy, setPolicy] = useState<PasswordPolicy | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,6 +40,7 @@ const PasswordPolicyTab: React.FC = () => {
   }, [savedLanguage]);
 
   const loadPolicy = useCallback(async () => {
+    if (!user || user.role !== 'admin') { setLoading(false); return; }
     setLoading(true);
     try {
       const data = await passwordPolicyService.getPolicy();
@@ -78,6 +81,14 @@ const PasswordPolicyTab: React.FC = () => {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="100%">
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (user && user.role !== 'admin') {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Typography color="text.secondary">{t('noPermission')}</Typography>
       </Box>
     );
   }

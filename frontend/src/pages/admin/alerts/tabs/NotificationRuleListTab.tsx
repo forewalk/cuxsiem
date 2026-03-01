@@ -48,6 +48,7 @@ import {
   SEVERITY_OPTIONS
 } from '../components/AlertTableStyles';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { useAuth } from '@/hooks/useAuth';
 
 // i18n
 import koMessages from "../../../../locales/ko.json";
@@ -97,6 +98,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
 };
 
 const NotificationRuleListTab: React.FC = () => {
+  const { user } = useAuth();
   const [rules, setRules] = useState<NotificationRule[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -259,6 +261,7 @@ const NotificationRuleListTab: React.FC = () => {
   }, [formData.message_template, queryTestResult]);
 
   const loadRules = useCallback(async () => {
+    if (!user || user.role !== 'admin') { setLoading(false); return; }
     setLoading(true);
     try {
       const skip = page * rowsPerPage;
@@ -420,6 +423,14 @@ const NotificationRuleListTab: React.FC = () => {
     }
     setPage(0);
   };
+
+  if (user && user.role !== 'admin') {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Typography color="text.secondary">{t('noPermission')}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3}}>

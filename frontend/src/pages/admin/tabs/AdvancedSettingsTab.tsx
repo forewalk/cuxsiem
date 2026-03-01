@@ -9,6 +9,7 @@ import { advancedSettingsService, type AdvancedSettings } from '../../../service
 import { codeService } from '../../../services/codeService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import useTabStore from '../../../stores/tabStore';
+import { useAuth } from '../../../hooks/useAuth';
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -17,6 +18,7 @@ import jaMessages from "../../../locales/ja.json";
 import cnMessages from "../../../locales/cn.json";
 
 const AdvancedSettingsTab: React.FC = () => {
+  const { user } = useAuth();
   const { setMaxTabs } = useTabStore();
   const { updateSettings } = useSettingsStore();
   const [settings, setSettings] = useState<AdvancedSettings>({
@@ -54,6 +56,7 @@ const AdvancedSettingsTab: React.FC = () => {
   }, [savedLanguage]);
 
   const loadSettings = useCallback(async () => {
+    if (!user || user.role !== 'admin') { setLoading(false); return; }
     setLoading(true);
     try {
       const [settingsData, codesData] = await Promise.all([
@@ -204,6 +207,14 @@ const AdvancedSettingsTab: React.FC = () => {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="100%">
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (user && user.role !== 'admin') {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Typography color="text.secondary">{t('noPermission')}</Typography>
       </Box>
     );
   }

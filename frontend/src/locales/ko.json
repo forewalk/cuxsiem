@@ -384,7 +384,8 @@
   "next": "다음",
   "copy": "복사",
   "otpRequired": "OTP 필수 사용",
-  "otpRequiredDesc": "활성화 시 모든 사용자에게 OTP 2단계 인증을 강제합니다",
+  "otpRequiredDesc": "활성화 시 관리자를 제외한 모든 사용자는 로그인 시 OTP 등록이 강제됩니다.",
+  "noPermission": "접근 권한이 없습니다.",
   "otpStep1Label": "앱 설정",
   "otpStep2Label": "코드 확인",
   "otpStep3Label": "백업 코드"

@@ -66,16 +66,18 @@ export const LoginPage: React.FC = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [userRegisterEnabled, setUserRegisterEnabled] = useState(false);
+  const [otpRequired, setOtpRequired] = useState(false);
   const [otpLoginModalOpen, setOtpLoginModalOpen] = useState(false);
   const [otpEnrollAfterSignupOpen, setOtpEnrollAfterSignupOpen] = useState(false);
   const [signupSuccessMsg, setSignupSuccessMsg] = useState('');
 
   useEffect(() => {
-    // 고급 설정(사용자 가입 활성화 여부) 로드
+    // 고급 설정(사용자 가입 활성화 여부, OTP 필수 여부) 로드
     const loadAdvancedSettings = async () => {
       try {
         const settings = await advancedSettingsService.getSettings();
         setUserRegisterEnabled(settings.user_register);
+        setOtpRequired(settings.otp_required ?? false);
       } catch (err) {
         console.error("Failed to load advanced settings:", err);
         // 기본값은 false로 유지
@@ -173,9 +175,14 @@ export const LoginPage: React.FC = () => {
         try {
           const response = await api.get("/api/v1/auth/me");
           if (response.data?.otp_enabled === true) {
-            // OTP가 활성화되어 있으면 모달 띄우기
+            // OTP가 활성화되어 있으면 2FA 모달
             setOtpLoginModalOpen(true);
-            return; // 여기서 리턴해서 navigate하지 않음 (OTP 검증 후 navigate)
+            return;
+          }
+          // OTP 미등록 + otp_required ON + 관리자 제외 → 강제 등록
+          if (!response.data?.otp_enabled && otpRequired && response.data?.role !== 'admin') {
+            setOtpEnrollAfterSignupOpen(true);
+            return;
           }
         } catch (otpErr) {
           console.error("OTP 상태 확인 실패:", otpErr);
@@ -230,6 +237,20 @@ export const LoginPage: React.FC = () => {
     setConflictDialogOpen(false);
     try {
       await login(username, password, false, true);
+      // 강제 로그인 후에도 OTP 상태 확인
+      try {
+        const response = await api.get("/api/v1/auth/me");
+        if (response.data?.otp_enabled === true) {
+          setOtpLoginModalOpen(true);
+          return;
+        }
+        if (!response.data?.otp_enabled && otpRequired && response.data?.role !== 'admin') {
+          setOtpEnrollAfterSignupOpen(true);
+          return;
+        }
+      } catch (otpErr) {
+        console.error("OTP 상태 확인 실패:", otpErr);
+      }
       navigate("/main");
     } catch (err: any) {
       console.error("Force Login Error:", err);

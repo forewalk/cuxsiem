@@ -23,6 +23,7 @@ import 'dayjs/locale/en';
 // Stores & Types
 import { useLanguageStore } from "@/stores/useLanguageStore";
 import useTabStore from '@/stores/tabStore';
+import { useAuth } from '@/hooks/useAuth';
 import type { LogEntry } from '@/types';
 
 // Locales
@@ -43,6 +44,7 @@ import { useTimeSettings } from './hooks/useTimeSettings';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 
 const LogStreaming: React.FC = () => {
+  const { user } = useAuth();
   const { language } = useLanguageStore();
   const { activeTabId } = useTabStore();
   const { settings, fetchSettings } = useSettingsStore();
@@ -121,6 +123,14 @@ const LogStreaming: React.FC = () => {
     const unitText: any = { 'm': t('minutesAgo'), 'h': t('hoursAgo'), 'd': t('daysAgo') };
     return `~ ${v} ${unitText[u]}`;
   };
+
+  if (user && user.role !== 'admin') {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Typography color="text.secondary">{t('noPermission')}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', p: 3, gap: 1 }}>

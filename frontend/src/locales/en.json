@@ -360,7 +360,8 @@
   "next": "Next",
   "copy": "Copy",
   "otpRequired": "Require OTP",
-  "otpRequiredDesc": "When enabled, forces OTP two-factor authentication for all users.",
+  "otpRequiredDesc": "When enabled, all non-admin users must enroll OTP at login.",
+  "noPermission": "You do not have permission to access this page.",
   "otpStep1Label": "Setup App",
   "otpStep2Label": "Verify Code",
   "otpStep3Label": "Backup Codes"

@@ -16,6 +16,7 @@ import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
 import { codeService } from '../../../services/codeService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { useAuth } from '../../../hooks/useAuth';
 import type { User, UserCreate, UserUpdate } from '../../../types';
 
 // i18n: JSON 파일에서 번역 로드
@@ -25,6 +26,7 @@ import jaMessages from "../../../locales/ja.json";
 import cnMessages from "../../../locales/cn.json";
 
 const UserManagementTab: React.FC = () => {
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -112,6 +114,7 @@ const UserManagementTab: React.FC = () => {
   }, [settings]);
 
   const loadUsers = useCallback(async () => {
+    if (!user || user.role !== 'admin') { setLoading(false); return; }
     setLoading(true);
     try {
       const skip = paginationModel.page * paginationModel.pageSize;
@@ -382,6 +385,14 @@ const UserManagementTab: React.FC = () => {
       )
     },
   ];
+
+  if (user && user.role !== 'admin') {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <Typography color="text.secondary">{t('noPermission')}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
