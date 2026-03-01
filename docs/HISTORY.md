@@ -25,9 +25,10 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-02-28 | 김장훈 | 배포 | origin/develop push (테스트 시나리오 추가, cs_policies 통합, login_attempt account 필드, OTP 2FA 워크플로우 시작) |
-| 2026-02-28 | 김장훈 | 배포 | origin/develop push (ROADMAP.md 완료 항목 업데이트, develop↔origin/develop 동기화) |
-| 2026-02-28 | 김장훈 | 배포 | origin/main push (TDD 환경 구성 포함, develop 동기화) |
+| 2026-03-01 | 김장훈 | 배포 | origin/develop push (OTP 2FA 구현, OTP i18n+UI, OTP 강제 등록, admin 탭 권한 체크) |
+| 2026-02-28 03:00 | 김장훈 | 배포 | origin/develop push (테스트 시나리오 추가, cs_policies 통합, login_attempt account 필드, OTP 2FA 워크플로우 시작) |
+| 2026-02-28 03:00 | 김장훈 | 배포 | origin/develop push (ROADMAP.md 완료 항목 업데이트, develop↔origin/develop 동기화) |
+| 2026-02-28 03:00 | 김장훈 | 배포 | origin/main push (TDD 환경 구성 포함, develop 동기화) |
 | 2026-02-28 00:10 | 김장훈 | 배포 | origin/develop push (TDD 환경 구성: vitest, pytest 설정, 테스트 파일 정리) |
 | 2026-02-27 23:50 | 김장훈 | 배포 | origin/main push (develop 병합: 픽셀 모드 구현, CRT scanline, 마우스 트레일러, 마르키 전광판, 로그 스트리밍 UX 개선) |
 | 2026-02-27 23:30 | 김장훈 | 배포 | origin/develop push (feature/pixel 병합: 픽셀 모드 구현, CRT scanline, 마우스 트레일러, 마르키 전광판, 로그 스트리밍 UX 개선) |
