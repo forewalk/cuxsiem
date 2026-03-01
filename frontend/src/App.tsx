@@ -111,7 +111,7 @@ function App() {
 
   // 전역 알림 시스템 (WebSocket 기반 - 다중 Snackbar)
   const token = authService.getToken();
-  const { snackbars, handleCloseSnackbar, isConnected } = useGlobalAlertNotification(!!user, token);
+  const { snackbars, handleCloseSnackbar } = useGlobalAlertNotification(!!user, token);
   
   const theme = useMemo(() => {
     if (pixelMode) return createPixelTheme();

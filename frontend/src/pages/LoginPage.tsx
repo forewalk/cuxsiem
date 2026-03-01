@@ -305,7 +305,7 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleOTPSuccess = (accessToken: string) => {
+  const handleOTPSuccess = (_accessToken: string) => {
     setOtpLoginModalOpen(false);
     navigate("/main");
   };

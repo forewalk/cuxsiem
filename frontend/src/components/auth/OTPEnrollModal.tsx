@@ -18,7 +18,6 @@ import {
   Step,
   StepLabel,
   Alert,
-  CircularProgress,
   Paper,
   Typography,
   IconButton,
@@ -216,7 +215,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                       {t('manualKey')}
                     </Typography>
                     <Grid container spacing={1} alignItems="center" justifyContent="center">
-                      <Grid item>
+                      <Grid>
                         <TextField
                           value={manualKey}
                           disabled
@@ -224,7 +223,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                           sx={{ width: 200 }}
                         />
                       </Grid>
-                      <Grid item>
+                      <Grid>
                         <Tooltip title={copied ? t('copied') : t('copy')}>
                           <IconButton
                             size="small"
