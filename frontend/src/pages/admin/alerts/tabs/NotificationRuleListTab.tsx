@@ -324,7 +324,12 @@ const NotificationRuleListTab: React.FC = () => {
         interval_min: rule.interval_min,
         dedup_key_template: rule.dedup_key_template,
         trigger_condition: rule.trigger_condition || '',
-        receiver: JSON.parse(JSON.stringify(rule.receiver)),
+        receiver: {
+          ...rule.receiver,
+          values: (rule.receiver?.values || []).filter((v: string) =>
+            roleCodes.some(rc => rc.code === v)
+          )
+        },
         is_active: rule.is_active
       });
       setDslString(JSON.stringify(rule.condition_config, null, 2));

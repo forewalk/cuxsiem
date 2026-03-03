@@ -55,7 +55,7 @@ def migrate_notification_rules(client):
         response = client.search(
             index=NOTIFICATION_RULE_INDEX,
             body={
-                "query": {"term": {"receiver.values": old_role}},
+                "query": {"term": {"receiver.values.keyword": old_role}},
                 "size": 1000,
                 "_source": ["receiver"]
             }
@@ -82,7 +82,7 @@ def migrate_alert_history(client):
         response = client.search(
             index=ALERT_INDEX,
             body={
-                "query": {"term": {"receiver.values": old_role}},
+                "query": {"term": {"receiver.values.keyword": old_role}},
                 "size": 1000,
                 "_source": ["receiver"]
             }
