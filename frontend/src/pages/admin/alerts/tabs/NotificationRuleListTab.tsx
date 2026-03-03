@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import MonacoEditor from '@monaco-editor/react';
 import {
   Alert,
   Box,
@@ -27,7 +28,8 @@ import {
   TableRow,
   TableSortLabel,
   TextField,
-  Typography
+  Typography,
+  useTheme
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -100,6 +102,8 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
 
 const NotificationRuleListTab: React.FC = () => {
   const { user } = useAuth();
+  const theme = useTheme();
+  const monacoTheme = theme.palette.mode === 'dark' ? 'vs-dark' : 'light';
   const [rules, setRules] = useState<NotificationRule[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -693,27 +697,38 @@ const NotificationRuleListTab: React.FC = () => {
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
                     Define extraction query
                   </Typography>
-                  <TextField
-                    multiline
-                    fullWidth
-                    required
-                    value={dslString}
-                    onChange={(e) => handleDslChange(e.target.value)}
-                    error={!!jsonError}
-                    helperText={jsonError || t('dslQueryHelper')}
-                    inputProps={{style: {fontFamily: 'monospace', fontSize: '0.85rem'}}}
-                    sx={{
-                      flex: 1,
-                      '& .MuiInputBase-root': {
-                        height: '100%',
-                        alignItems: 'flex-start'
-                      },
-                      '& textarea': {
-                        height: '100% !important',
-                        overflow: 'auto !important'
-                      }
-                    }}
-                  />
+                  <Box sx={{
+                    flex: 1,
+                    border: '1px solid',
+                    borderColor: jsonError ? 'error.main' : 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    '&:focus-within': { borderColor: jsonError ? 'error.main' : 'primary.main', borderWidth: 2 }
+                  }}>
+                    <MonacoEditor
+                      height="100%"
+                      language="json"
+                      theme={monacoTheme}
+                      value={dslString}
+                      onChange={(val) => handleDslChange(val ?? '')}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 13,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        tabSize: 2,
+                        wordWrap: 'on',
+                        formatOnPaste: true,
+                        formatOnType: true,
+                        bracketPairColorization: { enabled: true },
+                        scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+                      }}
+                    />
+                  </Box>
+                  {jsonError && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>{jsonError}</Typography>
+                  )}
                   <Box sx={{mt: 1, display: 'flex', gap: 1, alignItems: 'center'}}>
                     <Button
                       variant="contained"
