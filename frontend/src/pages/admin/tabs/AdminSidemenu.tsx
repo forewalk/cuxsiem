@@ -175,7 +175,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
         </List>
       </Box>
 
-      {userRole === 'admin' && (
+      {userRole === 'role-1' && (
         <Box sx={{ mt: 'auto', borderTop: `1px solid ${theme.palette.divider}` }}>
           <List>
             <ListItem disablePadding sx={{ display: 'block' }}>

@@ -507,7 +507,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!isEditMode && onEdit && userRole === 'admin' && (
+            {!isEditMode && onEdit && userRole === 'role-1' && (
               <Button
                 variant="outlined"
                 size="small"
