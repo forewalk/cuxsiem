@@ -1,6 +1,4 @@
 import { create } from 'zustand';
-import dayjs from 'dayjs';
-
 interface TimeRange {
   fromValue: number | null;
   fromUnit: string;

@@ -9,7 +9,7 @@ import {
   ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Settings as SettingsIcon,
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
   ShowChart as ThreatsIcon, Terminal as TerminalIcon, Close as CloseIcon,
-  Notifications as NotificationsIcon, ListAlt as ListAltIcon, History as HistoryIcon,
+  Notifications as NotificationsIcon, History as HistoryIcon,
   Tune as AdvancedIcon, Devices as AgentIcon
 } from '@mui/icons-material';
 import useTabStore from '../../../stores/tabStore';
@@ -30,7 +30,6 @@ const listItemHeight = 48;
 const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
   // localStorage에서 메뉴 상태 로드 (기본값 false)
   const [openAdminMenu, setOpenAdminMenu] = useState(() => localStorage.getItem('sidemenu_admin') === 'true');
-  const [openNotificationMenu, setOpenNotificationMenu] = useState(() => localStorage.getItem('sidemenu_notif') === 'true');
   const [openDashboardMenu, setOpenDashboardMenu] = useState(() => localStorage.getItem('sidemenu_dash') === 'true');
   
   const theme = useTheme();
@@ -40,7 +39,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
   // 상태 변경 시 localStorage 저장
   useEffect(() => { localStorage.setItem('sidemenu_admin', openAdminMenu.toString()); }, [openAdminMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_notif', openNotificationMenu.toString()); }, [openNotificationMenu]);
   useEffect(() => { localStorage.setItem('sidemenu_dash', openDashboardMenu.toString()); }, [openDashboardMenu]);
 
   const handleAdminMenuClick = () => {
@@ -49,16 +47,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
       setOpenAdminMenu(true);
     } else {
       setOpenAdminMenu(!openAdminMenu);
-    }
-  };
-
-  const handleNotificationMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!drawerOpen && !isMobile) {
-      handleDrawerToggle();
-      setOpenNotificationMenu(true);
-    } else {
-      setOpenNotificationMenu(!openNotificationMenu);
     }
   };
 
