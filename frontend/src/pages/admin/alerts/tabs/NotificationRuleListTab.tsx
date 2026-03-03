@@ -77,18 +77,18 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
     },
     size: 100
   },
-  message_template: `⚠️ 총 {{total}}건의 위협이 탐지되었습니다.
+  message_template: `총 {{total}}건의 위협이 탐지되었습니다.
 
-📌 위협 ID:
+위협 ID:
 {{threatInfo.threatId}}
 
-🔍 위협 이름:
+위협 이름:
 {{threatInfo.threatName}}
 
-💻 영향받은 PC:
+영향받은 PC:
 {{agentDetectionInfo.agentComputerName}}
 
-👤 계정:
+계정:
 {{agentRealtimeInfo.accountName}}`,
   severity: 'info',
   interval_min: 1,
