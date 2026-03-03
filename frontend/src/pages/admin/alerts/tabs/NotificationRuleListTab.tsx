@@ -42,6 +42,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
+import { getRoleName } from '@/utils/roleUtils';
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
 import {
@@ -112,7 +113,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([10, 25, 50]);
   const [loading, setLoading] = useState(true);
   const {language} = useLanguageStore();
-  const { roleCodes, fetch: fetchRoleCodes } = useRoleCodesStore();
+  const { roleCodes, roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
 
   // WebSocket 실시간 새로고침 연동
   const token = localStorage.getItem('access_token');
@@ -949,7 +950,7 @@ const NotificationRuleListTab: React.FC = () => {
                         }}
                       />
                     }
-                    label={rc.name}
+                    label={getRoleName(rc.code, roleNames, language)}
                   />
                 ))}
               </Stack>

@@ -16,6 +16,7 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
+import { getRoleName } from '@/utils/roleUtils';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import AlertsControlBar from "../components/AlertsControlBar";
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
@@ -39,7 +40,8 @@ const translations: Record<string, Record<string, string>> = {
 const NotificationRow: React.FC<{
   row: NotificationHistory;
   roleNames: Record<string, string>;
-}> = ({ row, roleNames }) => {
+  language: string;
+}> = ({ row, roleNames, language }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -81,7 +83,7 @@ const NotificationRow: React.FC<{
               row.receiver.values.map((role: string) => (
                 <Chip
                   key={role}
-                  label={roleNames[role] || role}
+                  label={getRoleName(role, roleNames, language)}
                   size="small"
                   variant="outlined"
                   sx={{ fontSize: '0.7rem', height: 20 }}
@@ -362,6 +364,7 @@ const NotificationHistoryTab: React.FC = () => {
                       key={row.id}
                       row={row}
                       roleNames={roleNames}
+                      language={language}
                     />
                   ))
               )}

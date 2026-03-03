@@ -29,6 +29,7 @@ import cnMessages from "./locales/cn.json";
 import AdminSidemenu from "./components/AdminSidemenu";
 import { useRoleCodesStore } from "./stores/useRoleCodesStore";
 import NotificationBell from "./components/NotificationBell";
+import { getRoleName } from "./utils/roleUtils";
 
 const drawerWidth = 273;
 const collapsedWidth = 72;
@@ -387,7 +388,7 @@ function App() {
                   </IconButton>
                 )}
                 <Typography variant="body2" sx={{ color: theme.palette.text.primary, fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                  {user?.name ? (pixelMode ? `${ROLE_BADGES[user.role] || '[???]'} ${user.name}` : `${user.name} (${roleNames[user.role] || user.role})`) : ''}
+                  {user?.name ? (pixelMode ? `${ROLE_BADGES[user.role] || '[???]'} ${user.name}` : `${user.name} (${getRoleName(user.role, roleNames, language)})`) : ''}
                 </Typography>
               </Box>
 

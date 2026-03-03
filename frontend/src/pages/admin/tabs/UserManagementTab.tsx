@@ -20,6 +20,7 @@ import { codeService } from '../../../services/codeService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useAuth } from '../../../hooks/useAuth';
 import type { User, UserCreate, UserUpdate } from '../../../types';
+import { getRoleName } from '../../../utils/roleUtils';
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../../locales/ko.json";
@@ -323,7 +324,7 @@ const UserManagementTab: React.FC = () => {
       headerName: t('role'),
       flex: 0.8,
       renderCell: (params: GridRenderCellParams) => {
-        return roleNames[params.value as string] || params.value;
+        return getRoleName(params.value as string, roleNames, savedLanguage);
       }
     },
     {
@@ -502,10 +503,10 @@ const UserManagementTab: React.FC = () => {
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
-              <MenuItem value="role-1">{roleNames['role-1']}</MenuItem>
-              <MenuItem value="role-2">{roleNames['role-2']}</MenuItem>
-              <MenuItem value="role-3">{roleNames['role-3']}</MenuItem>
-              <MenuItem value="role-4">{roleNames['role-4']}</MenuItem>
+              <MenuItem value="role-1">{getRoleName('role-1', roleNames, savedLanguage)}</MenuItem>
+              <MenuItem value="role-2">{getRoleName('role-2', roleNames, savedLanguage)}</MenuItem>
+              <MenuItem value="role-3">{getRoleName('role-3', roleNames, savedLanguage)}</MenuItem>
+              <MenuItem value="role-4">{getRoleName('role-4', roleNames, savedLanguage)}</MenuItem>
             </TextField>
             <TextField
               label={t('password')}
