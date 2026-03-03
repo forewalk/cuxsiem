@@ -27,6 +27,7 @@ import enMessages from "./locales/en.json";
 import jaMessages from "./locales/ja.json";
 import cnMessages from "./locales/cn.json";
 import AdminSidemenu from "./components/AdminSidemenu";
+import { useRoleCodesStore } from "./stores/useRoleCodesStore";
 
 const drawerWidth = 273;
 const collapsedWidth = 72;
@@ -36,6 +37,7 @@ function App() {
   const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguageStore();
+  const { roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
   
   const { setMaxTabs } = useTabStore();
 
@@ -50,6 +52,10 @@ function App() {
 
   // 픽셀 모드 마우스 트레일러 (ref로 DOM 직접 제어 — 상태 변경 없이 성능 유지)
   const trailRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (user) fetchRoleCodes();
+  }, [user, fetchRoleCodes]);
+
   useEffect(() => {
     if (!pixelMode) return;
     const onMove = (e: MouseEvent) => {
@@ -380,7 +386,7 @@ function App() {
                   </IconButton>
                 )}
                 <Typography variant="body2" sx={{ color: theme.palette.text.primary, fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                  {user?.name ? (pixelMode ? `${ROLE_BADGES[user.role] || '[???]'} ${user.name}` : `${user.name} (${user.role})`) : ''}
+                  {user?.name ? (pixelMode ? `${ROLE_BADGES[user.role] || '[???]'} ${user.name}` : `${user.name} (${roleNames[user.role] || user.role})`) : ''}
                 </Typography>
               </Box>
 
