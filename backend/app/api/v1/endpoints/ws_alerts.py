@@ -106,3 +106,4 @@ async def websocket_alerts(
                 manager.active_connections[user_id].remove(websocket)
             if not manager.active_connections[user_id]:
                 del manager.active_connections[user_id]
+                manager.user_roles.pop(user_id, None)
