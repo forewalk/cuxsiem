@@ -657,16 +657,12 @@ const NotificationRuleListTab: React.FC = () => {
                            onChange={(e) => setFormData({...formData, name: e.target.value})} size="small"/>
                 <TextField label={t('ruleDescriptionLabel')} fullWidth multiline rows={2} value={formData.description}
                            onChange={(e) => setFormData({...formData, description: e.target.value})} size="small"/>
-                <Stack direction="row" spacing={2}>
-                  <TextField label={t('targetIndex')} fullWidth value={formData.target_index}
-                             onChange={(e) => setFormData({...formData, target_index: e.target.value})} size="small"/>
-                  <TextField select label={t('severity')} sx={{minWidth: 150}} value={formData.severity}
-                             onChange={(e) => setFormData({...formData, severity: e.target.value})} size="small">
-                    <MenuItem value="info">{t('severityInfo')}</MenuItem>
-                    <MenuItem value="warning">{t('severityWarning')}</MenuItem>
-                    <MenuItem value="error">{t('severityError')}</MenuItem>
-                  </TextField>
-                </Stack>
+                <TextField select label={t('severity')} value={formData.severity}
+                           onChange={(e) => setFormData({...formData, severity: e.target.value})} size="small">
+                  <MenuItem value="info">{t('severityInfo')}</MenuItem>
+                  <MenuItem value="warning">{t('severityWarning')}</MenuItem>
+                  <MenuItem value="error">{t('severityError')}</MenuItem>
+                </TextField>
               </Stack>
             </Grid>
 
