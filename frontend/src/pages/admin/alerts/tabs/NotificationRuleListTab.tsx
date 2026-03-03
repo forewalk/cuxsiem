@@ -703,7 +703,8 @@ const NotificationRuleListTab: React.FC = () => {
                     borderColor: jsonError ? 'error.main' : 'divider',
                     borderRadius: 1,
                     overflow: 'hidden',
-                    '&:focus-within': { borderColor: jsonError ? 'error.main' : 'primary.main', borderWidth: 2 }
+                    '&:focus-within': { borderColor: jsonError ? 'error.main' : 'primary.main', borderWidth: 2 },
+                    '& .monaco-editor .line-numbers': { textAlign: 'center !important' }
                   }}>
                     <MonacoEditor
                       height="100%"
