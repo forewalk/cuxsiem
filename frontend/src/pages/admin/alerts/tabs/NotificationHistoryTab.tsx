@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material';
 import { notificationService } from '@/services/notificationService.ts';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import type { NotificationHistory } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -37,8 +38,8 @@ const translations: Record<string, Record<string, string>> = {
 // 행 컴포넌트
 const NotificationRow: React.FC<{
   row: NotificationHistory;
-  t: (key: string) => string;
-}> = ({ row, t }) => {
+  roleNames: Record<string, string>;
+}> = ({ row, roleNames }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -80,12 +81,7 @@ const NotificationRow: React.FC<{
               row.receiver.values.map((role: string) => (
                 <Chip
                   key={role}
-                  label={
-                    role === 'user' ? t('userRoleUser') :
-                    role === 'monitoring' ? t('userRoleMonitoring') :
-                    role === 'approver' ? t('userRoleApprover') :
-                    role === 'admin' ? t('userRoleAdmin') : role
-                  }
+                  label={roleNames[role] || role}
                   size="small"
                   variant="outlined"
                   sx={{ fontSize: '0.7rem', height: 20 }}
@@ -147,6 +143,7 @@ const NotificationHistoryTab: React.FC = () => {
   const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([25, 50, 100]);
   const [loading, setLoading] = useState(true);
   const { language } = useLanguageStore();
+  const { roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
@@ -172,6 +169,10 @@ const NotificationHistoryTab: React.FC = () => {
 
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
+
+  useEffect(() => {
+    fetchRoleCodes();
+  }, [fetchRoleCodes]);
 
     // 고급 설정 로드 및 연동
     useEffect(() => {
@@ -360,7 +361,7 @@ const NotificationHistoryTab: React.FC = () => {
                     <NotificationRow
                       key={row.id}
                       row={row}
-                      t={t}
+                      roleNames={roleNames}
                     />
                   ))
               )}

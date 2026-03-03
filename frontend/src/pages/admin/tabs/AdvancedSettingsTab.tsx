@@ -8,6 +8,7 @@ import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { advancedSettingsService, type AdvancedSettings } from '../../../services/advancedSettingsService';
 import { codeService } from '../../../services/codeService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { useRoleCodesStore } from '../../../stores/useRoleCodesStore';
 import useTabStore from '../../../stores/tabStore';
 import { useAuth } from '../../../hooks/useAuth';
 
@@ -21,6 +22,7 @@ const AdvancedSettingsTab: React.FC = () => {
   const { user } = useAuth();
   const { setMaxTabs } = useTabStore();
   const { updateSettings } = useSettingsStore();
+  const { fetch: fetchRoleCodes } = useRoleCodesStore();
   const [settings, setSettings] = useState<AdvancedSettings>({
     user_register: false,
     allow_multiple_sessions: false,
@@ -180,6 +182,7 @@ const AdvancedSettingsTab: React.FC = () => {
           codeService.updateRoleCode('role-3', settings.role_names.approver),
           codeService.updateRoleCode('role-4', settings.role_names.user),
         ]);
+        fetchRoleCodes();
       }
 
       setSettings(prev => ({ ...prev, ...updated }));

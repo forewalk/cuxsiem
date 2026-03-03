@@ -37,6 +37,7 @@ import {
 } from '@mui/icons-material';
 import { notificationService } from '@/services/notificationService.ts';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
@@ -107,6 +108,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([10, 25, 50]);
   const [loading, setLoading] = useState(true);
   const {language} = useLanguageStore();
+  const { roleCodes, fetch: fetchRoleCodes } = useRoleCodesStore();
 
   // WebSocket 실시간 새로고침 연동
   const token = localStorage.getItem('access_token');
@@ -136,6 +138,10 @@ const NotificationRuleListTab: React.FC = () => {
       }
     }
   });
+
+  useEffect(() => {
+    fetchRoleCodes();
+  }, [fetchRoleCodes]);
 
   // 고급 설정 로드 및 연동
   useEffect(() => {
@@ -903,66 +909,24 @@ const NotificationRuleListTab: React.FC = () => {
                 {t('selectReceiverRoles')}
               </Typography>
               <Stack direction="row" spacing={2} flexWrap="wrap">
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.receiver?.values?.includes('user') || false}
-                      onChange={(e) => {
-                        const currentValues = formData.receiver?.values || [];
-                        const newValues = e.target.checked
-                          ? [...currentValues, 'user']
-                          : currentValues.filter((v: string) => v !== 'user');
-                        setFormData({...formData, receiver: {type: 'role', values: newValues}});
-                      }}
-                    />
-                  }
-                  label={t('userRoleUser')}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.receiver?.values?.includes('monitoring') || false}
-                      onChange={(e) => {
-                        const currentValues = formData.receiver?.values || [];
-                        const newValues = e.target.checked
-                          ? [...currentValues, 'monitoring']
-                          : currentValues.filter((v: string) => v !== 'monitoring');
-                        setFormData({...formData, receiver: {type: 'role', values: newValues}});
-                      }}
-                    />
-                  }
-                  label={t('userRoleMonitoring')}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.receiver?.values?.includes('approver') || false}
-                      onChange={(e) => {
-                        const currentValues = formData.receiver?.values || [];
-                        const newValues = e.target.checked
-                          ? [...currentValues, 'approver']
-                          : currentValues.filter((v: string) => v !== 'approver');
-                        setFormData({...formData, receiver: {type: 'role', values: newValues}});
-                      }}
-                    />
-                  }
-                  label={t('userRoleApprover')}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.receiver?.values?.includes('admin') || false}
-                      onChange={(e) => {
-                        const currentValues = formData.receiver?.values || [];
-                        const newValues = e.target.checked
-                          ? [...currentValues, 'admin']
-                          : currentValues.filter((v: string) => v !== 'admin');
-                        setFormData({...formData, receiver: {type: 'role', values: newValues}});
-                      }}
-                    />
-                  }
-                  label={t('userRoleAdmin')}
-                />
+                {roleCodes.map((rc) => (
+                  <FormControlLabel
+                    key={rc.code}
+                    control={
+                      <Switch
+                        checked={formData.receiver?.values?.includes(rc.code) || false}
+                        onChange={(e) => {
+                          const currentValues = formData.receiver?.values || [];
+                          const newValues = e.target.checked
+                            ? [...currentValues, rc.code]
+                            : currentValues.filter((v: string) => v !== rc.code);
+                          setFormData({...formData, receiver: {type: 'role', values: newValues}});
+                        }}
+                      />
+                    }
+                    label={rc.name}
+                  />
+                ))}
               </Stack>
             </Grid>
           </Grid>
