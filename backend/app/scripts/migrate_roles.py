@@ -6,7 +6,6 @@ TO-BE: role-1, role-2, role-3, role-4
 
 실행: python -m app.scripts.migrate_roles
 """
-import asyncio
 import sys
 import os
 
@@ -26,12 +25,10 @@ NOTIFICATION_RULE_INDEX = "cs_notification_rules"
 ALERT_INDEX = "cs_alerts"
 
 
-async def migrate_users():
-    client = await get_opensearch_client()
+def migrate_users(client):
     migrated = 0
-
     for old_role, new_role in ROLE_MIGRATION_MAP.items():
-        response = await client.search(
+        response = client.search(
             index=USER_INDEX,
             body={
                 "query": {"term": {"role": old_role}},
@@ -40,27 +37,22 @@ async def migrate_users():
             }
         )
         hits = response["hits"]["hits"]
-
         for hit in hits:
-            await client.update(
+            client.update(
                 index=USER_INDEX,
                 id=hit["_id"],
                 body={"doc": {"role": new_role}}
             )
             migrated += 1
-
         if hits:
             print(f"  cs_users: '{old_role}' → '{new_role}' ({len(hits)}명)")
-
     return migrated
 
 
-async def migrate_notification_rules():
-    client = await get_opensearch_client()
+def migrate_notification_rules(client):
     migrated = 0
-
     for old_role, new_role in ROLE_MIGRATION_MAP.items():
-        response = await client.search(
+        response = client.search(
             index=NOTIFICATION_RULE_INDEX,
             body={
                 "query": {"term": {"receiver.values": old_role}},
@@ -69,30 +61,25 @@ async def migrate_notification_rules():
             }
         )
         hits = response["hits"]["hits"]
-
         for hit in hits:
             receiver = hit["_source"].get("receiver", {})
             values = receiver.get("values", [])
             new_values = [new_role if v == old_role else v for v in values]
-            await client.update(
+            client.update(
                 index=NOTIFICATION_RULE_INDEX,
                 id=hit["_id"],
                 body={"doc": {"receiver": {**receiver, "values": new_values}}}
             )
             migrated += 1
-
         if hits:
             print(f"  cs_notification_rules: receiver '{old_role}' → '{new_role}' ({len(hits)}건)")
-
     return migrated
 
 
-async def migrate_alert_history():
-    client = await get_opensearch_client()
+def migrate_alert_history(client):
     migrated = 0
-
     for old_role, new_role in ROLE_MIGRATION_MAP.items():
-        response = await client.search(
+        response = client.search(
             index=ALERT_INDEX,
             body={
                 "query": {"term": {"receiver.values": old_role}},
@@ -101,45 +88,40 @@ async def migrate_alert_history():
             }
         )
         hits = response["hits"]["hits"]
-
         for hit in hits:
             receiver = hit["_source"].get("receiver", {})
             values = receiver.get("values", [])
             new_values = [new_role if v == old_role else v for v in values]
-            await client.update(
+            client.update(
                 index=ALERT_INDEX,
                 id=hit["_id"],
                 body={"doc": {"receiver": {**receiver, "values": new_values}}}
             )
             migrated += 1
-
         if hits:
             print(f"  cs_alerts: receiver '{old_role}' → '{new_role}' ({len(hits)}건)")
-
     return migrated
 
 
-async def main():
-    print("=== Role Migration 시작 ===")
-    print()
+def main():
+    client = get_opensearch_client()
+
+    print("=== Role Migration 시작 ===\n")
 
     print("[1/3] cs_users 마이그레이션...")
-    u = await migrate_users()
-    print(f"  → 총 {u}명 변환 완료")
-    print()
+    u = migrate_users(client)
+    print(f"  → 총 {u}명 변환 완료\n")
 
     print("[2/3] cs_notification_rules 마이그레이션...")
-    r = await migrate_notification_rules()
-    print(f"  → 총 {r}건 변환 완료")
-    print()
+    r = migrate_notification_rules(client)
+    print(f"  → 총 {r}건 변환 완료\n")
 
     print("[3/3] cs_alerts 마이그레이션...")
-    a = await migrate_alert_history()
-    print(f"  → 총 {a}건 변환 완료")
-    print()
+    a = migrate_alert_history(client)
+    print(f"  → 총 {a}건 변환 완료\n")
 
     print(f"=== 완료: 총 {u + r + a}건 변환 ===")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
