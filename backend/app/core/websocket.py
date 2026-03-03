@@ -11,10 +11,8 @@ class ConnectionManager:
         # user_id -> role (예: 'role-1', 'role-2', 'role-3', 'role-4')
         self.user_roles: Dict[str, str] = {}
     
-    async def connect(self, websocket: WebSocket, user_id: str, role: str):
-        """WebSocket 연결 수락 및 저장"""
-        await websocket.accept()
-        
+    def connect(self, websocket: WebSocket, user_id: str, role: str):
+        """WebSocket 연결 등록 (accept는 호출자가 먼저 수행)"""
         if user_id not in self.active_connections:
             self.active_connections[user_id] = []
         

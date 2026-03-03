@@ -107,12 +107,20 @@ export const useWebSocket = ({
 
         onDisconnectRef.current?.();
 
-        // 재연결 시도
-        if (shouldReconnect.current && reconnectCount.current < maxReconnectAttempts) {
+        if (!shouldReconnect.current) return;
+
+        if (reconnectCount.current < maxReconnectAttempts) {
+          // 일반 재연결
           reconnectCount.current++;
           reconnectTimeout.current = setTimeout(() => {
             connect();
           }, reconnectInterval);
+        } else {
+          // 한계 초과 시 5분 후 카운트 리셋 후 재시도
+          reconnectTimeout.current = setTimeout(() => {
+            reconnectCount.current = 0;
+            connect();
+          }, 5 * 60 * 1000);
         }
       };
 

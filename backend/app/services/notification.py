@@ -215,34 +215,6 @@ class NotificationService:
             # 평가 실패 시 안전하게 true 반환 (알림 생성)
             return True
     
-    def _format_aggregation_results(self, aggregations: Dict[str, Any]) -> str:
-        """
-        집계 결과를 포맷팅된 문자열로 변환
-        """
-        formatted_lines = []
-        
-        for agg_name, agg_data in aggregations.items():
-            if "buckets" in agg_data:
-                buckets = agg_data["buckets"]
-                for bucket in buckets:
-                    key = bucket.get("key", "Unknown")
-                    doc_count = bucket.get("doc_count", 0)
-                    
-                    line = f"  - {key}: {doc_count}건"
-                    
-                    # 중첩 집계가 있는 경우
-                    for nested_agg_name, nested_agg_data in bucket.items():
-                        if isinstance(nested_agg_data, dict) and "buckets" in nested_agg_data:
-                            nested_buckets = nested_agg_data["buckets"]
-                            if nested_buckets:
-                                nested_items = [f"{b.get('key', '')} ({b.get('doc_count', 0)}건)" 
-                                              for b in nested_buckets[:3]]  # 상위 3개만
-                                line += f"\n    주요 항목: {', '.join(nested_items)}"
-                    
-                    formatted_lines.append(line)
-        
-        return "\n".join(formatted_lines) if formatted_lines else "집계 결과 없음"
-    
     async def _create_aggregation_alert(
         self, 
         rule: Dict[str, Any], 

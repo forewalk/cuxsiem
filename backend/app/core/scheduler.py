@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -19,7 +19,7 @@ class DetectionScheduler:
         try:
             total, rules = await self.service.list_rules(limit=1000)
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             tasks = []
 
             for rule in rules:
@@ -38,6 +38,9 @@ class DetectionScheduler:
                 else:
                     try:
                         last_run_dt = datetime.fromisoformat(last_run_at.replace('Z', '+00:00'))
+                        # naive datetime이면 UTC로 간주 (timezone 충돌 방지)
+                        if last_run_dt.tzinfo is None:
+                            last_run_dt = last_run_dt.replace(tzinfo=timezone.utc)
                         elapsed_minutes = (now - last_run_dt).total_seconds() / 60
                         if elapsed_minutes >= interval_min:
                             should_run = True

@@ -352,12 +352,14 @@ class NotificationRepository:
                 must_clauses.append(range_filter)
 
             # role 기반 필터링 (receiver.values 배열에 user_role이 포함된 알림만 조회)
-            if user_role:
-                must_clauses.append({
-                    "term": {
-                        "receiver.values.keyword": user_role
-                    }
-                })
+            # user_role이 None이면 빈 결과 반환 (보안: 역할 불명 사용자에게 모든 알림 노출 방지)
+            if not user_role:
+                return 0, []
+            must_clauses.append({
+                "term": {
+                    "receiver.values.keyword": user_role
+                }
+            })
 
             # 최종 쿼리 구성
             if must_clauses:
