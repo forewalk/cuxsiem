@@ -48,11 +48,6 @@ class NotificationService:
 
     async def update_rule(self, rule_id: str, rule_in: NotificationRuleUpdate):
         data = rule_in.model_dump(exclude_none=True)
-        logger.info(f"[서비스] update_rule 호출 - rule_id: {rule_id}")
-        logger.info(f"[서비스] 받은 데이터 키: {list(data.keys())}")
-        logger.info(f"[서비스] condition_config 포함 여부: {'condition_config' in data}")
-        if 'condition_config' in data:
-            logger.info(f"[서비스] condition_config 내용: {data['condition_config']}")
         return await self.repository.update_rule(rule_id, data)
 
     async def delete_rule(self, rule_id: str):
@@ -75,16 +70,12 @@ class NotificationService:
             if "sort" not in search_body:
                 search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
             
-            logger.info(f"[쿼리 테스트] 인덱스: {target_index}, 쿼리: {search_body}")
-            
             # OpenSearch 쿼리 실행
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
                 lambda: self.repository.client.search(index=target_index, body=search_body)
             )
-            
-            logger.info(f"[쿼리 테스트] 성공 - Total: {result.get('hits', {}).get('total', {}).get('value', 0)}")
             
             return result
             
@@ -174,7 +165,6 @@ class NotificationService:
             # 중첩 필드 접근 - 모든 hits에서 추출
             keys = key.split('.')
             hits = context.get("hits", [])
-            logger.info(f"[템플릿] 필드 '{key}' 추출 시도 - hits 개수: {len(hits) if hits else 0}")
             
             if hits and isinstance(hits, list):
                 values = []
@@ -183,11 +173,9 @@ class NotificationService:
                     if hit_value is not None:
                         values.append(str(hit_value))
                 
-                logger.info(f"[템플릿] 필드 '{key}' 추출 결과: {len(values)}개 값")
                 if values:
                     # 중복 제거하고 줄바꿈으로 연결
-                    unique_values = list(dict.fromkeys(values))  # 순서 유지하며 중복 제거
-                    logger.info(f"[템플릿] 중복 제거 후: {len(unique_values)}개 값")
+                    unique_values = list(dict.fromkeys(values))
                     return "\n".join(unique_values)
             
             return f"{{{{{key}}}}}"  # 값이 없으면 원본 유지
@@ -220,7 +208,6 @@ class NotificationService:
             
             # Python 표현식 평가
             result = eval(condition, safe_namespace)
-            logger.info(f"[트리거] 조건 평가: '{condition}' = {result}")
             return bool(result)
         
         except Exception as e:
@@ -276,8 +263,6 @@ class NotificationService:
             }
             
             if not self._evaluate_trigger_condition(trigger_condition, trigger_context):
-                logger.info(f"[탐지] 트리거 조건 미충족 - 규칙: '{rule['name']}', 조건: '{trigger_condition}'")
-                logger.info(f"[탐지] 현재 값: total={total}")
                 return None
         
         # 중복 제거 키: 규칙 ID + 시간 윈도우 (분 단위로 동일 규칙은 하나의 알림만)
@@ -287,16 +272,11 @@ class NotificationService:
         # 중복 체크
         existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
         if existing_alert:
-            logger.info(f"[탐지] 중복 집계 알림 건너뜀 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
             return None
-        
-        logger.info(f"[탐지] 새 집계 알림 생성 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
         
         # 쿼리 결과 문서들 추출
         hits = result.get("hits", {}).get("hits", [])
         hit_sources = [hit.get("_source", {}) for hit in hits]
-        
-        logger.info(f"[템플릿] hits 개수: {len(hit_sources)}")
         
         # 메시지 템플릿 렌더링을 위한 context 구성
         template_context = {
@@ -367,10 +347,8 @@ class NotificationService:
             
             if receiver_values:
                 await manager.send_to_roles(roles=receiver_values, message=ws_message)
-                logger.info(f"WebSocket 집계 알림 전송 완료 - 수신자 역할: {receiver_values}")
             else:
                 await manager.broadcast(ws_message)
-                logger.info("WebSocket 집계 알림 브로드캐스트 완료 - 전체 사용자")
         except Exception as ws_error:
             logger.error(f"WebSocket 알림 전송 실패: {ws_error}")
         
@@ -401,9 +379,6 @@ class NotificationService:
             if "sort" not in search_body:
                 search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
 
-            logger.info(f"[탐지] 규칙 '{rule['name']}' 인덱스 '{target_index}'에서 탐지 실행 (사용자 정의 DSL)")
-            logger.info(f"[탐지] 쿼리: {search_body}")
-
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
@@ -413,8 +388,6 @@ class NotificationService:
             hits = result.get("hits", {}).get("hits", [])
             total = result.get("hits", {}).get("total", {}).get("value", 0)
             aggregations = result.get("aggregations") or result.get("aggs")
-            
-            logger.info(f"[탐지] 규칙 '{rule['name']}' 쿼리 결과: {total}개 이벤트 발견, 집계 결과: {'있음' if aggregations else '없음'}")
 
             await self.repository.update_rule(rule_id, {
                 "last_success_at": now.isoformat(),
@@ -424,7 +397,6 @@ class NotificationService:
 
             # 집계 결과가 있거나, 여러 문서를 한 번에 처리하는 경우
             if aggregations or (total > 1 and condition_config.get("size", 10) > 1):
-                logger.info(f"[탐지] 규칙 '{rule['name']}' - 집계 알림 생성 시작")
                 created_alert = await self._create_aggregation_alert(rule, result, now, aggregations or {}, total)
                 
                 if created_alert:
@@ -437,8 +409,6 @@ class NotificationService:
             
             # 기존 로직: 개별 문서 기반 알림 (total == 1인 경우만)
             if total > 0:
-                logger.info(f"[탐지] 규칙 '{rule['name']}' 발동: {total}개 이벤트 발견, 처리 시작...")
-
                 created_alerts = []
                 newly_created_count = 0
 
@@ -452,10 +422,7 @@ class NotificationService:
                     # 중복 체크: 이미 동일한 dedup_key를 가진 알림이 있는지 확인
                     existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
                     if existing_alert:
-                        logger.info(f"[탐지] 중복 알림 건너뜀 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
                         continue
-                    
-                    logger.info(f"[탐지] 새 알림 생성 - 규칙: '{rule['name']}', dedup_key: {dedup_key}")
 
                     # 메시지 템플릿 렌더링을 위한 context 구성
                     # event_source의 모든 필드 + 메타 정보 포함
@@ -530,7 +497,6 @@ class NotificationService:
                                     }
                                 }
                             )
-                            logger.info(f"WebSocket 알림 전송 완료 - 수신자 역할: {receiver_values}")
                         else:
                             # 수신자 없으면 모든 연결에 브로드캐스트
                             await manager.broadcast({
@@ -544,7 +510,6 @@ class NotificationService:
                                     "created_at": created_alert["created_at"]
                                 }
                             })
-                            logger.info("WebSocket 알림 브로드캐스트 완료 - 전체 사용자")
                     except Exception as ws_error:
                         logger.error(f"WebSocket 알림 전송 실패: {ws_error}")
                         # WebSocket 실패해도 알림 생성은 계속 진행
