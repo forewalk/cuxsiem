@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
 import { 
   Box, Paper, Typography, LinearProgress, Divider, 
   IconButton, TextField, useTheme,
@@ -15,6 +14,7 @@ import type { DashboardStatsResponse, DashboardPanel } from "../../../services/d
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useAuth } from "../../../hooks/useAuth";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
+import useAgentStore from "../../../stores/useAgentStore";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -254,10 +254,12 @@ const DraggablePanel: React.FC<{
 };
 
 const AgentDashboardTab: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { language } = useLanguageStore();
   const { user } = useAuth();
   const { settings, fetchSettings } = useSettingsStore();
+  
+  // 전역 스토어 사용
+  const { searchQuery, timeRange, setSearchQuery, setTimeRange } = useAgentStore();
   
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [originalPanels, setOriginalPanels] = useState<DashboardPanel[] | null>(null);
@@ -278,39 +280,22 @@ const AgentDashboardTab: React.FC = () => {
     fetchSettings();
   }, [fetchSettings]);
 
+  // 초기 설정값 적용 (스토어 업데이트)
   useEffect(() => {
     if (settings && !initializedRef.current) {
-      const newParams = new URLSearchParams(searchParams);
-      // 새로고침/진입 시 고급 설정값으로 강제 조정
-      newParams.set("ad_from_value", settings.time_filter_duration!.toString());
-      newParams.set("ad_from_unit", settings.time_filter_unit!);
-      // 종료 지점은 항상 '현재'로 리셋
-      newParams.delete("ad_to_value");
-      newParams.delete("ad_to_unit");
-      newParams.delete("ad_from_date");
-      newParams.delete("ad_to_date");
-      
-      setSearchParams(newParams, { replace: true });
+      setTimeRange({
+        fromValue: settings.time_filter_duration ?? 15,
+        fromUnit: settings.time_filter_unit ?? 'm',
+        toValue: null,
+        toUnit: 'm',
+        fromDate: null,
+        toDate: null
+      });
       initializedRef.current = true;
     }
-  }, [settings, searchParams, setSearchParams]);
+  }, [settings, setTimeRange]);
 
-  const sp_fromValue = searchParams.get("ad_from_value");
-  const fromValue = sp_fromValue !== null 
-    ? Number(sp_fromValue) 
-    : (settings?.time_filter_duration ?? 15);
-    
-  const sp_fromUnit = searchParams.get("ad_from_unit");
-  const fromUnit = sp_fromUnit !== null
-    ? sp_fromUnit
-    : (settings?.time_filter_unit || "m");
-
-  const sp_toValue = searchParams.get("ad_to_value");
-  const toValue = sp_toValue !== null ? Number(sp_toValue) : null;
-  const toUnit = searchParams.get("ad_to_unit") || "m";
-  const fromDate = searchParams.get("ad_from_date");
-  const toDate = searchParams.get("ad_to_date");
-  const searchQuery = searchParams.get("ad_q") || "";
+  const { fromValue, fromUnit, toValue, toUnit, fromDate, toDate } = timeRange;
 
   const t = useMemo(() => (key: string): string => (translations[language] || translations["ko"] || {})[key] || key, [language]);
 
@@ -328,17 +313,12 @@ const AgentDashboardTab: React.FC = () => {
   }, [fetchData, isEditMode]);
 
   const handleTimeChange = useCallback((fv: number | null, fu: string, tv: number | null, tu: string, fd: string | null, td: string | null) => {
-    const np = new URLSearchParams(searchParams);
-    if (fv !== null) np.set("ad_from_value", fv.toString()); else np.delete("ad_from_value");
-    np.set("ad_from_unit", fu); if (tv !== null) np.set("ad_to_value", tv.toString()); else np.delete("ad_to_value");
-    np.set("ad_to_unit", tu); if (fd) np.set("ad_from_date", fd); else np.delete("ad_from_date"); if (td) np.set("ad_to_date", td); else np.delete("ad_to_date");
-    setSearchParams(np);
-  }, [searchParams, setSearchParams]);
+    setTimeRange({ fromValue: fv, fromUnit: fu, toValue: tv, toUnit: tu, fromDate: fd, toDate: td });
+  }, [setTimeRange]);
 
   const handleSearchQueryChange = useCallback((q: string) => {
-    const np = new URLSearchParams(searchParams);
-    if (q) np.set("ad_q", q); else np.delete("ad_q"); setSearchParams(np);
-  }, [searchParams, setSearchParams]);
+    setSearchQuery(q);
+  }, [setSearchQuery]);
 
   const handleEditToggle = () => { if (!isEditMode) setOriginalPanels(data?.panels ? JSON.parse(JSON.stringify(data.panels)) : null); setIsEditMode(!isEditMode); };
   const handleCancel = () => { if (originalPanels && data) setData({ ...data, panels: JSON.parse(JSON.stringify(originalPanels)) }); setEditingTitleKey(null); setIsEditMode(false); };

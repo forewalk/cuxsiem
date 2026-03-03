@@ -115,7 +115,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
   }
 
   const Y_AXIS_WIDTH = 55;
-  const X_AXIS_HEIGHT = 25;
+  const X_AXIS_HEIGHT = 40; // 30 -> 40으로 추가 확장 (리스트 화면 대응)
 
   const CustomTooltip = ({ item }: { item: HistogramItem }) => (
     <Box sx={{ p: 0.5 }}>
@@ -129,7 +129,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
   );
 
   return (
-    <Box sx={{ width: "100%", height: height ? height : "100%", display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
+    <Box sx={{ width: "100%", height: height ? height : "100%", display: 'flex', flexDirection: 'column', userSelect: 'none', px: 1 }}>
       {title && <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold", color: 'text.secondary' }}>{title}</Typography>}
       
       {/* Main Chart Row */}
@@ -156,7 +156,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
         </Box>
 
         {/* Plot Column (SVG) */}
-        <Box sx={{ flexGrow: 1, position: 'relative', minWidth: 0 }}>
+        <Box sx={{ flexGrow: 1, position: 'relative', minWidth: 0, mr: 1 }}>
           {/* Background Grid Lines (CSS) */}
           {gridLines.map((line, i) => (
             <Box 
@@ -236,13 +236,16 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
       </Box>
 
       {/* X-Axis Row */}
-      <Box sx={{ height: X_AXIS_HEIGHT, ml: `${Y_AXIS_WIDTH}px`, position: 'relative', flexShrink: 0 }}>
+      <Box sx={{ height: X_AXIS_HEIGHT, minHeight: X_AXIS_HEIGHT, ml: `${Y_AXIS_WIDTH}px`, mr: 1, position: 'relative', flexShrink: 0, overflow: 'visible' }}>
         {data.map((item, i) => {
           const maxLabels = window.innerWidth < 600 ? 4 : 8;
           const labelStep = Math.ceil(data.length / maxLabels);
           if (i % labelStep !== 0) return null;
 
+          const isFirst = i === 0;
+          const isLast = i >= data.length - labelStep;
           const xPct = (i / data.length) * 100;
+
           return (
             <Typography 
               key={i} 
@@ -250,9 +253,9 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
               sx={{ 
                 position: 'absolute', 
                 left: `${xPct}%`, 
-                transform: 'translateX(-50%)', 
-                top: 4,
-                color: 'text.secondary', 
+                transform: isFirst ? 'none' : (isLast ? 'translateX(-100%)' : 'translateX(-50%)'), 
+                top: 0, // 8 -> 0으로 변경하여 위로 끌어올림
+                color: 'text.primary', 
                 fontSize: '10px',
                 whiteSpace: 'nowrap'
               }}

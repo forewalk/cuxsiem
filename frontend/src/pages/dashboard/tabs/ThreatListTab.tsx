@@ -11,6 +11,7 @@ import { getDashboardStats, getIndexFields, getDashboardIndices, getIndexLogs } 
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
+import useThreatStore from "../../../stores/useThreatStore";
 import dayjs from "dayjs";
 
 // Icons
@@ -34,28 +35,13 @@ import jaMessages from "../../../locales/ja.json";
 import cnMessages from "../../../locales/cn.json";
 
 const ThreatListTab: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { language } = useLanguageStore();
   const { settings, fetchSettings } = useSettingsStore();
   const theme = useTheme();
 
-  // URL 파라미터 또는 고급 설정 기본값 사용
-  const sp_fromValue = searchParams.get("tl_from_value");
-  const fromValue = sp_fromValue !== null 
-    ? Number(sp_fromValue) 
-    : (settings?.time_filter_duration ?? 15);
-    
-  const sp_fromUnit = searchParams.get("tl_from_unit");
-  const fromUnit = sp_fromUnit !== null
-    ? sp_fromUnit
-    : (settings?.time_filter_unit || "m");
-    
-  const sp_toValue = searchParams.get("tl_to_value");
-  const toValue = sp_toValue !== null ? Number(sp_toValue) : null;
-  const toUnit = searchParams.get("tl_to_unit") || "m";
-  const fromDate = searchParams.get("tl_from_date");
-  const toDate = searchParams.get("tl_to_date");
-  const searchQuery = searchParams.get("tl_q") || "";
+  // 전역 스토어 사용
+  const { searchQuery, timeRange, setSearchQuery, setTimeRange } = useThreatStore();
+  const { fromValue, fromUnit, toValue, toUnit, fromDate, toDate } = timeRange;
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -88,22 +74,20 @@ const ThreatListTab: React.FC = () => {
     fetchSettings();
   }, [fetchSettings]);
 
+  // 초기 설정값 적용 (스토어 업데이트)
   useEffect(() => {
     if (settings && !initializedRef.current) {
-      const newParams = new URLSearchParams(searchParams);
-      // 새로고침/진입 시 고급 설정값으로 강제 조정
-      newParams.set("tl_from_value", settings.time_filter_duration!.toString());
-      newParams.set("tl_from_unit", settings.time_filter_unit!);
-      // 종료 지점은 항상 '현재'로 리셋
-      newParams.delete("tl_to_value");
-      newParams.delete("tl_to_unit");
-      newParams.delete("tl_from_date");
-      newParams.delete("tl_to_date");
-      
-      setSearchParams(newParams, { replace: true });
+      setTimeRange({
+        fromValue: settings.time_filter_duration ?? 15,
+        fromUnit: settings.time_filter_unit ?? 'm',
+        toValue: null,
+        toUnit: 'm',
+        fromDate: null,
+        toDate: null
+      });
       initializedRef.current = true;
     }
-  }, [settings, searchParams, setSearchParams]);
+  }, [settings, setTimeRange]);
 
   useEffect(() => {
     if (settings) {
@@ -219,31 +203,11 @@ const ThreatListTab: React.FC = () => {
   }, [language]);
 
   const handleTimeChange = (fVal: number | null, fUnit: string, tVal: number | null, tUnit: string, fDate: string | null = null, tDate: string | null = null) => {
-    const newParams = new URLSearchParams(searchParams);
-    
-    if (fDate && tDate) {
-      // 절대 시간 모드
-      newParams.delete("tl_from_value");
-      newParams.delete("tl_to_value");
-      newParams.set("tl_from_date", fDate);
-      newParams.set("tl_to_date", tDate);
-    } else {
-      // 상대 시간 모드
-      if (fVal !== null) newParams.set("tl_from_value", fVal.toString()); else newParams.delete("tl_from_value");
-      newParams.set("tl_from_unit", fUnit);
-      if (tVal !== null) newParams.set("tl_to_value", tVal.toString()); else newParams.delete("tl_to_value");
-      newParams.set("tl_to_unit", tUnit);
-      newParams.delete("tl_from_date");
-      newParams.delete("tl_to_date");
-    }
-    
-    setSearchParams(newParams);
+    setTimeRange({ fromValue: fVal, fromUnit: fUnit, toValue: tVal, toUnit: tUnit, fromDate: fDate, toDate: tDate });
   };
 
   const handleSearchQueryChange = (query: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (query) newParams.set("tl_q", query); else newParams.delete("tl_q");
-    setSearchParams(newParams);
+    setSearchQuery(query);
   };
 
   const fetchData = useCallback(async () => {
