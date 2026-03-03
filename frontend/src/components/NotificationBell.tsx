@@ -9,13 +9,23 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
+import 'dayjs/locale/en';
+import 'dayjs/locale/ja';
+import 'dayjs/locale/zh-cn';
 import { notificationService } from '@/services/notificationService';
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import useTabStore from '@/stores/tabStore';
+import { useLanguageStore } from '@/stores/useLanguageStore';
 import type { NotificationHistory } from '@/types';
 
 dayjs.extend(relativeTime);
-dayjs.locale('ko');
+
+const DAYJS_LOCALE_MAP: Record<string, string> = {
+  ko: 'ko',
+  en: 'en',
+  ja: 'ja',
+  cn: 'zh-cn',
+};
 
 interface NotificationBellProps {
   unreadCount: number;
@@ -27,6 +37,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
   const [notifications, setNotifications] = useState<NotificationHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const { addTab } = useTabStore();
+  const { language } = useLanguageStore();
+  const dayjsLocale = DAYJS_LOCALE_MAP[language] || 'en';
 
   const handleOpen = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(e.currentTarget);
@@ -111,7 +123,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
                         {n.rule_name}
                       </Typography>
                       <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>
-                        {dayjs(n.created_at).fromNow()}
+                        {dayjs(n.created_at).locale(dayjsLocale).fromNow()}
                       </Typography>
                     </Box>
                     <Typography
