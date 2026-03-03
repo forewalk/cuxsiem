@@ -28,6 +28,7 @@ import jaMessages from "./locales/ja.json";
 import cnMessages from "./locales/cn.json";
 import AdminSidemenu from "./components/AdminSidemenu";
 import { useRoleCodesStore } from "./stores/useRoleCodesStore";
+import NotificationBell from "./components/NotificationBell";
 
 const drawerWidth = 273;
 const collapsedWidth = 72;
@@ -117,7 +118,7 @@ function App() {
 
   // 전역 알림 시스템 (WebSocket 기반 - 다중 Snackbar)
   const token = authService.getToken();
-  const { snackbars, handleCloseSnackbar } = useGlobalAlertNotification(!!user, token);
+  const { snackbars, handleCloseSnackbar, unreadCount, resetUnreadCount } = useGlobalAlertNotification(!!user, token);
   
   const theme = useMemo(() => {
     if (pixelMode) return createPixelTheme();
@@ -423,6 +424,9 @@ function App() {
                   <MenuItem value="ja">日本語</MenuItem>
                   <MenuItem value="cn">简体中文</MenuItem>
                 </Select>
+                {user && (
+                  <NotificationBell unreadCount={unreadCount} onOpen={resetUnreadCount} />
+                )}
                 <IconButton onClick={handleDarkModeChange} sx={{ color: theme.palette.text.primary, p: { xs: 0.5, sm: 1 } }}>
                   {darkMode ? <Brightness7Icon sx={{ fontSize: { xs: 20, sm: 24 } }} /> : <Brightness4Icon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
                 </IconButton>

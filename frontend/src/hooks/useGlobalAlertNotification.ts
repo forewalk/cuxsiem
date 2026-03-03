@@ -21,6 +21,7 @@ export interface AlertSnackbar {
  */
 export const useGlobalAlertNotification = (isAuthenticated: boolean, token: string | null) => {
   const [snackbars, setSnackbars] = useState<AlertSnackbar[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // WebSocket URL 생성
   const wsUrl = useMemo(() => {
@@ -62,7 +63,8 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean, token: stri
       };
       
       setSnackbars((prev) => [...prev, newSnackbar]);
-      
+      setUnreadCount((prev) => prev + 1);
+
       // 10초 후 자동 제거
       setTimeout(() => {
         setSnackbars((prev) => prev.filter(s => s.id !== newSnackbar.id));
@@ -81,9 +83,15 @@ export const useGlobalAlertNotification = (isAuthenticated: boolean, token: stri
     setSnackbars((prev) => prev.filter(s => s.id !== id));
   }, []);
 
+  const resetUnreadCount = useCallback(() => {
+    setUnreadCount(0);
+  }, []);
+
   return {
     snackbars,
     handleCloseSnackbar,
-    isConnected  // WebSocket 연결 상태도 반환
+    isConnected,
+    unreadCount,
+    resetUnreadCount,
   };
 };
