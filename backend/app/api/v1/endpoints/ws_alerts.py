@@ -73,7 +73,6 @@ async def websocket_alerts(
             await websocket.close(code=1008, reason="User not found")
             return
         
-        logger.info(f"WebSocket connected: user={user_email}, user_id={user_id}")
         
         # ConnectionManager에 등록
         manager.active_connections[user_id] = manager.active_connections.get(user_id, [])
@@ -94,11 +93,8 @@ async def websocket_alerts(
             if data == "ping":
                 await websocket.send_json({"type": "pong"})
             
-    except WebSocketDisconnect:
-        logger.info(f"WebSocket disconnected: user={user_email}")
-    
-    except Exception as e:
-        logger.error(f"WebSocket error: {e}")
+    except (WebSocketDisconnect, Exception):
+        pass
     
     finally:
         # 연결 정리

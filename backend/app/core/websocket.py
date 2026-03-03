@@ -1,9 +1,5 @@
 from typing import List, Dict
 from fastapi import WebSocket
-import logging
-import json
-
-logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
@@ -21,14 +17,12 @@ class ConnectionManager:
             self.active_connections[user_id] = []
         
         self.active_connections[user_id].append(websocket)
-        logger.info(f"WebSocket connected: user_id={user_id}, total_connections={len(self.active_connections[user_id])}")
     
     def disconnect(self, websocket: WebSocket, user_id: str):
         """WebSocket 연결 제거"""
         if user_id in self.active_connections:
             if websocket in self.active_connections[user_id]:
                 self.active_connections[user_id].remove(websocket)
-                logger.info(f"WebSocket disconnected: user_id={user_id}, remaining={len(self.active_connections[user_id])}")
             
             # 사용자의 모든 연결이 끊어지면 삭제
             if not self.active_connections[user_id]:
@@ -45,8 +39,7 @@ class ConnectionManager:
         for connection in self.active_connections[user_id]:
             try:
                 await connection.send_json(message)
-            except Exception as e:
-                logger.error(f"Failed to send message to user {user_id}: {e}")
+            except Exception:
                 dead_connections.append(connection)
         
         # 죽은 연결 제거
