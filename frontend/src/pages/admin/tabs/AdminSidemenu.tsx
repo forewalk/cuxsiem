@@ -172,6 +172,19 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <ListItemText primary={t('logStreaming')} sx={listItemTextStyle} />
             </ListItemButton>
           </ListItem>
+
+          {/* 알림 내역 - 모든 역할 */}
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={() => handleMenuTabClick(t('notificationHistory'), 'NotificationHistoryTab', 'notificationHistory')}
+              sx={{ minHeight: listItemHeight, px: 2.5 }}
+            >
+              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
+                <HistoryIcon />
+              </ListItemIcon>
+              <ListItemText primary={t('notificationHistory')} sx={listItemTextStyle} />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Box>
 
@@ -202,40 +215,16 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                   <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
                 </ListItemButton>
 
-                {/* Notification Center Accordion */}
+                {/* 알림 규칙 - role-1 전용 */}
                 <ListItemButton
                   sx={{ pl: 4, minHeight: listItemHeight }}
-                  onClick={handleNotificationMenuClick}
+                  onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}
                 >
                   <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
                     <NotificationsIcon />
                   </ListItemIcon>
                   <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
-                  {(drawerOpen || isMobile) && (openNotificationMenu ? <ExpandLess /> : <ExpandMore />)}
                 </ListItemButton>
-
-                <Collapse in={openNotificationMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding>
-                    <ListItemButton
-                      sx={{ pl: 6, minHeight: listItemHeight }}
-                      onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}
-                    >
-                      <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
-                        <ListAltIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText primary={t('notificationRuleList')} sx={listItemTextStyle} />
-                    </ListItemButton>
-                    <ListItemButton
-                      sx={{ pl: 6, minHeight: listItemHeight }}
-                      onClick={() => handleMenuTabClick(t('notificationHistory'), 'NotificationHistoryTab', 'notificationHistory')}
-                    >
-                      <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
-                        <HistoryIcon fontSize="small" />
-                      </ListItemIcon>
-                      <ListItemText primary={t('notificationHistory')} sx={listItemTextStyle} />
-                    </ListItemButton>
-                  </List>
-                </Collapse>
 
                 <ListItemButton
                   sx={{ pl: 4, minHeight: listItemHeight }}
