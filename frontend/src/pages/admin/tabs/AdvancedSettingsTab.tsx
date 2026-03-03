@@ -18,20 +18,33 @@ import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
 import cnMessages from "../../../locales/cn.json";
 
+const allTranslations: Record<string, Record<string, string>> = {
+  ko: koMessages,
+  en: enMessages,
+  ja: jaMessages,
+  cn: cnMessages,
+};
+
 const AdvancedSettingsTab: React.FC = () => {
   const { user } = useAuth();
   const { setMaxTabs } = useTabStore();
   const { updateSettings } = useSettingsStore();
   const { fetch: fetchRoleCodes } = useRoleCodesStore();
+
+  // useState 초기값에서 t()를 쓸 수 있도록 동기 함수로 먼저 정의
+  const savedLanguage = localStorage.getItem("appLanguage") || "ko";
+  const tEager = (key: string): string =>
+    allTranslations[savedLanguage]?.[key] || allTranslations["ko"]?.[key] || key;
+
   const [settings, setSettings] = useState<AdvancedSettings>({
     user_register: false,
     allow_multiple_sessions: false,
     tab_count: 10,
     role_names: {
-      admin: '관리자',
-      user: '사용자',
-      monitoring: '모니터링',
-      approver: '결재자',
+      admin: tEager('roleDefault1'),
+      user: tEager('roleDefault4'),
+      monitoring: tEager('roleDefault2'),
+      approver: tEager('roleDefault3'),
     }
   });
   const [loading, setLoading] = useState(true);
@@ -43,17 +56,8 @@ const AdvancedSettingsTab: React.FC = () => {
     severity: 'success',
   });
 
-  // i18n
-  const savedLanguage = localStorage.getItem("appLanguage") || "ko";
-  const translations: Record<string, Record<string, string>> = {
-    ko: koMessages,
-    en: enMessages,
-    ja: jaMessages,
-    cn: cnMessages,
-  };
-
   const t = useCallback((key: string): string => {
-    const currentTranslations = translations[savedLanguage] || translations["ko"] || {};
+    const currentTranslations = allTranslations[savedLanguage] || allTranslations["ko"] || {};
     return currentTranslations[key] || key;
   }, [savedLanguage]);
 
@@ -77,10 +81,10 @@ const AdvancedSettingsTab: React.FC = () => {
       // DB에서 가져온 코드를 상태에 매핑
       if (codesData.length > 0) {
         const roleNames = {
-          admin: settings.role_names?.admin || '관리자',
-          user: settings.role_names?.user || '사용자',
-          monitoring: settings.role_names?.monitoring || '모니터링',
-          approver: settings.role_names?.approver || '결재자'
+          admin: settings.role_names?.admin || t('roleDefault1'),
+          user: settings.role_names?.user || t('roleDefault4'),
+          monitoring: settings.role_names?.monitoring || t('roleDefault2'),
+          approver: settings.role_names?.approver || t('roleDefault3'),
         };
         codesData.forEach(c => {
           if (c.id === 'role-1') roleNames.admin = c.code_name;

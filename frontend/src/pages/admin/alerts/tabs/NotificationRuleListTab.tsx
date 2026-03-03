@@ -330,9 +330,12 @@ const NotificationRuleListTab: React.FC = () => {
         trigger_condition: rule.trigger_condition || '',
         receiver: {
           ...rule.receiver,
-          values: (rule.receiver?.values || []).filter((v: string) =>
-            roleCodes.some(rc => rc.code === v)
-          )
+          values: (() => {
+            const legacyMap: Record<string, string> = { admin: 'role-1', user: 'role-2' };
+            const mapped = (rule.receiver?.values || []).map((v: string) => legacyMap[v] ?? v);
+            if (roleCodes.length === 0) return mapped;
+            return mapped.filter((v: string) => roleCodes.some(rc => rc.code === v));
+          })(),
         },
         is_active: rule.is_active
       });
@@ -817,7 +820,7 @@ const NotificationRuleListTab: React.FC = () => {
                     ) : (
                       <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
                         <Typography variant="body2" color="text.secondary">
-                          Run Query 버튼을 눌러 쿼리를 실행하세요
+                          {t('runQueryPrompt')}
                         </Typography>
                       </Box>
                     )}
@@ -912,7 +915,7 @@ const NotificationRuleListTab: React.FC = () => {
                     {!queryTestResult && formData.message_template && (
                       <Box sx={{mt: 2, p: 1, bgcolor: 'info.lighter', borderRadius: 1, border: '1px solid', borderColor: 'info.light'}}>
                         <Typography variant="caption" color="info.dark">
-                          실제 데이터로 프리뷰를 보려면 위의 "Run Query" 버튼을 먼저 실행하세요
+                          {t('runQueryPreviewHint')}
                         </Typography>
                       </Box>
                     )}
