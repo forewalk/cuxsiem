@@ -74,9 +74,12 @@ async def websocket_alerts(
             return
         
         
-        # ConnectionManager에 등록
-        manager.active_connections[user_id] = manager.active_connections.get(user_id, [])
+        # ConnectionManager에 등록 (role 포함)
+        user_role = user.role if hasattr(user, 'role') else 'user'
+        if user_id not in manager.active_connections:
+            manager.active_connections[user_id] = []
         manager.active_connections[user_id].append(websocket)
+        manager.user_roles[user_id] = user_role
         
         # 연결 성공 메시지 전송
         await websocket.send_json({
