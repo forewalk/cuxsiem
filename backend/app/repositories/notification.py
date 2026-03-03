@@ -355,7 +355,7 @@ class NotificationRepository:
             if user_role:
                 must_clauses.append({
                     "term": {
-                        "receiver.values": user_role
+                        "receiver.values.keyword": user_role
                     }
                 })
 
