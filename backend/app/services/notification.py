@@ -327,8 +327,6 @@ class NotificationService:
         
         created_alert = await self.repository.create_alert(alert_data)
         
-        # 터미널에서 즉시 확인할 수 있도록 출력
-        
         # WebSocket으로 실시간 알림 전송
         try:
             receiver_values = rule.get("receiver", {}).get("values", [])
@@ -474,8 +472,6 @@ class NotificationService:
                     created_alerts.append(created_alert)
                     newly_created_count += 1
 
-                    # 터미널에서 즉시 확인할 수 있도록 출력
-
                     # WebSocket으로 실시간 알림 전송
                     try:
                         receiver_values = rule.get("receiver", {}).get("values", [])
@@ -520,9 +516,6 @@ class NotificationService:
                     })
 
                 return created_alerts[0] if created_alerts else None
-            else:
-                logger.info(f"[탐지] 규칙 '{rule['name']}' - 조건에 맞는 이벤트 없음 (total: {total})")
-
             return None
 
         except Exception as e:
