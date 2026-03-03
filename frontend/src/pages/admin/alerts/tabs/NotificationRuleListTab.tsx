@@ -653,16 +653,18 @@ const NotificationRuleListTab: React.FC = () => {
             <Grid size={12}>
               <Typography variant="subtitle2" sx={{fontWeight: 'bold', mb: 1}}>1. {t('basicInfo')}</Typography>
               <Stack spacing={2}>
-                <TextField label={t('ruleName')} fullWidth required value={formData.name}
-                           onChange={(e) => setFormData({...formData, name: e.target.value})} size="small"/>
+                <Stack direction="row" spacing={2}>
+                  <TextField label={t('ruleName')} fullWidth required value={formData.name}
+                             onChange={(e) => setFormData({...formData, name: e.target.value})} size="small"/>
+                  <TextField select label={t('severity')} sx={{ minWidth: 130 }} value={formData.severity}
+                             onChange={(e) => setFormData({...formData, severity: e.target.value})} size="small">
+                    <MenuItem value="info">{t('severityInfo')}</MenuItem>
+                    <MenuItem value="warning">{t('severityWarning')}</MenuItem>
+                    <MenuItem value="error">{t('severityError')}</MenuItem>
+                  </TextField>
+                </Stack>
                 <TextField label={t('ruleDescriptionLabel')} fullWidth multiline rows={2} value={formData.description}
                            onChange={(e) => setFormData({...formData, description: e.target.value})} size="small"/>
-                <TextField select label={t('severity')} value={formData.severity}
-                           onChange={(e) => setFormData({...formData, severity: e.target.value})} size="small">
-                  <MenuItem value="info">{t('severityInfo')}</MenuItem>
-                  <MenuItem value="warning">{t('severityWarning')}</MenuItem>
-                  <MenuItem value="error">{t('severityError')}</MenuItem>
-                </TextField>
               </Stack>
             </Grid>
 
