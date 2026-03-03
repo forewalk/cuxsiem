@@ -17,6 +17,7 @@ import { notificationService } from '@/services/notificationService';
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import useTabStore from '@/stores/tabStore';
 import { useLanguageStore } from '@/stores/useLanguageStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { NotificationHistory } from '@/types';
 
 dayjs.extend(utc);
@@ -40,6 +41,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
   const [loading, setLoading] = useState(false);
   const { addTab } = useTabStore();
   const { language } = useLanguageStore();
+  const { t } = useTranslation();
   const dayjsLocale = DAYJS_LOCALE_MAP[language] || 'en';
 
   const handleOpen = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -61,7 +63,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
   }, []);
 
   const handleViewAll = useCallback(() => {
-    addTab({ label: '알림 내역', labelKey: 'notificationHistory', component: 'NotificationHistoryTab' });
+    addTab({ label: t('notificationHistory'), labelKey: 'notificationHistory', component: 'NotificationHistoryTab' });
     handleClose();
   }, [addTab, handleClose]);
 
@@ -90,7 +92,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
         <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsIcon fontSize="small" color="primary" />
-            <Typography variant="subtitle2" fontWeight={700}>최근 알림</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>{t('recentAlerts')}</Typography>
             {unreadCount > 0 && (
               <Chip label={`+${unreadCount}`} size="small" color="error" sx={{ height: 18, fontSize: '0.65rem' }} />
             )}
@@ -105,7 +107,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
             </Box>
           ) : notifications.length === 0 ? (
             <Box sx={{ py: 4, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.disabled">알림 내역이 없습니다</Typography>
+              <Typography variant="body2" color="text.disabled">{t('noAlerts')}</Typography>
             </Box>
           ) : (
             <List disablePadding>
@@ -159,7 +161,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
             onClick={handleViewAll}
             sx={{ textTransform: 'none', fontWeight: 500 }}
           >
-            전체 보기
+            {t('viewAll')}
           </Button>
         </Box>
       </Popover>

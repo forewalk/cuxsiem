@@ -41,8 +41,8 @@ import { notificationService } from '@/services/notificationService.ts';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
-import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import { getRoleName } from '@/utils/roleUtils';
+import { getAlertWsUrl } from '@/utils/wsUtils';
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
 import {
@@ -54,18 +54,7 @@ import {
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useAuth } from '@/hooks/useAuth';
 
-// i18n
-import koMessages from "../../../../locales/ko.json";
-import enMessages from "../../../../locales/en.json";
-import jaMessages from "../../../../locales/ja.json";
-import cnMessages from "../../../../locales/cn.json";
-
-const translations: Record<string, Record<string, string>> = {
-  ko: koMessages,
-  en: enMessages,
-  ja: jaMessages,
-  cn: cnMessages,
-};
+import { useTranslation } from '@/hooks/useTranslation';
 
 const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   name: '',
@@ -112,27 +101,12 @@ const NotificationRuleListTab: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([10, 25, 50]);
   const [loading, setLoading] = useState(true);
-  const {language} = useLanguageStore();
+  const { t, language } = useTranslation();
   const { roleCodes, roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
 
   // WebSocket 실시간 새로고침 연동
   const token = localStorage.getItem('access_token');
-  
-  // WebSocket URL 생성 (배포 환경 고려)
-  const wsUrl = useMemo(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    
-    // 개발 환경에서는 환경 변수 사용
-    if (import.meta.env.DEV && import.meta.env.VITE_API_BASE_URL) {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-      const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
-      return `${wsBaseUrl}/api/v1/ws/alerts`;
-    }
-    
-    // 배포 환경: 현재 호스트 사용 (Nginx 리버스 프록시 통과)
-    return `${protocol}//${host}/api/v1/ws/alerts`;
-  }, []);
+  const wsUrl = getAlertWsUrl();
 
   useWebSocket({
     url: wsUrl,
@@ -193,16 +167,6 @@ const NotificationRuleListTab: React.FC = () => {
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
   const [activeAnchor, setActiveAnchor] = useState<null | HTMLElement>(null);
 
-  const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
-    const currentTranslations = translations[language] || translations["ko"] || {};
-    let text = currentTranslations[key] || key;
-    if (params) {
-      Object.entries(params).forEach(([paramKey, value]) => {
-        text = text.replace(`{${paramKey}}`, value);
-      });
-    }
-    return text;
-  }, [language]);
 
   // 메시지 템플릿 프리뷰 렌더링
   const renderMessagePreview = useMemo(() => {

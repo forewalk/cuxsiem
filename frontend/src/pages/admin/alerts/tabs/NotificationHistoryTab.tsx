@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import {
   Box, Typography, Paper, Stack, Divider, LinearProgress, Chip,
@@ -13,28 +13,16 @@ import {
 } from '@mui/icons-material';
 import { notificationService } from '@/services/notificationService.ts';
 import { useSettingsStore } from '@/stores/useSettingsStore';
+import { getAlertWsUrl } from '@/utils/wsUtils';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import type { NotificationHistory } from '@/types';
-import { useLanguageStore } from '@/stores/useLanguageStore.ts';
 import { getRoleName } from '@/utils/roleUtils';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import AlertsControlBar from "../components/AlertsControlBar";
 import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
 import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS } from '../components/AlertTableStyles';
-
-// i18n
-import koMessages from "../../../../locales/ko.json";
-import enMessages from "../../../../locales/en.json";
-import jaMessages from "../../../../locales/ja.json";
-import cnMessages from "../../../../locales/cn.json";
-
-const translations: Record<string, Record<string, string>> = {
-  ko: koMessages,
-  en: enMessages,
-  ja: jaMessages,
-  cn: cnMessages,
-};
+import { useTranslation } from '@/hooks/useTranslation';
 
 // 행 컴포넌트
 const NotificationRow: React.FC<{
@@ -144,7 +132,7 @@ const NotificationHistoryTab: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([25, 50, 100]);
   const [loading, setLoading] = useState(true);
-  const { language } = useLanguageStore();
+  const { t, language } = useTranslation();
   const { roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -158,16 +146,6 @@ const NotificationHistoryTab: React.FC = () => {
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
 
-  const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
-    const currentTranslations = translations[language] || translations["ko"] || {};
-    let text = currentTranslations[key] || key;
-    if (params) {
-      Object.entries(params).forEach(([paramKey, value]) => {
-        text = text.replace(`{${paramKey}}`, value);
-      });
-    }
-    return text;
-  }, [language]);
 
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
@@ -262,21 +240,7 @@ const NotificationHistoryTab: React.FC = () => {
   }, [loadNotifications]);
 
   // WebSocket으로 실시간 알림 수신 시 자동 새로고침
-  const wsUrl = useMemo(() => {
-    // 배포 환경에서는 현재 호스트를 기반으로 WebSocket URL 생성
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    
-    // 개발 환경에서는 환경 변수 사용, 없으면 현재 호스트 사용
-    if (import.meta.env.DEV && import.meta.env.VITE_API_BASE_URL) {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-      const wsBaseUrl = apiBaseUrl.replace(/^http/, 'ws');
-      return `${wsBaseUrl}/api/v1/ws/alerts`;
-    }
-    
-    // 배포 환경: 현재 호스트 사용 (Nginx 리버스 프록시 통과)
-    return `${protocol}//${host}/api/v1/ws/alerts`;
-  }, []);
+  const wsUrl = getAlertWsUrl();
 
   const token = localStorage.getItem('access_token');
 
