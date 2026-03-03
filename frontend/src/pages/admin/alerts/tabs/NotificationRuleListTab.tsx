@@ -825,14 +825,14 @@ const NotificationRuleListTab: React.FC = () => {
                 </Box>
               </Stack>
               
-              <TextField 
-                label="트리거 조건 (선택사항)"
+              <TextField
+                label={t('triggerConditionLabel')}
                 fullWidth
                 value={formData.trigger_condition || ''}
                 onChange={(e) => setFormData({...formData, trigger_condition: e.target.value})}
                 size="small"
-                placeholder='예: total > 50 and bucket_count >= 3'
-                helperText="알림 발송 조건을 Python 표현식으로 입력 (예: total > 0, total > 50 and pc_count >= 3). 비워두면 항상 알림 발송"
+                placeholder={t('triggerConditionPlaceholder')}
+                helperText={t('triggerConditionHelper')}
                 sx={{mt: 2}}
               />
             </Grid>
@@ -859,7 +859,7 @@ const NotificationRuleListTab: React.FC = () => {
                     value={formData.message_template}
                     onChange={(e) => setFormData({...formData, message_template: e.target.value})}
                     size="small"
-                    placeholder='예: 지난 1분간 미해결 문제가 {{total}}건 있습니다.\n\n위협 ID:\n{{threat_ids}}'
+                    placeholder={t('messageTemplatePlaceholder')}
                     inputProps={{style: {fontFamily: 'monospace', fontSize: '0.85rem'}}}
                     sx={{
                       flex: 1,
