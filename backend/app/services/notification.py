@@ -328,7 +328,6 @@ class NotificationService:
         created_alert = await self.repository.create_alert(alert_data)
         
         # 터미널에서 즉시 확인할 수 있도록 출력
-        print(f"\n{'='*50}\n[집계 알림 탐지] {created_alert['rule_name']}\n메시지:\n{created_alert['message']}\n{'='*50}\n")
         
         # WebSocket으로 실시간 알림 전송
         try:
@@ -476,7 +475,6 @@ class NotificationService:
                     newly_created_count += 1
 
                     # 터미널에서 즉시 확인할 수 있도록 출력
-                    print(f"\n{'='*50}\n[알림 탐지] {created_alert['rule_name']}\n메시지: {created_alert['message']}\n이벤트: {event_index}/{event_ref}\n{'='*50}\n")
 
                     # WebSocket으로 실시간 알림 전송
                     try:
