@@ -88,18 +88,12 @@ export const useWebSocket = ({
           if (data.type !== 'pong' && data.type !== 'connection') {
             onMessageRef.current?.(data);
           }
-        } catch (error) {
-          console.error('WebSocket: Failed to parse message', error);
+        } catch {
+          // 메시지 파싱 오류 무시
         }
       };
 
       ws.current.onerror = (error) => {
-        // React StrictMode에서 발생하는 개발 모드 경고는 무시
-        if (import.meta.env.DEV) {
-          console.warn('⚠️ WebSocket 오류 (개발 모드에서는 무시 가능):', error);
-        } else {
-          console.error('❌ WebSocket 오류:', error);
-        }
         onErrorRef.current?.(error);
       };
 
@@ -119,13 +113,11 @@ export const useWebSocket = ({
           reconnectTimeout.current = setTimeout(() => {
             connect();
           }, reconnectInterval);
-        } else if (reconnectCount.current >= maxReconnectAttempts) {
-          console.error('❌ Max reconnect attempts reached');
         }
       };
 
-    } catch (error) {
-      console.error('WebSocket: Connection failed', error);
+    } catch {
+      // 연결 실패 무시
     }
   }, [url, token, reconnectInterval, maxReconnectAttempts]);
 
@@ -155,8 +147,6 @@ export const useWebSocket = ({
     if (ws.current?.readyState === WebSocket.OPEN) {
       const message = typeof data === 'string' ? data : JSON.stringify(data);
       ws.current.send(message);
-    } else {
-      console.warn('WebSocket: Cannot send message, not connected');
     }
   }, []);
 
