@@ -9,7 +9,7 @@ import {
   ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Settings as SettingsIcon,
   People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
   ShowChart as ThreatsIcon, Terminal as TerminalIcon, Close as CloseIcon,
-  Notifications as NotificationsIcon,
+  Notifications as NotificationsIcon, History as HistoryIcon,
   Tune as AdvancedIcon, Computer as AgentIcon,
 } from '@mui/icons-material';
 import useTabStore from '../stores/tabStore';
@@ -76,8 +76,9 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   };
 
   const handleMenuTabClick = (label: string, component: string, labelKey?: string) => {
+    if (!drawerOpen && !isMobile) handleDrawerToggle();
     addTab({ label, component, labelKey });
-    if (isMobile) handleDrawerToggle(); 
+    if (isMobile) handleDrawerToggle();
     if (window.location.pathname !== '/main') {
       navigate('/main');
     }
@@ -201,7 +202,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
             </ListItemButton>
           </ListItem>
 
-          {/* 알림 내역 - 툴바 벨 아이콘으로 대체됨 (필요 시 주석 해제)
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               onClick={() => handleMenuTabClick(t('notificationHistory'), 'NotificationHistoryTab', 'notificationHistory')}
@@ -213,7 +213,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <ListItemText primary={t('notificationHistory')} sx={listItemTextStyle} />
             </ListItemButton>
           </ListItem>
-          */}
         </List>
       </Box>
 
