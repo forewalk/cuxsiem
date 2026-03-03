@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Box, Typography, Button, Paper, Stack, Switch,
   FormControlLabel, Divider, Alert, Snackbar, CircularProgress,
@@ -12,39 +13,36 @@ import { useRoleCodesStore } from '../../../stores/useRoleCodesStore';
 import useTabStore from '../../../stores/tabStore';
 import { useAuth } from '../../../hooks/useAuth';
 
-// i18n
+// i18n — useState 초기값 전용 동기 함수 (훅 호출 이전에 사용)
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
 import cnMessages from "../../../locales/cn.json";
 
 const allTranslations: Record<string, Record<string, string>> = {
-  ko: koMessages,
-  en: enMessages,
-  ja: jaMessages,
-  cn: cnMessages,
+  ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages,
 };
+function tInit(key: string): string {
+  const lang = localStorage.getItem("appLanguage") || "ko";
+  return allTranslations[lang]?.[key] ?? allTranslations["ko"]?.[key] ?? key;
+}
 
 const AdvancedSettingsTab: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { setMaxTabs } = useTabStore();
   const { updateSettings } = useSettingsStore();
   const { fetch: fetchRoleCodes } = useRoleCodesStore();
-
-  // useState 초기값에서 t()를 쓸 수 있도록 동기 함수로 먼저 정의
-  const savedLanguage = localStorage.getItem("appLanguage") || "ko";
-  const tEager = (key: string): string =>
-    allTranslations[savedLanguage]?.[key] || allTranslations["ko"]?.[key] || key;
 
   const [settings, setSettings] = useState<AdvancedSettings>({
     user_register: false,
     allow_multiple_sessions: false,
     tab_count: 10,
     role_names: {
-      admin: tEager('roleDefault1'),
-      user: tEager('roleDefault4'),
-      monitoring: tEager('roleDefault2'),
-      approver: tEager('roleDefault3'),
+      admin: tInit('roleDefault1'),
+      user: tInit('roleDefault4'),
+      monitoring: tInit('roleDefault2'),
+      approver: tInit('roleDefault3'),
     }
   });
   const [loading, setLoading] = useState(true);
@@ -55,11 +53,6 @@ const AdvancedSettingsTab: React.FC = () => {
     message: '',
     severity: 'success',
   });
-
-  const t = useCallback((key: string): string => {
-    const currentTranslations = allTranslations[savedLanguage] || allTranslations["ko"] || {};
-    return currentTranslations[key] || key;
-  }, [savedLanguage]);
 
   const loadSettings = useCallback(async () => {
     if (!user || user.role !== 'role-1') { setLoading(false); return; }

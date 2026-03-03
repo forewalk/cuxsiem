@@ -16,19 +16,17 @@ import {
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
-import { codeService } from '../../../services/codeService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { useRoleCodesStore } from '../../../stores/useRoleCodesStore';
 import { useAuth } from '../../../hooks/useAuth';
+import { useTranslation } from '../../../hooks/useTranslation';
 import type { User, UserCreate, UserUpdate } from '../../../types';
-
-// i18n: JSON 파일에서 번역 로드
-import koMessages from "../../../locales/ko.json";
-import enMessages from "../../../locales/en.json";
-import jaMessages from "../../../locales/ja.json";
-import cnMessages from "../../../locales/cn.json";
+import { getRoleName } from '../../../utils/roleUtils';
 
 const UserManagementTab: React.FC = () => {
   const { user } = useAuth();
+  const { t, language } = useTranslation();
+  const { roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -39,13 +37,6 @@ const UserManagementTab: React.FC = () => {
     page: 0,
   });
   const [pageSizeOptions, setPageSizeOptions] = useState<number[]>([10, 25, 50]);
-
-  const [roleNames, setRoleNames] = useState<Record<string, string>>({
-    'role-1': '',
-    'role-2': '',
-    'role-3': '',
-    'role-4': '',
-  });
 
   // 다이얼로그 상태
   const [open, setOpen] = useState(false);
@@ -80,30 +71,8 @@ const UserManagementTab: React.FC = () => {
     severity: 'success',
   });
 
-  // i18n 지원
-  const savedLanguage = localStorage.getItem("appLanguage") || "ko";
-  const translations: Record<string, Record<string, string>> = {
-    ko: koMessages,
-    en: enMessages,
-    ja: jaMessages,
-    cn: cnMessages,
-  };
-
-  const t = useCallback((key: string, params?: Record<string, string>): string => {
-    const currentTranslations = translations[savedLanguage] || translations["ko"] || {};
-    let text = currentTranslations[key] || key;
-    if (params) {
-      Object.entries(params).forEach(([paramKey, value]) => {
-        text = text.replace(`{${paramKey}}`, value);
-      });
-    }
-    return text;
-  }, [savedLanguage]);
-
-  // 고급 설정 로드 (초기 1회)
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => { fetchRoleCodes(); }, [fetchRoleCodes]);
 
   useEffect(() => {
     if (settings && settings.pagination_size) {
@@ -124,28 +93,16 @@ const UserManagementTab: React.FC = () => {
     setLoading(true);
     try {
       const skip = paginationModel.page * paginationModel.pageSize;
-      const [userResponse, codesData] = await Promise.all([
-        userService.getUsers(skip, paginationModel.pageSize),
-        codeService.getRoleCodes()
-      ]);
-      
+      const userResponse = await userService.getUsers(skip, paginationModel.pageSize);
       setUsers(userResponse.users);
       setTotal(userResponse.total);
-
-      if (codesData.length > 0) {
-        const newMapping: Record<string, string> = {};
-        codesData.forEach(c => {
-          newMapping[c.id] = c.code_name;
-        });
-        setRoleNames(prev => ({ ...prev, ...newMapping }));
-      }
     } catch (error) {
-      console.error('Failed to load users or roles:', error);
+      console.error('Failed to load users:', error);
       setSnackbar({ open: true, message: t('loadDataFailed'), severity: 'error' });
     } finally {
       setLoading(false);
     }
-  }, [paginationModel]);
+  }, [paginationModel, user, t]);
 
   useEffect(() => {
     loadUsers();
@@ -323,7 +280,7 @@ const UserManagementTab: React.FC = () => {
       headerName: t('role'),
       flex: 0.8,
       renderCell: (params: GridRenderCellParams) => {
-        return roleNames[params.value as string] || params.value;
+        return getRoleName(params.value as string, roleNames, language);
       }
     },
     {
@@ -502,10 +459,10 @@ const UserManagementTab: React.FC = () => {
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
-              <MenuItem value="role-1">{roleNames['role-1']}</MenuItem>
-              <MenuItem value="role-2">{roleNames['role-2']}</MenuItem>
-              <MenuItem value="role-3">{roleNames['role-3']}</MenuItem>
-              <MenuItem value="role-4">{roleNames['role-4']}</MenuItem>
+              <MenuItem value="role-1">{getRoleName('role-1', roleNames, language)}</MenuItem>
+              <MenuItem value="role-2">{getRoleName('role-2', roleNames, language)}</MenuItem>
+              <MenuItem value="role-3">{getRoleName('role-3', roleNames, language)}</MenuItem>
+              <MenuItem value="role-4">{getRoleName('role-4', roleNames, language)}</MenuItem>
             </TextField>
             <TextField
               label={t('password')}
