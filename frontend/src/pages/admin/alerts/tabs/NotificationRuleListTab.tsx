@@ -723,7 +723,7 @@ const NotificationRuleListTab: React.FC = () => {
                       size="small"
                       fullWidth
                     >
-                      {queryTestLoading ? '⏳ 실행 중...' : '▶️ Run Query'}
+                      {queryTestLoading ? '⏳ 실행 중...' : 'Run Query'}
                     </Button>
                   </Box>
                 </Box>
@@ -798,7 +798,7 @@ const NotificationRuleListTab: React.FC = () => {
                     ) : (
                       <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
                         <Typography variant="body2" color="text.secondary">
-                          ▶️ Run Query 버튼을 눌러 쿼리를 실행하세요
+                          Run Query 버튼을 눌러 쿼리를 실행하세요
                         </Typography>
                       </Box>
                     )}
@@ -859,7 +859,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 오른쪽: 메시지 프리뷰 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    👁️ Message Preview
+                    Message Preview
                   </Typography>
                   <Paper
                     elevation={0}
