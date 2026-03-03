@@ -691,7 +691,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 왼쪽: DSL 쿼리 편집기 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    📝 Define extraction query
+                    Define extraction query
                   </Typography>
                   <TextField
                     multiline
@@ -731,7 +731,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 오른쪽: 쿼리 실행 결과 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    📊 Extraction query response
+                    Extraction query response
                   </Typography>
                   <Paper 
                     elevation={0} 
@@ -831,7 +831,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 왼쪽: 메시지 템플릿 편집기 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    📝 Message Template
+                    Message Template
                   </Typography>
                   <TextField
                     multiline
@@ -840,7 +840,7 @@ const NotificationRuleListTab: React.FC = () => {
                     value={formData.message_template}
                     onChange={(e) => setFormData({...formData, message_template: e.target.value})}
                     size="small"
-                    placeholder='예: ⚠️ 지난 1분간 미해결 문제가 {{total}}건 있습니다.\n\n위협 ID:\n{{threat_ids}}'
+                    placeholder='예: 지난 1분간 미해결 문제가 {{total}}건 있습니다.\n\n위협 ID:\n{{threat_ids}}'
                     inputProps={{style: {fontFamily: 'monospace', fontSize: '0.85rem'}}}
                     sx={{
                       flex: 1,
@@ -893,7 +893,7 @@ const NotificationRuleListTab: React.FC = () => {
                     {!queryTestResult && formData.message_template && (
                       <Box sx={{mt: 2, p: 1, bgcolor: 'info.lighter', borderRadius: 1, border: '1px solid', borderColor: 'info.light'}}>
                         <Typography variant="caption" color="info.dark">
-                          💡 실제 데이터로 프리뷰를 보려면 위의 "Run Query" 버튼을 먼저 실행하세요
+                          실제 데이터로 프리뷰를 보려면 위의 "Run Query" 버튼을 먼저 실행하세요
                         </Typography>
                       </Box>
                     )}
