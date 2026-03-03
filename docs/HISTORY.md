@@ -25,6 +25,8 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-02-26 | 박지은 | 수리 | 알림 내역 role 필터 쿼리 오류 수정 (receiver.values → receiver.values.keyword) |
+| 2026-02-26 | 박지은 | 수리 | 알림 수신자 역할 old 값(admin 등) 정리: 규칙 편집 시 자동 제거, migrate_roles 쿼리 수정 |
 | 2026-03-01 | 김장훈 | 배포 | origin/develop push (OTP 2FA 구현, OTP i18n+UI, OTP 강제 등록, admin 탭 권한 체크) |
 | 2026-02-28 03:00 | 김장훈 | 배포 | origin/develop push (테스트 시나리오 추가, cs_policies 통합, login_attempt account 필드, OTP 2FA 워크플로우 시작) |
 | 2026-02-28 03:00 | 김장훈 | 배포 | origin/develop push (ROADMAP.md 완료 항목 업데이트, develop↔origin/develop 동기화) |
