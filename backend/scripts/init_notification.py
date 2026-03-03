@@ -93,7 +93,12 @@ try:
                         }
                     }
                 },
-                "receiver": {"type": "object", "enabled": True},
+                "receiver": {
+                    "properties": {
+                        "type": {"type": "keyword"},
+                        "values": {"type": "keyword"}
+                    }
+                },
                 "is_active": {"type": "boolean"},
                 "last_run_at": {"type": "date"},
                 "last_success_at": {"type": "date"},
@@ -160,7 +165,12 @@ try:
                 # 중복 제거 및 수신자
                 "dedup_key": {"type": "keyword"},
                 "severity": {"type": "keyword"},
-                "receiver": {"type": "object", "enabled": True},
+                "receiver": {
+                    "properties": {
+                        "type": {"type": "keyword"},
+                        "values": {"type": "keyword"}
+                    }
+                },
                 
                 # 상태
                 "status": {"type": "keyword"},
