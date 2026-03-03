@@ -8,7 +8,7 @@ class ConnectionManager:
     def __init__(self):
         # user_id -> List[WebSocket]
         self.active_connections: Dict[str, List[WebSocket]] = {}
-        # user_id -> role (예: 'admin', 'monitoring', 'approver', 'user')
+        # user_id -> role (예: 'role-1', 'role-2', 'role-3', 'role-4')
         self.user_roles: Dict[str, str] = {}
     
     async def connect(self, websocket: WebSocket, user_id: str, role: str):

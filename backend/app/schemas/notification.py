@@ -32,7 +32,7 @@ class NotificationRuleBase(BaseModel):
     )
     
     # 수신자 설정 (cs_users의 role 기반)
-    receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["admin"]})
+    receiver: Dict[str, Any] = Field(default_factory=lambda: {"type": "role", "values": ["role-1"]})
     is_active: bool = True
 
 class NotificationRuleUpdate(BaseModel):

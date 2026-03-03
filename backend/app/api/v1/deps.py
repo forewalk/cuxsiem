@@ -23,7 +23,7 @@ async def get_current_admin_user(
     current_user: UserResponse = Depends(get_current_active_user)
 ) -> UserResponse:
     """관리자 권한 확인"""
-    if current_user.role != "admin":
+    if current_user.role != "role-1":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="관리자 권한이 필요합니다"

@@ -180,7 +180,7 @@ export const LoginPage: React.FC = () => {
             return;
           }
           // OTP 미등록 + otp_required ON + 관리자 제외 → 강제 등록
-          if (!response.data?.otp_enabled && otpRequired && response.data?.role !== 'admin') {
+          if (!response.data?.otp_enabled && otpRequired && response.data?.role !== 'role-1') {
             setOtpEnrollAfterSignupOpen(true);
             return;
           }
@@ -244,7 +244,7 @@ export const LoginPage: React.FC = () => {
           setOtpLoginModalOpen(true);
           return;
         }
-        if (!response.data?.otp_enabled && otpRequired && response.data?.role !== 'admin') {
+        if (!response.data?.otp_enabled && otpRequired && response.data?.role !== 'role-1') {
           setOtpEnrollAfterSignupOpen(true);
           return;
         }

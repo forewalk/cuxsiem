@@ -8,7 +8,7 @@ class UserBase(BaseModel):
     """사용자 기본 필드"""
     email: EmailStr
     name: str = Field(..., min_length=1, max_length=50)
-    role: str = Field(default="user")
+    role: str = Field(default="role-4")
     is_active: bool = True
 
 

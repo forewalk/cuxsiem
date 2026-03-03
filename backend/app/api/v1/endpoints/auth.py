@@ -51,7 +51,7 @@ async def apply_account(request: UserApply):
         email=request.email,
         name=request.name,
         password=request.password,
-        role="user",
+        role="role-4",
         is_active=False
     )
     return await user_service.create_user(create_request)
@@ -540,7 +540,7 @@ async def admin_disable_otp(user_id: str, credentials=Depends(security)):
     # 관리자 권한 확인
     user_repo = UserRepository()
     admin_user = await user_repo.get_by_id(admin_id)
-    if not admin_user or admin_user.role != "admin":
+    if not admin_user or admin_user.role != "role-1":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin 권한이 필요합니다"

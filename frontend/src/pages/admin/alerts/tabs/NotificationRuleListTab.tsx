@@ -94,7 +94,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   interval_min: 1,
   dedup_key_template: '{{rule_id}}_{{_id}}',
   trigger_condition: '',
-  receiver: {type: 'role', values: ['admin']},
+  receiver: {type: 'role', values: ['role-1']},
   is_active: true
 };
 
@@ -267,7 +267,7 @@ const NotificationRuleListTab: React.FC = () => {
   }, [formData.message_template, queryTestResult]);
 
   const loadRules = useCallback(async () => {
-    if (!user || user.role !== 'admin') { setLoading(false); return; }
+    if (!user || user.role !== 'role-1') { setLoading(false); return; }
     setLoading(true);
     try {
       const skip = page * rowsPerPage;
@@ -430,7 +430,7 @@ const NotificationRuleListTab: React.FC = () => {
     setPage(0);
   };
 
-  if (user && user.role !== 'admin') {
+  if (user && user.role !== 'role-1') {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <Typography color="text.secondary">{t('noPermission')}</Typography>

@@ -41,10 +41,10 @@ const UserManagementTab: React.FC = () => {
   const [pageSizeOptions, setPageSizeOptions] = useState<number[]>([10, 25, 50]);
 
   const [roleNames, setRoleNames] = useState<Record<string, string>>({
-    admin: '',
-    monitoring: '',
-    approver: '',
-    user: '',
+    'role-1': '',
+    'role-2': '',
+    'role-3': '',
+    'role-4': '',
   });
 
   // 다이얼로그 상태
@@ -55,7 +55,7 @@ const UserManagementTab: React.FC = () => {
     username: '',
     email: '',
     name: '',
-    role: 'user',
+    role: 'role-4',
     is_active: true,
     password: '',
   });
@@ -120,7 +120,7 @@ const UserManagementTab: React.FC = () => {
   }, [settings]);
 
   const loadUsers = useCallback(async () => {
-    if (!user || user.role !== 'admin') { setLoading(false); return; }
+    if (!user || user.role !== 'role-1') { setLoading(false); return; }
     setLoading(true);
     try {
       const skip = paginationModel.page * paginationModel.pageSize;
@@ -135,10 +135,7 @@ const UserManagementTab: React.FC = () => {
       if (codesData.length > 0) {
         const newMapping: Record<string, string> = {};
         codesData.forEach(c => {
-          if (c.id === 'role-1') newMapping.admin = c.code_name;
-          if (c.id === 'role-2') newMapping.monitoring = c.code_name;
-          if (c.id === 'role-3') newMapping.approver = c.code_name;
-          if (c.id === 'role-4') newMapping.user = c.code_name;
+          newMapping[c.id] = c.code_name;
         });
         setRoleNames(prev => ({ ...prev, ...newMapping }));
       }
@@ -156,7 +153,7 @@ const UserManagementTab: React.FC = () => {
 
   // 관리자 OTP 미등록 시 배너 표시 여부 확인
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (user?.role === 'role-1') {
       api.get('/api/v1/auth/me').then(res => {
         setAdminOtpEnabled(res.data.otp_enabled ?? false);
       }).catch(() => setAdminOtpEnabled(null));
@@ -182,7 +179,7 @@ const UserManagementTab: React.FC = () => {
         username: '',
         email: '',
         name: '',
-        role: 'user',
+        role: 'role-4',
         is_active: true,
         password: '',
       });
@@ -392,7 +389,7 @@ const UserManagementTab: React.FC = () => {
             size="small"
             color="error"
             onClick={() => setDeleteId(params.row.id)}
-            disabled={params.row.role === 'admin'}
+            disabled={params.row.role === 'role-1'}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
@@ -401,7 +398,7 @@ const UserManagementTab: React.FC = () => {
     },
   ];
 
-  if (user && user.role !== 'admin') {
+  if (user && user.role !== 'role-1') {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <Typography color="text.secondary">{t('noPermission')}</Typography>
@@ -505,10 +502,10 @@ const UserManagementTab: React.FC = () => {
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
-              <MenuItem value="admin">{roleNames.admin}</MenuItem>
-              <MenuItem value="monitoring">{roleNames.monitoring}</MenuItem>
-              <MenuItem value="approver">{roleNames.approver}</MenuItem>
-              <MenuItem value="user">{roleNames.user}</MenuItem>
+              <MenuItem value="role-1">{roleNames['role-1']}</MenuItem>
+              <MenuItem value="role-2">{roleNames['role-2']}</MenuItem>
+              <MenuItem value="role-3">{roleNames['role-3']}</MenuItem>
+              <MenuItem value="role-4">{roleNames['role-4']}</MenuItem>
             </TextField>
             <TextField
               label={t('password')}

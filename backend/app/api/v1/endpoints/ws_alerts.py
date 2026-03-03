@@ -75,7 +75,7 @@ async def websocket_alerts(
         
         
         # ConnectionManager에 등록 (role 포함)
-        user_role = user.role if hasattr(user, 'role') else 'user'
+        user_role = user.role if hasattr(user, 'role') else 'role-4'
         if user_id not in manager.active_connections:
             manager.active_connections[user_id] = []
         manager.active_connections[user_id].append(websocket)

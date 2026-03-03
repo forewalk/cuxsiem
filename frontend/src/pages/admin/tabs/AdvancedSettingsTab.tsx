@@ -58,7 +58,7 @@ const AdvancedSettingsTab: React.FC = () => {
   }, [savedLanguage]);
 
   const loadSettings = useCallback(async () => {
-    if (!user || user.role !== 'admin') { setLoading(false); return; }
+    if (!user || user.role !== 'role-1') { setLoading(false); return; }
     setLoading(true);
     try {
       const [settingsData, codesData] = await Promise.all([
@@ -214,7 +214,7 @@ const AdvancedSettingsTab: React.FC = () => {
     );
   }
 
-  if (user && user.role !== 'admin') {
+  if (user && user.role !== 'role-1') {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <Typography color="text.secondary">{t('noPermission')}</Typography>
