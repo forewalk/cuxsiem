@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-04 14:55 | 김장훈 | 배포 | origin/develop, origin/feature/admin push (로그 스트리밍 수동 검색 및 OTP 테스트 우회 코드 추가) |
 | 2026-03-03 16:20 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합) |
 | 2026-03-03 16:12 | 최지호 | 수정 | origin/feature/dashboard push (타임피커/필터 공유 설정, 리스트 그래프 x축 잘림 현상 수정) |
 | 2026-03-03 | 박지은 | 수리 | 알림 내역 role 필터 쿼리 오류 수정 (receiver.values → receiver.values.keyword) |
