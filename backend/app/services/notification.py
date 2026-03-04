@@ -1,14 +1,32 @@
-from typing import List, Optional, Tuple, Dict, Any
-from datetime import datetime, timedelta
 import asyncio
 import logging
 import re
+from datetime import datetime
+from typing import List, Optional, Dict, Any
 
+from app.core.websocket import manager
 from app.repositories.notification import NotificationRepository
 from app.schemas.notification import NotificationRuleBase, NotificationRuleUpdate
-from app.core.websocket import manager
 
 logger = logging.getLogger(__name__)
+
+
+class DotDict(dict):
+    """
+    점(.) 표기법으로 딕셔너리 필드에 접근할 수 있게 해주는 클래스.
+    eval() 내에서 aggregations.threats.buckets[0].doc_count 와 같이 사용 가능하게 함.
+    """
+    def __getattr__(self, item):
+        try:
+            val = self[item]
+            if isinstance(val, dict):
+                return DotDict(val)
+            if isinstance(val, list):
+                return [DotDict(x) if isinstance(x, dict) else x for x in val]
+            return val
+        except KeyError:
+            return None
+
 
 class NotificationService:
     def __init__(self):
@@ -63,22 +81,22 @@ class NotificationService:
             # 쿼리 구성 (run_detection_for_rule과 동일한 로직)
             search_body = {
                 **condition_config,
-                "size": condition_config.get("size", 10)
+                "size": condition_config.get("size", 10000)
             }
-            
+
             # sort가 없으면 @timestamp 내림차순 기본값 적용
             if "sort" not in search_body:
                 search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
-            
+
             # OpenSearch 쿼리 실행
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
                 lambda: self.repository.client.search(index=target_index, body=search_body)
             )
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"[쿼리 테스트] 실패: {e}")
             raise Exception(f"Query execution failed: {str(e)}")
@@ -116,7 +134,7 @@ class NotificationService:
 
         key = template.replace("{{rule_id}}", rule["id"])
         key = key.replace("{{rule_name}}", rule.get("name", ""))
-        
+
         # 이벤트 메타데이터 처리
         if "{{_id}}" in key:
             key = key.replace("{{_id}}", str(event.get("_id", "unknown")))
@@ -132,7 +150,7 @@ class NotificationService:
             key = key.replace(f"{{{{{field}}}}}", val)
 
         return key
-    
+
     def _render_message_template(self, template: str, context: Dict[str, Any]) -> str:
         """
         메시지 템플릿 렌더링
@@ -140,6 +158,7 @@ class NotificationService:
         - {{nested.field}} 중첩 필드 접근 지원
         - 중첩 필드가 context에 없으면 모든 hits에서 자동 추출
         """
+
         def get_nested_value(obj: Any, keys: list) -> Any:
             """중첩 필드 값 추출"""
             value = obj
@@ -151,38 +170,38 @@ class NotificationService:
                 else:
                     return None
             return value
-        
+
         def replace_var(match):
             key = match.group(1)
-            
+
             # 단순 키 접근 (total, rule_name 등)
             if '.' not in key:
                 value = context.get(key)
                 if value is None:
                     return f"{{{{{key}}}}}"
                 return str(value)
-            
+
             # 중첩 필드 접근 - 모든 hits에서 추출
             keys = key.split('.')
             hits = context.get("hits", [])
-            
+
             if hits and isinstance(hits, list):
                 values = []
                 for hit in hits:
                     hit_value = get_nested_value(hit, keys)
                     if hit_value is not None:
                         values.append(str(hit_value))
-                
+
                 if values:
                     # 중복 제거하고 줄바꿈으로 연결
                     unique_values = list(dict.fromkeys(values))
                     return "\n".join(unique_values)
-            
+
             return f"{{{{{key}}}}}"  # 값이 없으면 원본 유지
-        
+
         # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
         return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
-    
+
     def _evaluate_trigger_condition(self, condition: str, context: Dict[str, Any]) -> bool:
         """
         트리거 조건 평가
@@ -191,7 +210,7 @@ class NotificationService:
         """
         if not condition or not condition.strip():
             return True  # 조건이 없으면 항상 true
-        
+
         try:
             # 안전한 네임스페이스 설정 (math 함수 등 허용)
             import math
@@ -205,19 +224,19 @@ class NotificationService:
                 'len': len,
                 **context  # 쿼리 결과 컨텍스트
             }
-            
+
             # Python 표현식 평가
             result = eval(condition, safe_namespace)
             return bool(result)
-        
+
         except Exception as e:
             logger.error(f"[트리거] 조건 평가 실패: '{condition}' - {e}")
             # 평가 실패 시 안전하게 true 반환 (알림 생성)
             return True
-    
+
     async def _create_aggregation_alert(
-        self, 
-        rule: Dict[str, Any], 
+        self,
+        rule: Dict[str, Any],
         result: Dict[str, Any],
         now: datetime,
         aggregations: Dict[str, Any],
@@ -226,30 +245,32 @@ class NotificationService:
         """집계 결과 기반 알림 생성 (하나의 알림으로 통합)"""
         rule_id = rule["id"]
         target_index = rule.get("target_index", "logs-sentinel_one.threats")
-        
+
         # 트리거 조건 체크
         trigger_condition = rule.get("trigger_condition")
         if trigger_condition:
+            # 쿼리 결과 컨텍스트 구성 (total + aggregations)
             trigger_context = {
-                "total": total
+                "total": total,
+                "aggregations": DotDict(aggregations) if aggregations else {}
             }
-            
+
             if not self._evaluate_trigger_condition(trigger_condition, trigger_context):
                 return None
-        
+
         # 중복 제거 키: 규칙 ID + 시간 윈도우 (분 단위로 동일 규칙은 하나의 알림만)
         time_window = now.replace(second=0, microsecond=0).isoformat()
         dedup_key = f"{rule_id}_{time_window}"
-        
+
         # 중복 체크
         existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
         if existing_alert:
             return None
-        
+
         # 쿼리 결과 문서들 추출
         hits = result.get("hits", {}).get("hits", [])
         hit_sources = [hit.get("_source", {}) for hit in hits]
-        
+
         # 메시지 템플릿 렌더링을 위한 context 구성
         template_context = {
             "total": total,
@@ -259,24 +280,24 @@ class NotificationService:
             "target_index": target_index,
             "hits": hit_sources,  # 모든 문서의 _source 배열
         }
-        
+
         message_template = rule.get("message_template", "[WARNING] 총 {{total}}건의 이벤트가 탐지되었습니다.")
         rendered_message = self._render_message_template(message_template, template_context)
-        
+
         # cs_alerts 인덱스에 저장할 알림 데이터
         alert_data = {
             "rule_id": rule_id,
-            
+
             # 규칙 메타데이터
             "rule_name": rule.get("name", "Unknown Rule"),
             "rule_description": rule.get("description"),
             "rule_severity": rule.get("severity", "info"),
             "rule_target_index": target_index,
-            
+
             # 메시지 관련
             "message": rendered_message,
             "message_template": message_template,
-            
+
             # 집계 알림 특성
             "event_ref": f"aggregation_{rule_id}",
             "event_index": target_index,
@@ -286,19 +307,19 @@ class NotificationService:
                 "aggregations": aggregations,
                 "hits": hit_sources[:10]  # 최대 10개 문서만 저장
             },
-            
+
             # 중복 제거 및 수신자
             "dedup_key": dedup_key,
             "severity": rule.get("severity", "info"),
             "receiver": rule.get("receiver"),
-            
+
             # 상태
             "status": "created",
             "created_at": now.isoformat()
         }
-        
+
         created_alert = await self.repository.create_alert(alert_data)
-        
+
         # WebSocket으로 실시간 알림 전송
         try:
             receiver_values = rule.get("receiver", {}).get("values", [])
@@ -313,14 +334,14 @@ class NotificationService:
                     "created_at": created_alert["created_at"]
                 }
             }
-            
+
             if receiver_values:
                 await manager.send_to_roles(roles=receiver_values, message=ws_message)
             else:
                 await manager.broadcast(ws_message)
         except Exception as ws_error:
             logger.error(f"WebSocket 알림 전송 실패: {ws_error}")
-        
+
         return created_alert
 
     async def run_detection_for_rule(self, rule: Dict[str, Any]):
@@ -343,7 +364,7 @@ class NotificationService:
                 **condition_config,
                 "size": condition_config.get("size", 10)  # 기본값 10유지하되 쿼리에 있으면 따름
             }
-            
+
             # sort가 없으면 @timestamp 내림차순 기본값 적용
             if "sort" not in search_body:
                 search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
@@ -367,7 +388,7 @@ class NotificationService:
             # 집계 결과가 있거나, 여러 문서를 한 번에 처리하는 경우
             if aggregations or (total > 1 and condition_config.get("size", 10) > 1):
                 created_alert = await self._create_aggregation_alert(rule, result, now, aggregations or {}, total)
-                
+
                 if created_alert:
                     await self.repository.update_rule(rule_id, {
                         "last_triggered_at": now.isoformat(),
@@ -375,7 +396,7 @@ class NotificationService:
                     })
                     return created_alert
                 return None
-            
+
             # 기존 로직: 개별 문서 기반 알림 (total == 1인 경우만)
             if total > 0:
                 created_alerts = []
@@ -407,34 +428,34 @@ class NotificationService:
                         # event_source의 모든 필드 포함 (중첩 접근 지원)
                         **event_source
                     }
-                    
+
                     message_template = rule.get("message_template", "Detected {{total}} events.")
                     rendered_message = self._render_message_template(message_template, template_context)
 
                     # cs_alerts 인덱스에 저장할 알림 데이터
                     alert_data = {
                         "rule_id": rule_id,
-                        
+
                         # 규칙 메타데이터
                         "rule_name": rule.get("name", "Unknown Rule"),
                         "rule_description": rule.get("description"),
                         "rule_severity": rule.get("severity", "info"),
                         "rule_target_index": target_index,
-                        
+
                         # 메시지 관련
                         "message": rendered_message,
                         "message_template": message_template,
-                        
+
                         # 이벤트 관련
                         "event_ref": event_ref,
                         "event_index": event_index,
                         "event_source": event_source,
-                        
+
                         # 중복 제거 및 수신자
                         "dedup_key": dedup_key,
                         "severity": rule.get("severity", "info"),
                         "receiver": rule.get("receiver"),
-                        
+
                         # 상태
                         "status": "created",
                         "created_at": now.isoformat()
@@ -498,4 +519,3 @@ class NotificationService:
                 "error_count": rule.get("error_count", 0) + 1
             })
             return None
-

@@ -94,20 +94,19 @@ export interface IndexListResponse {
 }
 
 
-
 // 알림 규칙
 export interface NotificationRule {
   id: string;
   name: string;
   description?: string;
   target_index: string;
-  condition_config: Record<string, any>;
+  condition_config: Record<string, unknown>;
   message_template: string;
   severity: string;
   interval_min: number;
   dedup_key_template: string;
   trigger_condition?: string;
-  receiver: Record<string, any>;
+  receiver: Record<string, unknown>;
   is_active: boolean;
   last_run_at?: string;
   last_success_at?: string;
@@ -123,13 +122,13 @@ export interface NotificationRuleCreate {
   name: string;
   description?: string;
   target_index: string;
-  condition_config: Record<string, any>;
+  condition_config: Record<string, unknown>;
   message_template: string;
   severity: string;
   interval_min: number;
   dedup_key_template: string;
   trigger_condition?: string;
-  receiver: Record<string, any>;
+  receiver: Record<string, unknown>;
   is_active: boolean;
 }
 
@@ -137,13 +136,13 @@ export interface NotificationRuleUpdate {
   name?: string;
   description?: string;
   target_index?: string;
-  condition_config?: Record<string, any>;
+  condition_config?: Record<string, unknown>;
   message_template?: string;
   severity?: string;
   interval_min?: number;
   dedup_key_template?: string;
   trigger_condition?: string;
-  receiver?: Record<string, any>;
+  receiver?: Record<string, unknown>;
   is_active?: boolean;
 }
 
@@ -165,11 +164,11 @@ export interface NotificationHistory {
   // 이벤트 관련
   event_ref: string;            // Document ID
   event_index: string;          // 원본 인덱스명
-  event_source?: Record<string, any>;  // 원본 _source
+  event_source?: Record<string, unknown>;  // 원본 _source
 
   // 기타
   dedup_key: string;
-  receiver: Record<string, any> | null;
+  receiver: Record<string, unknown> | null;
   status: string;
   error_message: string | null;
   severity: string | null;

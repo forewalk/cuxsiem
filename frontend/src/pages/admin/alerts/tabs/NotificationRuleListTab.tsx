@@ -781,6 +781,30 @@ const NotificationRuleListTab: React.FC = () => {
                             />
                           </Box>
                         )}
+
+                        {/* 집계 결과 (Aggregations) */}
+                        {queryTestResult.aggregations && (
+                          <Box>
+                            <Typography variant="body2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              📊 Aggregations:
+                            </Typography>
+                            <TextField
+                              multiline
+                              fullWidth
+                              value={JSON.stringify(queryTestResult.aggregations, null, 2)}
+                              InputProps={{
+                                readOnly: true,
+                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
+                              }}
+                              size="small"
+                              sx={{
+                                '& .MuiInputBase-root': {
+                                  bgcolor: 'background.paper'
+                                }
+                              }}
+                            />
+                          </Box>
+                        )}
                       </Stack>
                     ) : (
                       <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
