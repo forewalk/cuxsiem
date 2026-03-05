@@ -21,7 +21,7 @@
 ```bash
 OS="http://localhost:9200"
 
-for INDEX in cs_alerts cs_code cs_dashboards cs_login_attempts cs_notification_rules cs_policies cs_roles cs_sessions cs_users; do
+for INDEX in cs_alerts cs_code cs_dashboards cs_login_attempts cs_notification_rules cs_policies cs_sessions cs_users; do
   curl -X PUT "$OS/$INDEX" \
     -H "Content-Type: application/json" \
     -d "$(cat 1_index_cruxsiem.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d.get('$INDEX', {}).get('mappings', {})))")"
@@ -99,7 +99,6 @@ curl -X POST "$OS/_bulk" \
 | cs_policies | **필수** | `5_data_cs_policies.json` |
 | cs_dashboards | **필수** | `6_data_cs_dashboards.json` |
 | cs_users | **필수** (관리자) | `7_data_cs_users_admin.json` (초기 비밀번호: cruxSIEM1!) |
-| cs_roles | 불필요 | 현재 미사용 (빈 인덱스) |
 | cs_alerts | 불필요 | 알림 발생 시 자동 생성 |
 | cs_login_attempts | 불필요 | 로그인 시 자동 생성 |
 | cs_sessions | 불필요 | 로그인 시 자동 생성 |

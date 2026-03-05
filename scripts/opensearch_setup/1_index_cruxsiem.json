@@ -2390,25 +2390,6 @@
       }
     }
   },
-  "cs_roles": {
-    "aliases": {},
-    "mappings": {},
-    "settings": {
-      "index": {
-        "replication": {
-          "type": "DOCUMENT"
-        },
-        "number_of_shards": "1",
-        "provided_name": "cs_roles",
-        "creation_date": "1772085843277",
-        "number_of_replicas": "1",
-        "uuid": "G7OzvLFWSdeWchXn_--GCg",
-        "version": {
-          "created": "137257827"
-        }
-      }
-    }
-  },
   "cs_sessions": {
     "aliases": {},
     "mappings": {
