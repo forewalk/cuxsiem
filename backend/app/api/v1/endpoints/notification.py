@@ -103,6 +103,31 @@ async def test_query(request: dict):
         raise HTTPException(status_code=400, detail=f"Query execution failed: {str(e)}")
 
 
+@router.post("/rules/test-trigger")
+async def test_trigger(request: dict):
+    """
+    쿼리 실행 후 트리거 조건을 평가하여 결과 반환
+    Request Body:
+    {
+        "target_index": "logs-sentinel_one.threats",
+        "condition_config": { ... DSL 쿼리 ... },
+        "trigger_condition": "total > 0"
+    }
+    """
+    target_index = request.get("target_index")
+    condition_config = request.get("condition_config")
+    trigger_condition = request.get("trigger_condition")
+
+    if not target_index or not condition_config:
+        raise HTTPException(status_code=400, detail="target_index and condition_config are required")
+
+    try:
+        result = await service.test_trigger(target_index, condition_config, trigger_condition)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Trigger evaluation failed: {str(e)}")
+
+
 # --- 알림내역 조회 ---
 
 @router.get("/", response_model=NotificationListResponse)

@@ -101,6 +101,36 @@ class NotificationService:
             logger.error(f"[쿼리 테스트] 실패: {e}")
             raise Exception(f"Query execution failed: {str(e)}")
 
+    async def test_trigger(self, target_index: str, condition_config: Dict[str, Any], trigger_condition: str) -> Dict[str, Any]:
+        """
+        쿼리 실행 후 트리거 조건을 평가하여 결과 반환
+        """
+        try:
+            # 1. 먼저 쿼리 실행
+            result = await self.test_query(target_index, condition_config)
+            
+            # 2. 결과에서 컨텍스트 추출
+            total = result.get("hits", {}).get("total", {}).get("value", 0)
+            aggregations = result.get("aggregations") or result.get("aggs") or {}
+            
+            # 3. 트리거 조건 평가
+            context = {
+                "total": total,
+                "aggregations": DotDict(aggregations) if aggregations else {}
+            }
+            
+            evaluation = self._evaluate_trigger_condition(trigger_condition, context, raise_errors=True)
+            
+            return {
+                "evaluation": evaluation,
+                "total": total,
+                "has_aggregations": bool(aggregations)
+            }
+        except Exception as e:
+            # 구체적인 에러 메시지를 프론트엔드로 전달
+            error_type = type(e).__name__
+            raise Exception(f"[{error_type}] {str(e)}")
+
     # --- Notification Management ---
 
     async def list_notifications(
@@ -202,17 +232,26 @@ class NotificationService:
         # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
         return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
 
-    def _evaluate_trigger_condition(self, condition: str, context: Dict[str, Any]) -> bool:
+    def _evaluate_trigger_condition(self, condition: str, context: Dict[str, Any], raise_errors: bool = False) -> bool:
         """
         트리거 조건 평가
         - Python 표현식을 안전하게 평가
-        - 예: "total > 0", "total > 50 and bucket_count >= 3"
+        - raise_errors: True일 경우 에러 발생 시 예외를 던짐 (테스트용)
         """
         if not condition or not condition.strip():
-            return True  # 조건이 없으면 항상 true
+            return True
 
         try:
-            # 안전한 네임스페이스 설정 (math 함수 등 허용)
+            # 1. 문법 검사 (보안 및 유효성 확인)
+            import ast
+            try:
+                ast.parse(condition)
+            except SyntaxError as e:
+                if raise_errors:
+                    raise Exception(f"Syntax error in condition: {e.msg}")
+                return True
+
+            # 2. 안전한 네임스페이스 설정
             import math
             safe_namespace = {
                 '__builtins__': {},
@@ -222,16 +261,19 @@ class NotificationService:
                 'max': max,
                 'sum': sum,
                 'len': len,
-                **context  # 쿼리 결과 컨텍스트
+                **context
             }
 
-            # Python 표현식 평가
+            # 3. 평가 실행
+            # eval은 여전히 주의가 필요하지만, __builtins__를 비워 위험을 최소화함
             result = eval(condition, safe_namespace)
             return bool(result)
 
         except Exception as e:
+            if raise_errors:
+                # 구체적인 에러 메시지 전달 (예: NameError, AttributeError 등)
+                raise e
             logger.error(f"[트리거] 조건 평가 실패: '{condition}' - {e}")
-            # 평가 실패 시 안전하게 true 반환 (알림 생성)
             return True
 
     async def _create_aggregation_alert(
@@ -377,7 +419,7 @@ class NotificationService:
 
             hits = result.get("hits", {}).get("hits", [])
             total = result.get("hits", {}).get("total", {}).get("value", 0)
-            aggregations = result.get("aggregations") or result.get("aggs")
+            aggregations = result.get("aggregations") or result.get("aggs") or {}
 
             await self.repository.update_rule(rule_id, {
                 "last_success_at": now.isoformat(),
@@ -385,9 +427,19 @@ class NotificationService:
                 "last_error": None
             })
 
+            # 트리거 조건 체크 (공통)
+            trigger_condition = rule.get("trigger_condition")
+            if trigger_condition:
+                trigger_context = {
+                    "total": total,
+                    "aggregations": DotDict(aggregations) if aggregations else {}
+                }
+                if not self._evaluate_trigger_condition(trigger_condition, trigger_context):
+                    return None
+
             # 집계 결과가 있거나, 여러 문서를 한 번에 처리하는 경우
             if aggregations or (total > 1 and condition_config.get("size", 10) > 1):
-                created_alert = await self._create_aggregation_alert(rule, result, now, aggregations or {}, total)
+                created_alert = await self._create_aggregation_alert(rule, result, now, aggregations, total)
 
                 if created_alert:
                     await self.repository.update_rule(rule_id, {

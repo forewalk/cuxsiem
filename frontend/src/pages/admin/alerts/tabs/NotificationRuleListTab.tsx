@@ -163,6 +163,15 @@ const NotificationRuleListTab: React.FC = () => {
   const [queryTestResult, setQueryTestResult] = useState<any | null>(null);
   const [queryTestError, setQueryTestError] = useState<string | null>(null);
 
+  // 트리거 테스트 상태
+  const [triggerTestLoading, setTriggerTestLoading] = useState(false);
+  const [triggerTestResult, setTriggerTestResult] = useState<{
+    evaluation: boolean;
+    total: number;
+    has_aggregations: boolean;
+  } | null>(null);
+  const [triggerTestError, setTriggerTestError] = useState<string | null>(null);
+
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
   const [activeAnchor, setActiveAnchor] = useState<null | HTMLElement>(null);
@@ -353,6 +362,37 @@ const NotificationRuleListTab: React.FC = () => {
       setSnackbar({open: true, message: errorMsg, severity: 'error'});
     } finally {
       setQueryTestLoading(false);
+    }
+  };
+
+  const handleTestTrigger = async () => {
+    if (jsonError) {
+      setSnackbar({open: true, message: 'DSL 쿼리에 JSON 오류가 있습니다', severity: 'error'});
+      return;
+    }
+
+    setTriggerTestLoading(true);
+    setTriggerTestError(null);
+    setTriggerTestResult(null);
+
+    try {
+      const result = await notificationService.testTrigger(
+        formData.target_index,
+        formData.condition_config,
+        formData.trigger_condition || ''
+      );
+      setTriggerTestResult(result);
+      setSnackbar({
+        open: true,
+        message: `Trigger Evaluation: ${result.evaluation ? 'TRUE (Alert will fire)' : 'FALSE (No alert)'}`,
+        severity: result.evaluation ? 'success' : 'warning'
+      });
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.detail || error.message || 'Trigger test failed';
+      setTriggerTestError(errorMsg);
+      setSnackbar({open: true, message: errorMsg, severity: 'error'});
+    } finally {
+      setTriggerTestLoading(false);
     }
   };
 
@@ -817,16 +857,54 @@ const NotificationRuleListTab: React.FC = () => {
                 </Box>
               </Stack>
               
-              <TextField
-                label={t('triggerConditionLabel')}
-                fullWidth
-                value={formData.trigger_condition || ''}
-                onChange={(e) => setFormData({...formData, trigger_condition: e.target.value})}
-                size="small"
-                placeholder={t('triggerConditionPlaceholder')}
-                helperText={t('triggerConditionHelper')}
-                sx={{mt: 2}}
-              />
+              <Stack direction="row" spacing={1} alignItems="center" sx={{mt: 2}}>
+                <TextField
+                  label={t('triggerConditionLabel')}
+                  fullWidth
+                  value={formData.trigger_condition || ''}
+                  onChange={(e) => setFormData({...formData, trigger_condition: e.target.value})}
+                  size="small"
+                  placeholder={t('triggerConditionPlaceholder')}
+                  helperText={t('triggerConditionHelper')}
+                  sx={{flex: 1}}
+                />
+                <Button
+                  variant="outlined"
+                  onClick={handleTestTrigger}
+                  disabled={triggerTestLoading || !!jsonError}
+                  size="medium"
+                  sx={{ height: 40, mt: -2.5, whiteSpace: 'nowrap' }}
+                >
+                  {triggerTestLoading ? '⏳...' : 'Test Trigger'}
+                </Button>
+              </Stack>
+              
+              {triggerTestResult !== null && (
+                <Box sx={{ 
+                  mt: 1, 
+                  p: 1.5, 
+                  borderRadius: 1, 
+                  bgcolor: triggerTestResult.evaluation ? 'success.lighter' : 'warning.lighter',
+                  border: '1px solid',
+                  borderColor: triggerTestResult.evaluation ? 'success.light' : 'warning.light',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Typography variant="subtitle2" fontWeight="bold" color={triggerTestResult.evaluation ? 'success.dark' : 'warning.dark'}>
+                      Evaluation Result: {triggerTestResult.evaluation ? 'TRUE (Alert Triggered ✅)' : 'FALSE (No Alert ❌)'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      (Context: total={triggerTestResult.total}, has_aggs={String(triggerTestResult.has_aggregations)})
+                    </Typography>
+                  </Stack>
+                  <Button size="small" onClick={() => setTriggerTestResult(null)}>Clear</Button>
+                </Box>
+              )}
+              {triggerTestError && (
+                <Alert severity="error" sx={{ mt: 1 }}>{triggerTestError}</Alert>
+              )}
             </Grid>
 
             <Grid size={12}><Divider/></Grid>
