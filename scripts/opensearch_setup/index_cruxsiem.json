@@ -1,0 +1,2551 @@
+{
+  "cs_alerts": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "channel": {
+          "type": "keyword"
+        },
+        "created_at": {
+          "type": "date"
+        },
+        "dedup_key": {
+          "type": "keyword"
+        },
+        "event_index": {
+          "type": "keyword"
+        },
+        "event_ref": {
+          "type": "keyword"
+        },
+        "event_source": {
+          "properties": {
+            "@timestamp": {
+              "type": "date"
+            },
+            "agentDetectionInfo": {
+              "properties": {
+                "accountId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "accountName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentDetectionState": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentDomain": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentIpV4": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentIpV6": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentLastLoggedInUserName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentMitigationMode": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentOsName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentOsRevision": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentRegisteredAt": {
+                  "type": "date"
+                },
+                "agentUuid": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentVersion": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "assetVersion": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "cloudProviders": {
+                  "type": "object"
+                },
+                "externalIp": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "groupId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "groupName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "siteId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "siteName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                }
+              }
+            },
+            "agentRealtimeInfo": {
+              "properties": {
+                "accountId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "accountName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "activeThreats": {
+                  "type": "long"
+                },
+                "agentComputerName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentDomain": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentInfected": {
+                  "type": "boolean"
+                },
+                "agentIsActive": {
+                  "type": "boolean"
+                },
+                "agentIsDecommissioned": {
+                  "type": "boolean"
+                },
+                "agentMachineType": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentMitigationMode": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentNetworkStatus": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentOsName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentOsRevision": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentOsType": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentUuid": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "agentVersion": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "groupId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "groupName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "networkInterfaces": {
+                  "properties": {
+                    "id": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "inet": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "inet6": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "name": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "physical": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "operationalState": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "rebootRequired": {
+                  "type": "boolean"
+                },
+                "scanFinishedAt": {
+                  "type": "date"
+                },
+                "scanStartedAt": {
+                  "type": "date"
+                },
+                "scanStatus": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "siteId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "siteName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                }
+              }
+            },
+            "aggregations": {
+              "properties": {
+                "by_agent": {
+                  "properties": {
+                    "buckets": {
+                      "properties": {
+                        "doc_count": {
+                          "type": "long"
+                        },
+                        "events_in_window": {
+                          "properties": {
+                            "value": {
+                              "type": "long"
+                            }
+                          }
+                        },
+                        "key": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "doc_count_error_upper_bound": {
+                      "type": "long"
+                    },
+                    "sum_other_doc_count": {
+                      "type": "long"
+                    }
+                  }
+                }
+              }
+            },
+            "containerInfo": {
+              "type": "object"
+            },
+            "ecsInfo": {
+              "type": "object"
+            },
+            "hits": {
+              "properties": {
+                "@timestamp": {
+                  "type": "date"
+                },
+                "agentDetectionInfo": {
+                  "properties": {
+                    "accountId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "accountName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentDetectionState": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentDomain": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentIpV4": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentIpV6": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentLastLoggedInUserName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentMitigationMode": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentOsName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentOsRevision": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentRegisteredAt": {
+                      "type": "date"
+                    },
+                    "agentUuid": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentVersion": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "assetVersion": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "cloudProviders": {
+                      "type": "object"
+                    },
+                    "externalIp": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "groupId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "groupName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "siteId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "siteName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "agentRealtimeInfo": {
+                  "properties": {
+                    "accountId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "accountName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "activeThreats": {
+                      "type": "long"
+                    },
+                    "agentComputerName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentDomain": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentInfected": {
+                      "type": "boolean"
+                    },
+                    "agentIsActive": {
+                      "type": "boolean"
+                    },
+                    "agentIsDecommissioned": {
+                      "type": "boolean"
+                    },
+                    "agentMachineType": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentMitigationMode": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentNetworkStatus": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentOsName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentOsRevision": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentOsType": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentUuid": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "agentVersion": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "groupId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "groupName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "networkInterfaces": {
+                      "properties": {
+                        "id": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "inet": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "inet6": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "name": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "physical": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "operationalState": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "rebootRequired": {
+                      "type": "boolean"
+                    },
+                    "scanFinishedAt": {
+                      "type": "date"
+                    },
+                    "scanStartedAt": {
+                      "type": "date"
+                    },
+                    "scanStatus": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "siteId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "siteName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "containerInfo": {
+                  "type": "object"
+                },
+                "ecsInfo": {
+                  "type": "object"
+                },
+                "id": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "indicators": {
+                  "properties": {
+                    "category": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "description": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "ids": {
+                      "type": "long"
+                    },
+                    "tactics": {
+                      "properties": {
+                        "name": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "source": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "techniques": {
+                          "properties": {
+                            "link": {
+                              "type": "text",
+                              "fields": {
+                                "keyword": {
+                                  "type": "keyword",
+                                  "ignore_above": 256
+                                }
+                              }
+                            },
+                            "name": {
+                              "type": "text",
+                              "fields": {
+                                "keyword": {
+                                  "type": "keyword",
+                                  "ignore_above": 256
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "kubernetesInfo": {
+                  "type": "object"
+                },
+                "threatInfo": {
+                  "properties": {
+                    "analystVerdict": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "analystVerdictDescription": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "automaticallyResolved": {
+                      "type": "boolean"
+                    },
+                    "certificateId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "classification": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "classificationSource": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "collectionId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "confidenceLevel": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "date"
+                    },
+                    "detectionEngines": {
+                      "properties": {
+                        "key": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "title": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "detectionType": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "engines": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "externalTicketExists": {
+                      "type": "boolean"
+                    },
+                    "failedActions": {
+                      "type": "boolean"
+                    },
+                    "fileExtension": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "fileExtensionType": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "filePath": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "fileSize": {
+                      "type": "long"
+                    },
+                    "fileVerificationType": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "identifiedAt": {
+                      "type": "date"
+                    },
+                    "incidentStatus": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "incidentStatusDescription": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "initiatedBy": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "initiatedByDescription": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "isFileless": {
+                      "type": "boolean"
+                    },
+                    "isValidCertificate": {
+                      "type": "boolean"
+                    },
+                    "maliciousProcessArguments": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "mitigatedPreemptively": {
+                      "type": "boolean"
+                    },
+                    "mitigationStatus": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "mitigationStatusDescription": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "originatorProcess": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "pendingActions": {
+                      "type": "boolean"
+                    },
+                    "processUser": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "publisherName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "reachedEventsLimit": {
+                      "type": "boolean"
+                    },
+                    "rebootRequired": {
+                      "type": "boolean"
+                    },
+                    "rootProcessUpn": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "sha1": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "sha256": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "storyline": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "threatId": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "threatName": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "updatedAt": {
+                      "type": "date"
+                    }
+                  }
+                },
+                "whiteningOptions": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                }
+              }
+            },
+            "id": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "indicators": {
+              "properties": {
+                "category": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "description": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "ids": {
+                  "type": "long"
+                },
+                "tactics": {
+                  "properties": {
+                    "name": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "source": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "techniques": {
+                      "properties": {
+                        "link": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "name": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "kubernetesInfo": {
+              "type": "object"
+            },
+            "threatInfo": {
+              "properties": {
+                "analystVerdict": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "analystVerdictDescription": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "automaticallyResolved": {
+                  "type": "boolean"
+                },
+                "certificateId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "classification": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "classificationSource": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "collectionId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "confidenceLevel": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "createdAt": {
+                  "type": "date"
+                },
+                "detectionEngines": {
+                  "properties": {
+                    "key": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    },
+                    "title": {
+                      "type": "text",
+                      "fields": {
+                        "keyword": {
+                          "type": "keyword",
+                          "ignore_above": 256
+                        }
+                      }
+                    }
+                  }
+                },
+                "detectionType": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "engines": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "externalTicketExists": {
+                  "type": "boolean"
+                },
+                "failedActions": {
+                  "type": "boolean"
+                },
+                "fileExtension": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "fileExtensionType": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "filePath": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "fileSize": {
+                  "type": "long"
+                },
+                "fileVerificationType": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "identifiedAt": {
+                  "type": "date"
+                },
+                "incidentStatus": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "incidentStatusDescription": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "initiatedBy": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "initiatedByDescription": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "isFileless": {
+                  "type": "boolean"
+                },
+                "isValidCertificate": {
+                  "type": "boolean"
+                },
+                "maliciousProcessArguments": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "mitigatedPreemptively": {
+                  "type": "boolean"
+                },
+                "mitigationStatus": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "mitigationStatusDescription": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "originatorProcess": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "pendingActions": {
+                  "type": "boolean"
+                },
+                "processUser": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "publisherName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "reachedEventsLimit": {
+                  "type": "boolean"
+                },
+                "rebootRequired": {
+                  "type": "boolean"
+                },
+                "rootProcessUpn": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "sha1": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "sha256": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "storyline": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "threatId": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "threatName": {
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 256
+                    }
+                  }
+                },
+                "updatedAt": {
+                  "type": "date"
+                }
+              }
+            },
+            "total": {
+              "type": "long"
+            },
+            "type": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "whiteningOptions": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "id": {
+          "type": "keyword"
+        },
+        "message": {
+          "type": "text"
+        },
+        "message_template": {
+          "type": "text"
+        },
+        "outgoing_payload": {
+          "type": "object",
+          "enabled": false
+        },
+        "receiver": {
+          "properties": {
+            "type": {
+              "type": "keyword"
+            },
+            "values": {
+              "type": "keyword"
+            }
+          }
+        },
+        "request_headers": {
+          "type": "object",
+          "enabled": false
+        },
+        "response_body": {
+          "type": "text"
+        },
+        "response_status_code": {
+          "type": "integer"
+        },
+        "rule_description": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "rule_id": {
+          "type": "keyword"
+        },
+        "rule_name": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword"
+            }
+          }
+        },
+        "rule_severity": {
+          "type": "keyword"
+        },
+        "rule_target_index": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "sent_at": {
+          "type": "date"
+        },
+        "severity": {
+          "type": "keyword"
+        },
+        "status": {
+          "type": "keyword"
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "refresh_interval": "5s",
+        "number_of_shards": "1",
+        "provided_name": "cs_alerts",
+        "creation_date": "1771833662924",
+        "number_of_replicas": "0",
+        "uuid": "HGFYxnuSRCa8K_mWKTKLlw",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  },
+  "cs_code": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "code_name": {
+          "type": "keyword"
+        },
+        "type": {
+          "type": "keyword"
+        },
+        "updated_at": {
+          "type": "date"
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "number_of_shards": "1",
+        "provided_name": "cs_code",
+        "creation_date": "1772083119704",
+        "number_of_replicas": "1",
+        "uuid": "UvLV4ufSTTmVqsfcjDf7Fw",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  },
+  "cs_dashboards": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "custom_query": {
+          "type": "text"
+        },
+        "custom_titles": {
+          "type": "object"
+        },
+        "dashboard_id": {
+          "type": "keyword"
+        },
+        "default_title_key": {
+          "type": "keyword"
+        },
+        "display_order": {
+          "type": "integer"
+        },
+        "grid_height": {
+          "type": "integer"
+        },
+        "grid_width": {
+          "type": "integer"
+        },
+        "panel_key": {
+          "type": "keyword"
+        },
+        "target_field": {
+          "type": "keyword"
+        },
+        "updated_at": {
+          "type": "date"
+        },
+        "widget_type": {
+          "type": "keyword"
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "number_of_shards": "1",
+        "provided_name": "cs_dashboards",
+        "creation_date": "1771977224749",
+        "number_of_replicas": "1",
+        "uuid": "P5jkuILvREKWCTrt_OCcEA",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  },
+  "cs_login_attempts": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "account": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "attempted_at": {
+          "type": "date",
+          "format": "strict_date_optional_time_nanos"
+        },
+        "email": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "error_message": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "ip_address": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "otp_failure": {
+          "type": "boolean"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "number_of_shards": "1",
+        "provided_name": "cs_login_attempts",
+        "creation_date": "1770550894675",
+        "number_of_replicas": "0",
+        "uuid": "u2AesS3pSS28PI8ymV4x_w",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  },
+  "cs_notification_rules": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "channels": {
+          "type": "object"
+        },
+        "condition_config": {
+          "properties": {
+            "aggs": {
+              "properties": {
+                "by_agent": {
+                  "properties": {
+                    "aggs": {
+                      "properties": {
+                        "events_in_window": {
+                          "properties": {
+                            "value_count": {
+                              "properties": {
+                                "field": {
+                                  "type": "text",
+                                  "fields": {
+                                    "keyword": {
+                                      "type": "keyword",
+                                      "ignore_above": 256
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "terms": {
+                      "properties": {
+                        "field": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        },
+                        "size": {
+                          "type": "long"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "query": {
+              "properties": {
+                "bool": {
+                  "properties": {
+                    "filter": {
+                      "properties": {
+                        "range": {
+                          "properties": {
+                            "@timestamp": {
+                              "properties": {
+                                "gte": {
+                                  "type": "text",
+                                  "fields": {
+                                    "keyword": {
+                                      "type": "keyword",
+                                      "ignore_above": 256
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "must": {
+                      "properties": {
+                        "match_all": {
+                          "type": "object"
+                        }
+                      }
+                    },
+                    "should": {
+                      "properties": {
+                        "term": {
+                          "properties": {
+                            "agentRealtimeInfo": {
+                              "properties": {
+                                "rebootRequired": {
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "threatInfo": {
+                              "properties": {
+                                "rebootRequired": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "match_all": {
+                  "type": "object"
+                },
+                "range": {
+                  "properties": {
+                    "@timestamp": {
+                      "properties": {
+                        "gte": {
+                          "type": "text",
+                          "fields": {
+                            "keyword": {
+                              "type": "keyword",
+                              "ignore_above": 256
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "term": {
+                  "properties": {
+                    "agentRealtimeInfo": {
+                      "properties": {
+                        "agentInfected": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "size": {
+              "type": "long"
+            }
+          }
+        },
+        "condition_type": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "created_at": {
+          "type": "date"
+        },
+        "dedup_key_template": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "dedup_ttl_min": {
+          "type": "long"
+        },
+        "description": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "error_count": {
+          "type": "long"
+        },
+        "id": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "interval_min": {
+          "type": "long"
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "last_error": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "last_run_at": {
+          "type": "date"
+        },
+        "last_success_at": {
+          "type": "date"
+        },
+        "last_triggered_at": {
+          "type": "date"
+        },
+        "message_template": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "name": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "receiver": {
+          "properties": {
+            "type": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "values": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "severity": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "target_index": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "total_alerts_count": {
+          "type": "long"
+        },
+        "trigger_condition": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "updated_at": {
+          "type": "date"
+        },
+        "window_min": {
+          "type": "long"
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "refresh_interval": "10s",
+        "number_of_shards": "1",
+        "provided_name": "cs_notification_rules",
+        "creation_date": "1771833648395",
+        "number_of_replicas": "0",
+        "uuid": "Wa29UpFIRseDzdW_lDiq0Q",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  },
+  "cs_policies": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "allow_multiple_sessions": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "date",
+          "format": "strict_date_optional_time_nanos"
+        },
+        "lockout_duration_minutes": {
+          "type": "integer"
+        },
+        "lockout_threshold": {
+          "type": "integer"
+        },
+        "log_stream_refresh": {
+          "type": "long"
+        },
+        "log_stream_size": {
+          "type": "long"
+        },
+        "max_password_age_days": {
+          "type": "integer"
+        },
+        "min_length": {
+          "type": "integer"
+        },
+        "otp_required": {
+          "type": "boolean"
+        },
+        "pagination_size": {
+          "type": "integer"
+        },
+        "password_history_count": {
+          "type": "integer"
+        },
+        "pixel_mode": {
+          "type": "boolean"
+        },
+        "require_lowercase": {
+          "type": "boolean"
+        },
+        "require_numbers": {
+          "type": "boolean"
+        },
+        "require_special_chars": {
+          "type": "boolean"
+        },
+        "require_uppercase": {
+          "type": "boolean"
+        },
+        "session_duration": {
+          "type": "long"
+        },
+        "tab_count": {
+          "type": "long"
+        },
+        "time_filter_duration": {
+          "type": "integer"
+        },
+        "time_filter_unit": {
+          "type": "keyword"
+        },
+        "updated_at": {
+          "type": "date"
+        },
+        "user_register": {
+          "type": "boolean"
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "number_of_shards": "1",
+        "provided_name": "cs_policies",
+        "creation_date": "1770860763656",
+        "number_of_replicas": "1",
+        "uuid": "N2vk_RhgQye1AZXAWBOwHA",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  },
+  "cs_roles": {
+    "aliases": {},
+    "mappings": {},
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "number_of_shards": "1",
+        "provided_name": "cs_roles",
+        "creation_date": "1772085843277",
+        "number_of_replicas": "1",
+        "uuid": "G7OzvLFWSdeWchXn_--GCg",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  },
+  "cs_sessions": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "created_at": {
+          "type": "date",
+          "format": "strict_date_optional_time_nanos"
+        },
+        "expires_at": {
+          "type": "date",
+          "format": "strict_date_optional_time_nanos"
+        },
+        "id": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "ip_address": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "otp_verified": {
+          "type": "boolean"
+        },
+        "token_hash": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "user_agent": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "user_id": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "number_of_shards": "1",
+        "provided_name": "cs_sessions",
+        "creation_date": "1770550929364",
+        "number_of_replicas": "0",
+        "uuid": "1ThJXMpRQOKl4sxGBI2K9Q",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  },
+  "cs_users": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "created_at": {
+          "type": "date",
+          "format": "strict_date_optional_time_nanos"
+        },
+        "deleted_at": {
+          "type": "date",
+          "format": "strict_date_optional_time_nanos"
+        },
+        "email": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "id": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "is_active": {
+          "type": "boolean"
+        },
+        "last_login_at": {
+          "type": "date",
+          "format": "strict_date_optional_time_nanos"
+        },
+        "name": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "otp_backup_codes": {
+          "type": "keyword",
+          "index": false,
+          "store": true
+        },
+        "otp_enabled": {
+          "type": "boolean"
+        },
+        "otp_enrolled_at": {
+          "type": "date",
+          "format": "strict_date_time"
+        },
+        "otp_pending_secret_enc": {
+          "type": "keyword",
+          "index": false,
+          "store": true
+        },
+        "otp_secret_enc": {
+          "type": "keyword",
+          "index": false,
+          "store": true
+        },
+        "password_hash": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "role": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "updated_at": {
+          "type": "date",
+          "format": "strict_date_optional_time_nanos"
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "replication": {
+          "type": "DOCUMENT"
+        },
+        "number_of_shards": "1",
+        "provided_name": "cs_users",
+        "creation_date": "1770550971036",
+        "number_of_replicas": "0",
+        "uuid": "f3Wx7XSWSX6FL7tRN9t-xw",
+        "version": {
+          "created": "137257827"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+      "_id": "sentinel_one_policy",
+      "_seq_no": 0,
+      "_primary_term": 1,
+      "policy": {
+        "policy_id": "sentinel_one_policy",
+        "description": "logs_sentinel_one_policy",
+        "last_updated_time": 1770621370562,
+        "schema_version": 24,
+        "error_notification": null,
+        "default_state": "hot",
+        "states": [
+          {
+            "name": "hot",
+            "actions": [
+              {
+                "retry": {
+                  "count": 3,
+                  "backoff": "exponential",
+                  "delay": "1m"
+                },
+                "rollover": {
+                  "min_primary_shard_size": "20gb",
+                  "copy_alias": false
+                }
+              }
+            ],
+            "transitions": [
+              {
+                "state_name": "delete",
+                "conditions": {
+                  "min_rollover_age": "30d"
+                }
+              }
+            ]
+          },
+          {
+            "name": "delete",
+            "actions": [
+              {
+                "retry": {
+                  "count": 3,
+                  "backoff": "exponential",
+                  "delay": "1m"
+                },
+                "delete": {}
+              }
+            ],
+            "transitions": []
+          }
+        ],
+        "ism_template": [
+          {
+            "index_patterns": [
+              "logs-sentinel_one.*"
+            ],
+            "priority": 50,
+            "last_updated_time": 1770621370562
+          }
+        ]
+      }
+    }
