@@ -54,12 +54,6 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
 
   const finalEmptyMessage = emptyMessage || t('noResults');
 
-  const maxValue = useMemo(() => {
-    if (!data || data.length === 0) return 10;
-    const max = Math.max(...data.map(d => d.value));
-    return max === 0 ? 10 : max;
-  }, [data]);
-
   // 높이에 따른 패딩 및 스타일 조정
   const isSmall = actualHeight < 250;
   const padding = { 
@@ -70,25 +64,42 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
   };
   const chartHeight = Math.max(50, actualHeight - padding.top - padding.bottom);
 
-  const gridLines = useMemo(() => {
-    const effectiveMax = Math.ceil(maxValue);
-    let ticks: number[] = [];
-    if (effectiveMax <= 10) {
-      ticks = Array.from({ length: effectiveMax + 1 }, (_, i) => i);
-    } else {
-      const stepCount = isSmall ? 3 : 5;
-      const step = Math.ceil(effectiveMax / stepCount);
-      for (let i = 0; i <= stepCount; i++) {
-        const val = i * step;
-        if (val <= effectiveMax) ticks.push(val);
-      }
-      if (ticks[ticks.length - 1] < effectiveMax) ticks.push(effectiveMax);
+  // 1. 최대값 및 눈금 계산 (Nice Number Algorithm)
+  const { effectiveMax, ticks } = useMemo(() => {
+    if (!data || data.length === 0) return { effectiveMax: 10, ticks: [0, 2, 4, 6, 8, 10] };
+    const rawMax = Math.max(...data.map(d => d.value));
+    if (rawMax === 0) return { effectiveMax: 10, ticks: [0, 2, 4, 6, 8, 10] };
+
+    const getNiceStep = (range: number, targetTicks: number) => {
+      const rawStep = range / targetTicks;
+      const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+      const res = rawStep / mag;
+      let niceRes;
+      if (res < 1.5) niceRes = 1;
+      else if (res < 3) niceRes = 2;
+      else if (res < 7) niceRes = 5;
+      else niceRes = 10;
+      return niceRes * mag;
+    };
+
+    const targetTickCount = isSmall ? 3 : 5;
+    const step = getNiceStep(rawMax, targetTickCount - 1);
+    const niceMax = Math.ceil(rawMax / step) * step;
+    
+    const resultTicks = [];
+    for (let val = 0; val <= niceMax; val += step) {
+      resultTicks.push(val);
     }
+    
+    return { effectiveMax: niceMax, ticks: resultTicks };
+  }, [data, isSmall]);
+
+  const gridLines = useMemo(() => {
     return ticks.map((value) => {
       const top = padding.top + chartHeight - (value / effectiveMax) * chartHeight;
       return { top, value };
     });
-  }, [maxValue, chartHeight, padding.top, isSmall]);
+  }, [effectiveMax, ticks, chartHeight, padding.top]);
 
   const CustomTooltip = ({ label, count }: { label: string, count: number }) => (
     <Box sx={{ p: 1, minWidth: 180 }}>
@@ -165,7 +176,7 @@ const CategoryBarChartWidget: React.FC<CategoryBarChartWidgetProps> = ({ data, t
                   const containerWidthPct = 100 / barCount;
                   const barWidthPct = containerWidthPct * 0.6;
                   const xPct = (containerWidthPct * i) + (containerWidthPct - barWidthPct) / 2;
-                  const barHeightPct = (item.value / Math.ceil(maxValue)) * 100;
+                  const barHeightPct = (item.value / Math.max(1, effectiveMax)) * 100;
 
                   return (
                     <Tooltip 

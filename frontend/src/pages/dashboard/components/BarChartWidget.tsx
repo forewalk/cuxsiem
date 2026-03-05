@@ -33,31 +33,43 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
 
   const finalEmptyMessage = emptyMessage || t('noResults');
 
-  // 1. 최대값 및 눈금 계산
-  const maxValue = useMemo(() => {
-    if (!data || data.length === 0) return 10;
-    const max = Math.max(...data.map(d => d.count));
-    // 상단에 여유 공간 10% 추가
-    return max === 0 ? 10 : Math.ceil(max * 1.1);
+  // 1. 최대값 및 눈금 계산 (Nice Number Algorithm)
+  const { effectiveMax, ticks } = useMemo(() => {
+    if (!data || data.length === 0) return { effectiveMax: 10, ticks: [0, 2, 4, 6, 8, 10] };
+    const rawMax = Math.max(...data.map(d => d.count));
+    if (rawMax === 0) return { effectiveMax: 10, ticks: [0, 2, 4, 6, 8, 10] };
+
+    // "Nice Number" 계산 로직
+    const getNiceStep = (range: number, targetTicks: number) => {
+      const rawStep = range / targetTicks;
+      const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+      const res = rawStep / mag;
+      let niceRes;
+      if (res < 1.5) niceRes = 1;
+      else if (res < 3) niceRes = 2;
+      else if (res < 7) niceRes = 5;
+      else niceRes = 10;
+      return niceRes * mag;
+    };
+
+    const targetTickCount = 5;
+    const step = getNiceStep(rawMax, targetTickCount - 1);
+    const niceMax = Math.ceil(rawMax / step) * step;
+    
+    const resultTicks = [];
+    for (let val = 0; val <= niceMax; val += step) {
+      resultTicks.push(val);
+    }
+    
+    return { effectiveMax: niceMax, ticks: resultTicks };
   }, [data]);
 
   const gridLines = useMemo(() => {
-    const effectiveMax = Math.ceil(maxValue);
-    const tickCount = 5; 
-    let ticks: number[] = [];
-    const step = Math.ceil(effectiveMax / (tickCount - 1));
-    for (let i = 0; i < tickCount; i++) {
-      const val = i * step;
-      if (val <= effectiveMax) ticks.push(val);
-    }
-    if (ticks[ticks.length - 1] < effectiveMax) ticks.push(effectiveMax);
-    ticks = Array.from(new Set(ticks)).sort((a, b) => a - b);
-
     return ticks.map((value) => {
       const bottomPct = (value / effectiveMax) * 100;
       return { bottomPct, value };
     });
-  }, [maxValue]);
+  }, [effectiveMax, ticks]);
 
   // 2. 드래그 선택 로직
   const [isSelecting, setIsSelecting] = useState(false);
@@ -191,7 +203,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
               const barCount = data.length;
               const barWidth = (100 / barCount) * 0.8;
               const x = (100 / barCount) * i + (100 / barCount - barWidth) / 2;
-              const barHeight = (item.count / Math.max(1, Math.ceil(maxValue))) * 100;
+              const barHeight = (item.count / Math.max(1, effectiveMax)) * 100;
 
               return (
                 <Tooltip 

@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import ControlBar from "../components/ControlBar";
 import BarChartWidget from "../components/BarChartWidget";
+import * as XLSX from "xlsx";
 import { getDashboardStats, getIndexFields, getIndexLogs } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
@@ -207,6 +208,25 @@ const AgentListTab: React.FC = () => {
 
   const handleBarClick = (startTime: string, endTime: string) => { handleTimeChange(null, "m", null, "m", startTime, endTime); };
 
+  const handleExportExcel = useCallback(() => {
+    if (!logs || logs.length === 0) return;
+
+    const excelData = logs.map(log => {
+      const row: Record<string, any> = {};
+      selectedFieldNames.forEach(fieldName => {
+        const val = getValueByPath(log, fieldName);
+        row[fieldName] = val;
+      });
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Agents");
+
+    XLSX.writeFile(workbook, `agent_logs_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`);
+  }, [logs, selectedFieldNames]);
+
   const FieldItem = ({ name, type, selected = false, onAction }: { name: string, type?: string, selected?: boolean, onAction: (name: string) => void }) => {
     const getTypeInfo = (type?: string) => {
       switch (type) {
@@ -238,7 +258,7 @@ const AgentListTab: React.FC = () => {
   return (
     <Box id="agent-list-tab-container" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 } }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      <ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary.total_logs} />
+      <ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary.total_logs} onDownload={handleExportExcel} />
       {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 } }}>
         <Paper elevation={1} sx={{ width: { xs: 0, md: 220 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>

@@ -23,7 +23,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import AddIcon from "@mui/icons-material/Add";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import DownloadIcon from "@mui/icons-material/Download";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -67,6 +67,7 @@ interface ControlBarProps {
   selectedIndex?: string;
   onIndexChange?: (index: string) => void;
   userRole?: string;
+  onDownload?: () => void;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({ 
@@ -92,7 +93,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
   indexOptions = [],
   selectedIndex = '*',
   onIndexChange,
-  userRole
+  userRole,
+  onDownload
 }) => {
   const theme = useTheme();
   const { language } = useLanguageStore();
@@ -166,6 +168,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
   };
 
   const handleDownloadPdf = async () => {
+    // 부모로부터 주입된 다운로드 함수가 있으면 그것을 실행 (예: 엑셀 다운로드)
+    if (onDownload) {
+      onDownload();
+      return;
+    }
+
+    // 기본 동작: PDF 캡처
     // 컨테이너 ID 중 화면에 보이는 것을 찾음 (display:none 탭 제외)
     const containerIds = [
       'agent-dashboard-grid-container',
@@ -526,7 +535,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={<CameraAltIcon sx={{ fontSize: 14 }} />}
+                startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
                 onClick={handleDownloadPdf}
                 disabled={downloading}
                 sx={{ 

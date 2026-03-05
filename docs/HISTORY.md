@@ -25,7 +25,6 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-03-04 14:55 | 김장훈 | 배포 | origin/develop, origin/feature/admin push (로그 스트리밍 수동 검색 및 OTP 테스트 우회 코드 추가) |
 | 2026-03-03 16:20 | 최지호 | 배포 | origin/develop push (feature/dashboard 병합) |
 | 2026-03-03 16:12 | 최지호 | 수정 | origin/feature/dashboard push (타임피커/필터 공유 설정, 리스트 그래프 x축 잘림 현상 수정) |
 | 2026-03-03 | 박지은 | 수리 | 알림 내역 role 필터 쿼리 오류 수정 (receiver.values → receiver.values.keyword) |
@@ -84,6 +83,9 @@
 | 2026-02-25 14:45 | 박상현 | 수정 | 로그 스트리밍 제어 버튼 UI 개선 (자동 스트리밍/자동 스크롤 버튼 분리 및 시인성 강화) |
 | 2026-02-25 14:35 | 박상현 | 수정 | 로그 스트리밍 문서 최신화 및 메시지 표시 제한 확장(5줄) |
 | 2026-02-25 14:35 | 박상현 | 추가 | 로그 스트리밍 백엔드 API 테스트 코드 (`test_logs.py`) |
+| 2026-02-26 09:05 | 박지은 | 수정  | 알림 탐지 로직 고도화: window_min 필드 제거 및 DSL 기반 자유 쿼리(시간 범위 직접 지정) 방식으로 전환                           |
+| 2026-02-25 13:15 | 박지은 | 수정  | 탐지된 모든 이벤트에 대해 개별 알림 생성 루프 구현 (기존 hit[0] 처리 방식 개선)                                           |
+| 2026-02-25 12:45 | 박지은 | 수리  | 알림 스낵바 미표시 문제 디버깅 로그 추가 (useGlobalAlertNotification, useWebSocket, App, GlobalAlertSnackbar) |
 | 2026-02-25 09:07 | 최지호 | 수정 | origin/feature/dashboard push (그래프 색상 원복) |
 | 2026-02-25 08:20 | 최지호 | 수정 | origin/feature/dashboard push (대시보드 피드백 반영) |
 | 2026-02-24 14:18 | 최지호 | 수정 | origin/feature/dashboard push (agent 화면 생성, 대시보드 편집 구현) |
