@@ -27,6 +27,7 @@ export const useLogStreaming = (
   const [toValue, setToValue] = useState<number | null>(null);
   const [toUnit, setToUnit] = useState("m");
   const [toISO, setToISO] = useState<string | null>(null);
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   const fetchIndices = useCallback(async () => {
     try {
@@ -88,7 +89,7 @@ export const useLogStreaming = (
     } finally {
       setLoading(false);
     }
-  }, [isActive, isPaused, appliedKeyword, filters, selectedIndex, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
+  }, [isActive, isPaused, appliedKeyword, filters, selectedIndex, fromISO, toISO, fromValue, fromUnit, toValue, toUnit, maxLogs]);
 
   // 탭 활성화 시: 인덱스 조회 및 초기화 (자동 조회 없음 - 사용자가 직접 조회해야 함)
   useEffect(() => {
@@ -101,14 +102,6 @@ export const useLogStreaming = (
     }
   }, [isActive, fetchIndices]);
 
-  // 검색 조건 변경 시 재조회 (인덱스 선택만으로는 자동 검색하지 않음)
-  useEffect(() => {
-    if (!isInitializedRef.current) return;
-    lastTimestampRef.current = null;
-    fetchLogs(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedKeyword, filters, fromISO, toISO, fromValue, fromUnit, toValue, toUnit]);
-
   // 폴링 설정 (pollIntervalMs 또는 POLL_INTERVAL 기준)
   useEffect(() => {
     const timer = setInterval(() => fetchLogs(), pollIntervalMs);
@@ -117,9 +110,16 @@ export const useLogStreaming = (
 
   // 수동 새로고침 (검색 버튼 클릭 시 항상 조회)
   const refresh = useCallback(() => {
+    setSearchTrigger(prev => prev + 1);
+  }, []);
+
+  // 검색 트리거 변경 시 재조회 (자동 검색 방지)
+  useEffect(() => {
+    if (!isInitializedRef.current || searchTrigger === 0) return;
     lastTimestampRef.current = null;
     fetchLogs(true);
-  }, [fetchLogs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTrigger]);
 
   const clearLogs = () => {
     setLogs([]);

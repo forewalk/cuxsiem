@@ -6,6 +6,7 @@ import {
 } from "@mui/material";
 import ControlBar from "../components/ControlBar";
 import BarChartWidget from "../components/BarChartWidget";
+import * as XLSX from "xlsx";
 import { getDashboardStats, getIndexFields, getDashboardIndices, getIndexLogs } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
@@ -247,6 +248,28 @@ const ThreatListTab: React.FC = () => {
     handleTimeChange(null, "m", null, "m", startTime, endTime);
   };
 
+  const handleExportExcel = useCallback(() => {
+    if (!logs || logs.length === 0) return;
+
+    // 엑셀에 들어갈 데이터 가공 (선택된 필드 기준)
+    const excelData = logs.map(log => {
+      const row: Record<string, any> = {};
+      selectedFieldNames.forEach(fieldName => {
+        const val = getValueByPath(log, fieldName);
+        // 필드명을 키로, 가공된 값을 밸류로 설정
+        row[fieldName] = val;
+      });
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Threats");
+
+    // 파일 생성 및 저장
+    XLSX.writeFile(workbook, `threat_logs_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`);
+  }, [logs, selectedFieldNames]);
+
   const FieldItem = ({ name, type, selected = false, onAction }: { name: string, type?: string, selected?: boolean, onAction: (name: string) => void }) => {
     const getTypeInfo = (type?: string) => {
       switch (type) {
@@ -335,6 +358,8 @@ const ThreatListTab: React.FC = () => {
             lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} 
 
             totalLogs={data?.summary.total_logs}
+
+            onDownload={handleExportExcel}
 
           />
 

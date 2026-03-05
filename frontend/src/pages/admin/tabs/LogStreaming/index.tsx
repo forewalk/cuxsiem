@@ -23,7 +23,6 @@ import 'dayjs/locale/en';
 // Stores & Types
 import { useLanguageStore } from "@/stores/useLanguageStore";
 import useTabStore from '@/stores/tabStore';
-import { useAuth } from '@/hooks/useAuth';
 import type { LogEntry } from '@/types';
 
 // Locales
@@ -41,24 +40,11 @@ import TimeSettingPopover from './components/TimeSettingPopover';
 import { useLogStreaming } from './hooks/useLogStreaming';
 import { useFieldSelection } from './hooks/useFieldSelection';
 import { useTimeSettings } from './hooks/useTimeSettings';
-import { useSettingsStore } from '@/stores/useSettingsStore';
 
 const LogStreaming: React.FC = () => {
-  const { user } = useAuth();
   const { language } = useLanguageStore();
   const { activeTabId } = useTabStore();
-  const { settings, fetchSettings } = useSettingsStore();
   const isActive = activeTabId === 'LogStreamingTab';
-
-  // CRT 효과용 pixelMode 상태 (App.tsx와 동기화)
-  const [pixelMode, setPixelMode] = useState(() => localStorage.getItem("appPixelMode") === "true");
-  useEffect(() => {
-    const handler = (e: Event) => {
-      setPixelMode((e as CustomEvent).detail.pixelMode);
-    };
-    window.addEventListener('pixelModeChanged', handler);
-    return () => window.removeEventListener('pixelModeChanged', handler);
-  }, []);
 
   // i18n
   const translations: Record<string, Record<string, string>> = { 
@@ -71,16 +57,14 @@ const LogStreaming: React.FC = () => {
     return text; 
   }, [language, translations]);
 
-  // Hooks (고급 설정에서 최대 건수/갱신 주기 적용)
-  const logStreamSize = settings?.log_stream_size ?? 1000;
-  const logStreamRefreshMs = (settings?.log_stream_refresh ?? 10) * 1000;
+  // Hooks
   const {
     logs, loading, isPaused, setIsPaused, selectedIndex, setSelectedIndex,
     indexOptions, keyword, setKeyword, appliedKeyword, setAppliedKeyword,
-    filters, setFilters, refresh, clearLogs, startStreaming, handleFilterAdd, timeRange
-  } = useLogStreaming(isActive, logStreamSize, logStreamRefreshMs);
+    filters, setFilters, refresh, clearLogs, handleFilterAdd, timeRange
+  } = useLogStreaming(isActive);
 
-  const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs, selectedIndex);
+  const { visibleFields, availableFields, toggleField, resetFields } = useFieldSelection(logs);
   
   const { 
     timeAnchorEl, setTimeAnchorEl, popoverInfo, 
@@ -92,27 +76,23 @@ const LogStreaming: React.FC = () => {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [fieldAnchorEl, setFieldAnchorEl] = useState<HTMLButtonElement | null>(null);
 
-  // 고급 설정 로드 (초기 1회)
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
-
-  useEffect(() => {
-    if (settings && settings.time_filter_duration && settings.time_filter_unit) {
-      timeRange.setFromValue(settings.time_filter_duration);
-      timeRange.setFromUnit(settings.time_filter_unit);
-    }
-  }, [settings]);
-
   // Derived
   const hasSearchOrFilter = appliedKeyword || filters.length > 0;
+  const currentLogDate = useMemo(() => {
+    if (logs.length === 0) return dayjs().format('YYYY-MM-DD');
+    return dayjs(logs[0].timestamp).format('YYYY-MM-DD');
+  }, [logs]);
 
   const togglePaused = () => {
     const nextPaused = !isPaused;
     setIsPaused(nextPaused);
     if (!nextPaused) {
-      // 스트리밍 시작: 로그 클리어 + 현재 시각 이후 데이터만 수신
-      startStreaming();
+      timeRange.setFromValue(15);
+      timeRange.setFromUnit("m");
+      timeRange.setFromISO(null);
+      timeRange.setToValue(null);
+      timeRange.setToUnit("m");
+      timeRange.setToISO(null);
       setAutoScroll(true);
     }
   };
@@ -124,34 +104,9 @@ const LogStreaming: React.FC = () => {
     return `~ ${v} ${unitText[u]}`;
   };
 
-  if (user && user.role !== 'role-1') {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <Typography color="text.secondary">{t('noPermission')}</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', p: 3, gap: 1 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-
-      {/* CRT Scanline 오버레이 (픽셀 모드 전용) */}
-      {pixelMode && (
-        <Box sx={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 9998,
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,156,0.025) 2px, rgba(0,255,156,0.025) 4px)',
-          '&::after': {
-            content: '""', position: 'absolute', inset: 0,
-            background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.4) 100%)',
-          },
-          animation: 'crtFlicker 0.12s infinite',
-          '@keyframes crtFlicker': {
-            '0%, 100%': { opacity: 0.96 },
-            '50%': { opacity: 1 },
-          },
-        }} />
-      )}
       
       <LogStreamControlBar 
         t={t} 
@@ -159,7 +114,7 @@ const LogStreaming: React.FC = () => {
         filters={filters} onFiltersChange={setFilters}
         indexOptions={indexOptions}
         selectedIndex={selectedIndex} onIndexChange={setSelectedIndex}
-        onRefresh={() => { setAppliedKeyword(keyword); if (keyword === appliedKeyword) refresh(); }}
+        onRefresh={() => { setAppliedKeyword(keyword); refresh(); }}
         onClearKeyword={() => { setKeyword(""); setAppliedKeyword(""); }}
       />
 
@@ -209,6 +164,18 @@ const LogStreaming: React.FC = () => {
                 </Typography>
               </Box>
             </Box>
+            <Button
+              variant="contained" size="small"
+              onClick={() => {
+                setAppliedKeyword(keyword);
+                refresh();
+              }}
+              disabled={!isPaused || !selectedIndex}
+              sx={{ height: 32, textTransform: 'none', fontWeight: 'bold', borderRadius: 1.5, minWidth: 60 }}
+            >
+              {t('search')}
+            </Button>
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 20 }} />
             <Tooltip title={t('selectFields')}>
               <Button 
                 variant="outlined" size="small" startIcon={<SettingsIcon />} 
@@ -221,18 +188,19 @@ const LogStreaming: React.FC = () => {
             <Tooltip title={t('clearLogs')}>
               <IconButton size="small" onClick={clearLogs}><ClearIcon /></IconButton>
             </Tooltip>
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 20 }} />
             <Tooltip
               title={isPaused ? t('streamingGuide') : ''}
               placement="top"
               arrow
             >
-              <Button
-                variant="contained" size="small"
-                startIcon={isPaused ? <PlayArrowIcon /> : <StopIcon />}
-                onClick={togglePaused} color={isPaused ? 'error' : 'success'}
-                sx={{
-                  textTransform: 'none', borderRadius: 1.5, minWidth: 110, height: 32,
-                  fontWeight: 'bold', boxShadow: (theme) => isPaused ? 'none' : `0 0 8px ${theme.palette.success.main}44`
+              <Button 
+                variant="contained" size="small" 
+                startIcon={isPaused ? <PlayArrowIcon /> : <StopIcon />} 
+                onClick={togglePaused} color={isPaused ? 'error' : 'success'} 
+                sx={{ 
+                  textTransform: 'none', borderRadius: 1.5, minWidth: 110, height: 32, 
+                  fontWeight: 'bold', boxShadow: (theme) => isPaused ? 'none' : `0 0 8px ${theme.palette.success.main}44` 
                 }}
               >
                 {isPaused ? t('paused') : t('streaming')}
@@ -251,6 +219,7 @@ const LogStreaming: React.FC = () => {
             loading={loading}
             autoScroll={autoScroll}
             onAutoScrollChange={setAutoScroll}
+            currentLogDate={currentLogDate}
             t={t}
           />
           {selectedLog && (
