@@ -1,0 +1,38 @@
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_total_threats"}}
+{"dashboard_id": "threat-status", "panel_key": "total_threats", "default_title_key": "totalThreats", "grid_width": 4, "grid_height": 120, "display_order": 1, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_resolved_threats"}}
+{"dashboard_id": "threat-status", "panel_key": "resolved_threats", "default_title_key": "resolvedThreats", "grid_width": 4, "grid_height": 120, "display_order": 2, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_unresolved_threats"}}
+{"dashboard_id": "threat-status", "panel_key": "unresolved_threats", "default_title_key": "unresolvedThreats", "grid_width": 4, "grid_height": 120, "display_order": 3, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_active_threats"}}
+{"dashboard_id": "threat-status", "panel_key": "active_threats", "default_title_key": "activeThreats", "grid_width": 4, "grid_height": 120, "display_order": 4, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_blocked_threats"}}
+{"dashboard_id": "threat-status", "panel_key": "blocked_threats", "default_title_key": "blockedThreats", "grid_width": 3, "grid_height": 120, "display_order": 5, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_mitigated_threats"}}
+{"dashboard_id": "threat-status", "panel_key": "mitigated_threats", "default_title_key": "mitigatedThreats", "grid_width": 3, "grid_height": 120, "display_order": 6, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_suspicious_threats"}}
+{"dashboard_id": "threat-status", "panel_key": "suspicious_threats", "default_title_key": "suspiciousThreats", "grid_width": 3, "grid_height": 120, "display_order": 7, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_detection_engine"}}
+{"dashboard_id": "threat-status", "panel_key": "detection_engine", "default_title_key": "detectionEngine", "grid_width": 2, "grid_height": 380, "display_order": 8, "widget_type": "pie", "target_field": "threatInfo.detectionEngines.title", "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_severity_dist"}}
+{"dashboard_id": "threat-status", "panel_key": "severity_dist", "default_title_key": "severityDistribution", "grid_width": 2, "grid_height": 380, "display_order": 9, "widget_type": "pie", "target_field": "threatInfo.severity", "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_prevalent_threats"}}
+{"dashboard_id": "threat-status", "panel_key": "prevalent_threats", "default_title_key": "prevalentThreats", "grid_width": 3, "grid_height": 380, "display_order": 10, "widget_type": "bar", "target_field": "threatInfo.threatName", "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_mitigation_stats"}}
+{"dashboard_id": "threat-status", "panel_key": "mitigation_stats", "default_title_key": "mitigationStatusDist", "grid_width": 3, "grid_height": 380, "display_order": 11, "widget_type": "bar", "target_field": "threatInfo.mitigationStatus", "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "threat-status_agent_status_dist"}}
+{"dashboard_id": "threat-status", "panel_key": "agent_status_dist", "default_title_key": "agentStatusDist", "grid_width": 3, "grid_height": 380, "display_order": 12, "widget_type": "pie", "target_field": "agentRealtimeInfo.agentDetectionState", "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "agent-dashboard_total_agents"}}
+{"dashboard_id": "agent-dashboard", "panel_key": "total_agents", "default_title_key": "totalAgents", "grid_width": 4, "grid_height": 120, "display_order": 1, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "agent-dashboard_active_agents"}}
+{"dashboard_id": "agent-dashboard", "panel_key": "active_agents", "default_title_key": "activeAgents", "grid_width": 4, "grid_height": 120, "display_order": 2, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "agent-dashboard_inactive_agents"}}
+{"dashboard_id": "agent-dashboard", "panel_key": "inactive_agents", "default_title_key": "inactiveAgents", "grid_width": 4, "grid_height": 120, "display_order": 3, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "agent-dashboard_infected_agents"}}
+{"dashboard_id": "agent-dashboard", "panel_key": "infected_agents", "default_title_key": "infectedAgents", "grid_width": 4, "grid_height": 120, "display_order": 4, "widget_type": "metric", "target_field": null, "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "agent-dashboard_agent_os_dist"}}
+{"dashboard_id": "agent-dashboard", "panel_key": "agent_os_dist", "default_title_key": "agentOSDistribution", "grid_width": 2, "grid_height": 380, "display_order": 5, "widget_type": "pie", "target_field": "osName", "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "agent-dashboard_agent_version_dist"}}
+{"dashboard_id": "agent-dashboard", "panel_key": "agent_version_dist", "default_title_key": "agentVersionDistribution", "grid_width": 2, "grid_height": 380, "display_order": 6, "widget_type": "bar", "target_field": "agentVersion", "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_dashboards", "_id": "agent-dashboard_agent_scan_status"}}
+{"dashboard_id": "agent-dashboard", "panel_key": "agent_scan_status", "default_title_key": "agentScanStatus", "grid_width": 1, "grid_height": 300, "display_order": 7, "widget_type": "pie", "target_field": "scanStatus", "custom_titles": {}, "custom_query": null, "updated_at": "2026-01-01T00:00:00"}

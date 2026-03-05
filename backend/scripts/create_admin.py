@@ -56,7 +56,7 @@ def create_admin_user(username, password, email, name):
             "email": email,
             "password_hash": password_hash,
             "name": name,
-            "role": "admin",
+            "role": "role-1",
             "is_active": True,
             "created_at": datetime.utcnow().isoformat(),
             "updated_at": datetime.utcnow().isoformat(),
