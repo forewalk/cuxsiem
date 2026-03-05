@@ -194,7 +194,7 @@
   "logDetails": "로그 상세 정보",
   "field": "필드",
   "value": "값",
-  "searchFields": "필드 검색...",
+  "searchFields": "필드명 검색",
   "selectFields": "필드 선택",
   "availableFields": "사용 가능한 필드",
   "visibleFieldsLabel": "표시된 필드",
