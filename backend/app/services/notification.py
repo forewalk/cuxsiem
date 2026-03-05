@@ -206,23 +206,28 @@ class NotificationService:
                     return f"{{{{{key}}}}}"
                 return str(value)
 
-            # 중첩 필드 접근 - 모든 hits에서 추출
+            # 중첩 필드 접근
             keys = key.split('.')
-            hits = context.get("hits", [])
 
-            if hits and isinstance(hits, list):
+            # 1차: context 전체에서 직접 탐색 (예: hits.total.value, aggregations.threats.buckets)
+            ctx_value = get_nested_value(context, keys)
+            if ctx_value is not None:
+                return str(ctx_value)
+
+            # 2차: hits._source 배열에서 추출 (예: threatInfo.threatName)
+            hit_sources = context.get("_hit_sources", [])
+            if hit_sources and isinstance(hit_sources, list):
                 values = []
-                for hit in hits:
+                for hit in hit_sources:
                     hit_value = get_nested_value(hit, keys)
                     if hit_value is not None:
                         values.append(str(hit_value))
 
                 if values:
-                    # 중복 제거하고 줄바꿈으로 연결
                     unique_values = list(dict.fromkeys(values))
                     return "\n".join(unique_values)
 
-            return f"{{{{{key}}}}}"  # 값이 없으면 원본 유지
+            return f"{{{{{key}}}}}"
 
         # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
         return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
@@ -308,14 +313,15 @@ class NotificationService:
         hits = result.get("hits", {}).get("hits", [])
         hit_sources = [hit.get("_source", {}) for hit in hits]
 
-        # 메시지 템플릿 렌더링을 위한 context 구성
+        # 메시지 템플릿 렌더링을 위한 context 구성 (OpenSearch 응답 전체 + 메타 정보)
         template_context = {
+            **result,
             "total": total,
             "rule_name": rule.get("name"),
             "rule_id": rule_id,
             "rule_severity": rule.get("severity"),
             "target_index": target_index,
-            "hits": hit_sources,  # 모든 문서의 _source 배열
+            "_hit_sources": hit_sources,
         }
 
         message_template = rule.get("message_template", "[WARNING] 총 {{total}}건의 이벤트가 탐지되었습니다.")
@@ -457,10 +463,9 @@ class NotificationService:
                     if existing_alert:
                         continue
 
-                    # 메시지 템플릿 렌더링을 위한 context 구성
-                    # event_source의 모든 필드 + 메타 정보 포함
+                    # 메시지 템플릿 렌더링을 위한 context 구성 (OpenSearch 응답 전체 + 메타 정보)
                     template_context = {
-                        # 기본 정보
+                        **result,
                         "total": total,
                         "rule_name": rule.get("name"),
                         "rule_id": rule_id,
@@ -468,7 +473,7 @@ class NotificationService:
                         "target_index": target_index,
                         "_id": event_ref,
                         "_index": event_index,
-                        # event_source의 모든 필드 포함 (중첩 접근 지원)
+                        "_hit_sources": [event_source],
                         **event_source
                     }
 

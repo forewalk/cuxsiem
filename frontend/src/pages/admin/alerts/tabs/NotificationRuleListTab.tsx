@@ -201,10 +201,10 @@ const NotificationRuleListTab: React.FC = () => {
         return value;
       };
       
-      // 템플릿 컨텍스트 구성 (백엔드와 동일)
+      // 템플릿 컨텍스트 구성 (백엔드와 동일: OpenSearch 응답 전체 + 메타 정보)
       const context: any = {
+        ...queryTestResult,
         total,
-        hits: hitSources
       };
       
       // {{변수}} 형식을 모두 치환
@@ -215,7 +215,13 @@ const NotificationRuleListTab: React.FC = () => {
           return value !== null && value !== undefined ? String(value) : match;
         }
         
-        // 중첩 필드 처리 - 모든 hits에서 추출
+        // 1차: context 전체에서 직접 탐색 (예: hits.total.value, aggregations.threats.buckets)
+        const ctxValue = getNestedValue(queryTestResult, key);
+        if (ctxValue !== null && ctxValue !== undefined) {
+          return String(ctxValue);
+        }
+        
+        // 2차: hits._source 배열에서 추출 (예: threatInfo.threatName)
         if (hitSources.length > 0) {
           const values: string[] = [];
           for (const hit of hitSources) {
@@ -226,7 +232,6 @@ const NotificationRuleListTab: React.FC = () => {
           }
           
           if (values.length > 0) {
-            // 중복 제거하고 줄바꿈으로 연결
             const uniqueValues = Array.from(new Set(values));
             return uniqueValues.join('\n');
           }
