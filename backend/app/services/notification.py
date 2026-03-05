@@ -109,18 +109,13 @@ class NotificationService:
             # 1. 먼저 쿼리 실행
             result = await self.test_query(target_index, condition_config)
             
-            # 2. 결과에서 컨텍스트 추출
-            total = result.get("hits", {}).get("total", {}).get("value", 0)
-            aggregations = result.get("aggregations") or result.get("aggs") or {}
-            
-            # 3. 트리거 조건 평가
-            context = {
-                "total": total,
-                "aggregations": DotDict(aggregations) if aggregations else {}
-            }
+            # 2. 전체 응답을 DotDict로 래핑하여 점 표기법 접근 가능하게 함
+            context = DotDict(result)
             
             evaluation = self._evaluate_trigger_condition(trigger_condition, context, raise_errors=True)
             
+            total = result.get("hits", {}).get("total", {}).get("value", 0)
+            aggregations = result.get("aggregations") or result.get("aggs") or {}
             return {
                 "evaluation": evaluation,
                 "total": total,
@@ -291,13 +286,7 @@ class NotificationService:
         # 트리거 조건 체크
         trigger_condition = rule.get("trigger_condition")
         if trigger_condition:
-            # 쿼리 결과 컨텍스트 구성 (total + aggregations)
-            trigger_context = {
-                "total": total,
-                "aggregations": DotDict(aggregations) if aggregations else {}
-            }
-
-            if not self._evaluate_trigger_condition(trigger_condition, trigger_context):
+            if not self._evaluate_trigger_condition(trigger_condition, DotDict(result)):
                 return None
 
         # 중복 제거 키: 규칙 ID + 시간 윈도우 (분 단위로 동일 규칙은 하나의 알림만)
@@ -430,11 +419,7 @@ class NotificationService:
             # 트리거 조건 체크 (공통)
             trigger_condition = rule.get("trigger_condition")
             if trigger_condition:
-                trigger_context = {
-                    "total": total,
-                    "aggregations": DotDict(aggregations) if aggregations else {}
-                }
-                if not self._evaluate_trigger_condition(trigger_condition, trigger_context):
+                if not self._evaluate_trigger_condition(trigger_condition, DotDict(result)):
                     return None
 
             # 집계 결과가 있거나, 여러 문서를 한 번에 처리하는 경우

@@ -132,6 +132,7 @@
   "deleteFailed": "削除に失敗しました。",
   "loadDataFailed": "データの読み込みに失敗しました。",
   "queryTestSuccess": "クエリテスト成功！",
+  "noSearchResults": "検索結果がありません。",
   "queryRunFailed": "クエリ実行失敗",
   "resetPassword": "パスワードのリセット",
   "resetPasswordDesc": "ユーザーIDを入力すると、一時パスワードを発行します。",

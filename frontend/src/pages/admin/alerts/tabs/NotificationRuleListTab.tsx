@@ -784,68 +784,18 @@ const NotificationRuleListTab: React.FC = () => {
                         {queryTestError}
                       </Alert>
                     ) : queryTestResult ? (
-                      <Stack spacing={2} sx={{flex: 1, overflow: 'auto'}}>
-                        {/* 요약 정보 */}
-                        <Box sx={{p: 1, bgcolor: 'action.hover', borderRadius: 1}}>
-                          <Typography variant="caption" color="text.secondary">
-                            ⏱️ {queryTestResult.took}ms | 
-                            📄 Total: {queryTestResult.hits?.total?.value || 0}건 | 
-                            🔧 Shards: {queryTestResult._shards?.successful}/{queryTestResult._shards?.total}
-                          </Typography>
-                        </Box>
-                        
-                        {/* 문서 샘플 (_source만) */}
-                        {queryTestResult.hits?.hits?.length > 0 && (
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold" gutterBottom>
-                              📄 Sample Documents - _source ({queryTestResult.hits.hits.length}건):
-                            </Typography>
-                            <TextField
-                              multiline
-                              fullWidth
-                              value={JSON.stringify(
-                                queryTestResult.hits.hits.slice(0, 3).map((hit: any) => hit._source), 
-                                null, 
-                                2
-                              )}
-                              InputProps={{
-                                readOnly: true,
-                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
-                              }}
-                              size="small"
-                              sx={{
-                                '& .MuiInputBase-root': {
-                                  bgcolor: 'background.paper'
-                                }
-                              }}
-                            />
-                          </Box>
-                        )}
-
-                        {/* 집계 결과 (Aggregations) */}
-                        {queryTestResult.aggregations && (
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              📊 Aggregations:
-                            </Typography>
-                            <TextField
-                              multiline
-                              fullWidth
-                              value={JSON.stringify(queryTestResult.aggregations, null, 2)}
-                              InputProps={{
-                                readOnly: true,
-                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
-                              }}
-                              size="small"
-                              sx={{
-                                '& .MuiInputBase-root': {
-                                  bgcolor: 'background.paper'
-                                }
-                              }}
-                            />
-                          </Box>
-                        )}
-                      </Stack>
+                      <Box sx={{
+                        flex: 1,
+                        overflow: 'auto',
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        color: 'text.primary',
+                        lineHeight: 1.6
+                      }}>
+                        {JSON.stringify(queryTestResult, null, 2)}
+                      </Box>
                     ) : (
                       <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
                         <Typography variant="body2" color="text.secondary">

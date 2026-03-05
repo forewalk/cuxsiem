@@ -133,6 +133,7 @@
   "deleteFailed": "삭제에 실패했습니다.",
   "loadDataFailed": "데이터를 불러오는데 실패했습니다.",
   "queryTestSuccess": "쿼리 테스트 성공!",
+  "noSearchResults": "검색 결과가 없습니다.",
   "queryRunFailed": "쿼리 실행 실패",
   "roleNameRequired": "모든 역할명은 필수 입력 항목입니다.",
   "resetPassword": "비밀번호 초기화",

@@ -131,6 +131,7 @@
   "deleteFailed": "Failed to delete.",
   "loadDataFailed": "Failed to load data.",
   "queryTestSuccess": "Query test successful!",
+  "noSearchResults": "No search results.",
   "queryRunFailed": "Query execution failed",
   "roleNameRequired": "All role names are required.",
   "resetPassword": "Reset Password",

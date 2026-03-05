@@ -131,6 +131,7 @@
   "deleteFailed": "删除失败。",
   "loadDataFailed": "加载数据失败。",
   "queryTestSuccess": "查询测试成功！",
+  "noSearchResults": "没有搜索结果。",
   "queryRunFailed": "查询执行失败",
   "resetPassword": "重置密码",
   "resetPasswordDesc": "输入您的用户 ID 以获取临时密码。",
