@@ -256,8 +256,14 @@ class NotificationService:
                 'max': max,
                 'sum': sum,
                 'len': len,
-                **context
             }
+            for key, value in context.items():
+                if isinstance(value, dict):
+                    safe_namespace[key] = DotDict(value)
+                elif isinstance(value, list):
+                    safe_namespace[key] = [DotDict(x) if isinstance(x, dict) else x for x in value]
+                else:
+                    safe_namespace[key] = value
 
             # 3. 평가 실행
             # eval은 여전히 주의가 필요하지만, __builtins__를 비워 위험을 최소화함
