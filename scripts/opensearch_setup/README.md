@@ -9,7 +9,7 @@
 4_data_cs_code.json       → 역할 코드 초기 데이터 (role-1~4)
 5_data_cs_policies.json   → 고급설정 + 패스워드 정책 기본값
 6_data_cs_dashboards.json → 대시보드 패널 초기 데이터 (19개)
-                          → 마지막으로 관리자 계정 생성 스크립트 실행
+7_data_cs_users_admin.json → administrator 초기 계정 (초기 비밀번호: cruxSIEM1!)
 ```
 
 ---
@@ -78,16 +78,16 @@ curl -X POST "$OS/_bulk" \
 
 ---
 
-## Step 7: 관리자 계정 생성
+## Step 7: 관리자 계정 삽입
 
 ```bash
-cd /app/backend   # Docker 컨테이너 내부 또는 백엔드 루트
-python scripts/create_admin.py \
-  --username administrator \
-  --email administrator@cruxdata.co.kr \
-  --name Administrator \
-  --password <비밀번호>
+# cs_users (administrator, 초기 비밀번호: cruxSIEM1!)
+curl -X POST "$OS/_bulk" \
+  -H "Content-Type: application/x-ndjson" \
+  --data-binary @7_data_cs_users_admin.json
 ```
+
+> **주의:** 최초 로그인 후 반드시 비밀번호를 변경하세요.
 
 ---
 
@@ -98,7 +98,7 @@ python scripts/create_admin.py \
 | cs_code | **필수** | `4_data_cs_code.json` |
 | cs_policies | **필수** | `5_data_cs_policies.json` |
 | cs_dashboards | **필수** | `6_data_cs_dashboards.json` |
-| cs_users | **필수** (관리자) | `create_admin.py` 스크립트 |
+| cs_users | **필수** (관리자) | `7_data_cs_users_admin.json` (초기 비밀번호: cruxSIEM1!) |
 | cs_roles | 불필요 | 현재 미사용 (빈 인덱스) |
 | cs_alerts | 불필요 | 알림 발생 시 자동 생성 |
 | cs_login_attempts | 불필요 | 로그인 시 자동 생성 |
