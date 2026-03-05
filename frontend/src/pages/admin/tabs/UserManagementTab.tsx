@@ -176,9 +176,9 @@ const UserManagementTab: React.FC = () => {
           ...ALERT_TABLE_STYLES.headerCell,
           width,
           cursor: 'pointer',
-          position: 'relative',
           '&:hover .resize-handle': { opacity: 1 },
-          userSelect: 'none'
+          userSelect: 'none',
+          // position: 'relative' 제거 (MUI Table stickyHeader와 충돌 방지)
         }}
       >
         <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">

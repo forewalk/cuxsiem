@@ -341,7 +341,7 @@ const NotificationRuleListTab: React.FC = () => {
 
   const handleTestQuery = async () => {
     if (jsonError) {
-      setSnackbar({open: true, message: 'DSL 쿼리에 JSON 오류가 있습니다', severity: 'error'});
+      setSnackbar({open: true, message: t('dslJsonError'), severity: 'error'});
       return;
     }
 
@@ -367,7 +367,7 @@ const NotificationRuleListTab: React.FC = () => {
 
   const handleTestTrigger = async () => {
     if (jsonError) {
-      setSnackbar({open: true, message: 'DSL 쿼리에 JSON 오류가 있습니다', severity: 'error'});
+      setSnackbar({open: true, message: t('dslJsonError'), severity: 'error'});
       return;
     }
 
@@ -382,15 +382,9 @@ const NotificationRuleListTab: React.FC = () => {
         formData.trigger_condition || ''
       );
       setTriggerTestResult(result);
-      setSnackbar({
-        open: true,
-        message: `Trigger Evaluation: ${result.evaluation ? 'TRUE (Alert will fire)' : 'FALSE (No alert)'}`,
-        severity: result.evaluation ? 'success' : 'warning'
-      });
     } catch (error: any) {
       const errorMsg = error.response?.data?.detail || error.message || 'Trigger test failed';
       setTriggerTestError(errorMsg);
-      setSnackbar({open: true, message: errorMsg, severity: 'error'});
     } finally {
       setTriggerTestLoading(false);
     }
@@ -563,7 +557,7 @@ const NotificationRuleListTab: React.FC = () => {
                 <TableRow><TableCell colSpan={7} align="center" sx={{
                   py: 8,
                   color: 'text.disabled'
-                }}>{loading ? '로딩 중...' : '등록된 규칙이 없습니다.'}</TableCell></TableRow>
+                }}>{loading ? t('loading') : t('noRulesRegistered')}</TableCell></TableRow>
               ) : (
                 rules.map((rule) => (
                   <TableRow key={rule.id} hover sx={{...ALERT_TABLE_STYLES.bodyRow}}>
@@ -703,7 +697,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 왼쪽: DSL 쿼리 편집기 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    Define extraction query
+                    {t('defineExtractionQuery')}
                   </Typography>
                   <Box sx={{
                     flex: 1,
@@ -750,7 +744,7 @@ const NotificationRuleListTab: React.FC = () => {
                       size="small"
                       fullWidth
                     >
-                      {queryTestLoading ? '⏳ 실행 중...' : 'Run Query'}
+                      {queryTestLoading ? t('queryRunning') : t('runQuery')}
                     </Button>
                   </Box>
                 </Box>
@@ -758,7 +752,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 오른쪽: 쿼리 실행 결과 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    Extraction query response
+                    {t('extractionQueryResponse')}
                   </Typography>
                   <Paper 
                     elevation={0} 
@@ -776,7 +770,7 @@ const NotificationRuleListTab: React.FC = () => {
                     {queryTestLoading ? (
                       <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
                         <Stack spacing={2} alignItems="center">
-                          <Typography variant="body2" color="text.secondary">쿼리 실행 중...</Typography>
+                          <Typography variant="body2" color="text.secondary">{t('queryRunning')}</Typography>
                         </Stack>
                       </Box>
                     ) : queryTestError ? (
@@ -784,68 +778,18 @@ const NotificationRuleListTab: React.FC = () => {
                         {queryTestError}
                       </Alert>
                     ) : queryTestResult ? (
-                      <Stack spacing={2} sx={{flex: 1, overflow: 'auto'}}>
-                        {/* 요약 정보 */}
-                        <Box sx={{p: 1, bgcolor: 'action.hover', borderRadius: 1}}>
-                          <Typography variant="caption" color="text.secondary">
-                            ⏱️ {queryTestResult.took}ms | 
-                            📄 Total: {queryTestResult.hits?.total?.value || 0}건 | 
-                            🔧 Shards: {queryTestResult._shards?.successful}/{queryTestResult._shards?.total}
-                          </Typography>
-                        </Box>
-                        
-                        {/* 문서 샘플 (_source만) */}
-                        {queryTestResult.hits?.hits?.length > 0 && (
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold" gutterBottom>
-                              📄 Sample Documents - _source ({queryTestResult.hits.hits.length}건):
-                            </Typography>
-                            <TextField
-                              multiline
-                              fullWidth
-                              value={JSON.stringify(
-                                queryTestResult.hits.hits.slice(0, 3).map((hit: any) => hit._source), 
-                                null, 
-                                2
-                              )}
-                              InputProps={{
-                                readOnly: true,
-                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
-                              }}
-                              size="small"
-                              sx={{
-                                '& .MuiInputBase-root': {
-                                  bgcolor: 'background.paper'
-                                }
-                              }}
-                            />
-                          </Box>
-                        )}
-
-                        {/* 집계 결과 (Aggregations) */}
-                        {queryTestResult.aggregations && (
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              📊 Aggregations:
-                            </Typography>
-                            <TextField
-                              multiline
-                              fullWidth
-                              value={JSON.stringify(queryTestResult.aggregations, null, 2)}
-                              InputProps={{
-                                readOnly: true,
-                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
-                              }}
-                              size="small"
-                              sx={{
-                                '& .MuiInputBase-root': {
-                                  bgcolor: 'background.paper'
-                                }
-                              }}
-                            />
-                          </Box>
-                        )}
-                      </Stack>
+                      <Box sx={{
+                        flex: 1,
+                        overflow: 'auto',
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        color: 'text.primary',
+                        lineHeight: 1.6
+                      }}>
+                        {JSON.stringify(queryTestResult, null, 2)}
+                      </Box>
                     ) : (
                       <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
                         <Typography variant="body2" color="text.secondary">
@@ -857,54 +801,47 @@ const NotificationRuleListTab: React.FC = () => {
                 </Box>
               </Stack>
               
-              <Stack direction="row" spacing={1} alignItems="center" sx={{mt: 2}}>
-                <TextField
-                  label={t('triggerConditionLabel')}
-                  fullWidth
-                  value={formData.trigger_condition || ''}
-                  onChange={(e) => setFormData({...formData, trigger_condition: e.target.value})}
-                  size="small"
-                  placeholder={t('triggerConditionPlaceholder')}
-                  helperText={t('triggerConditionHelper')}
-                  sx={{flex: 1}}
-                />
-                <Button
-                  variant="outlined"
-                  onClick={handleTestTrigger}
-                  disabled={triggerTestLoading || !!jsonError}
-                  size="medium"
-                  sx={{ height: 40, mt: -2.5, whiteSpace: 'nowrap' }}
-                >
-                  {triggerTestLoading ? '⏳...' : 'Test Trigger'}
-                </Button>
-              </Stack>
-              
-              {triggerTestResult !== null && (
-                <Box sx={{ 
-                  mt: 1, 
-                  p: 1.5, 
-                  borderRadius: 1, 
-                  bgcolor: triggerTestResult.evaluation ? 'success.lighter' : 'warning.lighter',
-                  border: '1px solid',
-                  borderColor: triggerTestResult.evaluation ? 'success.light' : 'warning.light',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Typography variant="subtitle2" fontWeight="bold" color={triggerTestResult.evaluation ? 'success.dark' : 'warning.dark'}>
-                      Evaluation Result: {triggerTestResult.evaluation ? 'TRUE (Alert Triggered ✅)' : 'FALSE (No Alert ❌)'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      (Context: total={triggerTestResult.total}, has_aggs={String(triggerTestResult.has_aggregations)})
-                    </Typography>
-                  </Stack>
-                  <Button size="small" onClick={() => setTriggerTestResult(null)}>Clear</Button>
-                </Box>
-              )}
-              {triggerTestError && (
-                <Alert severity="error" sx={{ mt: 1 }}>{triggerTestError}</Alert>
-              )}
+              <Box sx={{mt: 2}}>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <TextField
+                    label={t('triggerConditionLabel')}
+                    fullWidth
+                    value={formData.trigger_condition || ''}
+                    onChange={(e) => setFormData({...formData, trigger_condition: e.target.value})}
+                    size="small"
+                    placeholder={t('triggerConditionPlaceholder')}
+                    helperText={triggerTestError || t('triggerConditionHelper')}
+                    error={!!triggerTestError}
+                    inputProps={{style: {fontFamily: 'monospace'}}}
+                    sx={{flex: 1}}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={handleTestTrigger}
+                    disabled={triggerTestLoading || !!jsonError}
+                    size="small"
+                    sx={{ height: 40, whiteSpace: 'nowrap', minWidth: 100 }}
+                  >
+                    {triggerTestLoading ? t('queryRunning') : t('testTrigger')}
+                  </Button>
+                  <Box sx={{
+                    height: 40,
+                    minWidth: 60,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    px: 1.5,
+                    fontFamily: 'monospace',
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem'
+                  }}>
+                    {triggerTestLoading ? '...' : triggerTestResult !== null ? String(triggerTestResult.evaluation) : '-'}
+                  </Box>
+                </Stack>
+              </Box>
             </Grid>
 
             <Grid size={12}><Divider/></Grid>
@@ -920,7 +857,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 왼쪽: 메시지 템플릿 편집기 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    Message Template
+                    {t('messageTemplate')}
                   </Typography>
                   <TextField
                     multiline
@@ -948,7 +885,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 오른쪽: 메시지 프리뷰 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    Message Preview
+                    {t('messagePreview')}
                   </Typography>
                   <Paper
                     elevation={0}
@@ -975,7 +912,7 @@ const NotificationRuleListTab: React.FC = () => {
                       </Typography>
                     ) : (
                       <Typography variant="body2" color="text.secondary" sx={{fontStyle: 'italic'}}>
-                        메시지 템플릿을 입력하면 프리뷰가 여기에 표시됩니다
+                        {t('messagePreviewEmpty')}
                       </Typography>
                     )}
                     
