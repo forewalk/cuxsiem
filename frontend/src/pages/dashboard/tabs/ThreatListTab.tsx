@@ -69,6 +69,52 @@ const ThreatListTab: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const initializedRef = useRef(false);
 
+  // 컬럼 너비 상태 관리
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('threatListColumnWidths');
+    return saved ? JSON.parse(saved) : {
+      "threatInfo.createdAt": 180,
+      "@timestamp": 180
+    };
+  });
+
+  const resizingRef = useRef<{ field: string, startX: number, startWidth: number } | null>(null);
+
+  const handleResizeStart = (e: React.MouseEvent, field: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingRef.current = {
+      field,
+      startX: e.clientX,
+      startWidth: columnWidths[field] || 150
+    };
+    document.addEventListener('mousemove', handleResizing);
+    document.addEventListener('mouseup', handleResizeEnd);
+  };
+
+  const handleResizing = useCallback((e: MouseEvent) => {
+    if (!resizingRef.current) return;
+    const { field, startX, startWidth } = resizingRef.current;
+    const deltaX = e.clientX - startX;
+    const newWidth = Math.max(50, startWidth + deltaX);
+    
+    setColumnWidths(prev => ({
+      ...prev,
+      [field]: newWidth
+    }));
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    resizingRef.current = null;
+    document.removeEventListener('mousemove', handleResizing);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    // 너비 저장 (선택 사항)
+    setColumnWidths(prev => {
+      localStorage.setItem('threatListColumnWidths', JSON.stringify(prev));
+      return prev;
+    });
+  }, [handleResizing]);
+
   // 고급 설정 로드 및 초기화 (새로고침 시 강제 적용)
   useEffect(() => {
     fetchSettings();
@@ -375,7 +421,7 @@ const ThreatListTab: React.FC = () => {
 
               <Box sx={{ p: 1.5, flexShrink: 0 }}>
 
-                <TextField fullWidth size="small" variant="outlined" placeholder={t('searchPlaceholder') || "Search fields"} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover', '& fieldset': { borderColor: 'divider' } } }} />
+                <TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields') || "Search fields"} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover', '& fieldset': { borderColor: 'divider' } } }} />
 
               </Box>
 
@@ -453,67 +499,68 @@ const ThreatListTab: React.FC = () => {
 
                       <Box sx={{ width: 32 }} />
 
-                      {sortedDisplayFields.map((fieldName, idx) => (
-
-                        <Tooltip key={`${fieldName}-${idx}`} title={fieldName} arrow placement="top">
-
-                          <Typography 
-
-                            variant="caption" 
-
-                            draggable
-
-                            onDragStart={() => handleDragStart(idx)}
-
-                            onDragOver={handleDragOver}
-
-                            onDrop={() => handleDrop(idx)}
-
-                            sx={{ 
-
-                              width: 150, 
-
-                              fontWeight: 'bold', 
-
-                              fontSize: '0.75rem', 
-
-                              px: 1, 
-
-                              flexShrink: 0, 
-
-                              overflow: 'hidden', 
-
-                              textOverflow: 'ellipsis', 
-
-                              cursor: 'grab',
-
-                              transition: 'all 0.2s',
-
-                              '&:hover': { 
-
-                                bgcolor: 'action.selected',
-
-                                borderLeft: dragIdx !== null ? `2px dashed ${theme.palette.primary.main}` : 'none'
-
-                              },
-
-                              '&:active': { cursor: 'grabbing' },
-
-                              opacity: dragIdx === idx ? 0.5 : 1,
-
-                              borderLeft: dragIdx !== null && dragIdx !== idx ? '2px dashed transparent' : 'none',
-
-                            }}
-
-                          >
-
-                            {fieldName}
-
-                          </Typography>
-
-                        </Tooltip>
-
-                      ))}
+                      {sortedDisplayFields.map((fieldName, idx) => {
+                        const colWidth = columnWidths[fieldName] || 150;
+                        return (
+                          <Tooltip key={`${fieldName}-${idx}`} title={fieldName} arrow placement="top">
+                            <Box 
+                              sx={{ 
+                                width: colWidth, 
+                                position: 'relative', 
+                                display: 'flex', 
+                                alignItems: 'center',
+                                flexShrink: 0,
+                                borderRight: 1,
+                                borderColor: 'transparent',
+                                '&:hover .resize-handle': { opacity: 1 }
+                              }}
+                            >
+                              <Typography 
+                                variant="caption" 
+                                draggable
+                                onDragStart={() => handleDragStart(idx)}
+                                onDragOver={handleDragOver}
+                                onDrop={() => handleDrop(idx)}
+                                sx={{ 
+                                  flexGrow: 1, 
+                                  fontWeight: 'bold', 
+                                  fontSize: '0.75rem', 
+                                  px: 1, 
+                                  overflow: 'hidden', 
+                                  textOverflow: 'ellipsis', 
+                                  cursor: 'grab',
+                                  transition: 'background-color 0.2s',
+                                  '&:hover': { 
+                                    bgcolor: 'action.selected',
+                                  },
+                                  '&:active': { cursor: 'grabbing' },
+                                  opacity: dragIdx === idx ? 0.5 : 1,
+                                }}
+                              >
+                                {fieldName}
+                              </Typography>
+                              {/* 리사이즈 핸들 */}
+                              <Box
+                                className="resize-handle"
+                                onMouseDown={(e) => handleResizeStart(e, fieldName)}
+                                sx={{
+                                  position: 'absolute',
+                                  right: -2,
+                                  top: 0,
+                                  bottom: 0,
+                                  width: 4,
+                                  cursor: 'col-resize',
+                                  bgcolor: 'primary.main',
+                                  opacity: 0,
+                                  zIndex: 10,
+                                  transition: 'opacity 0.2s',
+                                  '&:active': { opacity: 1 }
+                                }}
+                              />
+                            </Box>
+                          </Tooltip>
+                        );
+                      })}
 
                     </Box>
 
@@ -553,19 +600,20 @@ const ThreatListTab: React.FC = () => {
 
                             </IconButton>
 
-                                                        {sortedDisplayFields.map(fieldName => (
+                                                        {sortedDisplayFields.map(fieldName => {
+                                                          const colWidth = columnWidths[fieldName] || 150;
+                                                          return (
+                                                            <Typography key={fieldName} variant="caption" sx={{ width: colWidth, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
 
-                                                          <Typography key={fieldName} variant="caption" sx={{ width: fieldName === "threatInfo.createdAt" ? 180 : 150, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                              {fieldName === "threatInfo.createdAt" || fieldName === "@timestamp" 
 
-                                                            {fieldName === "threatInfo.createdAt" || fieldName === "@timestamp" 
+                                                                ? dayjs(log[fieldName.split('.').pop() || fieldName]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
 
-                                                              ? dayjs(log[fieldName.split('.').pop() || fieldName]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
+                                                                : getValueByPath(log, fieldName)}
 
-                                                              : getValueByPath(log, fieldName)}
-
-                                                          </Typography>
-
-                                                        ))}
+                                                            </Typography>
+                                                          );
+                                                        })}
 
                           </Box>
                       

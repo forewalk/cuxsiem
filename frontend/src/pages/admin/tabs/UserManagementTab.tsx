@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Box, Typography, Button, Paper, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, MenuItem, Switch, FormControlLabel,
-  Stack, Alert, Snackbar
+  Stack, Alert, Snackbar, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, TablePagination, Divider, Chip
 } from '@mui/material';
 import OTPEnrollModal from '../../../components/auth/OTPEnrollModal';
 import api from '../../../services/api';
 import {
-  DataGrid, GridToolbar
-} from '@mui/x-data-grid';
-import type { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import {
   Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon,
   Refresh as RefreshIcon, DeleteSweep as DeleteSweepIcon,
+  People as PeopleIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
@@ -22,6 +22,70 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { User, UserCreate, UserUpdate } from '../../../types';
 import { getRoleName } from '../../../utils/roleUtils';
+import { ALERT_TABLE_STYLES } from '../alerts/components/AlertTableStyles';
+
+const UserRow: React.FC<{
+  row: User;
+  onEdit: (user: User) => void;
+  onDelete: (id: string) => void;
+  roleNames: Record<string, string>;
+  language: string;
+  t: (k: string) => string;
+  columnWidths: Record<string, number>;
+}> = ({ row, onEdit, onDelete, roleNames, language, t, columnWidths }) => {
+  return (
+    <TableRow hover sx={ALERT_TABLE_STYLES.bodyRow}>
+      <TableCell align="center" sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['id'] || 120 }}>
+        {row.username || row.id}
+      </TableCell>
+      <TableCell align="center" sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['name'] || 100 }}>
+        {row.name}
+      </TableCell>
+      <TableCell align="center" sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['email'] || 150 }}>
+        {row.email}
+      </TableCell>
+      <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['role'] || 80 }} align="center">
+        <Chip 
+          label={getRoleName(row.role, roleNames, language)} 
+          size="small" 
+          variant="outlined"
+          sx={{ fontSize: '0.75rem', height: 24 }}
+        />
+      </TableCell>
+      <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['status'] || 80 }} align="center">
+        <Box sx={{ color: row.is_active ? 'success.main' : 'error.main', fontWeight: 'bold' }}>
+          {row.is_active ? t('active') : t('inactive')}
+        </Box>
+      </TableCell>
+      <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['otp'] || 60 }} align="center">
+        <Box sx={{ color: row.otp_enabled ? 'success.main' : 'text.secondary', fontWeight: 'bold' }}>
+          {row.otp_enabled ? t('active') : '-'}
+        </Box>
+      </TableCell>
+      <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['lastLogin'] || 120 }} align="center">
+        {row.last_login_at ? dayjs(row.last_login_at).format('YYYY-MM-DD HH:mm') : '-'}
+      </TableCell>
+      <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['createdAt'] || 120 }} align="center">
+        {dayjs(row.created_at).format('YYYY-MM-DD HH:mm')}
+      </TableCell>
+      <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, width: columnWidths['actions'] || 100 }} align="center">
+        <Stack direction="row" spacing={1} justifyContent="center">
+          <IconButton size="small" onClick={() => onEdit(row)}>
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => onDelete(row.id)}
+            disabled={row.role === 'role-1'}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Stack>
+      </TableCell>
+    </TableRow>
+  );
+};
 
 const UserManagementTab: React.FC = () => {
   const { user } = useAuth();
@@ -32,11 +96,113 @@ const UserManagementTab: React.FC = () => {
   const [total, setTotal] = useState(0);
   const { settings, fetchSettings } = useSettingsStore();
 
-  const [paginationModel, setPaginationModel] = useState({
-    pageSize: 10,
-    page: 0,
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([10, 25, 50]);
+
+  // 정렬 상태
+  const [sortModel, setSortModel] = useState<{ field: string; sort: 'asc' | 'desc' } | null>(null);
+
+  // 너비 상태
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('userManagementColumnWidths');
+    return saved ? JSON.parse(saved) : {};
   });
-  const [pageSizeOptions, setPageSizeOptions] = useState<number[]>([10, 25, 50]);
+
+  const resizingRef = useRef<{ field: string, startX: number, startWidth: number } | null>(null);
+
+  const handleResizeStart = (e: React.MouseEvent, field: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingRef.current = {
+      field,
+      startX: e.clientX,
+      startWidth: columnWidths[field] || (field === 'id' || field === 'email' || field === 'lastLogin' || field === 'createdAt' ? 120 : (field === 'name' || field === 'actions' ? 100 : 80))
+    };
+    document.addEventListener('mousemove', handleResizing);
+    document.addEventListener('mouseup', handleResizeEnd);
+  };
+
+  const handleResizing = useCallback((e: MouseEvent) => {
+    if (!resizingRef.current) return;
+    const { field, startX, startWidth } = resizingRef.current;
+    const deltaX = e.clientX - startX;
+    setColumnWidths(prev => ({ ...prev, [field]: Math.max(50, startWidth + deltaX) }));
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    resizingRef.current = null;
+    document.removeEventListener('mousemove', handleResizing);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    setColumnWidths(prev => {
+      localStorage.setItem('userManagementColumnWidths', JSON.stringify(prev));
+      return prev;
+    });
+  }, [handleResizing]);
+
+  const handleSort = (field: string) => {
+    if (sortModel?.field === field) {
+      if (sortModel.sort === 'asc') {
+        setSortModel({ field, sort: 'desc' });
+      } else {
+        setSortModel(null); // 내림차순 다음 클릭 시 정렬 해제
+      }
+    } else {
+      setSortModel({ field, sort: 'asc' });
+    }
+  };
+
+  const sortedUsers = useMemo(() => {
+    if (!sortModel) return users;
+    const { field, sort } = sortModel;
+    return [...users].sort((a: any, b: any) => {
+      const valA = a[field] || '';
+      const valB = b[field] || '';
+      if (valA < valB) return sort === 'asc' ? -1 : 1;
+      if (valA > valB) return sort === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [users, sortModel]);
+
+  const SortableHeader: React.FC<{ field: string; label: string; width: number }> = ({ field, label, width }) => {
+    const isSorted = sortModel?.field === field;
+    return (
+      <TableCell
+        align="center"
+        onClick={() => handleSort(field)}
+        sx={{
+          ...ALERT_TABLE_STYLES.headerCell,
+          width,
+          cursor: 'pointer',
+          position: 'relative',
+          '&:hover .resize-handle': { opacity: 1 },
+          userSelect: 'none'
+        }}
+      >
+        <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{label}</Typography>
+          {isSorted && (sortModel.sort === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14 }} />)}
+        </Stack>
+        <Box
+          className="resize-handle"
+          onMouseDown={(e) => handleResizeStart(e, field)}
+          sx={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 4,
+            cursor: 'col-resize',
+            bgcolor: 'primary.main',
+            opacity: 0,
+            zIndex: 10,
+            transition: 'opacity 0.2s',
+            '&:active': { opacity: 1 }
+          }}
+        />
+      </TableCell>
+    );
+  };
 
   // 다이얼로그 상태
   const [open, setOpen] = useState(false);
@@ -75,16 +241,18 @@ const UserManagementTab: React.FC = () => {
   useEffect(() => { fetchRoleCodes(); }, [fetchRoleCodes]);
 
   useEffect(() => {
-    if (settings && settings.pagination_size) {
-      setPaginationModel(prev => ({ ...prev, pageSize: settings.pagination_size! }));
-      setPageSizeOptions(prev => {
-        const newOptions = [...prev];
-        if (!newOptions.includes(settings.pagination_size!)) {
-          newOptions.unshift(settings.pagination_size!);
-          return newOptions.sort((a, b) => a - b);
-        }
-        return newOptions;
-      });
+    if (settings) {
+      if (settings.pagination_size) {
+        setRowsPerPage(settings.pagination_size);
+        setRowsPerPageOptions(prev => {
+          const newOptions = [...prev];
+          if (!newOptions.includes(settings.pagination_size!)) {
+            newOptions.unshift(settings.pagination_size!);
+            return newOptions.sort((a, b) => a - b);
+          }
+          return newOptions;
+        });
+      }
     }
   }, [settings]);
 
@@ -92,8 +260,8 @@ const UserManagementTab: React.FC = () => {
     if (!user || user.role !== 'role-1') { setLoading(false); return; }
     setLoading(true);
     try {
-      const skip = paginationModel.page * paginationModel.pageSize;
-      const userResponse = await userService.getUsers(skip, paginationModel.pageSize);
+      const skip = page * rowsPerPage;
+      const userResponse = await userService.getUsers(skip, rowsPerPage);
       setUsers(userResponse.users);
       setTotal(userResponse.total);
     } catch (error) {
@@ -102,7 +270,7 @@ const UserManagementTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [paginationModel, user, t]);
+  }, [page, rowsPerPage, user, t]);
 
   useEffect(() => {
     loadUsers();
@@ -193,7 +361,7 @@ const UserManagementTab: React.FC = () => {
       setSnackbar({ open: true, message: t('deleteSuccess'), severity: 'success' });
       setDeleteId(null);
       loadUsers();
-    } catch (error) {
+    } catch {
       setSnackbar({ open: true, message: t('deleteFailed'), severity: 'error' });
     }
   };
@@ -203,12 +371,12 @@ const UserManagementTab: React.FC = () => {
     try {
       const response = await userService.getDeletedUsers(0, 100);
       setDeletedUsers(response.users);
-    } catch (error) {
+    } catch {
       setSnackbar({ open: true, message: t('loadDataFailed'), severity: 'error' });
     } finally {
       setDeletedUsersLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const handleOpenDeletedUsers = () => {
     setDeletedUsersOpen(true);
@@ -221,7 +389,7 @@ const UserManagementTab: React.FC = () => {
       setSnackbar({ open: true, message: t('restoreSuccess'), severity: 'success' });
       loadDeletedUsers();
       loadUsers();
-    } catch (error) {
+    } catch {
       setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
     }
   };
@@ -233,127 +401,10 @@ const UserManagementTab: React.FC = () => {
       setSnackbar({ open: true, message: t('permanentDeleteSuccess'), severity: 'success' });
       setPermanentDeleteId(null);
       loadDeletedUsers();
-    } catch (error) {
+    } catch {
       setSnackbar({ open: true, message: t('deleteFailed'), severity: 'error' });
     }
   };
-
-  const deletedColumns: GridColDef[] = [
-    { field: 'id', headerName: t('id'), flex: 1.2 },
-    { field: 'name', headerName: t('name'), flex: 1 },
-    { field: 'email', headerName: t('email'), flex: 1.5 },
-    {
-      field: 'deleted_at',
-      headerName: t('deletedAt'),
-      flex: 1.2,
-      valueFormatter: (value) => {
-        if (!value) return '-';
-        return dayjs(value).format('YYYY-MM-DD HH:mm');
-      }
-    },
-    {
-      field: 'actions',
-      headerName: t('actions'),
-      flex: 1.2,
-      sortable: false,
-      align: 'center',
-      headerAlign: 'center',
-      renderCell: (params: GridRenderCellParams) => (
-        <Stack direction="column" spacing={0.5} alignItems="center" justifyContent="center" sx={{ width: '100%', height: '100%', py: 0.5 }}>
-          <Button size="small" variant="outlined" color="primary" onClick={() => handleRestore(params.row.id)} sx={{ width: '100%', fontSize: '0.7rem', py: 0.3 }}>
-            {t('restoreUser')}
-          </Button>
-          <Button size="small" variant="outlined" color="error" onClick={() => setPermanentDeleteId(params.row.id)} sx={{ width: '100%', fontSize: '0.7rem', py: 0.3 }}>
-            {t('permanentDelete')}
-          </Button>
-        </Stack>
-      )
-    },
-  ];
-
-  const columns: GridColDef[] = [
-    { field: 'id', headerName: t('id'), flex: 1.2 },
-    { field: 'name', headerName: t('name'), flex: 1 },
-    { field: 'email', headerName: t('email'), flex: 1.5 },
-    {
-      field: 'role',
-      headerName: t('role'),
-      flex: 0.8,
-      renderCell: (params: GridRenderCellParams) => {
-        return getRoleName(params.value as string, roleNames, language);
-      }
-    },
-    {
-      field: 'is_active',
-      headerName: t('status'),
-      flex: 0.8,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box
-          sx={{
-            color: params.value ? 'success.main' : 'error.main',
-            fontWeight: 'bold',
-          }}
-        >
-          {params.value ? t('active') : t('inactive')}
-        </Box>
-      )
-    },
-    {
-      field: 'otp_enabled',
-      headerName: 'OTP',
-      flex: 0.6,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box
-          sx={{
-            color: params.value ? 'success.main' : 'text.secondary',
-            fontWeight: 'bold',
-          }}
-        >
-          {params.value ? t('active') : '-'}
-        </Box>
-      )
-    },
-    {
-      field: 'last_login_at',
-      headerName: t('lastLogin'),
-      flex: 1.2,
-      valueFormatter: (value) => {
-        if (!value) return '-';
-        return dayjs(value).format('YYYY-MM-DD HH:mm');
-      }
-    },
-    {
-      field: 'created_at',
-      headerName: t('createdAt'),
-      flex: 1.2,
-      valueFormatter: (value) => {
-        return dayjs(value).format('YYYY-MM-DD HH:mm');
-      }
-    },
-    {
-      field: 'actions',
-      headerName: t('actions'),
-      flex: 0.8,
-      sortable: false,
-      align: 'center',
-      headerAlign: 'center',
-      renderCell: (params: GridRenderCellParams) => (
-        <Stack direction="row" spacing={1} alignItems="center">
-          <IconButton size="small" onClick={() => handleOpenDialog(params.row as User)}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            color="error"
-            onClick={() => setDeleteId(params.row.id)}
-            disabled={params.row.role === 'role-1'}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Stack>
-      )
-    },
-  ];
 
   if (user && user.role !== 'role-1') {
     return (
@@ -409,22 +460,66 @@ const UserManagementTab: React.FC = () => {
         </Stack>
       </Stack>
 
-      <Paper sx={{ height: 'calc(100vh - 160px)', width: '100%' }}>
-        <DataGrid
-          rows={users}
-          columns={columns}
-          loading={loading}
-          rowCount={total}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          paginationMode="server"
-          pageSizeOptions={pageSizeOptions}
-          disableRowSelectionOnClick
-          slots={{ toolbar: GridToolbar }}
-          sx={{
-            border: 'none',
-            '& .MuiDataGrid-cell:focus': { outline: 'none' },
-          }}
+      <Paper {...ALERT_TABLE_STYLES.paper}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2, pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PeopleIcon color="primary" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('userManagement')}</Typography>
+            <Chip label={`${total} 명`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
+          </Box>
+        </Stack>
+
+        <Divider sx={{ mx: 2 }} />
+
+        <TableContainer {...ALERT_TABLE_STYLES.container}>
+          <Table {...ALERT_TABLE_STYLES.table} size="small" sx={{ tableLayout: 'fixed' }}>
+            <TableHead>
+              <TableRow>
+                <SortableHeader field="id" label={t('id')} width={columnWidths['id'] || 120} />
+                <SortableHeader field="name" label={t('name')} width={columnWidths['name'] || 100} />
+                <SortableHeader field="email" label={t('email')} width={columnWidths['email'] || 150} />
+                <SortableHeader field="role" label={t('role')} width={columnWidths['role'] || 80} />
+                <SortableHeader field="is_active" label={t('status')} width={columnWidths['status'] || 80} />
+                <SortableHeader field="otp_enabled" label="OTP" width={columnWidths['otp'] || 60} />
+                <SortableHeader field="last_login_at" label={t('lastLogin')} width={columnWidths['lastLogin'] || 120} />
+                <SortableHeader field="created_at" label={t('createdAt')} width={columnWidths['createdAt'] || 120} />
+                <TableCell sx={{ ...ALERT_TABLE_STYLES.headerCell, width: columnWidths['actions'] || 100 }} align="center">{t('actions')}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} align="center" sx={{ py: 8, color: 'text.disabled' }}>
+                    {loading ? t('loading') : '사용자가 없습니다.'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedUsers.map((row) => (
+                  <UserRow
+                    key={row.id}
+                    row={row}
+                    onEdit={handleOpenDialog}
+                    onDelete={setDeleteId}
+                    roleNames={roleNames}
+                    language={language}
+                    t={t}
+                    columnWidths={columnWidths}
+                  />
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <TablePagination
+          {...ALERT_TABLE_STYLES.pagination}
+          component="div"
+          count={total}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(_, p) => setPage(p)}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+          rowsPerPageOptions={rowsPerPageOptions}
         />
       </Paper>
 
@@ -504,21 +599,46 @@ const UserManagementTab: React.FC = () => {
       {/* 삭제된 사용자 다이얼로그 */}
       <Dialog open={deletedUsersOpen} onClose={() => setDeletedUsersOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>{t('deletedUsers')}</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ p: 0 }}>
           {deletedUsers.length === 0 && !deletedUsersLoading ? (
-            <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>{t('noDeletedUsers')}</Typography>
+            <Typography color="text.secondary" sx={{ py: 10, textAlign: 'center' }}>{t('noDeletedUsers')}</Typography>
           ) : (
-            <Box sx={{ height: 400, width: '100%' }}>
-              <DataGrid
-                rows={deletedUsers}
-                columns={deletedColumns}
-                loading={deletedUsersLoading}
-                disableRowSelectionOnClick
-                rowHeight={80}
-                pageSizeOptions={[10, 25]}
-                initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
-                sx={{ border: 'none', '& .MuiDataGrid-cell:focus': { outline: 'none' } }}
-              />
+            <Box sx={{ width: '100%' }}>
+              <TableContainer sx={{ maxHeight: 400 }}>
+                <Table stickyHeader size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 3 }} align="center">{t('id')}</TableCell>
+                      <TableCell sx={ALERT_TABLE_STYLES.headerCell} align="center">{t('name')}</TableCell>
+                      <TableCell sx={ALERT_TABLE_STYLES.headerCell} align="center">{t('email')}</TableCell>
+                      <TableCell sx={ALERT_TABLE_STYLES.headerCell} align="center">{t('deletedAt')}</TableCell>
+                      <TableCell sx={ALERT_TABLE_STYLES.headerCell} align="center">{t('actions')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {deletedUsers.map((row) => (
+                      <TableRow key={row.id} hover>
+                        <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, pl: 3 }}>{row.id}</TableCell>
+                        <TableCell sx={ALERT_TABLE_STYLES.bodyCell}>{row.name}</TableCell>
+                        <TableCell sx={ALERT_TABLE_STYLES.bodyCell}>{row.email}</TableCell>
+                        <TableCell sx={ALERT_TABLE_STYLES.bodyCell} align="center">
+                          {row.deleted_at ? dayjs(row.deleted_at).format('YYYY-MM-DD HH:mm') : '-'}
+                        </TableCell>
+                        <TableCell sx={ALERT_TABLE_STYLES.bodyCell} align="center">
+                          <Stack direction="row" spacing={1} justifyContent="center">
+                            <Button size="small" variant="outlined" onClick={() => handleRestore(row.id)}>
+                              {t('restoreUser')}
+                            </Button>
+                            <Button size="small" variant="outlined" color="error" onClick={() => setPermanentDeleteId(row.id)}>
+                              {t('permanentDelete')}
+                            </Button>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Box>
           )}
         </DialogContent>

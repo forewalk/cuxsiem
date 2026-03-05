@@ -73,6 +73,51 @@ const AgentListTab: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const initializedRef = useRef(false);
 
+  // 컬럼 너비 상태 관리
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('agentListColumnWidths');
+    return saved ? JSON.parse(saved) : {
+      "createdAt": 180,
+      "@timestamp": 180
+    };
+  });
+
+  const resizingRef = useRef<{ field: string, startX: number, startWidth: number } | null>(null);
+
+  const handleResizeStart = (e: React.MouseEvent, field: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingRef.current = {
+      field,
+      startX: e.clientX,
+      startWidth: columnWidths[field] || 150
+    };
+    document.addEventListener('mousemove', handleResizing);
+    document.addEventListener('mouseup', handleResizeEnd);
+  };
+
+  const handleResizing = useCallback((e: MouseEvent) => {
+    if (!resizingRef.current) return;
+    const { field, startX, startWidth } = resizingRef.current;
+    const deltaX = e.clientX - startX;
+    const newWidth = Math.max(50, startWidth + deltaX);
+    
+    setColumnWidths(prev => ({
+      ...prev,
+      [field]: newWidth
+    }));
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    resizingRef.current = null;
+    document.removeEventListener('mousemove', handleResizing);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    setColumnWidths(prev => {
+      localStorage.setItem('agentListColumnWidths', JSON.stringify(prev));
+      return prev;
+    });
+  }, [handleResizing]);
+
   // 고급 설정 로드 및 초기화 (새로고침 시 강제 적용)
   useEffect(() => {
     fetchSettings();
@@ -262,7 +307,7 @@ const AgentListTab: React.FC = () => {
       {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 } }}>
         <Paper elevation={1} sx={{ width: { xs: 0, md: 220 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
-          <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchPlaceholder') || "Search fields"} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover', '& fieldset': { borderColor: 'divider' } } }} /></Box>
+          <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields') || "Search fields"} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover', '& fieldset': { borderColor: 'divider' } } }} /></Box>
           <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
           <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1 }}>
             <List disablePadding sx={{ mb: 2 }}>{selectedList.map((field) => <FieldItem key={field.name} name={field.name} type={field.type} selected onAction={handleToggleField} />)}{selectedList.length === 0 && <Typography variant="caption" sx={{ px: 1, color: 'text.disabled', fontStyle: 'italic' }}>No fields selected</Typography>}</List>
@@ -282,7 +327,66 @@ const AgentListTab: React.FC = () => {
               <Box sx={{ minWidth: 'max-content' }}>
                 <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2 }}>
                   <Box sx={{ width: 32 }} />
-                  {sortedDisplayFields.map((fieldName, idx) => (<Tooltip key={`${fieldName}-${idx}`} title={fieldName} arrow placement="top"><Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ width: 150, fontWeight: 'bold', fontSize: '0.75rem', px: 1, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'grab', transition: 'all 0.2s', '&:hover': { bgcolor: 'action.selected', borderLeft: dragIdx !== null ? `2px dashed ${theme.palette.primary.main}` : 'none' }, '&:active': { cursor: 'grabbing' }, opacity: dragIdx === idx ? 0.5 : 1, borderLeft: dragIdx !== null && dragIdx !== idx ? '2px dashed transparent' : 'none' }}>{fieldName}</Typography></Tooltip>))}
+                  {sortedDisplayFields.map((fieldName, idx) => {
+                    const colWidth = columnWidths[fieldName] || 150;
+                    return (
+                      <Tooltip key={`${fieldName}-${idx}`} title={fieldName} arrow placement="top">
+                        <Box 
+                          sx={{ 
+                            width: colWidth, 
+                            position: 'relative', 
+                            display: 'flex', 
+                            alignItems: 'center',
+                            flexShrink: 0,
+                            borderRight: 1,
+                            borderColor: 'transparent',
+                            '&:hover .resize-handle': { opacity: 1 }
+                          }}
+                        >
+                          <Typography 
+                            variant="caption" 
+                            draggable 
+                            onDragStart={() => handleDragStart(idx)} 
+                            onDragOver={handleDragOver} 
+                            onDrop={() => handleDrop(idx)} 
+                            sx={{ 
+                              flexGrow: 1, 
+                              fontWeight: 'bold', 
+                              fontSize: '0.75rem', 
+                              px: 1, 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis', 
+                              cursor: 'grab', 
+                              transition: 'background-color 0.2s', 
+                              '&:hover': { bgcolor: 'action.selected' }, 
+                              '&:active': { cursor: 'grabbing' }, 
+                              opacity: dragIdx === idx ? 0.5 : 1
+                            }}
+                          >
+                            {fieldName}
+                          </Typography>
+                          {/* 리사이즈 핸들 */}
+                          <Box
+                            className="resize-handle"
+                            onMouseDown={(e) => handleResizeStart(e, fieldName)}
+                            sx={{
+                              position: 'absolute',
+                              right: -2,
+                              top: 0,
+                              bottom: 0,
+                              width: 4,
+                              cursor: 'col-resize',
+                              bgcolor: 'primary.main',
+                              opacity: 0,
+                              zIndex: 10,
+                              transition: 'opacity 0.2s',
+                              '&:active': { opacity: 1 }
+                            }}
+                          />
+                        </Box>
+                      </Tooltip>
+                    );
+                  })}
                 </Box>
                 {logs.length > 0 ? logs.map((log, idx) => {
                   const isExpanded = expandedRows.has(idx);
@@ -290,13 +394,16 @@ const AgentListTab: React.FC = () => {
                     <Box key={idx} sx={{ borderBottom: idx < logs.length - 1 ? 1 : 0, borderColor: 'divider' }}>
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', py: 1.5, px: 2, '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer' }} onClick={() => toggleRow(idx)}>
                         <IconButton size="small" sx={{ p: 0, mr: 1, mt: 0.2 }}>{isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}</IconButton>
-                        {sortedDisplayFields.map(fieldName => (
-                          <Typography key={fieldName} variant="caption" sx={{ width: fieldName === "createdAt" || fieldName === "registeredAt" || fieldName === "@timestamp" ? 180 : 150, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {fieldName === "createdAt" || fieldName === "registeredAt" || fieldName === "@timestamp" 
-                              ? dayjs(log[fieldName.split('.').pop() || fieldName]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
-                              : getValueByPath(log, fieldName)}
-                          </Typography>
-                        ))}
+                        {sortedDisplayFields.map(fieldName => {
+                          const colWidth = columnWidths[fieldName] || 150;
+                          return (
+                            <Typography key={fieldName} variant="caption" sx={{ width: colWidth, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {fieldName === "createdAt" || fieldName === "registeredAt" || fieldName === "@timestamp" 
+                                ? dayjs(log[fieldName.split('.').pop() || fieldName]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
+                                : getValueByPath(log, fieldName)}
+                            </Typography>
+                          );
+                        })}
                       </Box>
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)', borderBottom: 1, borderColor: 'divider' }}>
