@@ -179,7 +179,7 @@
   "logDetails": "Log Details",
   "field": "Field",
   "value": "Value",
-  "searchFields": "Search fields...",
+  "searchFields": "Search field names",
   "selectFields": "Select Fields",
   "availableFields": "Available Fields",
   "visibleFieldsLabel": "Visible Fields",

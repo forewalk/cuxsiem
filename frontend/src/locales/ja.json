@@ -194,7 +194,7 @@
   "logDetails": "ログ詳細情報",
   "field": "フィールド",
   "value": "値",
-  "searchFields": "フィールド検索...",
+  "searchFields": "フィールド名検索",
   "selectFields": "フィールド選択",
   "availableFields": "使用可能なフィールド",
   "visibleFieldsLabel": "表示されたフィールド",
