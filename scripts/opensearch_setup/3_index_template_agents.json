@@ -1,0 +1,312 @@
+{
+      "name": "agents_index_template",
+      "index_template": {
+        "index_patterns": [
+          "logs-sentinel_one.agents-*"
+        ],
+        "template": {
+          "settings": {
+            "index": {
+              "refresh_interval": "1s",
+              "number_of_shards": "1",
+              "number_of_replicas": "1",
+              "plugins": {
+                "index_state_management": {
+                  "policy_id": "sentinel_one_policy",
+                  "rollover_alias": "logs-sentinel_one.agents"
+                }
+              }
+            }
+          },
+          "mappings": {
+            "properties": {
+              "mitigationMode": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "groupId": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "osArch": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "locationType": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "isActive": {
+                "type": "boolean"
+              },
+              "uuid": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "installerType": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "createdAt": {
+                "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                "type": "date"
+              },
+              "inRemoteShellSession": {
+                "type": "boolean"
+              },
+              "id": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "encryptedApplications": {
+                "type": "boolean"
+              },
+              "activeDirectory": {
+                "type": "object"
+              },
+              "cpuCount": {
+                "type": "long"
+              },
+              "updatedAt": {
+                "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                "type": "date"
+              },
+              "activeProtection": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "networkQuarantineEnabled": {
+                "type": "boolean"
+              },
+              "remoteProfilingState": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "consoleMigrationStatus": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "scanStatus": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "detectionState": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "tags": {
+                "type": "object"
+              },
+              "accountId": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "appsVulnerabilityStatus": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "groupName": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "isUninstalled": {
+                "type": "boolean"
+              },
+              "networkInterfaces": {
+                "type": "object",
+                "properties": {
+                  "inet": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "name": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "inet6": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "gatewayIp": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "gatewayMacAddress": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "id": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "physical": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "domain": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "allowRemoteShell": {
+                "type": "boolean"
+              },
+              "lastIpToMgmt": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "osRevision": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "operationalState": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "firewallEnabled": {
+                "type": "boolean"
+              },
+              "activeThreats": {
+                "type": "long"
+              },
+              "mitigationModeSuspicious": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "osUsername": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "cpuId": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "accountName": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "networkStatus": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "isPendingUninstall": {
+                "type": "boolean"
+              },
+              "lastActiveDate": {
+                "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                "type": "date"
+              },
+              "siteName": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "rangerStatus": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "isDecommissioned": {
+                "type": "boolean"
+              },
+              "computerName": {
+                "type": "text"
+              },
+              "fullDiskScanLastUpdatedAt": {
+                "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                "type": "date"
+              },
+              "isAdConnector": {
+                "type": "boolean"
+              },
+              "osType": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "machineType": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "isUpToDate": {
+                "type": "boolean"
+              },
+              "locationEnabled": {
+                "type": "boolean"
+              },
+              "infected": {
+                "type": "boolean"
+              },
+              "osStartTime": {
+                "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                "type": "date"
+              },
+              "lastLoggedInUserName": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "registeredAt": {
+                "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                "type": "date"
+              },
+              "externalId": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "osName": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "coreCount": {
+                "type": "long"
+              },
+              "showAlertIcon": {
+                "type": "boolean"
+              },
+              "hasContainerizedWorkload": {
+                "type": "boolean"
+              },
+              "licenseKey": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "modelName": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "@timestamp": {
+                "type": "date"
+              },
+              "totalMemory": {
+                "type": "long"
+              },
+              "threatRebootRequired": {
+                "type": "boolean"
+              },
+              "agentVersion": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "siteId": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "cloudProviders": {
+                "type": "object"
+              },
+              "groupIp": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "externalIp": {
+                "ignore_above": 256,
+                "type": "keyword"
+              }
+            }
+          }
+        },
+        "composed_of": [],
+        "priority": 50,
+        "_meta": {
+          "flow": "simple"
+        }
+      }
+    }

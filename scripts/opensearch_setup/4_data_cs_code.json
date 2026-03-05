@@ -1,0 +1,8 @@
+{"index": {"_index": "cs_code", "_id": "role-1"}}
+{"code_name": "관리자", "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_code", "_id": "role-2"}}
+{"code_name": "모니터링", "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_code", "_id": "role-3"}}
+{"code_name": "승인자", "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_code", "_id": "role-4"}}
+{"code_name": "일반사용자", "updated_at": "2026-01-01T00:00:00"}

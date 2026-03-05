@@ -1,0 +1,1380 @@
+{
+      "name": "edr_index_template",
+      "index_template": {
+        "index_patterns": [
+          "logs-sentinel_one.edr"
+        ],
+        "template": {
+          "settings": {
+            "index": {
+              "refresh_interval": "1s",
+              "number_of_shards": "1",
+              "number_of_replicas": "0",
+              "plugins": {
+                "index_state_management": {
+                  "policy_id": "sentinel_one_policy"
+                }
+              }
+            }
+          },
+          "mappings": {
+            "properties": {
+              "indicator": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "metadata": {
+                    "type": "text"
+                  },
+                  "name": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "description": {
+                    "type": "text"
+                  },
+                  "category": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "agent": {
+                "type": "object",
+                "properties": {
+                  "uuid": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "version": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "dst": {
+                "type": "object",
+                "properties": {
+                  "port": {
+                    "type": "object",
+                    "properties": {
+                      "number": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "ip": {
+                    "type": "object",
+                    "properties": {
+                      "address": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  }
+                }
+              },
+              "endpoint": {
+                "type": "object",
+                "properties": {
+                  "os": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "name": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "type": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "partition": {
+                "type": "long"
+              },
+              "event": {
+                "type": "object",
+                "properties": {
+                  "repetitionCount": {
+                    "type": "long"
+                  },
+                  "dns": {
+                    "type": "object",
+                    "properties": {
+                      "request": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "response": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "status": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "processtermination": {
+                    "type": "object",
+                    "properties": {
+                      "exitCode": {
+                        "type": "long"
+                      },
+                      "signal": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "time": {
+                    "type": "long"
+                  },
+                  "category": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "type": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "url": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "source": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "network": {
+                    "type": "object",
+                    "properties": {
+                      "protocolName": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "connectionStatus": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "direction": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  }
+                }
+              },
+              "group": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "type": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "timestamp": {
+                "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                "type": "date"
+              },
+              "tgt": {
+                "type": "object",
+                "properties": {
+                  "process": {
+                    "type": "object",
+                    "properties": {
+                      "parent": {
+                        "type": "object",
+                        "properties": {
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "location": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "type": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "displayName": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "isStorylineRoot": {
+                        "type": "boolean"
+                      },
+                      "subsystem": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "pid": {
+                        "type": "long"
+                      },
+                      "completeness": {
+                        "type": "object",
+                        "properties": {
+                          "hints": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "isRedirectCmdProcessor": {
+                        "type": "boolean"
+                      },
+                      "relation": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "uid": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "cmdline": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "storyline": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "startTime": {
+                        "type": "long"
+                      },
+                      "isNative64Bit": {
+                        "type": "boolean"
+                      },
+                      "image": {
+                        "type": "object",
+                        "properties": {
+                          "sha1": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "path": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "uid": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "extension": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "binaryIsExecutable": {
+                            "type": "boolean"
+                          },
+                          "sha256": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "size": {
+                            "type": "long"
+                          },
+                          "md5": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "signedStatus": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "sessionId": {
+                        "type": "long"
+                      },
+                      "activeContentType": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "name": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "verifiedStatus": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "activeContent": {
+                        "type": "object",
+                        "properties": {
+                          "signedStatus": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "publisher": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "userSid": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "accessRights": {
+                        "type": "long"
+                      },
+                      "integrityLevel": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "user": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "file": {
+                    "type": "object",
+                    "properties": {
+                      "originalFileName": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "extension": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "creationTime": {
+                        "type": "long"
+                      },
+                      "isSigned": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "sha256": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "signature": {
+                        "type": "object",
+                        "properties": {
+                          "isValid": {
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "description": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "oldPath": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "type": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "isKernelModule": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "productName": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "sha1": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "internalName": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "path": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "productVersion": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "size": {
+                        "type": "long"
+                      },
+                      "modificationTime": {
+                        "type": "long"
+                      },
+                      "name": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "publisher": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "location": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "id": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "isExecutable": {
+                        "type": "boolean"
+                      },
+                      "isDirectory": {
+                        "type": "boolean"
+                      },
+                      "md5": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  }
+                }
+              },
+              "headers": {
+                "type": "object"
+              },
+              "registry": {
+                "type": "object",
+                "properties": {
+                  "valueFullSize": {
+                    "type": "long"
+                  },
+                  "oldValueType": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "keyPath": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "valueType": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "oldValueFullSize": {
+                    "type": "long"
+                  },
+                  "oldValueIsComplete": {
+                    "type": "boolean"
+                  },
+                  "valueIsComplete": {
+                    "type": "boolean"
+                  },
+                  "oldValue": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "value": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "process": {
+                "type": "object",
+                "properties": {
+                  "unique": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  }
+                }
+              },
+              "offset": {
+                "type": "long"
+              },
+              "src": {
+                "type": "object",
+                "properties": {
+                  "process": {
+                    "type": "object",
+                    "properties": {
+                      "crossProcessDupThreadHandleCount": {
+                        "type": "long"
+                      },
+                      "crossProcessOutOfStorylineCount": {
+                        "type": "long"
+                      },
+                      "parent": {
+                        "type": "object",
+                        "properties": {
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha1": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "path": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "uid": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "extension": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "binaryIsExecutable": {
+                                "type": "boolean"
+                              },
+                              "sha256": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "size": {
+                                "type": "long"
+                              },
+                              "signature": {
+                                "type": "object",
+                                "properties": {
+                                  "isValid": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              "location": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "type": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "md5": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "displayName": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "isStorylineRoot": {
+                            "type": "boolean"
+                          },
+                          "signedStatus": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "subsystem": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "pid": {
+                            "type": "long"
+                          },
+                          "sessionId": {
+                            "type": "long"
+                          },
+                          "isRedirectCmdProcessor": {
+                            "type": "boolean"
+                          },
+                          "activeContentType": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "uid": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "cmdline": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "storyline": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "name": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "activeContent": {
+                            "type": "object",
+                            "properties": {
+                              "signedStatus": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "publisher": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "userSid": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "startTime": {
+                            "type": "long"
+                          },
+                          "isNative64Bit": {
+                            "type": "boolean"
+                          },
+                          "integrityLevel": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "user": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "crossProcessDupRemoteProcessHandleCount": {
+                        "type": "long"
+                      },
+                      "subsystem": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "crossProcessOpenProcessCount": {
+                        "type": "long"
+                      },
+                      "exeModificationCount": {
+                        "type": "long"
+                      },
+                      "pid": {
+                        "type": "long"
+                      },
+                      "completeness": {
+                        "type": "object",
+                        "properties": {
+                          "hints": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "indicatorEvasionCount": {
+                        "type": "long"
+                      },
+                      "isRedirectCmdProcessor": {
+                        "type": "boolean"
+                      },
+                      "cmdline": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "crossProcessCount": {
+                        "type": "long"
+                      },
+                      "indicatorReconnaissanceCount": {
+                        "type": "long"
+                      },
+                      "storyline": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "tgtFileDeletionCount": {
+                        "type": "long"
+                      },
+                      "image": {
+                        "type": "object",
+                        "properties": {
+                          "originalFileName": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "extension": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "sha256": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "description": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "type": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "productName": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "sha1": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "internalName": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "path": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "uid": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "productVersion": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "binaryIsExecutable": {
+                            "type": "boolean"
+                          },
+                          "size": {
+                            "type": "long"
+                          },
+                          "location": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "md5": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "signedStatus": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "indicatorPersistenceCount": {
+                        "type": "long"
+                      },
+                      "modelChildProcessCount": {
+                        "type": "long"
+                      },
+                      "activeContentType": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "moduleCount": {
+                        "type": "long"
+                      },
+                      "name": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "indicatorRansomwareCount": {
+                        "type": "long"
+                      },
+                      "publisher": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "userSid": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "indicatorBootConfigurationUpdateCount": {
+                        "type": "long"
+                      },
+                      "netConnOutCount": {
+                        "type": "long"
+                      },
+                      "indicatorPostExploitationCount": {
+                        "type": "long"
+                      },
+                      "integrityLevel": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "indicatorExploitationCount": {
+                        "type": "long"
+                      },
+                      "childProcCount": {
+                        "type": "long"
+                      },
+                      "displayName": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "isStorylineRoot": {
+                        "type": "boolean"
+                      },
+                      "netConnCount": {
+                        "type": "long"
+                      },
+                      "uid": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "netConnInCount": {
+                        "type": "long"
+                      },
+                      "startTime": {
+                        "type": "long"
+                      },
+                      "isNative64Bit": {
+                        "type": "boolean"
+                      },
+                      "tgtFileModificationCount": {
+                        "type": "long"
+                      },
+                      "dnsCount": {
+                        "type": "long"
+                      },
+                      "indicatorGeneralCount": {
+                        "type": "long"
+                      },
+                      "tgtFileCreationCount": {
+                        "type": "long"
+                      },
+                      "indicatorInjectionCount": {
+                        "type": "long"
+                      },
+                      "sessionId": {
+                        "type": "long"
+                      },
+                      "verifiedStatus": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "activeContent": {
+                        "type": "object",
+                        "properties": {
+                          "signedStatus": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "registryChangeCount": {
+                        "type": "long"
+                      },
+                      "crossProcessThreadCreateCount": {
+                        "type": "long"
+                      },
+                      "indicatorInfostealerCount": {
+                        "type": "long"
+                      },
+                      "user": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "port": {
+                    "type": "object",
+                    "properties": {
+                      "number": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "ip": {
+                    "type": "object",
+                    "properties": {
+                      "address": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  }
+                }
+              },
+              "i": {
+                "type": "object",
+                "properties": {
+                  "scheme": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "source_type": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "url": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "osSrc": {
+                "type": "object",
+                "properties": {
+                  "process": {
+                    "type": "object",
+                    "properties": {
+                      "crossProcessDupThreadHandleCount": {
+                        "type": "long"
+                      },
+                      "crossProcessOutOfStorylineCount": {
+                        "type": "long"
+                      },
+                      "parent": {
+                        "type": "object",
+                        "properties": {
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha1": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "path": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "uid": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "extension": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "binaryIsExecutable": {
+                                "type": "boolean"
+                              },
+                              "sha256": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "size": {
+                                "type": "long"
+                              },
+                              "signature": {
+                                "type": "object",
+                                "properties": {
+                                  "isValid": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              "location": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "type": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              },
+                              "md5": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "displayName": {
+                            "type": "text"
+                          },
+                          "isStorylineRoot": {
+                            "type": "boolean"
+                          },
+                          "signedStatus": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "subsystem": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "pid": {
+                            "type": "long"
+                          },
+                          "sessionId": {
+                            "type": "long"
+                          },
+                          "isRedirectCmdProcessor": {
+                            "type": "boolean"
+                          },
+                          "uid": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "cmdline": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "storyline": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "ignore_above": 256,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "name": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "publisher": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "userSid": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "startTime": {
+                            "type": "long"
+                          },
+                          "isNative64Bit": {
+                            "type": "boolean"
+                          },
+                          "integrityLevel": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "user": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "crossProcessDupRemoteProcessHandleCount": {
+                        "type": "long"
+                      },
+                      "indicatorExploitationCount": {
+                        "type": "long"
+                      },
+                      "childProcCount": {
+                        "type": "long"
+                      },
+                      "displayName": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "isStorylineRoot": {
+                        "type": "boolean"
+                      },
+                      "subsystem": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "crossProcessOpenProcessCount": {
+                        "type": "long"
+                      },
+                      "pid": {
+                        "type": "long"
+                      },
+                      "indicatorEvasionCount": {
+                        "type": "long"
+                      },
+                      "isRedirectCmdProcessor": {
+                        "type": "boolean"
+                      },
+                      "netConnCount": {
+                        "type": "long"
+                      },
+                      "uid": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "cmdline": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "crossProcessCount": {
+                        "type": "long"
+                      },
+                      "indicatorReconnaissanceCount": {
+                        "type": "long"
+                      },
+                      "storyline": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "indicatorGeneral": {
+                        "type": "object",
+                        "properties": {
+                          "count": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "netConnInCount": {
+                        "type": "long"
+                      },
+                      "startTime": {
+                        "type": "long"
+                      },
+                      "isNative64Bit": {
+                        "type": "boolean"
+                      },
+                      "tgtFileDeletionCount": {
+                        "type": "long"
+                      },
+                      "tgtFileModificationCount": {
+                        "type": "long"
+                      },
+                      "image": {
+                        "type": "object",
+                        "properties": {
+                          "sha1": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "path": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "uid": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "extension": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "binaryIsExecutable": {
+                            "type": "boolean"
+                          },
+                          "sha256": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "size": {
+                            "type": "long"
+                          },
+                          "signature": {
+                            "type": "object",
+                            "properties": {
+                              "isValid": {
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          "location": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "type": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "md5": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "dnsCount": {
+                        "type": "long"
+                      },
+                      "tgtFileCreationCount": {
+                        "type": "long"
+                      },
+                      "signedStatus": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "indicatorPersistenceCount": {
+                        "type": "long"
+                      },
+                      "indicatorInjectionCount": {
+                        "type": "long"
+                      },
+                      "sessionId": {
+                        "type": "long"
+                      },
+                      "activeContentType": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "moduleCount": {
+                        "type": "long"
+                      },
+                      "name": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "verifiedStatus": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "activeContent": {
+                        "type": "object",
+                        "properties": {
+                          "signedStatus": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "indicatorRansomwareCount": {
+                        "type": "long"
+                      },
+                      "publisher": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "userSid": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "indicatorBootConfigurationUpdateCount": {
+                        "type": "long"
+                      },
+                      "netConnOutCount": {
+                        "type": "long"
+                      },
+                      "registryChangeCount": {
+                        "type": "long"
+                      },
+                      "crossProcessThreadCreateCount": {
+                        "type": "long"
+                      },
+                      "indicatorInfostealerCount": {
+                        "type": "long"
+                      },
+                      "indicatorPostExploitationCount": {
+                        "type": "long"
+                      },
+                      "integrityLevel": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "user": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  }
+                }
+              },
+              "mgmt": {
+                "type": "object",
+                "properties": {
+                  "osRevision": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "url": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "site": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "@timestamp": {
+                "type": "date"
+              },
+              "task": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "name": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "event": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  }
+                }
+              },
+              "topic": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "dataSource": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "category": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "account": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "composed_of": [],
+        "priority": 50,
+        "_meta": {
+          "flow": "simple"
+        },
+        "data_stream": {
+          "timestamp_field": {
+            "name": "@timestamp"
+          }
+        }
+      }
+    }

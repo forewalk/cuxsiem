@@ -403,5 +403,9 @@
   "noPermission": "アクセス権限がありません。",
   "otpStep1Label": "アプリ設定",
   "otpStep2Label": "コード確認",
-  "otpStep3Label": "バックアップコード"
+  "otpStep3Label": "バックアップコード",
+  "otpReset": "OTPリセット",
+  "otpResetConfirm": "このユーザーのOTPをリセットしますか？次回ログイン時にOTPを再登録する必要があります。",
+  "otpResetSuccess": "OTPがリセットされました。",
+  "otpResetFailed": "OTPのリセットに失敗しました。"
 }

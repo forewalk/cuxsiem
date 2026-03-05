@@ -1,0 +1,477 @@
+{
+      "name": "threats_index_template",
+      "index_template": {
+        "index_patterns": [
+          "logs-sentinel_one.threats-*"
+        ],
+        "template": {
+          "settings": {
+            "index": {
+              "refresh_interval": "1s",
+              "number_of_shards": "1",
+              "number_of_replicas": "1",
+              "plugins": {
+                "index_state_management": {
+                  "policy_id": "sentinel_one_policy",
+                  "rollover_alias": "logs-sentinel_one.threats"
+                }
+              }
+            }
+          },
+          "mappings": {
+            "properties": {
+              "@timestamp": {
+                "type": "date"
+              },
+              "kubernetesInfo": {
+                "type": "object"
+              },
+              "threatInfo": {
+                "type": "object",
+                "properties": {
+                  "threatId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "isValidCertificate": {
+                    "type": "boolean"
+                  },
+                  "mitigationStatusDescription": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "confidenceLevel": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "mitigationStatus": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "rebootRequired": {
+                    "type": "boolean"
+                  },
+                  "externalTicketExists": {
+                    "type": "boolean"
+                  },
+                  "originatorProcess": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "sha256": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "certificateId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "classificationSource": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "processUser": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "reachedEventsLimit": {
+                    "type": "boolean"
+                  },
+                  "fileVerificationType": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "analystVerdictDescription": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "automaticallyResolved": {
+                    "type": "boolean"
+                  },
+                  "createdAt": {
+                    "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                    "type": "date"
+                  },
+                  "detectionEngines": {
+                    "type": "object",
+                    "properties": {
+                      "title": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "key": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "engines": {
+                    "type": "text"
+                  },
+                  "fileExtension": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "storyline": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "pendingActions": {
+                    "type": "boolean"
+                  },
+                  "fileExtensionType": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "collectionId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "maliciousProcessArguments": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "initiatedBy": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "incidentStatus": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "updatedAt": {
+                    "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                    "type": "date"
+                  },
+                  "identifiedAt": {
+                    "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                    "type": "date"
+                  },
+                  "filePath": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "classification": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "sha1": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "incidentStatusDescription": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "rootProcessUpn": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "detectionType": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "analystVerdict": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "isFileless": {
+                    "type": "boolean"
+                  },
+                  "fileSize": {
+                    "type": "long"
+                  },
+                  "publisherName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "threatName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "failedActions": {
+                    "type": "boolean"
+                  },
+                  "mitigatedPreemptively": {
+                    "type": "boolean"
+                  },
+                  "initiatedByDescription": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "whiteningOptions": {
+                "type": "text"
+              },
+              "agentDetectionInfo": {
+                "type": "object",
+                "properties": {
+                  "agentOsName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "accountName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentLastLoggedInUserName": {
+                    "type": "text"
+                  },
+                  "groupId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentRegisteredAt": {
+                    "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                    "type": "date"
+                  },
+                  "agentDomain": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "siteName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentMitigationMode": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "accountId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "groupName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "assetVersion": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentDetectionState": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentOsRevision": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentVersion": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "siteId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "cloudProviders": {
+                    "type": "object"
+                  },
+                  "agentIpV6": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentUuid": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentIpV4": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "externalIp": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "containerInfo": {
+                "type": "object"
+              },
+              "agentRealtimeInfo": {
+                "type": "object",
+                "properties": {
+                  "activeThreats": {
+                    "type": "long"
+                  },
+                  "agentId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "rebootRequired": {
+                    "type": "boolean"
+                  },
+                  "agentComputerName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentInfected": {
+                    "type": "boolean"
+                  },
+                  "scanStartedAt": {
+                    "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                    "type": "date"
+                  },
+                  "accountName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentIsDecommissioned": {
+                    "type": "boolean"
+                  },
+                  "groupId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentDomain": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "siteName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentMitigationMode": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentIsActive": {
+                    "type": "boolean"
+                  },
+                  "agentMachineType": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentNetworkStatus": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentOsName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "scanStatus": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentOsType": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "accountId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "groupName": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "networkInterfaces": {
+                    "type": "object",
+                    "properties": {
+                      "inet": {
+                        "type": "text"
+                      },
+                      "name": {
+                        "type": "text"
+                      },
+                      "inet6": {
+                        "type": "text"
+                      },
+                      "id": {
+                        "type": "text"
+                      },
+                      "physical": {
+                        "type": "text"
+                      }
+                    }
+                  },
+                  "agentDecommissionedAt": {
+                    "type": "boolean"
+                  },
+                  "agentOsRevision": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentVersion": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "siteId": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "operationalState": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "agentUuid": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "scanFinishedAt": {
+                    "format": "strict_date_optional_time||yyyy-MM-dd HH:mm:ss||epoch_millis",
+                    "type": "date"
+                  }
+                }
+              },
+              "id": {
+                "ignore_above": 256,
+                "type": "keyword"
+              },
+              "indicators": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "ignore_above": 256,
+                    "type": "keyword"
+                  },
+                  "ids": {
+                    "type": "long"
+                  },
+                  "tactics": {
+                    "type": "object",
+                    "properties": {
+                      "techniques": {
+                        "type": "object",
+                        "properties": {
+                          "link": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          },
+                          "name": {
+                            "ignore_above": 256,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "name": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      },
+                      "source": {
+                        "ignore_above": 256,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "category": {
+                    "type": "text"
+                  }
+                }
+              },
+              "ecsInfo": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "composed_of": [],
+        "priority": 50,
+        "_meta": {
+          "flow": "simple"
+        }
+      }
+    }

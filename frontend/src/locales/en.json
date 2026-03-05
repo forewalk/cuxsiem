@@ -393,5 +393,9 @@
   "noPermission": "You do not have permission to access this page.",
   "otpStep1Label": "Setup App",
   "otpStep2Label": "Verify Code",
-  "otpStep3Label": "Backup Codes"
+  "otpStep3Label": "Backup Codes",
+  "otpReset": "Reset OTP",
+  "otpResetConfirm": "Are you sure you want to reset OTP for this user? The user will need to re-enroll OTP on next login.",
+  "otpResetSuccess": "OTP has been reset successfully.",
+  "otpResetFailed": "Failed to reset OTP."
 }

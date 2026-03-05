@@ -12,8 +12,10 @@ import {
   Refresh as RefreshIcon, DeleteSweep as DeleteSweepIcon,
   People as PeopleIcon,
   ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon
+  ArrowDownward as ArrowDownwardIcon,
+  LockReset as LockResetIcon,
 } from '@mui/icons-material';
+import { getOTPService } from '../../../services/otpService';
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
@@ -174,9 +176,9 @@ const UserManagementTab: React.FC = () => {
           ...ALERT_TABLE_STYLES.headerCell,
           width,
           cursor: 'pointer',
-          position: 'relative',
           '&:hover .resize-handle': { opacity: 1 },
-          userSelect: 'none'
+          userSelect: 'none',
+          // position: 'relative' 제거 (MUI Table stickyHeader와 충돌 방지)
         }}
       >
         <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
@@ -229,6 +231,9 @@ const UserManagementTab: React.FC = () => {
   // 관리자 OTP 등록 권장 배너 상태
   const [adminOtpEnabled, setAdminOtpEnabled] = useState<boolean | null>(null);
   const [otpEnrollOpen, setOtpEnrollOpen] = useState(false);
+
+  // OTP 초기화 확인 다이얼로그
+  const [otpResetConfirmOpen, setOtpResetConfirmOpen] = useState(false);
 
   // 스낵바 상태
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -363,6 +368,21 @@ const UserManagementTab: React.FC = () => {
       loadUsers();
     } catch {
       setSnackbar({ open: true, message: t('deleteFailed'), severity: 'error' });
+    }
+  };
+
+  const handleOtpReset = async () => {
+    if (!editingUser) return;
+    try {
+      const otpService = getOTPService(api);
+      await otpService.adminDisableOTP(editingUser.id);
+      setSnackbar({ open: true, message: t('otpResetSuccess'), severity: 'success' });
+      setOtpResetConfirmOpen(false);
+      loadUsers();
+      // 수정 중인 사용자의 otp_enabled 상태 갱신
+      setEditingUser({ ...editingUser, otp_enabled: false });
+    } catch (error: any) {
+      setSnackbar({ open: true, message: t('otpResetFailed'), severity: 'error' });
     }
   };
 
@@ -576,6 +596,17 @@ const UserManagementTab: React.FC = () => {
               }
               label={t('status')}
             />
+            {editingUser?.otp_enabled && (
+              <Button
+                variant="outlined"
+                color="warning"
+                startIcon={<LockResetIcon />}
+                onClick={() => setOtpResetConfirmOpen(true)}
+                fullWidth
+              >
+                {t('otpReset')}
+              </Button>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -593,6 +624,18 @@ const UserManagementTab: React.FC = () => {
         <DialogActions>
           <Button variant="outlined" onClick={() => setDeleteId(null)}>{t('cancel')}</Button>
           <Button variant="contained" color="error" onClick={handleDelete}>{t('deleteUser')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* OTP 초기화 확인 다이얼로그 */}
+      <Dialog open={otpResetConfirmOpen} onClose={() => setOtpResetConfirmOpen(false)}>
+        <DialogTitle>{t('otpReset')}</DialogTitle>
+        <DialogContent>
+          <Typography>{t('otpResetConfirm')}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setOtpResetConfirmOpen(false)}>{t('cancel')}</Button>
+          <Button variant="contained" color="warning" onClick={handleOtpReset}>{t('otpReset')}</Button>
         </DialogActions>
       </Dialog>
 
