@@ -385,7 +385,6 @@ const NotificationRuleListTab: React.FC = () => {
     } catch (error: any) {
       const errorMsg = error.response?.data?.detail || error.message || 'Trigger test failed';
       setTriggerTestError(errorMsg);
-      setSnackbar({open: true, message: errorMsg, severity: 'error'});
     } finally {
       setTriggerTestLoading(false);
     }
