@@ -18,6 +18,7 @@ export interface User {
   name: string;
   role: string;
   is_active: boolean;
+  otp_enabled: boolean;
   created_at: string;
   last_login_at: string | null;
 }

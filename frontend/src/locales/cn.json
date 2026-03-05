@@ -376,5 +376,9 @@
   "noPermission": "您没有访问权限。",
   "otpStep1Label": "设置应用",
   "otpStep2Label": "验证代码",
-  "otpStep3Label": "备份代码"
+  "otpStep3Label": "备份代码",
+  "otpReset": "重置OTP",
+  "otpResetConfirm": "确定要重置该用户的OTP吗？该用户下次登录时需要重新注册OTP。",
+  "otpResetSuccess": "OTP已重置成功。",
+  "otpResetFailed": "OTP重置失败。"
 }

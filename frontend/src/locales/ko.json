@@ -402,5 +402,9 @@
   "noPermission": "접근 권한이 없습니다.",
   "otpStep1Label": "앱 설정",
   "otpStep2Label": "코드 확인",
-  "otpStep3Label": "백업 코드"
+  "otpStep3Label": "백업 코드",
+  "otpReset": "OTP 초기화",
+  "otpResetConfirm": "이 사용자의 OTP를 초기화하시겠습니까? 해당 사용자는 다음 로그인 시 OTP를 재등록해야 합니다.",
+  "otpResetSuccess": "OTP가 초기화되었습니다.",
+  "otpResetFailed": "OTP 초기화에 실패했습니다."
 }
