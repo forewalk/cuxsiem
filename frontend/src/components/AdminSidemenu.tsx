@@ -1,17 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Collapse, IconButton, Toolbar, useTheme, Typography,
-  useMediaQuery,
-} from '@mui/material';
-import {
-  ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Settings as SettingsIcon,
-  People as PeopleIcon, Lock as LockIcon, ExpandLess, ExpandMore, Dashboard as DashboardIcon,
-  ShowChart as ThreatsIcon, Terminal as TerminalIcon, Close as CloseIcon,
-  Notifications as NotificationsIcon, History as HistoryIcon,
   Tune as AdvancedIcon, Computer as AgentIcon,
+  ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon,
+  Close as CloseIcon,
+  Dashboard as DashboardIcon,
+  ExpandLess, ExpandMore,
+  History as HistoryIcon,
+  Lock as LockIcon,
+  Notifications as NotificationsIcon,
+  People as PeopleIcon,
+  Settings as SettingsIcon,
+  Terminal as TerminalIcon,
+  ShowChart as ThreatsIcon,
 } from '@mui/icons-material';
+import {
+  Box,
+  Collapse,
+  Drawer,
+  IconButton,
+  List, ListItem, ListItemButton, ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useTabStore from '../stores/tabStore';
 
 interface AdminSidemenuProps {
@@ -135,7 +149,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
           {isMobile ? <CloseIcon /> : (drawerOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />)}
         </IconButton>
       </Toolbar>
-      
+
       <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
         <List>
           {/* Dashboard Menu Group */}
@@ -146,7 +160,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               {(drawerOpen || isMobile) && (openDashboardMenu ? <ExpandLess /> : <ExpandMore />)}
             </ListItemButton>
           </ListItem>
-          
+
           <Collapse in={openDashboardMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
               {/* 1. Threat Status Sub-Group */}
@@ -213,6 +227,20 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <ListItemText primary={t('notificationHistory')} sx={listItemTextStyle} />
             </ListItemButton>
           </ListItem>
+
+          {userRole === 'role-1' && (
+            <ListItem disablePadding sx={{ display: 'block' }}>
+              <ListItemButton
+                onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}
+                sx={{ minHeight: listItemHeight, px: 2.5 }}
+              >
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
+                  <NotificationsIcon />
+                </ListItemIcon>
+                <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
+              </ListItemButton>
+            </ListItem>
+          )}
         </List>
       </Box>
 
@@ -241,17 +269,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                 >
                   <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><LockIcon /></ListItemIcon>
                   <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
-                </ListItemButton>
-
-                {/* 알림 규칙 - role-1 전용 */}
-                <ListItemButton
-                  sx={{ pl: 4, minHeight: listItemHeight }}
-                  onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}
-                >
-                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
-                    <NotificationsIcon />
-                  </ListItemIcon>
-                  <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
                 </ListItemButton>
 
                 <ListItemButton
