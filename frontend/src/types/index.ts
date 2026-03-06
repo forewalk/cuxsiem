@@ -95,6 +95,11 @@ export interface IndexListResponse {
 }
 
 
+export interface NotificationReceiver {
+  type: string;
+  values: string[];
+}
+
 // 알림 규칙
 export interface NotificationRule {
   id: string;
@@ -107,7 +112,7 @@ export interface NotificationRule {
   interval_min: number;
   dedup_key_template: string;
   trigger_condition?: string;
-  receiver: Record<string, unknown>;
+  receiver: NotificationReceiver;
   is_active: boolean;
   last_run_at?: string;
   last_success_at?: string;
@@ -129,7 +134,7 @@ export interface NotificationRuleCreate {
   interval_min: number;
   dedup_key_template: string;
   trigger_condition?: string;
-  receiver: Record<string, unknown>;
+  receiver: NotificationReceiver;
   is_active: boolean;
 }
 
@@ -143,7 +148,7 @@ export interface NotificationRuleUpdate {
   interval_min?: number;
   dedup_key_template?: string;
   trigger_condition?: string;
-  receiver?: Record<string, unknown>;
+  receiver?: NotificationReceiver;
   is_active?: boolean;
 }
 
@@ -169,7 +174,7 @@ export interface NotificationHistory {
 
   // 기타
   dedup_key: string;
-  receiver: Record<string, unknown> | null;
+  receiver: NotificationReceiver | null;
   status: string;
   error_message: string | null;
   severity: string | null;
