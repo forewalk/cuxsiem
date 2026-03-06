@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import re
 from datetime import datetime
@@ -197,6 +198,11 @@ class NotificationService:
                     return None
             return value
 
+        def to_str(value: Any) -> str:
+            if isinstance(value, (dict, list)):
+                return json.dumps(value, ensure_ascii=False, indent=2)
+            return str(value)
+
         def replace_var(match):
             key = match.group(1)
 
@@ -205,7 +211,7 @@ class NotificationService:
                 value = context.get(key)
                 if value is None:
                     return f"{{{{{key}}}}}"
-                return str(value)
+                return to_str(value)
 
             # 중첩 필드 접근
             keys = key.split('.')
@@ -213,7 +219,7 @@ class NotificationService:
             # 1차: context 전체에서 직접 탐색 (예: hits.total.value, aggregations.threats.buckets)
             ctx_value = get_nested_value(context, keys)
             if ctx_value is not None:
-                return str(ctx_value)
+                return to_str(ctx_value)
 
             # 2차: hits._source 배열에서 추출 (예: threatInfo.threatName)
             hit_sources = context.get("_hit_sources", [])
@@ -222,7 +228,7 @@ class NotificationService:
                 for hit in hit_sources:
                     hit_value = get_nested_value(hit, keys)
                     if hit_value is not None:
-                        values.append(str(hit_value))
+                        values.append(to_str(hit_value))
 
                 if values:
                     unique_values = list(dict.fromkeys(values))
@@ -357,7 +363,7 @@ class NotificationService:
     ):
         """집계 결과 기반 알림 생성 (하나의 알림으로 통합)"""
         rule_id = rule["id"]
-        target_index = rule.get("target_index", "logs-sentinel_one.threats")
+        target_index = rule.get("target_index", "logs-sentinel_one.edr")
 
         # 트리거 조건 체크
         trigger_condition = rule.get("trigger_condition")
@@ -439,7 +445,7 @@ class NotificationService:
             return
 
         rule_id = rule["id"]
-        target_index = rule.get("target_index", "logs-sentinel_one.threats")
+        target_index = rule.get("target_index", "logs-sentinel_one.edr")
         condition_config = rule.get("condition_config", {})
 
         now = datetime.utcnow()

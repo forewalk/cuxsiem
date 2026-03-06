@@ -87,7 +87,7 @@ async def test_query(request: dict):
 
     Request Body:
     {
-        "target_index": "logs-sentinel_one.threats",
+        "target_index": "logs-sentinel_one.edr",
         "condition_config": { ... DSL 쿼리 ... }
     }
     """
@@ -110,7 +110,7 @@ async def test_trigger(request: dict):
     쿼리 실행 후 트리거 조건을 평가하여 결과 반환
     Request Body:
     {
-        "target_index": "logs-sentinel_one.threats",
+        "target_index": "logs-sentinel_one.edr",
         "condition_config": { ... DSL 쿼리 ... },
         "trigger_condition": "total > 0"
     }
