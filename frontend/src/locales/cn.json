@@ -232,6 +232,7 @@
   "ruleSaveSuccess": "通知规则已保存。",
   "ruleDeleteSuccess": "通知规则已删除。",
   "conditionConfig": "检测条件 (DSL 查询)",
+  "targetIndex": "目标索引",
   "intervalMin": "检测执行周期 (分钟)",
   "windowMin": "检测数据查询范围 (分钟)",
   "advancedSettings": "高级设置",

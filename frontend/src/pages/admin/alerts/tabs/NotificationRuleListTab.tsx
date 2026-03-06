@@ -686,9 +686,18 @@ const NotificationRuleListTab: React.FC = () => {
               <Typography variant="subtitle2" sx={{fontWeight: 'bold', mb: 1}}>2. {t('detectionCondition')}</Typography>
               <Stack direction="row" spacing={2} sx={{mb: 2}}>
                 <TextField
+                  label={t('targetIndex')}
+                  fullWidth
+                  value={formData.target_index}
+                  onChange={(e) => setFormData({...formData, target_index: e.target.value})}
+                  size="small"
+                  placeholder="logs-sentinel_one.threats"
+                  inputProps={{style: {fontFamily: 'monospace'}}}
+                />
+                <TextField
                   label={t('intervalMin')}
                   type="number"
-                  fullWidth
+                  sx={{minWidth: 180}}
                   value={formData.interval_min}
                   onChange={(e) => setFormData({...formData, interval_min: parseInt(e.target.value)})}
                   size="small"

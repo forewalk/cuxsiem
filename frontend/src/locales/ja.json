@@ -243,6 +243,7 @@
   "ruleSaveSuccess": "通知ルールが保存されました。",
   "ruleDeleteSuccess": "通知ルールが削除されました。",
   "conditionConfig": "検知条件 (DSLクエリ)",
+  "targetIndex": "対象インデックス",
   "intervalMin": "検知実行周期 (分)",
   "windowMin": "検知データ参照範囲 (分)",
   "advancedSettings": "詳細設定",

@@ -248,6 +248,7 @@
   "ruleSaveSuccess": "알림 규칙이 저장되었습니다.",
   "ruleDeleteSuccess": "알림 규칙이 삭제되었습니다.",
   "conditionConfig": "탐지 조건 (DSL 쿼리)",
+  "targetIndex": "대상 인덱스",
   "intervalMin": "탐지 실행 주기 (분)",
   "windowMin": "탐지 데이터 조회 범위 (분)",
   "advancedSettings": "고급 설정",

@@ -232,6 +232,7 @@
   "ruleSaveSuccess": "Notification rule saved successfully.",
   "ruleDeleteSuccess": "Notification rule deleted successfully.",
   "conditionConfig": "Detection Condition (DSL Query)",
+  "targetIndex": "Target Index",
   "intervalMin": "Detection Interval (min)",
   "windowMin": "Detection Window (min)",
   "advancedSettings": "Advanced Settings",
