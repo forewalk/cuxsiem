@@ -12,6 +12,7 @@ from app.schemas.notification import (
 )
 from app.schemas.user import UserResponse
 from app.services.notification import NotificationService
+from app.services.webhook import send_test_webhook
 
 router = APIRouter()
 service = NotificationService()
@@ -126,6 +127,25 @@ async def test_trigger(request: dict):
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Trigger evaluation failed: {str(e)}")
+
+
+@router.post("/webhook/test")
+async def test_webhook(request: dict):
+    """
+    Webhook 연결 테스트
+    Request Body: { "url": "http://...", "headers": {} }
+    """
+    url = request.get("url")
+    if not url:
+        raise HTTPException(status_code=400, detail="Webhook URL이 필요합니다.")
+
+    headers = request.get("headers") or {}
+    result = await send_test_webhook(url, headers)
+
+    if result["status"] == "success":
+        return {"success": True, "message": f"Webhook 테스트 성공 (HTTP {result['status_code']})"}
+    else:
+        return {"success": False, "message": result.get("error", "발송 실패"), "detail": result}
 
 
 # --- 알림내역 조회 ---

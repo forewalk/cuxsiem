@@ -86,7 +86,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   interval_min: 1,
   dedup_key_template: '{{rule_id}}_{{_id}}',
   trigger_condition: '',
-  receiver: {type: 'role', values: ['role-1']},
+  receiver: {type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: {}},
   is_active: true
 };
 
@@ -154,6 +154,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [formData, setFormData] = useState<NotificationRuleCreate>(DEFAULT_FORM_DATA);
   const [dslString, setDslString] = useState(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [webhookHeadersStr, setWebhookHeadersStr] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -315,14 +316,19 @@ const NotificationRuleListTab: React.FC = () => {
             if (roleCodes.length === 0) return mapped;
             return mapped.filter((v: string) => roleCodes.some(rc => rc.code === v));
           })(),
+          webhook_url: rule.receiver?.webhook_url || '',
+          webhook_headers: rule.receiver?.webhook_headers || {},
         },
         is_active: rule.is_active
       });
       setDslString(JSON.stringify(rule.condition_config, null, 2));
+      const wh = rule.receiver?.webhook_headers;
+      setWebhookHeadersStr(wh && Object.keys(wh).length > 0 ? JSON.stringify(wh, null, 2) : '');
     } else {
       setEditingRule(null);
       setFormData(DEFAULT_FORM_DATA);
       setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
+      setWebhookHeadersStr('');
     }
     setJsonError(null);
     setOpen(true);
@@ -963,13 +969,91 @@ const NotificationRuleListTab: React.FC = () => {
                           const newValues = e.target.checked
                             ? [...currentValues, rc.code]
                             : currentValues.filter((v: string) => v !== rc.code);
-                          setFormData({...formData, receiver: {type: 'role', values: newValues}});
+                          setFormData({...formData, receiver: {...formData.receiver, type: 'role', values: newValues}});
                         }}
                       />
                     }
                     label={getRoleName(rc.code, roleNames, language)}
                   />
                 ))}
+              </Stack>
+            </Grid>
+
+            <Grid size={12}><Divider/></Grid>
+
+            {/* 5. Webhook 설정 */}
+            <Grid size={12}>
+              <Typography variant="subtitle2"
+                          sx={{fontWeight: 'bold', mb: 1}}>5. {t('webhookSettings')}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{display: 'block', mb: 1}}>
+                {t('webhookDescription')}
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{display: 'flex', gap: 1, alignItems: 'flex-start'}}>
+                  <TextField
+                    label={t('webhookUrl')}
+                    fullWidth
+                    size="small"
+                    placeholder="http://192.168.1.100:8080/webhook"
+                    value={formData.receiver?.webhook_url || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      receiver: {...formData.receiver, webhook_url: e.target.value}
+                    })}
+                  />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{whiteSpace: 'nowrap', minWidth: 100, height: 40}}
+                    disabled={!formData.receiver?.webhook_url}
+                    onClick={async () => {
+                      try {
+                        const res = await notificationService.testWebhook(
+                          formData.receiver?.webhook_url || '',
+                          formData.receiver?.webhook_headers
+                        );
+                        setSnackbar({
+                          open: true,
+                          message: res.success ? t('webhookTestSuccess') : `${t('webhookTestFail')}: ${res.message}`,
+                          severity: res.success ? 'success' : 'error'
+                        });
+                      } catch (err: any) {
+                        setSnackbar({
+                          open: true,
+                          message: `${t('webhookTestFail')}: ${err.message}`,
+                          severity: 'error'
+                        });
+                      }
+                    }}
+                  >
+                    {t('testConnection')}
+                  </Button>
+                </Box>
+                <TextField
+                  label={t('webhookHeaders')}
+                  fullWidth
+                  size="small"
+                  multiline
+                  minRows={2}
+                  maxRows={4}
+                  placeholder={'{"Authorization": "Bearer token", "X-Custom": "value"}'}
+                  value={webhookHeadersStr}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setWebhookHeadersStr(val);
+                    if (!val.trim()) {
+                      setFormData({...formData, receiver: {...formData.receiver, webhook_headers: {}}});
+                      return;
+                    }
+                    try {
+                      const parsed = JSON.parse(val);
+                      setFormData({...formData, receiver: {...formData.receiver, webhook_headers: parsed}});
+                    } catch {
+                      // 타이핑 중 JSON 파싱 실패는 무시, 문자열은 계속 표시
+                    }
+                  }}
+                  helperText={t('webhookHeadersHelp')}
+                />
               </Stack>
             </Grid>
           </Grid>

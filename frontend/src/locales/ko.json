@@ -422,5 +422,13 @@
   "otpReset": "OTP 초기화",
   "otpResetConfirm": "이 사용자의 OTP를 초기화하시겠습니까? 해당 사용자는 다음 로그인 시 OTP를 재등록해야 합니다.",
   "otpResetSuccess": "OTP가 초기화되었습니다.",
-  "otpResetFailed": "OTP 초기화에 실패했습니다."
+  "otpResetFailed": "OTP 초기화에 실패했습니다.",
+  "webhookSettings": "Webhook 설정",
+  "webhookDescription": "알림 발생 시 지정된 URL로 JSON POST 요청을 전송합니다. 비워두면 Webhook을 사용하지 않습니다.",
+  "webhookUrl": "Webhook URL",
+  "webhookHeaders": "요청 헤더 (JSON)",
+  "webhookHeadersHelp": "JSON 형식으로 커스텀 헤더를 입력하세요 (선택사항)",
+  "testConnection": "연결 테스트",
+  "webhookTestSuccess": "Webhook 연결 테스트 성공",
+  "webhookTestFail": "Webhook 연결 테스트 실패"
 }

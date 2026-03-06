@@ -98,6 +98,8 @@ export interface IndexListResponse {
 export interface NotificationReceiver {
   type: string;
   values: string[];
+  webhook_url?: string;
+  webhook_headers?: Record<string, string>;
 }
 
 // 알림 규칙

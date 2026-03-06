@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 from app.core.websocket import manager
 from app.repositories.notification import NotificationRepository
 from app.schemas.notification import NotificationRuleBase, NotificationRuleUpdate
+from app.services.webhook import send_webhook
 
 logger = logging.getLogger(__name__)
 
@@ -282,6 +283,71 @@ class NotificationService:
             logger.error(f"[트리거] 조건 평가 실패: '{condition}' - {e}")
             return True
 
+    async def _deliver_alert(self, created_alert: Dict[str, Any], receiver: Dict[str, Any]):
+        """
+        알림 전달: WebSocket + Webhook.
+        채널별 발송 결과를 delivery_results에 기록하고 알림 문서를 업데이트한다.
+        """
+        alert_id = created_alert["id"]
+        receiver_values = receiver.get("values", [])
+        delivery_results: Dict[str, Any] = {}
+        now = datetime.utcnow().isoformat()
+
+        # 1. WebSocket 전송
+        ws_result = {"status": "skipped", "sent_at": now, "targets": receiver_values, "error": None}
+        try:
+            ws_message = {
+                "type": "new_alert",
+                "data": {
+                    "id": alert_id,
+                    "rule_name": created_alert.get("rule_name"),
+                    "message": created_alert.get("message"),
+                    "severity": created_alert.get("severity"),
+                    "rule_severity": created_alert.get("rule_severity"),
+                    "created_at": created_alert.get("created_at"),
+                },
+            }
+            if receiver_values:
+                await manager.send_to_roles(roles=receiver_values, message=ws_message)
+            else:
+                await manager.broadcast(ws_message)
+            ws_result["status"] = "success"
+        except Exception as ws_error:
+            ws_result["status"] = "failure"
+            ws_result["error"] = str(ws_error)
+            logger.error(f"WebSocket 알림 전송 실패: {ws_error}")
+        delivery_results["websocket"] = ws_result
+
+        # 2. Webhook 전송
+        webhook_url = receiver.get("webhook_url")
+        if webhook_url:
+            webhook_headers = receiver.get("webhook_headers") or {}
+            webhook_payload = {
+                "id": alert_id,
+                "rule_name": created_alert.get("rule_name"),
+                "rule_severity": created_alert.get("rule_severity"),
+                "message": created_alert.get("message"),
+                "severity": created_alert.get("severity"),
+                "created_at": created_alert.get("created_at"),
+                "rule_target_index": created_alert.get("rule_target_index"),
+            }
+            webhook_result = await send_webhook(webhook_url, webhook_payload, webhook_headers)
+            delivery_results["webhook"] = webhook_result
+        else:
+            delivery_results["webhook"] = {
+                "status": "skipped",
+                "sent_at": now,
+                "url": None,
+                "status_code": None,
+                "error": "Webhook URL 미설정",
+            }
+
+        # 3. delivery_results를 알림 문서에 업데이트
+        try:
+            await self.repository.update_alert(alert_id, {"delivery_results": delivery_results})
+        except Exception as e:
+            logger.error(f"delivery_results 업데이트 실패 ({alert_id}): {e}")
+
     async def _create_aggregation_alert(
         self,
         rule: Dict[str, Any],
@@ -348,7 +414,7 @@ class NotificationService:
                 "type": "aggregation",
                 "total": total,
                 "aggregations": aggregations,
-                "hits": hit_sources[:10]  # 최대 10개 문서만 저장
+                "hits": hit_sources[:10]
             },
 
             # 중복 제거 및 수신자
@@ -363,27 +429,8 @@ class NotificationService:
 
         created_alert = await self.repository.create_alert(alert_data)
 
-        # WebSocket으로 실시간 알림 전송
-        try:
-            receiver_values = rule.get("receiver", {}).get("values", [])
-            ws_message = {
-                "type": "new_alert",
-                "data": {
-                    "id": created_alert["id"],
-                    "rule_name": created_alert["rule_name"],
-                    "message": created_alert["message"],
-                    "severity": created_alert["severity"],
-                    "rule_severity": created_alert["rule_severity"],
-                    "created_at": created_alert["created_at"]
-                }
-            }
-
-            if receiver_values:
-                await manager.send_to_roles(roles=receiver_values, message=ws_message)
-            else:
-                await manager.broadcast(ws_message)
-        except Exception as ws_error:
-            logger.error(f"WebSocket 알림 전송 실패: {ws_error}")
+        # WebSocket + Webhook 전달 및 delivery_results 기록
+        await self._deliver_alert(created_alert, rule.get("receiver", {}))
 
         return created_alert
 
@@ -513,41 +560,8 @@ class NotificationService:
                     created_alerts.append(created_alert)
                     newly_created_count += 1
 
-                    # WebSocket으로 실시간 알림 전송
-                    try:
-                        receiver_values = rule.get("receiver", {}).get("values", [])
-                        if receiver_values:
-                            # 수신자 역할에 따라 전송
-                            await manager.send_to_roles(
-                                roles=receiver_values,
-                                message={
-                                    "type": "new_alert",
-                                    "data": {
-                                        "id": created_alert["id"],
-                                        "rule_name": created_alert["rule_name"],
-                                        "message": created_alert["message"],
-                                        "severity": created_alert["severity"],
-                                        "rule_severity": created_alert["rule_severity"],
-                                        "created_at": created_alert["created_at"]
-                                    }
-                                }
-                            )
-                        else:
-                            # 수신자 없으면 모든 연결에 브로드캐스트
-                            await manager.broadcast({
-                                "type": "new_alert",
-                                "data": {
-                                    "id": created_alert["id"],
-                                    "rule_name": created_alert["rule_name"],
-                                    "message": created_alert["message"],
-                                    "severity": created_alert["severity"],
-                                    "rule_severity": created_alert["rule_severity"],
-                                    "created_at": created_alert["created_at"]
-                                }
-                            })
-                    except Exception as ws_error:
-                        logger.error(f"WebSocket 알림 전송 실패: {ws_error}")
-                        # WebSocket 실패해도 알림 생성은 계속 진행
+                    # WebSocket + Webhook 전달 및 delivery_results 기록
+                    await self._deliver_alert(created_alert, rule.get("receiver", {}))
 
                 # 룰 통계 업데이트: 실제 생성된 알림 수 가산
                 if newly_created_count > 0:

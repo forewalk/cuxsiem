@@ -408,5 +408,13 @@
   "otpReset": "OTPリセット",
   "otpResetConfirm": "このユーザーのOTPをリセットしますか？次回ログイン時にOTPを再登録する必要があります。",
   "otpResetSuccess": "OTPがリセットされました。",
-  "otpResetFailed": "OTPのリセットに失敗しました。"
+  "otpResetFailed": "OTPのリセットに失敗しました。",
+  "webhookSettings": "Webhook 設定",
+  "webhookDescription": "アラート発生時に指定されたURLへJSON POSTリクエストを送信します。空の場合、Webhookは使用されません。",
+  "webhookUrl": "Webhook URL",
+  "webhookHeaders": "リクエストヘッダー (JSON)",
+  "webhookHeadersHelp": "カスタムヘッダーをJSON形式で入力してください（任意）",
+  "testConnection": "接続テスト",
+  "webhookTestSuccess": "Webhook接続テスト成功",
+  "webhookTestFail": "Webhook接続テスト失敗"
 }
