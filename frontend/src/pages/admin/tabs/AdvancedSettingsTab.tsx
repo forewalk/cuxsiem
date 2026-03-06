@@ -3,7 +3,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Box, Typography, Button, Paper, Stack, Switch,
   FormControlLabel, Divider, Alert, Snackbar, CircularProgress,
-  Select, MenuItem, FormControl, InputLabel, TextField, Tooltip
+  Select, MenuItem, FormControl, TextField, Tooltip
 } from '@mui/material';
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { advancedSettingsService, type AdvancedSettings } from '../../../services/advancedSettingsService';
@@ -165,7 +165,7 @@ const AdvancedSettingsTab: React.FC = () => {
 
     // 유효성 검사: 탭 개수 확인
     const tabCnt = settings.tab_count;
-    if (tabCnt === '' || isNaN(Number(tabCnt)) || Number(tabCnt) < 1 || Number(tabCnt) > 10) {
+    if (!tabCnt || isNaN(Number(tabCnt)) || Number(tabCnt) < 1 || Number(tabCnt) > 10) {
       setSnackbar({
         open: true,
         message: t('tabCountError') || "탭 개수는 1에서 10 사이의 숫자여야 합니다.",
@@ -387,7 +387,7 @@ const AdvancedSettingsTab: React.FC = () => {
                     fullWidth
                     size="small"
                     type="number"
-                    value={settings.tab_count === '' ? '' : (settings.tab_count ?? '')}
+                    value={settings.tab_count ?? ''}
                     placeholder={t('tabCount')}
                     onChange={(e) => {
                       const valStr = e.target.value;

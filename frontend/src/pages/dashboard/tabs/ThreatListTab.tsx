@@ -26,7 +26,6 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import KeyboardArrowDownIconMenu from "@mui/icons-material/KeyboardArrowDown";
 import AbcIcon from "@mui/icons-material/Abc";
-import NumbersIcon from "@mui/icons-material/Numbers";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CodeIcon from "@mui/icons-material/Code";
 import TagIcon from "@mui/icons-material/Tag";
@@ -105,10 +104,6 @@ const ThreatListTab: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const initializedRef = useRef(false);
 
-  const [columnWidths] = useState<Record<string, number>>(() => {
-    const saved = localStorage.getItem('threatListColumnWidths');
-    return saved ? JSON.parse(saved) : { "threatInfo.createdAt": 250 };
-  });
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
@@ -183,7 +178,6 @@ const ThreatListTab: React.FC = () => {
     return typeof value === 'object' ? JSON.stringify(value) : String(value);
   };
 
-  const formatValue = (val: any) => val === null || val === undefined ? "-" : (typeof val === 'object' ? JSON.stringify(val) : String(val));
 
   const flattenObject = (obj: any, prefix = ""): Record<string, any> => {
     return Object.keys(obj).reduce((acc: any, k: string) => {
