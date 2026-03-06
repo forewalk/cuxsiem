@@ -8,7 +8,7 @@ from datetime import datetime
 class NotificationRuleBase(BaseModel):
     name: str
     description: Optional[str] = None
-    target_index: str = "logs-sentinel_one.threats"
+    target_index: str = "logs-sentinel_one.edr"
     condition_config: Dict[str, Any]
     message_template: str = Field(
         default="Detected {{total}} events.",

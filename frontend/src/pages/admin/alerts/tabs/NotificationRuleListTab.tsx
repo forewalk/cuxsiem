@@ -59,7 +59,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   name: '',
   description: '',
-  target_index: 'logs-sentinel_one.threats',
+  target_index: 'logs-sentinel_one.edr',
   condition_config: {
     query: {
       bool: {
@@ -208,18 +208,21 @@ const NotificationRuleListTab: React.FC = () => {
         total,
       };
       
+      const toStr = (v: any): string =>
+        typeof v === 'object' && v !== null ? JSON.stringify(v, null, 2) : String(v);
+
       // {{변수}} 형식을 모두 치환
       preview = preview.replace(/\{\{([\w\.@]+)\}\}/g, (match, key) => {
         // 단순 키 접근 (total 등)
         if (!key.includes('.')) {
           const value = context[key];
-          return value !== null && value !== undefined ? String(value) : match;
+          return value !== null && value !== undefined ? toStr(value) : match;
         }
         
         // 1차: context 전체에서 직접 탐색 (예: hits.total.value, aggregations.threats.buckets)
         const ctxValue = getNestedValue(queryTestResult, key);
         if (ctxValue !== null && ctxValue !== undefined) {
-          return String(ctxValue);
+          return toStr(ctxValue);
         }
         
         // 2차: hits._source 배열에서 추출 (예: threatInfo.threatName)
@@ -228,7 +231,7 @@ const NotificationRuleListTab: React.FC = () => {
           for (const hit of hitSources) {
             const hitValue = getNestedValue(hit, key);
             if (hitValue !== null && hitValue !== undefined) {
-              values.push(String(hitValue));
+              values.push(toStr(hitValue));
             }
           }
           
@@ -697,7 +700,7 @@ const NotificationRuleListTab: React.FC = () => {
                   value={formData.target_index}
                   onChange={(e) => setFormData({...formData, target_index: e.target.value})}
                   size="small"
-                  placeholder="logs-sentinel_one.threats"
+                  placeholder="logs-sentinel_one.edr"
                   inputProps={{style: {fontFamily: 'monospace'}}}
                 />
                 <TextField
