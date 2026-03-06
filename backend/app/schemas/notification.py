@@ -105,6 +105,7 @@ class AlertResponse(AlertBase):
     id: str
     severity: Optional[str] = None
     created_at: datetime
+    delivery_results: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

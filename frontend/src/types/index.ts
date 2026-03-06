@@ -182,6 +182,12 @@ export interface NotificationHistory {
   severity: string | null;
   created_at: string;
 
+  // 채널별 발송 결과
+  delivery_results?: {
+    websocket?: { status: string; sent_at?: string; targets?: string[]; error?: string | null };
+    webhook?: { status: string; sent_at?: string; url?: string | null; status_code?: number | null; error?: string | null };
+  };
+
   // 하위 호환성 (기존 코드와 호환)
   title?: string;
   description?: string;

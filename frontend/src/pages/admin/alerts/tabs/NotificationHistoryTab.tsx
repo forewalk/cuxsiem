@@ -88,7 +88,6 @@ const NotificationRow: React.FC<{
         <TableCell colSpan={5}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
-              {/* 알림 메시지만 표시 */}
               <Typography 
                 variant="body1" 
                 sx={{ 
@@ -116,6 +115,80 @@ const NotificationRow: React.FC<{
               >
                 {row.message}
               </Typography>
+
+              {row.delivery_results && (
+                <Box sx={{ mt: 2 }}>
+                  <Divider sx={{ mb: 1.5 }} />
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                    {language === 'en' ? 'Delivery Results' : language === 'ja' ? '配信結果' : language === 'cn' ? '发送结果' : '발송 결과'}
+                  </Typography>
+                  <Stack direction="row" spacing={2} flexWrap="wrap">
+                    {row.delivery_results.websocket && (
+                      <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, minWidth: 200, flex: 1 }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                          <Typography variant="caption" fontWeight="bold">WebSocket</Typography>
+                          <Chip
+                            label={row.delivery_results.websocket.status}
+                            size="small"
+                            color={row.delivery_results.websocket.status === 'success' ? 'success' : row.delivery_results.websocket.status === 'skipped' ? 'default' : 'error'}
+                            sx={{ height: 20, fontSize: '0.7rem' }}
+                          />
+                        </Stack>
+                        {row.delivery_results.websocket.sent_at && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {formatDateTime(row.delivery_results.websocket.sent_at)}
+                          </Typography>
+                        )}
+                        {row.delivery_results.websocket.targets && row.delivery_results.websocket.targets.length > 0 && (
+                          <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }} flexWrap="wrap">
+                            {row.delivery_results.websocket.targets.map((t: string) => (
+                              <Chip key={t} label={getRoleName(t, roleNames, language)} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 18 }} />
+                            ))}
+                          </Stack>
+                        )}
+                        {row.delivery_results.websocket.error && (
+                          <Typography variant="caption" color="error" display="block" sx={{ mt: 0.5 }}>
+                            {row.delivery_results.websocket.error}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                    {row.delivery_results.webhook && (
+                      <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, minWidth: 200, flex: 1 }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+                          <Typography variant="caption" fontWeight="bold">Webhook</Typography>
+                          <Chip
+                            label={row.delivery_results.webhook.status}
+                            size="small"
+                            color={row.delivery_results.webhook.status === 'success' ? 'success' : row.delivery_results.webhook.status === 'skipped' ? 'default' : 'error'}
+                            sx={{ height: 20, fontSize: '0.7rem' }}
+                          />
+                        </Stack>
+                        {row.delivery_results.webhook.sent_at && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {formatDateTime(row.delivery_results.webhook.sent_at)}
+                          </Typography>
+                        )}
+                        {row.delivery_results.webhook.url && (
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, wordBreak: 'break-all' }}>
+                            URL: {row.delivery_results.webhook.url}
+                          </Typography>
+                        )}
+                        {row.delivery_results.webhook.status_code && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            HTTP {row.delivery_results.webhook.status_code}
+                          </Typography>
+                        )}
+                        {row.delivery_results.webhook.error && (
+                          <Typography variant="caption" color="error" display="block" sx={{ mt: 0.5 }}>
+                            {row.delivery_results.webhook.error}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Stack>
+                </Box>
+              )}
             </Box>
           </Collapse>
         </TableCell>
