@@ -327,7 +327,6 @@ class NotificationService:
                 "rule_name": created_alert.get("rule_name"),
                 "rule_severity": created_alert.get("rule_severity"),
                 "message": created_alert.get("message"),
-                "severity": created_alert.get("severity"),
                 "created_at": created_alert.get("created_at"),
                 "rule_target_index": created_alert.get("rule_target_index"),
             }
