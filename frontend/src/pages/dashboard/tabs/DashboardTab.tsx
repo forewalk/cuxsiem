@@ -26,6 +26,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PieChartIcon from '@mui/icons-material/PieChart';
 import TouchedIcon from '@mui/icons-material/AdsClick';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -258,6 +259,9 @@ const DashboardTab: React.FC = () => {
   const { language } = useLanguageStore();
   const { user } = useAuth();
   const { settings, fetchSettings } = useSettingsStore();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   // 전역 스토어 사용
   const { searchQuery, timeRange, setSearchQuery, setTimeRange } = useThreatStore();
@@ -276,6 +280,33 @@ const DashboardTab: React.FC = () => {
   const lastMoveRef = useRef<{ dragged: string, target: string } | null>(null);
   const initializedRef = useRef(false);
 
+  // URL 쿼리 파라미터에서 초기 상태 로드 및 스토어 동기화
+  useEffect(() => {
+    const query = searchParams.get('query') || "";
+    if (searchQuery !== query) setSearchQuery(query);
+
+    const fromVal = searchParams.get('fromValue');
+    const fromUn = searchParams.get('fromUnit');
+    const toVal = searchParams.get('toValue');
+    const toUn = searchParams.get('toUnit');
+    const fromDt = searchParams.get('fromDate');
+    const toDt = searchParams.get('toDate');
+
+    const defaultThreatStoreTimeRange = useThreatStore.getState().timeRange; // Zustand 스토어의 기본 시간 범위 참조
+
+    const newTimeRange = {
+      fromValue: fromVal ? parseInt(fromVal, 10) : defaultThreatStoreTimeRange.fromValue,
+      fromUnit: fromUn || defaultThreatStoreTimeRange.fromUnit,
+      toValue: toVal ? parseInt(toVal, 10) : defaultThreatStoreTimeRange.toValue,
+      toUnit: toUn || defaultThreatStoreTimeRange.toUnit,
+      fromDate: fromDt || defaultThreatStoreTimeRange.fromDate,
+      toDate: toDt || defaultThreatStoreTimeRange.toDate,
+    };
+    if (JSON.stringify(timeRange) !== JSON.stringify(newTimeRange)) {
+      setTimeRange(newTimeRange);
+    }
+  }, [searchParams, setSearchQuery, setTimeRange, searchQuery, timeRange]);
+
   // 고급 설정 로드 (초기 1회)
   useEffect(() => {
     fetchSettings();
@@ -283,7 +314,8 @@ const DashboardTab: React.FC = () => {
 
   // 초기 설정값 적용 (스토어 업데이트)
   useEffect(() => {
-    if (settings && !initializedRef.current) {
+    // URL 파라미터가 없는 경우에만 settings.time_filter_duration으로 초기화
+    if (settings && !initializedRef.current && !searchParams.get('fromValue') && !searchParams.get('fromDate')) {
       setTimeRange({
         fromValue: settings.time_filter_duration ?? 15,
         fromUnit: settings.time_filter_unit ?? 'm',
@@ -294,7 +326,7 @@ const DashboardTab: React.FC = () => {
       });
       initializedRef.current = true;
     }
-  }, [settings, setTimeRange]);
+  }, [settings, setTimeRange, searchParams]);
 
   const { fromValue, fromUnit, toValue, toUnit, fromDate, toDate } = timeRange;
 
@@ -307,7 +339,7 @@ const DashboardTab: React.FC = () => {
       if (stats && stats.summary) { setData(stats); }
     } catch (err) { console.error("Error fetching dashboard data:", err); }
     finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, searchParams]);
 
   useEffect(() => { 
     if (!isEditMode) fetchData(); 
@@ -315,11 +347,25 @@ const DashboardTab: React.FC = () => {
 
   const handleTimeChange = useCallback((fv: number | null, fu: string, tv: number | null, tu: string, fd: string | null, td: string | null) => {
     setTimeRange({ fromValue: fv, fromUnit: fu, toValue: tv, toUnit: tu, fromDate: fd, toDate: td });
-  }, [setTimeRange]);
+    // URLSearchParams 업데이트 (navigate 사용)
+    const newParams = new URLSearchParams(searchParams);
+    if (fv !== null) newParams.set('fromValue', fv.toString()); else newParams.delete('fromValue');
+    if (fu) newParams.set('fromUnit', fu); else newParams.delete('fromUnit');
+    if (tv !== null) newParams.set('toValue', tv.toString()); else newParams.delete('toValue');
+    if (tu) newParams.set('toUnit', tu); else newParams.delete('toUnit');
+    if (fd) newParams.set('fromDate', fd); else newParams.delete('fromDate');
+    if (td) newParams.set('toDate', td); else newParams.delete('toDate');
+    navigate(`?${newParams.toString()}`, { replace: false });
+  }, [setTimeRange, searchParams, navigate]);
 
   const handleSearchQueryChange = useCallback((q: string) => {
     setSearchQuery(q);
-  }, [setSearchQuery]);
+    // URLSearchParams 업데이트 (navigate 사용)
+    const newParams = new URLSearchParams(searchParams);
+    if (q) newParams.set('query', q);
+    else newParams.delete('query');
+    navigate(`?${newParams.toString()}`, { replace: false });
+  }, [setSearchQuery, searchParams, navigate]);
 
   const handleEditToggle = () => { if (!isEditMode) setOriginalPanels(data?.panels ? JSON.parse(JSON.stringify(data.panels)) : null); setIsEditMode(!isEditMode); };
   const handleCancel = () => { if (originalPanels && data) setData({ ...data, panels: JSON.parse(JSON.stringify(originalPanels)) }); setEditingTitleKey(null); setIsEditMode(false); };

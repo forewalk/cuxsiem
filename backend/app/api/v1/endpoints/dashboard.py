@@ -3,8 +3,40 @@ from fastapi import APIRouter, Depends, Query, Body
 from typing import List, Optional
 from app.schemas.dashboard import DashboardStatsResponse, DashboardPanelUpdate
 from app.services.dashboard import DashboardService
+from app.api.v1.deps import get_current_active_user
+from app.schemas.user import UserResponse
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+@router.get("/columns/{view_id}", response_model=List[str])
+async def get_column_settings(
+    view_id: str,
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """사용자별 리스트 컬럼 순서 조회"""
+    service = DashboardService()
+    return await service.get_column_settings(view_id, current_user.id)
+
+@router.post("/columns/{view_id}")
+async def save_column_settings(
+    view_id: str,
+    columns: List[str] = Body(...),
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """사용자별 리스트 컬럼 순서 저장"""
+    service = DashboardService()
+    success = await service.save_column_settings(view_id, current_user.id, columns)
+    return {"status": "success" if success else "failed"}
+
+@router.delete("/columns/{view_id}")
+async def reset_column_settings(
+    view_id: str,
+    current_user: UserResponse = Depends(get_current_active_user)
+):
+    """사용자별 리스트 컬럼 순서 초기화"""
+    service = DashboardService()
+    success = await service.reset_column_settings(view_id, current_user.id)
+    return {"status": "success" if success else "failed"}
 
 @router.get("/indices", response_model=List[str])
 async def get_indices():

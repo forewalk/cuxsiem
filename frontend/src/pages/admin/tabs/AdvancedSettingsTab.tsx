@@ -163,6 +163,17 @@ const AdvancedSettingsTab: React.FC = () => {
       return;
     }
 
+    // 유효성 검사: 탭 개수 확인
+    const tabCnt = settings.tab_count;
+    if (tabCnt === '' || isNaN(Number(tabCnt)) || Number(tabCnt) < 1 || Number(tabCnt) > 10) {
+      setSnackbar({
+        open: true,
+        message: t('tabCountError') || "탭 개수는 1에서 10 사이의 숫자여야 합니다.",
+        severity: 'error'
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       // 1. 고급 설정 저장
@@ -362,28 +373,30 @@ const AdvancedSettingsTab: React.FC = () => {
                 </Stack>
               </Box>
               
-              {/* 3. 탭 설정 (상위 계층 스타일로 변경) */}
+              {/* 3. 탭 설정 (숫자 입력 스타일로 변경) */}
               <Box>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
                   {t('tabSettings')}
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
-                <FormControl fullWidth size="small">
-                  <InputLabel id="tab-count-select-label">{t('tabCount')}</InputLabel>
-                  <Select
-                    labelId="tab-count-select-label"
-                    id="tab-count-select"
-                    value={settings.tab_count || 10}
-                    label={t('tabCount')}
-                    onChange={(e) => handleChange('tab_count', Number(e.target.value))}
-                  >
-                    {[...Array(10)].map((_, i) => (
-                      <MenuItem key={i + 1} value={i + 1}>
-                        {i + 1}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
+                    {t('tabCount')}
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="number"
+                    value={settings.tab_count === '' ? '' : (settings.tab_count ?? '')}
+                    placeholder={t('tabCount')}
+                    onChange={(e) => {
+                      const valStr = e.target.value;
+                      handleChange('tab_count', valStr === '' ? '' : Number(valStr));
+                    }}
+                    helperText={t('tabCountDesc')}
+                    inputProps={{ min: 1, max: 10 }}
+                  />
+                </Box>
               </Box>
 
               {/* 4. 기본값 설정 */}

@@ -1,6 +1,6 @@
 """대시보드 Service"""
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 from app.repositories.dashboard import DashboardRepository
 from app.schemas.dashboard import (
@@ -18,7 +18,11 @@ class DashboardService:
     async def get_indices(self) -> List[str]: return await self.repository.get_indices()
     async def get_fields(self, index_name: str) -> List[dict]: return await self.repository.get_field_mappings(index_name)
     async def get_logs(self, dashboard_id: str = "threat-status", **kwargs) -> List[dict]:
-        index_map = {"threat-status": "logs-sentinel_one.threats", "agent-dashboard": "logs-sentinel_one.agents"}
+        index_map = {
+            "threat-status": "logs-sentinel_one.threats", 
+            "agent-dashboard": "logs-sentinel_one.agents",
+            "edr-dashboard": "logs-sentinel_one.edr"
+        }
         return await self.repository.get_logs(index_map.get(dashboard_id, "logs-sentinel_one.threats"), **kwargs)
 
     async def get_dashboard_stats(
@@ -28,11 +32,17 @@ class DashboardService:
         query=None,
         panels_override: List[Dict[str, Any]] = None # 추가: 외부에서 패널 설정 주입 가능
     ) -> DashboardStatsResponse:
-        index_map = {"threat-status": "logs-sentinel_one.threats", "agent-dashboard": "logs-sentinel_one.agents"}
+        index_map = {
+            "threat-status": "logs-sentinel_one.threats", 
+            "agent-dashboard": "logs-sentinel_one.agents",
+            "edr-dashboard": "logs-sentinel_one.edr"
+        }
         target_index = index_map.get(dashboard_id, "logs-sentinel_one.threats")
 
         # 1. 패널 설정 결정 (오버라이드 있으면 그것 사용, 없으면 DB 조회)
-        if panels_override is not None:
+        if dashboard_id == "edr-dashboard" and panels_override is None:
+            panels_raw = [{"dashboard_id": "edr-dashboard", "panel_key": "edr_event_categories", "widget_type": "bar", "target_field": "event.category"}]
+        elif panels_override is not None:
             panels_raw = panels_override
         else:
             panels_raw = await self.repository.get_panels(dashboard_id)
@@ -81,7 +91,7 @@ class DashboardService:
             if buckets: return sum(b.get("doc_count", 0) for b in buckets)
             return 0
 
-        histogram = [HistogramItem(timestamp=datetime.fromtimestamp(b["key"]/1000.0), count=b["doc_count"]) 
+        histogram = [HistogramItem(timestamp=datetime.fromtimestamp(b["key"]/1000.0, tz=timezone.utc), count=b["doc_count"]) 
                      for b in get_buckets("logs_over_time")]
 
         summary = DashboardSummary(
@@ -132,7 +142,7 @@ class DashboardService:
             agent_version_dist=map_stats("agent_version_dist"), 
             agent_scan_status=map_stats("agent_scan_status"),
             panels=processed_panels,
-            last_updated=datetime.utcnow()
+            last_updated=datetime.now(timezone.utc)
         )
 
     async def update_panel_settings(self, dashboard_id: str, panel_key: str, title=None, language=None, grid_width=None, grid_height=None, custom_query=None, widget_type=None, target_field=None) -> bool:
@@ -204,3 +214,28 @@ class DashboardService:
                 "custom_query": None
             })
         return await self.repository.bulk_update_panels(dashboard_id, updates)
+
+    async def get_column_settings(self, view_id: str, user_id: str) -> List[str]:
+        """사용자별 리스트 컬럼 순서 조회"""
+        dashboard_id = f"list-columns-{view_id}"
+        panels = await self.repository.get_panels(dashboard_id, user_id)
+        if not panels: return []
+        return [p["panel_key"] for p in panels]
+
+    async def save_column_settings(self, view_id: str, user_id: str, columns: List[str]) -> bool:
+        """사용자별 리스트 컬럼 순서 저장"""
+        dashboard_id = f"list-columns-{view_id}"
+        updates = []
+        for i, col in enumerate(columns):
+            updates.append({
+                "panel_key": col,
+                "display_order": i,
+                "is_visible": True,
+                "widget_type": "column"
+            })
+        return await self.repository.bulk_update_panels(dashboard_id, updates, user_id)
+
+    async def reset_column_settings(self, view_id: str, user_id: str) -> bool:
+        """사용자별 리스트 컬럼 설정 초기화"""
+        dashboard_id = f"list-columns-{view_id}"
+        return await self.repository.delete_user_panels(dashboard_id, user_id)

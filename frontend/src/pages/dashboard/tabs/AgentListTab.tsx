@@ -1,25 +1,29 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Box, Paper, Typography, Alert, LinearProgress, 
   List, ListItem, ListItemIcon, ListItemText, IconButton, Tooltip,
-  Button, TextField, Select, MenuItem, useTheme, Collapse
+  Button, TextField, Select, MenuItem, useTheme, Collapse, Checkbox,
+  Menu
 } from "@mui/material";
 import ControlBar from "../components/ControlBar";
-import BarChartWidget from "../components/BarChartWidget";
 import * as XLSX from "xlsx";
-import { getDashboardStats, getIndexFields, getIndexLogs } from "../../../services/dashboardService";
+import { getDashboardStats, getIndexFields, getIndexLogs, getColumnSettings, saveColumnSettings, resetColumnSettings } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
 import useAgentStore from "../../../stores/useAgentStore";
 import dayjs from "dayjs";
 
-// Icons
+// 아이콘
 import SearchIcon from "@mui/icons-material/Search";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import KeyboardArrowDownIconMenu from "@mui/icons-material/KeyboardArrowDown";
 import AbcIcon from "@mui/icons-material/Abc";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
@@ -28,7 +32,7 @@ import TagIcon from "@mui/icons-material/Tag";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 
-// i18n: JSON 파일에서 번역 로드
+// i18n
 import koMessages from "../../../locales/ko.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
@@ -38,122 +42,109 @@ const AgentListTab: React.FC = () => {
   const { language } = useLanguageStore();
   const { settings, fetchSettings } = useSettingsStore();
   const theme = useTheme();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  // 전역 스토어 사용
   const { searchQuery, timeRange, setSearchQuery, setTimeRange } = useAgentStore();
   const { fromValue, fromUnit, toValue, toUnit, fromDate, toDate } = timeRange;
+
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+
+  const [selectedRowIndices, setSelectedRowIndices] = useState<Set<number>>(new Set());
+  const [actionAnchorEl, setActionAnchorEl] = useState<null | HTMLElement>(null);
+  const openActionMenu = Boolean(actionAnchorEl);
+
+  const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>([
+    "createdAt", "groupName", "agentVersion", "domain", "computerName", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
+  ]);
+
+  const handleActionClick = (event: React.MouseEvent<HTMLButtonElement>) => { setActionAnchorEl(event.currentTarget); };
+  const handleActionClose = () => { setActionAnchorEl(null); };
+
+  const scrollTable = (direction: 'left' | 'right') => {
+    if (tableScrollRef.current) {
+      const amount = 400;
+      tableScrollRef.current.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    const applyUrlParamsToStore = () => {
+      const currentSearchParams = new URLSearchParams(window.location.search);
+      const query = currentSearchParams.get('agentQuery') || "";
+      if (searchQuery !== query) setSearchQuery(query);
+      const fromVal = currentSearchParams.get('agentFromValue');
+      const fromUn = currentSearchParams.get('agentFromUnit');
+      const defaultRange = useAgentStore.getState().timeRange;
+      const newRange = {
+        fromValue: fromVal ? parseInt(fromVal, 10) : defaultRange.fromValue,
+        fromUnit: fromUn || defaultRange.fromUnit,
+        toValue: currentSearchParams.get('agentToValue') ? parseInt(currentSearchParams.get('agentToValue')!, 10) : null,
+        toUnit: currentSearchParams.get('agentToUnit') || 'm',
+        fromDate: currentSearchParams.get('agentFromDate'),
+        toDate: currentSearchParams.get('agentToDate'),
+      };
+      if (JSON.stringify(timeRange) !== JSON.stringify(newRange)) setTimeRange(newRange);
+    };
+    applyUrlParamsToStore();
+    window.addEventListener('popstate', applyUrlParamsToStore);
+    return () => window.removeEventListener('popstate', applyUrlParamsToStore);
+  }, [searchQuery, setSearchQuery, timeRange, setTimeRange]);
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [fields, setFields] = useState<IndexField[]>([]);
-  const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>([
-    "createdAt",
-    "groupName", 
-    "agentVersion", 
-    "domain", 
-    "computerName", 
-    "osName", 
-    "osType", 
-    "totalMemory", 
-    "coreCount", 
-    "lastLoggedInUserName", 
-    "machineType", 
-    "lastActiveDate", 
-    "lastIpToMgmt", 
-    "networkStatus", 
-    "threatRebootRequired"
-  ]);
   const [fieldSearchQuery, setFieldSearchQuery] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(settings?.pagination_size ?? 20);
-  const [pageSizeOptions, setPageSizeOptions] = useState<number[]>([20, 50, 100, 500]);
+  const [pageSizeOptions] = useState<number[]>([20, 50, 100, 500]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const initializedRef = useRef(false);
 
-  // 컬럼 너비 상태 관리
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+  const [columnWidths] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem('agentListColumnWidths');
-    return saved ? JSON.parse(saved) : {
-      "createdAt": 180,
-      "@timestamp": 180
-    };
+    return saved ? JSON.parse(saved) : { "createdAt": 250 };
   });
 
-  const resizingRef = useRef<{ field: string, startX: number, startWidth: number } | null>(null);
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
-  const handleResizeStart = (e: React.MouseEvent, field: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    resizingRef.current = {
-      field,
-      startX: e.clientX,
-      startWidth: columnWidths[field] || 150
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const saved = await getColumnSettings("agent");
+        if (saved && saved.length > 0) setSelectedFieldNames(saved);
+      } catch (err) { console.error("Failed to load column settings", err); }
     };
-    document.addEventListener('mousemove', handleResizing);
-    document.addEventListener('mouseup', handleResizeEnd);
-  };
-
-  const handleResizing = useCallback((e: MouseEvent) => {
-    if (!resizingRef.current) return;
-    const { field, startX, startWidth } = resizingRef.current;
-    const deltaX = e.clientX - startX;
-    const newWidth = Math.max(50, startWidth + deltaX);
-    
-    setColumnWidths(prev => ({
-      ...prev,
-      [field]: newWidth
-    }));
+    loadSettings();
   }, []);
 
-  const handleResizeEnd = useCallback(() => {
-    resizingRef.current = null;
-    document.removeEventListener('mousemove', handleResizing);
-    document.removeEventListener('mouseup', handleResizeEnd);
-    setColumnWidths(prev => {
-      localStorage.setItem('agentListColumnWidths', JSON.stringify(prev));
-      return prev;
-    });
-  }, [handleResizing]);
-
-  // 고급 설정 로드 및 초기화 (새로고침 시 강제 적용)
   useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
-
-  // 초기 설정값 적용 (스토어 업데이트)
-  useEffect(() => {
-    if (settings && !initializedRef.current) {
-      setTimeRange({
-        fromValue: settings.time_filter_duration ?? 15,
-        fromUnit: settings.time_filter_unit ?? 'm',
-        toValue: null,
-        toUnit: 'm',
-        fromDate: null,
-        toDate: null
-      });
+    if (settings && !initializedRef.current && !searchParams.get('agentFromValue') && !searchParams.get('agentFromDate')) {
+      setTimeRange({ fromValue: settings.time_filter_duration ?? 15, fromUnit: settings.time_filter_unit ?? 'm', toValue: null, toUnit: 'm', fromDate: null, toDate: null });
       initializedRef.current = true;
     }
-  }, [settings, setTimeRange]);
+  }, [settings, setTimeRange, searchParams]);
 
-  useEffect(() => {
-    if (settings && settings.pagination_size) {
-      setPageSize(settings.pagination_size);
-      setPageSizeOptions(prev => {
-        const newOptions = [...prev];
-        if (!newOptions.includes(settings.pagination_size!)) {
-          newOptions.unshift(settings.pagination_size!);
-          return newOptions.sort((a, b) => a - b);
-        }
-        return newOptions;
-      });
-    }
-  }, [settings]);
+  useEffect(() => { if (settings?.pagination_size) setPageSize(settings.pagination_size); }, [settings]);
 
   const toggleRow = (idx: number) => {
     setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  };
+
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) setSelectedRowIndices(new Set(logs.map((_, idx) => idx)));
+    else setSelectedRowIndices(new Set());
+  };
+
+  const handleSelectRow = (idx: number) => {
+    setSelectedRowIndices(prev => {
       const next = new Set(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
@@ -163,13 +154,14 @@ const AgentListTab: React.FC = () => {
 
   const handleDragStart = (idx: number) => { setDragIdx(idx); };
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
-  const handleDrop = (targetIdx: number) => {
+  const handleDrop = async (targetIdx: number) => {
     if (dragIdx === null || dragIdx === targetIdx) return;
     const newOrder = [...selectedFieldNames];
     const movedItem = newOrder.splice(dragIdx, 1)[0];
     newOrder.splice(targetIdx, 0, movedItem);
     setSelectedFieldNames(newOrder);
     setDragIdx(null);
+    try { await saveColumnSettings("agent", newOrder); } catch (err) { console.error("Failed to save column settings", err); }
   };
 
   const getValueByPath = (obj: any, path: string) => {
@@ -177,15 +169,10 @@ const AgentListTab: React.FC = () => {
     if (path === "_source") return JSON.stringify(obj);
     const value = path.split('.').reduce((acc, part) => acc && acc[part], obj);
     if (value === null || value === undefined) return "-";
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
+    return typeof value === 'object' ? JSON.stringify(value) : String(value);
   };
 
-  const formatValue = (val: any) => {
-    if (val === null || val === undefined) return "-";
-    if (typeof val === 'object') return JSON.stringify(val);
-    return String(val);
-  };
+  const formatValue = (val: any) => val === null || val === undefined ? "-" : (typeof val === 'object' ? JSON.stringify(val) : String(val));
 
   const flattenObject = (obj: any, prefix = ""): Record<string, any> => {
     return Object.keys(obj).reduce((acc: any, k: string) => {
@@ -198,223 +185,188 @@ const AgentListTab: React.FC = () => {
   };
 
   const filteredFields = useMemo(() => fields.filter(f => f.name.toLowerCase().includes(fieldSearchQuery.toLowerCase())), [fields, fieldSearchQuery]);
-  const selectedList = useMemo(() => fields.filter(f => selectedFieldNames.includes(f.name)), [fields, selectedFieldNames]);
+  const selectedList = useMemo(() => {
+    return selectedFieldNames.map(name => {
+      const fieldMeta = fields.find(f => f.name === name);
+      return { name, type: fieldMeta?.type || (name === "@timestamp" ? "date" : "text") };
+    });
+  }, [fields, selectedFieldNames]);
   const availableList = useMemo(() => filteredFields.filter(f => !selectedFieldNames.includes(f.name)), [filteredFields, selectedFieldNames]);
 
-  const handleToggleField = useCallback((fieldName: string) => {
-    setSelectedFieldNames(prev => prev.includes(fieldName) ? prev.filter(name => name !== fieldName) : [...prev, fieldName]);
+  const handleToggleField = useCallback(async (fieldName: string) => {
+    setSelectedFieldNames(prev => {
+      const next = prev.includes(fieldName) 
+        ? prev.filter(name => name !== fieldName)
+        : [...prev, fieldName];
+      
+      saveColumnSettings("agent", next).catch(err => console.error("Failed to save column settings", err));
+      return next;
+    });
   }, []);
 
   const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
     let text = currentTranslations[key] || key;
-    if (params) Object.entries(params).forEach(([paramKey, value]) => { text = text.replace(`{${paramKey}}`, value); });
+    if (params) Object.entries(params).forEach(([pk, v]) => { text = text.replace(`{${pk}}`, v); });
     return text;
   }, [language]);
 
-  const handleTimeChange = (fVal: number | null, fUnit: string, tVal: number | null, tUnit: string, fDate: string | null = null, tDate: string | null = null) => {
-    setTimeRange({ fromValue: fVal, fromUnit: fUnit, toValue: tVal, toUnit: tUnit, fromDate: fDate, toDate: tDate });
+  const handleTimeChange = (fV: number | null, fU: string, tV: number | null, tU: string, fD: string | null = null, tD: string | null = null) => {
+    setTimeRange({ fromValue: fV, fromUnit: fU, toValue: tV, toUnit: tU, fromDate: fD, toDate: tD });
+    const newParams = new URLSearchParams(searchParams);
+    if (fV !== null) newParams.set('agentFromValue', fV.toString()); else newParams.delete('agentFromValue');
+    if (fU) newParams.set('agentFromUnit', fU); else newParams.delete('agentFromUnit');
+    if (tV !== null) newParams.set('agentToValue', tV.toString()); else newParams.delete('agentToValue');
+    if (tU) newParams.set('agentToUnit', tU); else newParams.delete('agentToUnit');
+    if (fD) newParams.set('agentFromDate', fD); else newParams.delete('agentFromDate');
+    if (tD) newParams.set('agentToDate', tD); else newParams.delete('agentToDate');
+    navigate(`?${newParams.toString()}`, { replace: false });
   };
 
-  const handleSearchQueryChange = (query: string) => {
-    setSearchQuery(query);
+  const handleSearchQueryChange = (q: string) => {
+    setSearchQuery(q);
+    const newParams = new URLSearchParams(searchParams);
+    if (q) newParams.set('agentQuery', q); else newParams.delete('agentQuery');
+    navigate(`?${newParams.toString()}`, { replace: false });
   };
 
   const fetchData = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const targetIndex = "logs-sentinel_one.agents"; // 에이전트 인덱스 고정
+      setLoading(true); setError(null);
+      let finalFromDate = fromDate, finalToDate = toDate;
+      if (!fromDate && fromValue !== null) finalFromDate = dayjs().subtract(fromValue, fromUnit as any).toISOString();
+      if (!toDate && toValue !== null) finalToDate = dayjs().subtract(toValue, toUnit as any).toISOString();
+      else if (!toDate && !fromDate) finalToDate = dayjs().toISOString();
+      const targetIndex = "logs-sentinel_one.agents";
       const [stats, fieldList, logList] = await Promise.all([
-        getDashboardStats("agent-dashboard", fromValue !== null ? fromValue : undefined, fromUnit, toValue !== null ? toValue : undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined),
+        getDashboardStats("agent-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, searchQuery || undefined),
         getIndexFields(targetIndex),
-        getIndexLogs("agent-dashboard", fromValue !== null ? fromValue : undefined, fromUnit, toValue !== null ? toValue : undefined, toUnit, fromDate ?? undefined, toDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize)
+        getIndexLogs("agent-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize)
       ]);
-      setData(stats);
-      setLogs(logList);
-
-      // kubernetesInfo.*, containerInfo.*, ecsinfo.* 패턴 필드 제외
-      const filteredFieldList = fieldList.filter(f => 
-        !f.name.toLowerCase().startsWith("kubernetesinfo.") && 
-        !f.name.toLowerCase().startsWith("containerinfo.") && 
-        !f.name.toLowerCase().startsWith("ecsinfo.")
-      );
-
+      setData(stats); setLogs(logList);
+      const filteredFieldList = fieldList.filter(f => !f.name.toLowerCase().startsWith("kubernetesinfo.") && !f.name.toLowerCase().startsWith("containerinfo.") && !f.name.toLowerCase().startsWith("ecsinfo."));
       setFields([{ name: "_source", type: "code" }, ...filteredFieldList]);
-    } catch (err) {
-      console.error("Failed to fetch agent data", err);
-      setError("Failed to load agent data.");
-    } finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize]);
+    } catch (err) { setError("Failed to load data."); } finally { setLoading(false); }
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize, searchParams]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setPage(0); }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
-
-  const handleBarClick = (startTime: string, endTime: string) => { handleTimeChange(null, "m", null, "m", startTime, endTime); };
+  useEffect(() => { setPage(0); }, [searchParams]);
 
   const handleExportExcel = useCallback(() => {
     if (!logs || logs.length === 0) return;
-
     const excelData = logs.map(log => {
       const row: Record<string, any> = {};
-      selectedFieldNames.forEach(fieldName => {
-        const val = getValueByPath(log, fieldName);
-        row[fieldName] = val;
-      });
+      selectedFieldNames.forEach(fn => { row[fn] = getValueByPath(log, fn); });
       return row;
     });
-
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Agents");
-
-    XLSX.writeFile(workbook, `agent_logs_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`);
+    const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Agents");
+    XLSX.writeFile(wb, `agent_logs_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`);
   }, [logs, selectedFieldNames]);
 
   const FieldItem = ({ name, type, selected = false, onAction }: { name: string, type?: string, selected?: boolean, onAction: (name: string) => void }) => {
-    const getTypeInfo = (type?: string) => {
-      switch (type) {
+    const getTypeInfo = (t?: string) => {
+      switch (t) {
         case 'keyword': return { label: 'Keyword', icon: <TagIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> };
-        case 'number': case 'integer': case 'long': case 'float': return { label: 'Number', icon: <NumbersIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> };
         case 'date': return { label: 'Date', icon: <CalendarTodayIcon sx={{ fontSize: 14, color: 'text.disabled' }} /> };
-        case 'boolean': case 'code': return { label: type.charAt(0).toUpperCase() + type.slice(1), icon: <CodeIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> };
+        case 'boolean': case 'code': return { label: 'Code', icon: <CodeIcon sx={{ fontSize: 16, color: 'text.disabled' }} /> };
         default: return { label: 'Text', icon: <AbcIcon sx={{ fontSize: 18, color: 'text.disabled' }} /> };
       }
     };
-    const typeInfo = getTypeInfo(type);
+    const ti = getTypeInfo(type);
     return (
       <Tooltip title={name} placement="right" arrow disableInteractive>
         <ListItem disablePadding sx={{ '&:hover': { bgcolor: 'action.hover' }, '&:hover .field-actions': { display: 'flex' }, px: 1, py: 0.2, cursor: 'pointer', borderRadius: 0.5, mb: 0.2, position: 'relative' }}>
-          <Tooltip title={typeInfo.label} placement="left" arrow><ListItemIcon sx={{ minWidth: 28 }}>{typeInfo.icon}</ListItemIcon></Tooltip>
+          <Tooltip title={ti.label} placement="left" arrow><ListItemIcon sx={{ minWidth: 28 }}>{ti.icon}</ListItemIcon></Tooltip>
           <ListItemText primary={name} primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.75rem', fontWeight: selected ? 'bold' : 'normal', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mr: 4 } }} />
-          <Box className="field-actions" sx={{ display: 'none', position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', alignItems: 'center', bgcolor: 'action.hover', pl: 1 }}>
-            <IconButton size="small" sx={{ p: 0.2, color: '#005a5e' }} onClick={(e) => { e.stopPropagation(); onAction(name); }}>{selected ? <RemoveCircleIcon sx={{ fontSize: 16 }} /> : <AddCircleIcon sx={{ fontSize: 16 }} />}</IconButton>
-          </Box>
+          <Box className="field-actions" sx={{ display: 'none', position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', alignItems: 'center', bgcolor: 'action.hover', pl: 1 }}><IconButton size="small" sx={{ p: 0.2, color: '#005a5e' }} onClick={(e) => { e.stopPropagation(); onAction(name); }}>{selected ? <RemoveCircleIcon sx={{ fontSize: 16 }} /> : <AddCircleIcon sx={{ fontSize: 16 }} />}</IconButton></Box>
         </ListItem>
       </Tooltip>
     );
   };
 
-  const sortedDisplayFields = useMemo(() => {
-    return [...selectedFieldNames];
-  }, [selectedFieldNames]);
-
-  return (
-    <Box id="agent-list-tab-container" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 } }}>
-      {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      <ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary.total_logs} onDownload={handleExportExcel} />
-      {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
-      <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 } }}>
-        <Paper elevation={1} sx={{ width: { xs: 0, md: 220 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
-          <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields') || "Search fields"} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover', '& fieldset': { borderColor: 'divider' } } }} /></Box>
-          <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
-          <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1 }}>
-            <List disablePadding sx={{ mb: 2 }}>{selectedList.map((field) => <FieldItem key={field.name} name={field.name} type={field.type} selected onAction={handleToggleField} />)}{selectedList.length === 0 && <Typography variant="caption" sx={{ px: 1, color: 'text.disabled', fontStyle: 'italic' }}>No fields selected</Typography>}</List>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, px: 0.5, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('availableFields')}</Typography>
-            <List disablePadding sx={{ pb: 4 }}>{availableList.map((field) => <FieldItem key={field.name} name={field.name} type={field.type} onAction={handleToggleField} />)}</List>
-          </Box>
-        </Paper>
-                <Box sx={{ flexGrow: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                  <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, pr: 1 }}>
-                    <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: { xs: 120, sm: 150, md: 180 }, minHeight: { xs: 120, md: 180 }, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
-                      <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
-                        <BarChartWidget data={data?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} />
-                      </Box>
-                    </Paper>
-            <Box sx={{ px: 0.5, flexShrink: 0 }}><Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>{t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({logs.length}/{data?.summary.total_logs ?? 0})</Box></Typography></Box>
-            <Paper elevation={1} sx={{ borderRadius: 1.5, overflowX: 'auto', bgcolor: 'background.paper', mb: 1, flexShrink: 0 }}>
-              <Box sx={{ minWidth: 'max-content' }}>
-                <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2 }}>
-                  <Box sx={{ width: 32 }} />
-                  {sortedDisplayFields.map((fieldName, idx) => {
-                    const colWidth = columnWidths[fieldName] || 150;
-                    return (
-                      <Tooltip key={`${fieldName}-${idx}`} title={fieldName} arrow placement="top">
-                        <Box 
-                          sx={{ 
-                            width: colWidth, 
-                            position: 'relative', 
-                            display: 'flex', 
-                            alignItems: 'center',
-                            flexShrink: 0,
-                            borderRight: 1,
-                            borderColor: 'transparent',
-                            '&:hover .resize-handle': { opacity: 1 }
-                          }}
-                        >
-                          <Typography 
-                            variant="caption" 
-                            draggable 
-                            onDragStart={() => handleDragStart(idx)} 
-                            onDragOver={handleDragOver} 
-                            onDrop={() => handleDrop(idx)} 
-                            sx={{ 
-                              flexGrow: 1, 
-                              fontWeight: 'bold', 
-                              fontSize: '0.75rem', 
-                              px: 1, 
-                              overflow: 'hidden', 
-                              textOverflow: 'ellipsis', 
-                              cursor: 'grab', 
-                              transition: 'background-color 0.2s', 
-                              '&:hover': { bgcolor: 'action.selected' }, 
-                              '&:active': { cursor: 'grabbing' }, 
-                              opacity: dragIdx === idx ? 0.5 : 1
-                            }}
-                          >
-                            {fieldName}
-                          </Typography>
-                          {/* 리사이즈 핸들 */}
-                          <Box
-                            className="resize-handle"
-                            onMouseDown={(e) => handleResizeStart(e, fieldName)}
-                            sx={{
-                              position: 'absolute',
-                              right: -2,
-                              top: 0,
-                              bottom: 0,
-                              width: 4,
-                              cursor: 'col-resize',
-                              bgcolor: 'primary.main',
-                              opacity: 0,
-                              zIndex: 10,
-                              transition: 'opacity 0.2s',
-                              '&:active': { opacity: 1 }
-                            }}
-                          />
-                        </Box>
-                      </Tooltip>
-                    );
-                  })}
+    const sortedDisplayFields = useMemo(() => [...selectedFieldNames], [selectedFieldNames]);
+  
+    const handleResetColumns = async () => {
+      try {
+        const success = await resetColumnSettings("agent");
+        if (success) {
+          const defaultFields = [
+            "createdAt", "groupName", "agentVersion", "domain", "computerName", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
+          ];
+          setSelectedFieldNames(defaultFields);
+        }
+      } catch (err) { console.error("Failed to reset columns", err); }
+    };
+  
+      return (
+        <Box id="agent-list-tab-container" sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0 }}>
+          {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
+          <ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} onReset={handleResetColumns} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary.total_logs} onDownload={handleExportExcel} />
+          {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
+          <Box sx={{ display: 'flex', flex: '1 1 0', overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 }, minHeight: 0 }}>
+            <Paper elevation={1} sx={{ width: { xs: 0, md: 220 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
+              <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields')} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover' } }} /></Box>
+              <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
+              <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1, minHeight: 0 }}><List disablePadding sx={{ mb: 2 }}>{selectedList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} selected onAction={handleToggleField} />)}</List><Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, px: 0.5, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('availableFields')}</Typography><List disablePadding sx={{ pb: 4 }}>{availableList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} onAction={handleToggleField} />)}</List></Box>
+            </Paper>
+            <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Box sx={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1.5, pr: 0 }}>
+                <Box sx={{ px: 0.5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>
+                      {t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({logs.length}/{data?.summary.total_logs ?? 0})</Box>
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <IconButton size="small" onClick={() => scrollTable('left')} sx={{ border: 1, borderColor: 'divider', bgcolor: 'background.paper' }}><ArrowBackIosNewIcon sx={{ fontSize: 14 }} /></IconButton>
+                  <IconButton size="small" onClick={() => scrollTable('right')} sx={{ border: 1, borderColor: 'divider', bgcolor: 'background.paper' }}><ArrowForwardIosIcon sx={{ fontSize: 14 }} /></IconButton>
+                </Box>
+                <Button size="small" variant="outlined" onClick={handleActionClick} endIcon={<KeyboardArrowDownIconMenu />} sx={{ textTransform: 'none', fontSize: '0.75rem', borderColor: 'divider', color: 'text.primary', bgcolor: 'background.paper' }}>Actions</Button>
+                <Menu anchorEl={actionAnchorEl} open={openActionMenu} onClose={handleActionClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} PaperProps={{ sx: { mt: 0.5, minWidth: 180 } }}>
+                  <MenuItem onClick={handleActionClose} sx={{ fontSize: '0.8rem' }}>Disconnect from network</MenuItem>
+                  <MenuItem onClick={handleActionClose} sx={{ fontSize: '0.8rem' }}>Unquarantine</MenuItem>
+                  <MenuItem onClick={handleActionClose} sx={{ fontSize: '0.8rem' }}>Add to blocklist</MenuItem>
+                  <MenuItem onClick={handleActionClose} sx={{ fontSize: '0.8rem' }}>Add to exclusions</MenuItem>
+                </Menu>
+              </Box>
+            </Box>
+            <Paper elevation={1} ref={tableScrollRef} sx={{ borderRadius: 1.5, bgcolor: 'background.paper', mb: 1, flex: '1 1 0', minHeight: 0, overflowX: 'scroll !important', overflowY: 'auto', display: 'flex', flexDirection: 'column', '&::-webkit-scrollbar': { height: '14px', width: '14px', display: 'block !important' }, '&::-webkit-scrollbar-track': { background: theme.palette.mode === 'dark' ? '#2d2d2d' : '#f0f0f0' }, '&::-webkit-scrollbar-thumb': { background: theme.palette.primary.main, borderRadius: '7px' } }}>
+              <Box sx={{ width: 'max-content', minWidth: '100%' }}>
+                <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2, alignItems: 'center' }}>
+                  <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }}><Checkbox size="small" indeterminate={selectedRowIndices.size > 0 && selectedRowIndices.size < logs.length} checked={logs.length > 0 && selectedRowIndices.size === logs.length} onChange={handleSelectAll} sx={{ p: 0 }} /></Box>
+                  <Box sx={{ width: 32, flexShrink: 0 }} />
+                  {sortedDisplayFields.map((fn, idx) => (
+                    <Box key={fn} sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', borderRight: 1, borderColor: 'transparent' }}>
+                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn}</Typography>
+                    </Box>
+                  ))}
                 </Box>
                 {logs.length > 0 ? logs.map((log, idx) => {
                   const isExpanded = expandedRows.has(idx);
+                  const isSelected = selectedRowIndices.has(idx);
                   return (
-                    <Box key={idx} sx={{ borderBottom: idx < logs.length - 1 ? 1 : 0, borderColor: 'divider' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', py: 1.5, px: 2, '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer' }} onClick={() => toggleRow(idx)}>
-                        <IconButton size="small" sx={{ p: 0, mr: 1, mt: 0.2 }}>{isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}</IconButton>
-                        {sortedDisplayFields.map(fieldName => {
-                          const colWidth = columnWidths[fieldName] || 150;
-                          return (
-                            <Typography key={fieldName} variant="caption" sx={{ width: colWidth, fontSize: '0.75rem', px: 1, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {fieldName === "createdAt" || fieldName === "registeredAt" || fieldName === "@timestamp" 
-                                ? dayjs(log[fieldName.split('.').pop() || fieldName]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
-                                : getValueByPath(log, fieldName)}
-                            </Typography>
-                          );
-                        })}
+                    <Box key={idx} sx={{ borderBottom: idx < logs.length - 1 ? 1 : 0, borderColor: 'divider', bgcolor: isSelected ? 'action.selected' : 'transparent' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, px: 2, '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer' }} onClick={() => toggleRow(idx)}>
+                        <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}><Checkbox size="small" checked={isSelected} onChange={() => handleSelectRow(idx)} sx={{ p: 0 }} /></Box>
+                        <IconButton size="small" sx={{ p: 0, mr: 1, flexShrink: 0 }}>{isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}</IconButton>
+                        {sortedDisplayFields.map(fn => (<Typography key={fn} variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fn === "createdAt" || fn === "registeredAt" || fn === "@timestamp" ? dayjs(log[fn.split('.').pop() || fn]).format("MMM D, YYYY @ HH:mm:ss.SSS") : getValueByPath(log, fn)}</Typography>))}
                       </Box>
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)', borderBottom: 1, borderColor: 'divider' }}>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 'max-content' }}>
                             {(() => {
-                              const flatLog = flattenObject(log);
-                              const sortedKeys = Object.keys(flatLog).sort((a, b) => { if (a === "@timestamp") return -1; if (b === "@timestamp") return 1; return a.localeCompare(b); });
-                              return sortedKeys.map((key, i, arr) => (
-                                <Box key={key} sx={{ display: 'flex', borderBottom: i < arr.length - 1 ? '1px solid' : 'none', borderColor: 'divider', '&:hover': { bgcolor: 'action.hover' }, alignItems: 'stretch' }}>
-                                  <Box sx={{ width: 250, p: 1, pl: 8, flexShrink: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRight: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}><Typography variant="caption" sx={{ fontWeight: key === "@timestamp" ? 'bold' : 500, color: key === "@timestamp" ? 'primary.main' : 'text.secondary', wordBreak: 'break-all', lineHeight: 1.2 }}>{key}</Typography></Box>
-                                  <Box sx={{ p: 1, flexGrow: 1, pl: 2, minWidth: 0, bgcolor: 'transparent', display: 'flex', alignItems: 'center' }}><Typography variant="caption" sx={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', color: 'text.primary', display: 'block', lineHeight: 1.6, fontWeight: key === "@timestamp" ? 'bold' : 'normal' }}>{formatValue(flatLog[key])}</Typography></Box>
+                              const fl = flattenObject(log);
+                              const sk = Object.keys(fl).sort((a, b) => a === "@timestamp" ? -1 : (b === "@timestamp" ? 1 : a.localeCompare(b)));
+                              return sk.map((k, i, arr) => (
+                                <Box key={k} sx={{ display: 'flex', borderBottom: i < arr.length - 1 ? '1px solid' : 'none', borderColor: 'divider', '&:hover': { bgcolor: 'action.hover' }, alignItems: 'stretch' }}>
+                                  <Box sx={{ width: 250, p: 1, pl: 8, flexShrink: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRight: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: k === "@timestamp" ? 'bold' : 500, color: k === "@timestamp" ? 'primary.main' : 'text.secondary', wordBreak: 'break-all', lineHeight: 1.2 }}>{k}</Typography>
+                                  </Box>
+                                  <Box sx={{ p: 1, flexGrow: 1, pl: 2, minWidth: 0, display: 'flex', alignItems: 'center' }}>
+                                    <Typography variant="caption" sx={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', color: 'text.primary', display: 'block', lineHeight: 1.6, fontWeight: k === "@timestamp" ? 'bold' : 'normal' }}>{fl[k] !== undefined ? String(fl[k]) : "-"}</Typography>
+                                  </Box>
                                 </Box>
                               ));
                             })()}
@@ -423,9 +375,7 @@ const AgentListTab: React.FC = () => {
                       </Collapse>
                     </Box>
                   );
-                }) : !loading && (
-                  <Box sx={{ width: '100%', py: 10, textAlign: 'center' }}><Typography variant="body2" color="text.disabled">{t('noResults')}</Typography></Box>
-                )}
+                }) : !loading && (<Box sx={{ width: '100%', py: 10, textAlign: 'center' }}><Typography variant="body2" color="text.disabled">{t('noResults')}</Typography></Box>)}
               </Box>
             </Paper>
           </Box>
@@ -433,33 +383,21 @@ const AgentListTab: React.FC = () => {
             <Box sx={{ width: 250 }}><Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>{t('showingInfo', { from: (page * pageSize + 1).toLocaleString(), to: Math.min((page + 1) * pageSize, data?.summary.total_logs ?? 0).toLocaleString(), total: (data?.summary.total_logs ?? 0).toLocaleString() })}</Typography></Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <IconButton size="small" disabled={page === 0 || loading} onClick={() => setPage(p => p - 1)} sx={{ border: 1, borderColor: 'divider' }}><ChevronLeftIcon fontSize="small" /></IconButton>
-              <Box sx={{ display: 'flex', gap: 0.5 }}>{(() => {
-                const totalLogs = data?.summary.total_logs ?? 0; const totalPages = Math.ceil(totalLogs / pageSize); const maxButtons = 5;
-                let startPage = Math.max(0, page - Math.floor(maxButtons / 2)); let endPage = Math.min(totalPages - 1, startPage + maxButtons - 1);
-                if (endPage - startPage + 1 < maxButtons) startPage = Math.max(0, endPage - maxButtons + 1);
-                const buttons = [];
-                for (let i = startPage; i <= endPage; i++) {
-                  const isCurrent = i === page;
-                  buttons.push(<Button key={i} size="small" onClick={() => setPage(i)} disabled={loading} sx={{ minWidth: 28, height: 32, p: 0, fontSize: '0.85rem', fontWeight: isCurrent ? 'bold' : 'normal', bgcolor: 'transparent', color: isCurrent ? 'primary.main' : 'text.secondary', border: 'none', borderRadius: 0, borderBottom: isCurrent ? 2 : 0, borderColor: 'primary.main', '&:hover': { bgcolor: 'action.hover', color: 'primary.main' }, mx: 0.25 }}>{i + 1}</Button>);
-                }
-                return buttons;
-              })()}</Box>
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {(() => {
+                  const tl = data?.summary.total_logs ?? 0; const tp = Math.ceil(tl / pageSize); const mb = 5;
+                  let sp = Math.max(0, page - 2); let ep = Math.min(tp - 1, sp + 4);
+                  if (ep - sp + 1 < 5) sp = Math.max(0, ep - 4);
+                  const btns = [];
+                  for (let i = sp; i <= ep; i++) {
+                    btns.push(<Button key={i} size="small" onClick={() => setPage(i)} disabled={loading} sx={{ minWidth: 28, height: 32, p: 0, fontSize: '0.85rem', fontWeight: i === page ? 'bold' : 'normal', bgcolor: 'transparent', color: i === page ? 'primary.main' : 'text.secondary', border: 'none', borderRadius: 0, borderBottom: i === page ? 2 : 0, borderColor: 'primary.main', '&:hover': { bgcolor: 'action.hover' }, mx: 0.25 }}>{i + 1}</Button>);
+                  }
+                  return btns;
+                })()}
+              </Box>
               <IconButton size="small" disabled={((page + 1) * pageSize >= (data?.summary.total_logs ?? 0)) || loading} onClick={() => setPage(p => p + 1)} sx={{ border: 1, borderColor: 'divider' }}><ChevronRightIcon fontSize="small" /></IconButton>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 250, justifyContent: 'flex-end', mr: 1 }}>
-              <Typography variant="caption" color="text.secondary">{t('rowsPerPage') || 'Rows per page:'}</Typography>
-              <Select 
-                value={pageSize} 
-                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} 
-                size="small" 
-                variant="standard" 
-                sx={{ fontSize: '0.75rem', '&:before, &:after': { border: 'none' }, '& .MuiSelect-select': { py: 0.5 } }}
-              >
-                {pageSizeOptions.map(option => (
-                  <MenuItem key={option} value={option}>{option}</MenuItem>
-                ))}
-              </Select>
-            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 250, justifyContent: 'flex-end', mr: 1 }}><Typography variant="caption" color="text.secondary">{t('rowsPerPage')}</Typography><Select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} size="small" variant="standard" sx={{ fontSize: '0.75rem', '&:before, &:after': { border: 'none' }, '& .MuiSelect-select': { py: 0.5 } }}>{pageSizeOptions.map(o => (<MenuItem key={o} value={o}>{o}</MenuItem>))}</Select></Box>
           </Paper>
         </Box>
       </Box>
