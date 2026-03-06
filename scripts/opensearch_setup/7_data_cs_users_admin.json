@@ -1,0 +1,2 @@
+{"index": {"_index": "cs_users", "_id": "administrator"}}
+{"id": "administrator", "username": "administrator", "email": "administrator@cruxdata.co.kr", "name": "Administrator", "role": "role-1", "is_active": true, "password_hash": "$2b$12$vOt/NyyrevIg0ZIL6B2RDOqjJXSGnEWiEyHnJkQBwQGKjhpBIa5..", "otp_enabled": false, "otp_secret_enc": null, "otp_pending_secret_enc": null, "otp_backup_codes": [], "otp_enrolled_at": null, "created_at": "2026-01-01T00:00:00", "updated_at": "2026-01-01T00:00:00", "deleted_at": null, "last_login_at": null}

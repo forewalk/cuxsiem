@@ -42,13 +42,15 @@ export const useWebSocket = ({
   const pingInterval = useRef<number | undefined>(undefined);
   const shouldReconnect = useRef(true);
 
-  // 콜백을 ref로 저장하여 재연결 방지
+  // 콜백과 값을 ref로 저장하여 connect 함수 재생성 방지
+  const tokenRef = useRef(token);
   const onMessageRef = useRef(onMessage);
   const onConnectRef = useRef(onConnect);
   const onDisconnectRef = useRef(onDisconnect);
   const onErrorRef = useRef(onError);
 
   useEffect(() => {
+    tokenRef.current = token;
     onMessageRef.current = onMessage;
     onConnectRef.current = onConnect;
     onDisconnectRef.current = onDisconnect;
@@ -56,15 +58,19 @@ export const useWebSocket = ({
   });
 
   const connect = useCallback(() => {
-    if (!token) return;
+    if (!tokenRef.current) return;
 
-    if (ws.current?.readyState === WebSocket.OPEN) return;
+    // CONNECTING 또는 OPEN 상태면 중복 연결 방지
+    if (
+      ws.current?.readyState === WebSocket.CONNECTING ||
+      ws.current?.readyState === WebSocket.OPEN
+    ) return;
 
     try {
       // 보안을 위해 쿼리 파라미터 대신 Sec-WebSocket-Protocol 헤더를 통해 토큰 전달
       // 브라우저 WebSocket API는 커스텀 헤더를 직접 지원하지 않으므로 subprotocol 활용
       const wsUrl = url;
-      ws.current = new WebSocket(wsUrl, token);
+      ws.current = new WebSocket(wsUrl, tokenRef.current);
 
       ws.current.onopen = () => {
         setIsConnected(true);
@@ -127,7 +133,7 @@ export const useWebSocket = ({
     } catch {
       // 연결 실패 무시
     }
-  }, [url, token, reconnectInterval, maxReconnectAttempts]);
+  }, [url, reconnectInterval, maxReconnectAttempts]);
 
   const disconnect = useCallback(() => {
     shouldReconnect.current = false;
@@ -172,6 +178,13 @@ export const useWebSocket = ({
       disconnect();
     };
   }, [connect, disconnect]);
+
+  // token이 생긴 시점(로그인 완료)에 연결 시도
+  useEffect(() => {
+    if (token) {
+      connect();
+    }
+  }, [token, connect]);
 
   return {
     isConnected,

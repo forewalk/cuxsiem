@@ -59,7 +59,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   name: '',
   description: '',
-  target_index: 'logs-sentinel_one.threats',
+  target_index: 'logs-sentinel_one.edr',
   condition_config: {
     query: {
       bool: {
@@ -86,7 +86,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   interval_min: 1,
   dedup_key_template: '{{rule_id}}_{{_id}}',
   trigger_condition: '',
-  receiver: {type: 'role', values: ['role-1']},
+  receiver: {type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: {}},
   is_active: true
 };
 
@@ -154,6 +154,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [formData, setFormData] = useState<NotificationRuleCreate>(DEFAULT_FORM_DATA);
   const [dslString, setDslString] = useState(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [webhookHeadersStr, setWebhookHeadersStr] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -162,6 +163,15 @@ const NotificationRuleListTab: React.FC = () => {
   const [queryTestLoading, setQueryTestLoading] = useState(false);
   const [queryTestResult, setQueryTestResult] = useState<any | null>(null);
   const [queryTestError, setQueryTestError] = useState<string | null>(null);
+
+  // 트리거 테스트 상태
+  const [triggerTestLoading, setTriggerTestLoading] = useState(false);
+  const [triggerTestResult, setTriggerTestResult] = useState<{
+    evaluation: boolean;
+    total: number;
+    has_aggregations: boolean;
+  } | null>(null);
+  const [triggerTestError, setTriggerTestError] = useState<string | null>(null);
 
   // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
@@ -192,32 +202,40 @@ const NotificationRuleListTab: React.FC = () => {
         return value;
       };
       
-      // 템플릿 컨텍스트 구성 (백엔드와 동일)
+      // 템플릿 컨텍스트 구성 (백엔드와 동일: OpenSearch 응답 전체 + 메타 정보)
       const context: any = {
+        ...queryTestResult,
         total,
-        hits: hitSources
       };
       
+      const toStr = (v: any): string =>
+        typeof v === 'object' && v !== null ? JSON.stringify(v, null, 2) : String(v);
+
       // {{변수}} 형식을 모두 치환
       preview = preview.replace(/\{\{([\w\.@]+)\}\}/g, (match, key) => {
         // 단순 키 접근 (total 등)
         if (!key.includes('.')) {
           const value = context[key];
-          return value !== null && value !== undefined ? String(value) : match;
+          return value !== null && value !== undefined ? toStr(value) : match;
         }
         
-        // 중첩 필드 처리 - 모든 hits에서 추출
+        // 1차: context 전체에서 직접 탐색 (예: hits.total.value, aggregations.threats.buckets)
+        const ctxValue = getNestedValue(queryTestResult, key);
+        if (ctxValue !== null && ctxValue !== undefined) {
+          return toStr(ctxValue);
+        }
+        
+        // 2차: hits._source 배열에서 추출 (예: threatInfo.threatName)
         if (hitSources.length > 0) {
           const values: string[] = [];
           for (const hit of hitSources) {
             const hitValue = getNestedValue(hit, key);
             if (hitValue !== null && hitValue !== undefined) {
-              values.push(String(hitValue));
+              values.push(toStr(hitValue));
             }
           }
           
           if (values.length > 0) {
-            // 중복 제거하고 줄바꿈으로 연결
             const uniqueValues = Array.from(new Set(values));
             return uniqueValues.join('\n');
           }
@@ -301,14 +319,19 @@ const NotificationRuleListTab: React.FC = () => {
             if (roleCodes.length === 0) return mapped;
             return mapped.filter((v: string) => roleCodes.some(rc => rc.code === v));
           })(),
+          webhook_url: rule.receiver?.webhook_url || '',
+          webhook_headers: rule.receiver?.webhook_headers || {},
         },
         is_active: rule.is_active
       });
       setDslString(JSON.stringify(rule.condition_config, null, 2));
+      const wh = rule.receiver?.webhook_headers;
+      setWebhookHeadersStr(wh && Object.keys(wh).length > 0 ? JSON.stringify(wh, null, 2) : '');
     } else {
       setEditingRule(null);
       setFormData(DEFAULT_FORM_DATA);
       setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
+      setWebhookHeadersStr('');
     }
     setJsonError(null);
     setOpen(true);
@@ -332,7 +355,7 @@ const NotificationRuleListTab: React.FC = () => {
 
   const handleTestQuery = async () => {
     if (jsonError) {
-      setSnackbar({open: true, message: 'DSL 쿼리에 JSON 오류가 있습니다', severity: 'error'});
+      setSnackbar({open: true, message: t('dslJsonError'), severity: 'error'});
       return;
     }
 
@@ -353,6 +376,31 @@ const NotificationRuleListTab: React.FC = () => {
       setSnackbar({open: true, message: errorMsg, severity: 'error'});
     } finally {
       setQueryTestLoading(false);
+    }
+  };
+
+  const handleTestTrigger = async () => {
+    if (jsonError) {
+      setSnackbar({open: true, message: t('dslJsonError'), severity: 'error'});
+      return;
+    }
+
+    setTriggerTestLoading(true);
+    setTriggerTestError(null);
+    setTriggerTestResult(null);
+
+    try {
+      const result = await notificationService.testTrigger(
+        formData.target_index,
+        formData.condition_config,
+        formData.trigger_condition || ''
+      );
+      setTriggerTestResult(result);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.detail || error.message || 'Trigger test failed';
+      setTriggerTestError(errorMsg);
+    } finally {
+      setTriggerTestLoading(false);
     }
   };
 
@@ -523,7 +571,7 @@ const NotificationRuleListTab: React.FC = () => {
                 <TableRow><TableCell colSpan={7} align="center" sx={{
                   py: 8,
                   color: 'text.disabled'
-                }}>{loading ? '로딩 중...' : '등록된 규칙이 없습니다.'}</TableCell></TableRow>
+                }}>{loading ? t('loading') : t('noRulesRegistered')}</TableCell></TableRow>
               ) : (
                 rules.map((rule) => (
                   <TableRow key={rule.id} hover sx={{...ALERT_TABLE_STYLES.bodyRow}}>
@@ -647,9 +695,18 @@ const NotificationRuleListTab: React.FC = () => {
               <Typography variant="subtitle2" sx={{fontWeight: 'bold', mb: 1}}>2. {t('detectionCondition')}</Typography>
               <Stack direction="row" spacing={2} sx={{mb: 2}}>
                 <TextField
+                  label={t('targetIndex')}
+                  fullWidth
+                  value={formData.target_index}
+                  onChange={(e) => setFormData({...formData, target_index: e.target.value})}
+                  size="small"
+                  placeholder="logs-sentinel_one.edr"
+                  inputProps={{style: {fontFamily: 'monospace'}}}
+                />
+                <TextField
                   label={t('intervalMin')}
                   type="number"
-                  fullWidth
+                  sx={{minWidth: 180}}
                   value={formData.interval_min}
                   onChange={(e) => setFormData({...formData, interval_min: parseInt(e.target.value)})}
                   size="small"
@@ -663,7 +720,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 왼쪽: DSL 쿼리 편집기 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    Define extraction query
+                    {t('defineExtractionQuery')}
                   </Typography>
                   <Box sx={{
                     flex: 1,
@@ -710,7 +767,7 @@ const NotificationRuleListTab: React.FC = () => {
                       size="small"
                       fullWidth
                     >
-                      {queryTestLoading ? '⏳ 실행 중...' : 'Run Query'}
+                      {queryTestLoading ? t('queryRunning') : t('runQuery')}
                     </Button>
                   </Box>
                 </Box>
@@ -718,7 +775,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 오른쪽: 쿼리 실행 결과 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    Extraction query response
+                    {t('extractionQueryResponse')}
                   </Typography>
                   <Paper 
                     elevation={0} 
@@ -736,7 +793,7 @@ const NotificationRuleListTab: React.FC = () => {
                     {queryTestLoading ? (
                       <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
                         <Stack spacing={2} alignItems="center">
-                          <Typography variant="body2" color="text.secondary">쿼리 실행 중...</Typography>
+                          <Typography variant="body2" color="text.secondary">{t('queryRunning')}</Typography>
                         </Stack>
                       </Box>
                     ) : queryTestError ? (
@@ -744,44 +801,18 @@ const NotificationRuleListTab: React.FC = () => {
                         {queryTestError}
                       </Alert>
                     ) : queryTestResult ? (
-                      <Stack spacing={2} sx={{flex: 1, overflow: 'auto'}}>
-                        {/* 요약 정보 */}
-                        <Box sx={{p: 1, bgcolor: 'action.hover', borderRadius: 1}}>
-                          <Typography variant="caption" color="text.secondary">
-                            ⏱️ {queryTestResult.took}ms | 
-                            📄 Total: {queryTestResult.hits?.total?.value || 0}건 | 
-                            🔧 Shards: {queryTestResult._shards?.successful}/{queryTestResult._shards?.total}
-                          </Typography>
-                        </Box>
-                        
-                        {/* 문서 샘플 (_source만) */}
-                        {queryTestResult.hits?.hits?.length > 0 && (
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold" gutterBottom>
-                              📄 Sample Documents - _source ({queryTestResult.hits.hits.length}건):
-                            </Typography>
-                            <TextField
-                              multiline
-                              fullWidth
-                              value={JSON.stringify(
-                                queryTestResult.hits.hits.slice(0, 3).map((hit: any) => hit._source), 
-                                null, 
-                                2
-                              )}
-                              InputProps={{
-                                readOnly: true,
-                                style: {fontFamily: 'monospace', fontSize: '0.75rem'}
-                              }}
-                              size="small"
-                              sx={{
-                                '& .MuiInputBase-root': {
-                                  bgcolor: 'background.paper'
-                                }
-                              }}
-                            />
-                          </Box>
-                        )}
-                      </Stack>
+                      <Box sx={{
+                        flex: 1,
+                        overflow: 'auto',
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        color: 'text.primary',
+                        lineHeight: 1.6
+                      }}>
+                        {JSON.stringify(queryTestResult, null, 2)}
+                      </Box>
                     ) : (
                       <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1}}>
                         <Typography variant="body2" color="text.secondary">
@@ -793,16 +824,47 @@ const NotificationRuleListTab: React.FC = () => {
                 </Box>
               </Stack>
               
-              <TextField
-                label={t('triggerConditionLabel')}
-                fullWidth
-                value={formData.trigger_condition || ''}
-                onChange={(e) => setFormData({...formData, trigger_condition: e.target.value})}
-                size="small"
-                placeholder={t('triggerConditionPlaceholder')}
-                helperText={t('triggerConditionHelper')}
-                sx={{mt: 2}}
-              />
+              <Box sx={{mt: 2}}>
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <TextField
+                    label={t('triggerConditionLabel')}
+                    fullWidth
+                    value={formData.trigger_condition || ''}
+                    onChange={(e) => setFormData({...formData, trigger_condition: e.target.value})}
+                    size="small"
+                    placeholder={t('triggerConditionPlaceholder')}
+                    helperText={triggerTestError || t('triggerConditionHelper')}
+                    error={!!triggerTestError}
+                    inputProps={{style: {fontFamily: 'monospace'}}}
+                    sx={{flex: 1}}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={handleTestTrigger}
+                    disabled={triggerTestLoading || !!jsonError}
+                    size="small"
+                    sx={{ height: 40, whiteSpace: 'nowrap', minWidth: 100 }}
+                  >
+                    {triggerTestLoading ? t('queryRunning') : t('testTrigger')}
+                  </Button>
+                  <Box sx={{
+                    height: 40,
+                    minWidth: 60,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    px: 1.5,
+                    fontFamily: 'monospace',
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem'
+                  }}>
+                    {triggerTestLoading ? '...' : triggerTestResult !== null ? String(triggerTestResult.evaluation) : '-'}
+                  </Box>
+                </Stack>
+              </Box>
             </Grid>
 
             <Grid size={12}><Divider/></Grid>
@@ -818,7 +880,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 왼쪽: 메시지 템플릿 편집기 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    Message Template
+                    {t('messageTemplate')}
                   </Typography>
                   <TextField
                     multiline
@@ -846,7 +908,7 @@ const NotificationRuleListTab: React.FC = () => {
                 {/* 오른쪽: 메시지 프리뷰 */}
                 <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
                   <Typography variant="caption" sx={{fontWeight: 'bold', mb: 1, color: 'text.secondary'}}>
-                    Message Preview
+                    {t('messagePreview')}
                   </Typography>
                   <Paper
                     elevation={0}
@@ -873,7 +935,7 @@ const NotificationRuleListTab: React.FC = () => {
                       </Typography>
                     ) : (
                       <Typography variant="body2" color="text.secondary" sx={{fontStyle: 'italic'}}>
-                        메시지 템플릿을 입력하면 프리뷰가 여기에 표시됩니다
+                        {t('messagePreviewEmpty')}
                       </Typography>
                     )}
                     
@@ -910,13 +972,91 @@ const NotificationRuleListTab: React.FC = () => {
                           const newValues = e.target.checked
                             ? [...currentValues, rc.code]
                             : currentValues.filter((v: string) => v !== rc.code);
-                          setFormData({...formData, receiver: {type: 'role', values: newValues}});
+                          setFormData({...formData, receiver: {...formData.receiver, type: 'role', values: newValues}});
                         }}
                       />
                     }
                     label={getRoleName(rc.code, roleNames, language)}
                   />
                 ))}
+              </Stack>
+            </Grid>
+
+            <Grid size={12}><Divider/></Grid>
+
+            {/* 5. Webhook 설정 */}
+            <Grid size={12}>
+              <Typography variant="subtitle2"
+                          sx={{fontWeight: 'bold', mb: 1}}>5. {t('webhookSettings')}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{display: 'block', mb: 1}}>
+                {t('webhookDescription')}
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{display: 'flex', gap: 1, alignItems: 'flex-start'}}>
+                  <TextField
+                    label={t('webhookUrl')}
+                    fullWidth
+                    size="small"
+                    placeholder="http://192.168.1.100:8080/webhook"
+                    value={formData.receiver?.webhook_url || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      receiver: {...formData.receiver, webhook_url: e.target.value}
+                    })}
+                  />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{whiteSpace: 'nowrap', minWidth: 100, height: 40}}
+                    disabled={!formData.receiver?.webhook_url}
+                    onClick={async () => {
+                      try {
+                        const res = await notificationService.testWebhook(
+                          formData.receiver?.webhook_url || '',
+                          formData.receiver?.webhook_headers
+                        );
+                        setSnackbar({
+                          open: true,
+                          message: res.success ? t('webhookTestSuccess') : `${t('webhookTestFail')}: ${res.message}`,
+                          severity: res.success ? 'success' : 'error'
+                        });
+                      } catch (err: any) {
+                        setSnackbar({
+                          open: true,
+                          message: `${t('webhookTestFail')}: ${err.message}`,
+                          severity: 'error'
+                        });
+                      }
+                    }}
+                  >
+                    {t('testConnection')}
+                  </Button>
+                </Box>
+                <TextField
+                  label={t('webhookHeaders')}
+                  fullWidth
+                  size="small"
+                  multiline
+                  minRows={2}
+                  maxRows={4}
+                  placeholder={'{"Authorization": "Bearer token", "X-Custom": "value"}'}
+                  value={webhookHeadersStr}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setWebhookHeadersStr(val);
+                    if (!val.trim()) {
+                      setFormData({...formData, receiver: {...formData.receiver, webhook_headers: {}}});
+                      return;
+                    }
+                    try {
+                      const parsed = JSON.parse(val);
+                      setFormData({...formData, receiver: {...formData.receiver, webhook_headers: parsed}});
+                    } catch {
+                      // 타이핑 중 JSON 파싱 실패는 무시, 문자열은 계속 표시
+                    }
+                  }}
+                  helperText={t('webhookHeadersHelp')}
+                />
               </Stack>
             </Grid>
           </Grid>

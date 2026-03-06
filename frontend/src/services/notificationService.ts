@@ -68,11 +68,31 @@ export const notificationService = {
     return response.data;
   },
 
+  /* 트리거 조건 테스트 */
+  testTrigger: async (targetIndex: string, conditionConfig: any, triggerCondition: string) => {
+    const response = await api.post<{
+      evaluation: boolean;
+      total: number;
+      has_aggregations: boolean;
+    }>('/api/v1/notifications/rules/test-trigger', {
+      target_index: targetIndex,
+      condition_config: conditionConfig,
+      trigger_condition: triggerCondition
+    });
+    return response.data;
+  },
+
   /* 알림 목록 조회 */
   getNotifications: async (params: GetNotificationsParams = {}) => {
     const response = await api.get<{ total: number, items: NotificationHistory[] }>('/api/v1/notifications/', {
       params
     });
+    return response.data;
+  },
+
+  /* Webhook 연결 테스트 */
+  testWebhook: async (url: string, headers?: Record<string, string>) => {
+    const response = await api.post('/api/v1/notifications/webhook/test', { url, headers });
     return response.data;
   }
 };

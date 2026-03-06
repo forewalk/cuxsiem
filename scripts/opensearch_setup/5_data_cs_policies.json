@@ -1,0 +1,4 @@
+{"index": {"_index": "cs_policies", "_id": "advanced_settings"}}
+{"user_register": false, "allow_multiple_sessions": false, "tab_count": 10, "pagination_size": 10, "time_filter_duration": 15, "time_filter_unit": "m", "pixel_mode": false, "log_stream_size": 1000, "log_stream_refresh": 10, "session_duration": 30, "otp_required": false, "updated_at": "2026-01-01T00:00:00"}
+{"index": {"_index": "cs_policies", "_id": "password"}}
+{"min_length": 8, "require_uppercase": true, "require_lowercase": true, "require_numbers": true, "require_special_chars": false, "max_password_age_days": 90, "password_history_count": 3, "lockout_threshold": 5, "lockout_duration_minutes": 30, "created_at": "2026-01-01T00:00:00", "updated_at": "2026-01-01T00:00:00"}
