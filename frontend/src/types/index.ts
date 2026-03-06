@@ -20,6 +20,7 @@ export interface User {
   is_active: boolean;
   created_at: string;
   last_login_at: string | null;
+  deleted_at?: string | null;
 }
 
 export interface LoginRequest {
