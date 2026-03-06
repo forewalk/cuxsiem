@@ -260,7 +260,7 @@ const DashboardTab: React.FC = () => {
   const { user } = useAuth();
   const { settings, fetchSettings } = useSettingsStore();
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
   // 전역 스토어 사용

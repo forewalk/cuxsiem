@@ -36,7 +36,6 @@ import StorageIcon from "@mui/icons-material/Storage";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AbcIcon from "@mui/icons-material/Abc";
-import NumbersIcon from "@mui/icons-material/Numbers";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CodeIcon from "@mui/icons-material/Code";
 import TagIcon from "@mui/icons-material/Tag";
@@ -152,17 +151,12 @@ const EdrListTab: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const initializedRef = useRef(false);
 
-  const [columnWidths] = useState<Record<string, number>>(() => {
-    const saved = localStorage.getItem('edrListColumnWidths');
-    return saved ? JSON.parse(saved) : { "@timestamp": 250 };
-  });
-
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   // 사용자별 컬럼 설정 초기화
   const handleResetColumns = async () => {
     try {
-      const success = await resetColumnSettings("edr");
+      const success = await resetColumnSettings(`edr_${activeCategory}`);
       if (success) {
         const defaultFields = CATEGORY_FIELDS[activeCategory] || CATEGORY_FIELDS.all;
         setSelectedFieldNames(defaultFields);
@@ -174,12 +168,24 @@ const EdrListTab: React.FC = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const saved = await getColumnSettings("edr");
-        if (saved && saved.length > 0) setSelectedFieldNames(saved);
-      } catch (err) { console.error("Failed to load column settings", err); }
+        // 카테고리별 저장된 설정을 먼저 시도
+        const currentCategory = new URLSearchParams(window.location.search).get('edrCategory') || "all";
+        const saved = await getColumnSettings(`edr_${currentCategory}`);
+        
+        if (saved && saved.length > 0) {
+          setSelectedFieldNames(saved);
+        } else {
+          // 저장된 설정이 없으면 해당 카테고리의 기본 필드 사용
+          setSelectedFieldNames(CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS.all);
+        }
+      } catch (err) { 
+        console.error("Failed to load column settings", err);
+        const currentCategory = new URLSearchParams(window.location.search).get('edrCategory') || "all";
+        setSelectedFieldNames(CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS.all);
+      }
     };
     loadSettings();
-  }, []);
+  }, [activeCategory]); // activeCategory가 바뀔 때마다 다시 로드하도록 변경
 
   useEffect(() => {
     if (settings && !initializedRef.current && !searchParams.get('edrFromValue') && !searchParams.get('edrFromDate')) {
@@ -221,7 +227,7 @@ const EdrListTab: React.FC = () => {
     newOrder.splice(targetIdx, 0, movedItem);
     setSelectedFieldNames(newOrder);
     setDragIdx(null);
-    try { await saveColumnSettings("edr", newOrder); } catch (err) { console.error("Failed to save column settings", err); }
+    try { await saveColumnSettings(`edr_${activeCategory}`, newOrder); } catch (err) { console.error("Failed to save column settings", err); }
   };
 
   const getValueByPath = (obj: any, path: string) => {
@@ -231,8 +237,6 @@ const EdrListTab: React.FC = () => {
     if (value === null || value === undefined) return "-";
     return typeof value === 'object' ? JSON.stringify(value) : String(value);
   };
-
-  const formatValue = (val: any) => val === null || val === undefined ? "-" : (typeof val === 'object' ? JSON.stringify(val) : String(val));
 
   const flattenObject = (obj: any, prefix = ""): Record<string, any> => {
     return Object.keys(obj).reduce((acc: any, k: string) => {
@@ -259,10 +263,10 @@ const EdrListTab: React.FC = () => {
         ? prev.filter(name => name !== fieldName)
         : [...prev, fieldName];
       
-      saveColumnSettings("edr", next).catch(err => console.error("Failed to save column settings", err));
+      saveColumnSettings(`edr_${activeCategory}`, next).catch(err => console.error("Failed to save column settings", err));
       return next;
     });
-  }, []);
+  }, [activeCategory]);
 
   const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
@@ -293,11 +297,11 @@ const EdrListTab: React.FC = () => {
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
+    // URL 파라미터 업데이트
     const newParams = new URLSearchParams(searchParams);
     if (category !== 'all') newParams.set('edrCategory', category); else newParams.delete('edrCategory');
     navigate(`?${newParams.toString()}`, { replace: false });
   };
-
   const handleBarClick = (startTime: string, endTime: string) => {
     handleTimeChange(null, "m", null, "m", startTime, endTime);
   };
@@ -483,7 +487,7 @@ const EdrListTab: React.FC = () => {
               <IconButton size="small" disabled={page === 0 || loading} onClick={() => setPage(p => p - 1)} sx={{ border: 1, borderColor: 'divider' }}><ChevronLeftIcon fontSize="small" /></IconButton>
               <Box sx={{ display: 'flex', gap: 0.5 }}>
                 {(() => {
-                  const tl = data?.summary.total_logs ?? 0; const tp = Math.ceil(tl / pageSize); const mb = 5;
+                  const tl = data?.summary.total_logs ?? 0; const tp = Math.ceil(tl / pageSize);
                   let sp = Math.max(0, page - 2); let ep = Math.min(tp - 1, sp + 4);
                   if (ep - sp + 1 < 5) sp = Math.max(0, ep - 4);
                   const btns = [];

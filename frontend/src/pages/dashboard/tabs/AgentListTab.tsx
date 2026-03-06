@@ -25,7 +25,6 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import KeyboardArrowDownIconMenu from "@mui/icons-material/KeyboardArrowDown";
 import AbcIcon from "@mui/icons-material/Abc";
-import NumbersIcon from "@mui/icons-material/Numbers";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CodeIcon from "@mui/icons-material/Code";
 import TagIcon from "@mui/icons-material/Tag";
@@ -104,11 +103,6 @@ const AgentListTab: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const initializedRef = useRef(false);
 
-  const [columnWidths] = useState<Record<string, number>>(() => {
-    const saved = localStorage.getItem('agentListColumnWidths');
-    return saved ? JSON.parse(saved) : { "createdAt": 250 };
-  });
-
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   useEffect(() => {
@@ -171,8 +165,6 @@ const AgentListTab: React.FC = () => {
     if (value === null || value === undefined) return "-";
     return typeof value === 'object' ? JSON.stringify(value) : String(value);
   };
-
-  const formatValue = (val: any) => val === null || val === undefined ? "-" : (typeof val === 'object' ? JSON.stringify(val) : String(val));
 
   const flattenObject = (obj: any, prefix = ""): Record<string, any> => {
     return Object.keys(obj).reduce((acc: any, k: string) => {
@@ -385,7 +377,7 @@ const AgentListTab: React.FC = () => {
               <IconButton size="small" disabled={page === 0 || loading} onClick={() => setPage(p => p - 1)} sx={{ border: 1, borderColor: 'divider' }}><ChevronLeftIcon fontSize="small" /></IconButton>
               <Box sx={{ display: 'flex', gap: 0.5 }}>
                 {(() => {
-                  const tl = data?.summary.total_logs ?? 0; const tp = Math.ceil(tl / pageSize); const mb = 5;
+                  const tl = data?.summary.total_logs ?? 0; const tp = Math.ceil(tl / pageSize);
                   let sp = Math.max(0, page - 2); let ep = Math.min(tp - 1, sp + 4);
                   if (ep - sp + 1 < 5) sp = Math.max(0, ep - 4);
                   const btns = [];
