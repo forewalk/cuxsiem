@@ -21,6 +21,7 @@ export interface User {
   otp_enabled: boolean;
   created_at: string;
   last_login_at: string | null;
+  deleted_at?: string | null;
 }
 
 export interface LoginRequest {

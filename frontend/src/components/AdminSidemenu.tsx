@@ -1,4 +1,8 @@
 import {
+  Box, Collapse, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon,
+  ListItemText, Toolbar, Typography, useMediaQuery, useTheme,
+} from '@mui/material';
+import {
   Tune as AdvancedIcon, Computer as AgentIcon,
   ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon,
   Close as CloseIcon,
@@ -11,19 +15,8 @@ import {
   Settings as SettingsIcon,
   Terminal as TerminalIcon,
   ShowChart as ThreatsIcon,
+  Shield as EdrIcon,
 } from '@mui/icons-material';
-import {
-  Box,
-  Collapse,
-  Drawer,
-  IconButton,
-  List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useTabStore from '../stores/tabStore';
@@ -48,6 +41,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const [openDashboardMenu, setOpenDashboardMenu] = useState(() => localStorage.getItem('sidemenu_dash') === 'true');
   const [openThreatMenu, setOpenThreatMenu] = useState(() => localStorage.getItem('sidemenu_threat') === 'true');
   const [openAgentMenu, setOpenAgentMenu] = useState(() => localStorage.getItem('sidemenu_agent') === 'true');
+  const [openEdrMenu, setOpenEdrMenu] = useState(() => localStorage.getItem('sidemenu_edr') === 'true');
 
   const theme = useTheme();
   const navigate = useNavigate();
@@ -60,6 +54,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   useEffect(() => { localStorage.setItem('sidemenu_dash', openDashboardMenu.toString()); }, [openDashboardMenu]);
   useEffect(() => { localStorage.setItem('sidemenu_threat', openThreatMenu.toString()); }, [openThreatMenu]);
   useEffect(() => { localStorage.setItem('sidemenu_agent', openAgentMenu.toString()); }, [openAgentMenu]);
+  useEffect(() => { localStorage.setItem('sidemenu_edr', openEdrMenu.toString()); }, [openEdrMenu]);
 
   const handleAdminMenuClick = () => {
     if (!drawerOpen && !isMobile) {
@@ -87,6 +82,11 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const handleAgentMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenAgentMenu(!openAgentMenu);
+  };
+
+  const handleEdrMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenEdrMenu(!openEdrMenu);
   };
 
   const handleMenuTabClick = (label: string, component: string, labelKey?: string) => {
@@ -193,6 +193,20 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                   </ListItemButton>
                   <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('agentDashboardTitle'), 'AgentDashboardTab', 'agentDashboardTitle')}>
                     <ListItemText primary={t('agentDashboard')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                </List>
+              </Collapse>
+
+              {/* 3. EDR Sub-Group */}
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={handleEdrMenuClick}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><EdrIcon /></ListItemIcon>
+                <ListItemText primary={t('edr')} sx={listItemTextStyle} />
+                {(drawerOpen || isMobile) && (openEdrMenu ? <ExpandLess /> : <ExpandMore />)}
+              </ListItemButton>
+              <Collapse in={openEdrMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('edrListTitle'), 'EdrListTab', 'edrListTitle')}>
+                    <ListItemText primary={t('edrList')} sx={subListItemTextStyle} />
                   </ListItemButton>
                 </List>
               </Collapse>

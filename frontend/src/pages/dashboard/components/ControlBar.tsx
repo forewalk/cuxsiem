@@ -280,7 +280,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
     let finalFDate = fromDate;
     let finalTDate = toDate;
 
-    const absoluteISO = popoverDate.hour(parseInt(popoverTime.split(":")[0])).minute(parseInt(popoverTime.split(":")[1])).second(0).toISOString();
+    const [h, m] = popoverTime.split(":").map(Number);
+    const selectedDateLocal = popoverDate.hour(h).minute(m).second(0).millisecond(0);
+    const absoluteISO = selectedDateLocal.toISOString();
 
     if (editingPoint === 'from') {
       if (tabValue === 0) {
@@ -332,7 +334,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
   const formatPoint = (val: number | null, unit: string, date: string | null, isTo: boolean) => {
     if (isTo && val === null && date === null) return t('now');
-    if (date) return dayjs(date).locale(language).format("MMM D, YYYY @ HH:mm");
+    if (date) {
+      // ISO 형식을 로컬 타임으로 변환하여 표시
+      return dayjs(date).format("YYYY-MM-DD HH:mm:ss");
+    }
     return `~ ${val} ${unitTextMap[unit]}`;
   };
 
@@ -531,6 +536,28 @@ const ControlBar: React.FC<ControlBarProps> = ({
               </Button>
             )}
 
+            {/* 리스트 화면(onEdit 없음)일 때만 다운로드 왼쪽에 초기화 버튼 상시 노출 */}
+            {!isEditMode && !onEdit && onReset && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<RestartAltIcon sx={{ fontSize: 14 }} />}
+                onClick={onReset}
+                sx={{ 
+                  fontSize: '0.65rem', 
+                  color: 'text.secondary', 
+                  borderColor: 'divider',
+                  textTransform: 'none',
+                  height: 22,
+                  px: 1,
+                  borderRadius: 1,
+                  '&:hover': { bgcolor: 'action.hover', color: 'error.main', borderColor: 'error.main' } 
+                }}
+              >
+                {t('reset')}
+              </Button>
+            )}
+
             {!isEditMode && (
               <Button
                 variant="outlined"
@@ -564,6 +591,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
                   </Button>
                 )}
 
+                {/* 대시보드 수정 모드일 때만 초기화 버튼 노출 (원래 위치) */}
                 {onReset && (
                   <Button
                     variant="outlined"
