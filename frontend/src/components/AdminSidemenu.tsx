@@ -191,9 +191,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                   <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('agentListTitle'), 'AgentListTab', 'agentListTitle')}>
                     <ListItemText primary={t('agentList')} sx={subListItemTextStyle} />
                   </ListItemButton>
-                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('agentDashboardTitle'), 'AgentDashboardTab', 'agentDashboardTitle')}>
-                    <ListItemText primary={t('agentDashboard')} sx={subListItemTextStyle} />
-                  </ListItemButton>
                 </List>
               </Collapse>
 
@@ -258,45 +255,58 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
         </List>
       </Box>
 
-      {userRole === 'role-1' && (
-        <Box sx={{ mt: 'auto', borderTop: `1px solid ${theme.palette.divider}` }}>
-          <List>
-            <ListItem disablePadding sx={{ display: 'block' }}>
-              <ListItemButton onClick={handleAdminMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
-                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}><SettingsIcon /></ListItemIcon>
-                <ListItemText primary={t('adminMenu')} sx={listItemTextStyle} />
-                {(drawerOpen || isMobile) && (openAdminMenu ? <ExpandLess /> : <ExpandMore />)}
-              </ListItemButton>
-            </ListItem>
-            <Collapse in={openAdminMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                <ListItemButton
-                  sx={{ pl: 4, minHeight: listItemHeight }}
-                  onClick={() => handleMenuTabClick(t('userManagement'), 'UserManagementTab', 'userManagement')}
-                >
-                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><PeopleIcon /></ListItemIcon>
-                  <ListItemText primary={t('userManagement')} sx={listItemTextStyle} />
-                </ListItemButton>
-                <ListItemButton
-                  sx={{ pl: 4, minHeight: listItemHeight }}
-                  onClick={() => handleMenuTabClick(t('passwordPolicy'), 'PasswordPolicyTab', 'passwordPolicy')}
-                >
-                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><LockIcon /></ListItemIcon>
-                  <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
-                </ListItemButton>
+      <Box sx={{ mt: 'auto', borderTop: `1px solid ${theme.palette.divider}` }}>
+        <List>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton onClick={handleAdminMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
+              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}><SettingsIcon /></ListItemIcon>
+              <ListItemText primary={t('adminMenu')} sx={listItemTextStyle} />
+              {(drawerOpen || isMobile) && (openAdminMenu ? <ExpandLess /> : <ExpandMore />)}
+            </ListItemButton>
+          </ListItem>
+          <Collapse in={openAdminMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {userRole === 'role-1' && (
+                <>
+                  <ListItemButton
+                    sx={{ pl: 4, minHeight: listItemHeight }}
+                    onClick={() => handleMenuTabClick(t('userManagement'), 'UserManagementTab', 'userManagement')}
+                  >
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><PeopleIcon /></ListItemIcon>
+                    <ListItemText primary={t('userManagement')} sx={listItemTextStyle} />
+                  </ListItemButton>
+                  <ListItemButton
+                    sx={{ pl: 4, minHeight: listItemHeight }}
+                    onClick={() => handleMenuTabClick(t('passwordPolicy'), 'PasswordPolicyTab', 'passwordPolicy')}
+                  >
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><LockIcon /></ListItemIcon>
+                    <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
+                  </ListItemButton>
+                  
+                  {/* 알림 규칙 - role-1 전용 */}
+                  <ListItemButton
+                    sx={{ pl: 4, minHeight: listItemHeight }}
+                    onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}
+                  >
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
+                      <NotificationsIcon />
+                    </ListItemIcon>
+                    <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
+                  </ListItemButton>
+                </>
+              )}
 
-                <ListItemButton
-                  sx={{ pl: 4, minHeight: listItemHeight }}
-                  onClick={() => handleMenuTabClick(t('advancedSettings'), 'AdvancedSettingsTab', 'advancedSettings')}
-                >
-                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><AdvancedIcon /></ListItemIcon>
-                  <ListItemText primary={t('advancedSettings')} sx={listItemTextStyle} />
-                </ListItemButton>
-              </List>
-            </Collapse>
-          </List>
-        </Box>
-      )}
+              <ListItemButton
+                sx={{ pl: 4, minHeight: listItemHeight }}
+                onClick={() => handleMenuTabClick(t('advancedSettings'), 'AdvancedSettingsTab', 'advancedSettings')}
+              >
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><AdvancedIcon /></ListItemIcon>
+                <ListItemText primary={t('advancedSettings')} sx={listItemTextStyle} />
+              </ListItemButton>
+            </List>
+          </Collapse>
+        </List>
+      </Box>
     </Drawer>
   );
 };

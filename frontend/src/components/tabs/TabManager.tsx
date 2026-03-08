@@ -9,7 +9,6 @@ import PasswordPolicyTab from '../../pages/admin/tabs/PasswordPolicyTab';
 import DashboardTab from '../../pages/dashboard/tabs/DashboardTab';
 import ThreatListTab from '../../pages/dashboard/tabs/ThreatListTab';
 import AgentListTab from '../../pages/dashboard/tabs/AgentListTab';
-import AgentDashboardTab from '../../pages/dashboard/tabs/AgentDashboardTab';
 import EdrListTab from '../../pages/dashboard/tabs/EdrListTab';
 import LogStreamingTab from '../../pages/admin/tabs/LogStreamingTab';
 import NotificationRuleListTab from '../../pages/admin/alerts/tabs/NotificationRuleListTab';
@@ -28,7 +27,6 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   DashboardTab: DashboardTab,
   ThreatListTab: ThreatListTab,
   AgentListTab: AgentListTab,
-  AgentDashboardTab: AgentDashboardTab,
   EdrListTab: EdrListTab,
   LogStreamingTab: LogStreamingTab,
   NotificationRuleListTab: NotificationRuleListTab,

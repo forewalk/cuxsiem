@@ -34,6 +34,8 @@ const AdvancedSettingsTab: React.FC = () => {
   const { updateSettings } = useSettingsStore();
   const { fetch: fetchRoleCodes } = useRoleCodesStore();
 
+  const isAdmin = user?.role === 'role-1';
+
   const [settings, setSettings] = useState<AdvancedSettings>({
     user_register: false,
     allow_multiple_sessions: false,
@@ -55,37 +57,48 @@ const AdvancedSettingsTab: React.FC = () => {
   });
 
   const loadSettings = useCallback(async () => {
-    if (!user || user.role !== 'role-1') { setLoading(false); return; }
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [settingsData, codesData] = await Promise.all([
-        advancedSettingsService.getSettings(),
-        codeService.getRoleCodes()
-      ]);
+      // 1. 기본 설정 데이터 로드
+      const settingsData = await advancedSettingsService.getSettings();
       
-      setSettings(settingsData);
-      // 전역 스토어 동기화
+      // 기존 state(특히 role_names)를 유지하면서 백엔드 데이터를 병합
+      setSettings(prev => ({
+        ...prev,
+        ...settingsData,
+        // settingsData에 role_names가 없으면 이전 값 유지
+        role_names: prev.role_names 
+      }));
+      
       updateSettings(settingsData);
       
       if (settingsData.tab_count) {
         setMaxTabs(settingsData.tab_count);
       }
 
-      // DB에서 가져온 코드를 상태에 매핑
-      if (codesData.length > 0) {
-        const roleNames = {
-          admin: settings.role_names?.admin || t('roleDefault1'),
-          user: settings.role_names?.user || t('roleDefault4'),
-          monitoring: settings.role_names?.monitoring || t('roleDefault2'),
-          approver: settings.role_names?.approver || t('roleDefault3'),
-        };
-        codesData.forEach(c => {
-          if (c.id === 'role-1') roleNames.admin = c.code_name;
-          if (c.id === 'role-2') roleNames.monitoring = c.code_name;
-          if (c.id === 'role-3') roleNames.approver = c.code_name;
-          if (c.id === 'role-4') roleNames.user = c.code_name;
-        });
-        setSettings(prev => ({ ...prev, ...settingsData, role_names: roleNames }));
+      // 2. 관리자인 경우에만 역할명(코드) 데이터 로드
+      if (isAdmin) {
+        try {
+          const codesData = await codeService.getRoleCodes();
+          if (codesData && codesData.length > 0) {
+            const newRoleNames = {
+              admin: settingsData.role_names?.admin || t('roleDefault1'),
+              user: settingsData.role_names?.user || t('roleDefault4'),
+              monitoring: settingsData.role_names?.monitoring || t('roleDefault2'),
+              approver: settingsData.role_names?.approver || t('roleDefault3'),
+            };
+            codesData.forEach(c => {
+              if (c.id === 'role-1') newRoleNames.admin = c.code_name;
+              if (c.id === 'role-2') newRoleNames.monitoring = c.code_name;
+              if (c.id === 'role-3') newRoleNames.approver = c.code_name;
+              if (c.id === 'role-4') newRoleNames.user = c.code_name;
+            });
+            setSettings(prev => ({ ...prev, role_names: newRoleNames }));
+          }
+        } catch (codeError) {
+          console.error('Failed to load role codes:', codeError);
+        }
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -93,7 +106,7 @@ const AdvancedSettingsTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [t, setMaxTabs]);
+  }, [user, isAdmin, t, setMaxTabs, updateSettings]);
 
   useEffect(() => {
     loadSettings();
@@ -109,8 +122,7 @@ const AdvancedSettingsTab: React.FC = () => {
     return () => window.removeEventListener('pixelModeChanged', handler);
   }, []);
 
-  // "pixel?" 키워드 언락 — e.code 사용 (IME/키보드 레이아웃 독립)
-  // p=KeyP i=KeyI x=KeyX e=KeyE l=KeyL ?=Shift+Slash
+  // "pixel?" 키워드 언락
   useEffect(() => {
     const codes = ['KeyP', 'KeyI', 'KeyX', 'KeyE', 'KeyL', 'Slash'];
     let step = 0;
@@ -131,20 +143,14 @@ const AdvancedSettingsTab: React.FC = () => {
   }, []);
 
   const handleSave = async () => {
-    // 유효성 검사: 역할명이 비어있는지 확인
-    if (settings.role_names) {
-      const { admin, monitoring, approver, user } = settings.role_names;
-      if (!admin?.trim() || !monitoring?.trim() || !approver?.trim() || !user?.trim()) {
-        setSnackbar({
-          open: true,
-          message: t('roleNameRequired'),
-          severity: 'error'
-        });
+    if (isAdmin && settings.role_names) {
+      const { admin, monitoring, approver, user: rUser } = settings.role_names;
+      if (!admin?.trim() || !monitoring?.trim() || !approver?.trim() || !rUser?.trim()) {
+        setSnackbar({ open: true, message: t('roleNameRequired'), severity: 'error' });
         return;
       }
     }
 
-    // 유효성 검사: 로그스트리밍 설정 범위 확인
     const logSize = settings.log_stream_size ?? 1000;
     const logRefresh = settings.log_stream_refresh ?? 10;
     if (logSize < 100 || logSize > 10000) {
@@ -156,34 +162,24 @@ const AdvancedSettingsTab: React.FC = () => {
       return;
     }
 
-    // 유효성 검사: 세션 유지시간 범위 확인
     const sessionDur = settings.session_duration ?? 30;
     if (sessionDur < 1 || sessionDur > 1440) {
       setSnackbar({ open: true, message: t('sessionDurationError'), severity: 'error' });
       return;
     }
 
-    // 유효성 검사: 탭 개수 확인
     const tabCnt = settings.tab_count;
-    if (!tabCnt || isNaN(Number(tabCnt)) || Number(tabCnt) < 1 || Number(tabCnt) > 10) {
-      setSnackbar({
-        open: true,
-        message: t('tabCountError') || "탭 개수는 1에서 10 사이의 숫자여야 합니다.",
-        severity: 'error'
-      });
+    if (tabCnt === undefined || isNaN(Number(tabCnt)) || Number(tabCnt) < 1 || Number(tabCnt) > 10) {
+      setSnackbar({ open: true, message: t('tabCountError'), severity: 'error' });
       return;
     }
 
     setSaving(true);
     try {
-      // 1. 고급 설정 저장
       const updated = await advancedSettingsService.updateSettings(settings);
-      
-      // 전역 스토어 업데이트 (다른 탭들이 즉시 반응하도록)
       updateSettings(updated);
       
-      // 2. 역할 코드명들 개별 저장
-      if (settings.role_names) {
+      if (isAdmin && settings.role_names) {
         await Promise.all([
           codeService.updateRoleCode('role-1', settings.role_names.admin),
           codeService.updateRoleCode('role-2', settings.role_names.monitoring),
@@ -198,10 +194,7 @@ const AdvancedSettingsTab: React.FC = () => {
         setMaxTabs(updated.tab_count);
       }
       setSnackbar({ open: true, message: t('saveSuccess'), severity: 'success' });
-      // 픽셀 모드 변경 이벤트 (App.tsx 수신)
-      window.dispatchEvent(new CustomEvent('pixelModeChanged', {
-        detail: { pixelMode: updated.pixel_mode || false }
-      }));
+      window.dispatchEvent(new CustomEvent('pixelModeChanged', { detail: { pixelMode: updated.pixel_mode || false } }));
     } catch (error) {
       console.error('Failed to save settings:', error);
       setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
@@ -222,223 +215,94 @@ const AdvancedSettingsTab: React.FC = () => {
     );
   }
 
-  if (user && user.role !== 'role-1') {
-    return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <Typography color="text.secondary">{t('noPermission')}</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>{t('advancedSettings')}</Typography>
         <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadSettings}
-            disabled={saving}
-          >
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadSettings} disabled={saving}>
             {t('refresh')}
           </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<SaveIcon />}
-            onClick={handleSave}
-          >
+          <Button variant="contained" color="secondary" startIcon={<SaveIcon />} onClick={handleSave}>
             {saving ? <CircularProgress size={24} color="inherit" /> : t('save')}
           </Button>
         </Stack>
       </Stack>
 
       <Stack spacing={3}>
-        {/* 사용자 설정 */}
+        {isAdmin && (
+          <Box>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('userSettings')}</Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Stack spacing={4}>
+                <FormControlLabel
+                  control={<Switch checked={settings.user_register} onChange={(e) => handleChange('user_register', e.target.checked)} />}
+                  label={t('userRegistrationActivation')}
+                />
+                <FormControlLabel
+                  control={<Switch checked={settings.otp_required || false} onChange={(e) => handleChange('otp_required', e.target.checked)} />}
+                  label={
+                    <Box>
+                      <Typography variant="body2">{t('otpRequired')}</Typography>
+                      <Typography variant="caption" color="text.secondary">{t('otpRequiredDesc')}</Typography>
+                    </Box>
+                  }
+                />
+                <FormControlLabel
+                  control={<Switch checked={settings.allow_multiple_sessions} onChange={(e) => handleChange('allow_multiple_sessions', e.target.checked)} />}
+                  label={t('allowMultipleSessions')}
+                />
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('sessionDuration')}</Typography>
+                  <TextField fullWidth size="small" type="number" value={settings.session_duration ?? 30} onChange={(e) => handleChange('session_duration', Number(e.target.value))} helperText={t('sessionDurationDesc')} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 500 }}>{t('userRoleNames')}</Typography>
+                  <Stack spacing={2}>
+                    <Tooltip title={t('userRoleAdmin')} placement="top-start" arrow>
+                      <TextField fullWidth size="small" label="role-1" value={settings.role_names?.admin || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, admin: e.target.value } })} />
+                    </Tooltip>
+                    <Tooltip title={t('userRoleMonitoring')} placement="top-start" arrow>
+                      <TextField fullWidth size="small" label="role-2" value={settings.role_names?.monitoring || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, monitoring: e.target.value } })} />
+                    </Tooltip>
+                    <Tooltip title={t('userRoleApprover')} placement="top-start" arrow>
+                      <TextField fullWidth size="small" label="role-3" value={settings.role_names?.approver || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, approver: e.target.value } })} />
+                    </Tooltip>
+                    <Tooltip title={t('userRoleUser')} placement="top-start" arrow>
+                      <TextField fullWidth size="small" label="role-4" value={settings.role_names?.user || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, user: e.target.value } })} />
+                    </Tooltip>
+                  </Stack>
+                </Box>
+              </Stack>
+            </Paper>
+          </Box>
+        )}
+
         <Box>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('userSettings')}</Typography>
-            <Divider sx={{ mb: 2 }} />
-            
             <Stack spacing={4}>
-              {/* 1. 사용자 신청 활성화 */}
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings.user_register}
-                    onChange={(e) => handleChange('user_register', e.target.checked)}
-                  />
-                }
-                label={t('userRegistrationActivation')}
-              />
-
-              {/* OTP 필수 사용 */}
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings.otp_required || false}
-                    onChange={(e) => handleChange('otp_required', e.target.checked)}
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body2">{t('otpRequired')}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {t('otpRequiredDesc')}
-                    </Typography>
-                  </Box>
-                }
-              />
-
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settings.allow_multiple_sessions}
-                    onChange={(e) => handleChange('allow_multiple_sessions', e.target.checked)}
-                  />
-                }
-                label={t('allowMultipleSessions')}
-              />
-
-              {/* 세션 유지시간 설정 */}
               <Box>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-                  {t('sessionDuration')}
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="number"
-                  value={settings.session_duration ?? 30}
-                  onChange={(e) => handleChange('session_duration', Number(e.target.value))}
-                  helperText={t('sessionDurationDesc')}
-                />
-              </Box>
-
-              {/* 2. 사용자 역할명 (라벨 스타일로 변경) */}
-              <Box>
-                <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 500, color: 'text.primary' }}>
-                  {t('userRoleNames')}
-                </Typography>
-                <Stack spacing={2}>
-                  <Tooltip title={t('userRoleAdmin')} placement="top-start" arrow>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="role-1"
-                      value={settings.role_names?.admin || ''}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        role_names: { ...settings.role_names!, admin: e.target.value }
-                      })}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('userRoleMonitoring')} placement="top-start" arrow>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="role-2"
-                      value={settings.role_names?.monitoring || ''}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        role_names: { ...settings.role_names!, monitoring: e.target.value }
-                      })}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('userRoleApprover')} placement="top-start" arrow>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="role-3"
-                      value={settings.role_names?.approver || ''}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        role_names: { ...settings.role_names!, approver: e.target.value }
-                      })}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('userRoleUser')} placement="top-start" arrow>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="role-4"
-                      value={settings.role_names?.user || ''}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        role_names: { ...settings.role_names!, user: e.target.value }
-                      })}
-                    />
-                  </Tooltip>
-                </Stack>
-              </Box>
-              
-              {/* 3. 탭 설정 (숫자 입력 스타일로 변경) */}
-              <Box>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  {t('tabSettings')}
-                </Typography>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('tabSettings')}</Typography>
                 <Divider sx={{ mb: 2 }} />
-                <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-                    {t('tabCount')}
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    type="number"
-                    value={settings.tab_count ?? ''}
-                    placeholder={t('tabCount')}
-                    onChange={(e) => {
-                      const valStr = e.target.value;
-                      handleChange('tab_count', valStr === '' ? '' : Number(valStr));
-                    }}
-                    helperText={t('tabCountDesc')}
-                    inputProps={{ min: 1, max: 10 }}
-                  />
-                </Box>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('tabCount')}</Typography>
+                <TextField fullWidth size="small" type="number" value={settings.tab_count ?? ''} placeholder={t('tabCount')} onChange={(e) => handleChange('tab_count', e.target.value === '' ? '' : Number(e.target.value))} helperText={t('tabCountDesc')} inputProps={{ min: 1, max: 10 }} />
               </Box>
 
-              {/* 4. 기본값 설정 */}
               <Box>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  {t('defaultSettings')}
-                </Typography>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('defaultSettings')}</Typography>
                 <Divider sx={{ mb: 2 }} />
                 <Stack spacing={3}>
                   <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-                      {t('paginationValue')}
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder={t('paginationValue')}
-                      type="number"
-                      value={settings.pagination_size || ''}
-                      onChange={(e) => handleChange('pagination_size', Number(e.target.value))}
-                    />
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('paginationValue')}</Typography>
+                    <TextField fullWidth size="small" type="number" value={settings.pagination_size || ''} onChange={(e) => handleChange('pagination_size', Number(e.target.value))} />
                   </Box>
                   <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-                      {t('timeFilterValue')}
-                    </Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('timeFilterValue')}</Typography>
                     <Stack direction="row" spacing={1}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder={t('timeFilterValue')}
-                        type="number"
-                        value={settings.time_filter_duration || ''}
-                        onChange={(e) => handleChange('time_filter_duration', Number(e.target.value))}
-                        sx={{ flex: 1, width: '50%' }}
-                      />
-                      <FormControl size="small" sx={{ flex: 1, width: '50%' }}>
-                        <Select
-                          value={settings.time_filter_unit || 'm'}
-                          onChange={(e) => handleChange('time_filter_unit', e.target.value)}
-                          displayEmpty
-                        >
+                      <TextField fullWidth size="small" type="number" value={settings.time_filter_duration || ''} onChange={(e) => handleChange('time_filter_duration', Number(e.target.value))} sx={{ flex: 1 }} />
+                      <FormControl size="small" sx={{ flex: 1 }}>
+                        <Select value={settings.time_filter_unit || 'm'} onChange={(e) => handleChange('time_filter_unit', e.target.value)}>
                           <MenuItem value="m">{t('minute')}</MenuItem>
                           <MenuItem value="h">{t('hour')}</MenuItem>
                           <MenuItem value="d">{t('day')}</MenuItem>
@@ -449,66 +313,36 @@ const AdvancedSettingsTab: React.FC = () => {
                 </Stack>
               </Box>
 
-              {/* 5. 로그 스트리밍 설정 */}
               <Box>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  {t('logStreamSettings')}
-                </Typography>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('logStreamSettings')}</Typography>
                 <Divider sx={{ mb: 2 }} />
                 <Stack spacing={3}>
                   <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-                      {t('logStreamSize')}
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        value={settings.log_stream_size ?? 1000}
-                        onChange={(e) => handleChange('log_stream_size', Number(e.target.value))}
-                        helperText={t('logStreamSizeDesc')}
-                      />
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('logStreamSize')}</Typography>
+                    <TextField fullWidth size="small" type="number" value={settings.log_stream_size ?? 1000} onChange={(e) => handleChange('log_stream_size', Number(e.target.value))} helperText={t('logStreamSizeDesc')} />
                   </Box>
                   <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>
-                      {t('logStreamRefresh')}
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        value={settings.log_stream_refresh ?? 10}
-                        onChange={(e) => handleChange('log_stream_refresh', Number(e.target.value))}
-                        helperText={t('logStreamRefreshDesc')}
-                      />
+                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('logStreamRefresh')}</Typography>
+                    <TextField fullWidth size="small" type="number" value={settings.log_stream_refresh ?? 10} onChange={(e) => handleChange('log_stream_refresh', Number(e.target.value))} helperText={t('logStreamRefreshDesc')} />
                   </Box>
                 </Stack>
               </Box>
 
-              {/* 6. 너드 설정 (고급 설정 화면에서 "pixel?" 입력 시 언락) */}
-              {(nerdUnlocked || settings.pixel_mode) && <Box>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                  {t('nerdSettings')}
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.pixel_mode || false}
-                      onChange={(e) => handleChange('pixel_mode', e.target.checked)}
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body2">{t('pixelMode')}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {t('pixelModeDesc')}
-                      </Typography>
-                    </Box>
-                  }
-                />
-              </Box>}
+              {(nerdUnlocked || settings.pixel_mode) && (
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{t('nerdSettings')}</Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  <FormControlLabel
+                    control={<Switch checked={settings.pixel_mode || false} onChange={(e) => handleChange('pixel_mode', e.target.checked)} color="primary" />}
+                    label={
+                      <Box>
+                        <Typography variant="body2">{t('pixelMode')}</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('pixelModeDesc')}</Typography>
+                      </Box>
+                    }
+                  />
+                </Box>
+              )}
             </Stack>
           </Paper>
         </Box>

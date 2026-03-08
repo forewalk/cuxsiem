@@ -342,8 +342,7 @@ function App() {
             }
 
             /* 차트 내 축 라벨 폰트 크기 축소 (겹침 방지) */
-            #threat-dashboard-grid-container .MuiTypography-caption,
-            #agent-dashboard-grid-container .MuiTypography-caption {
+            #threat-dashboard-grid-container .MuiTypography-caption {
               font-size: 8px !important;
               line-height: 1 !important;
             }
