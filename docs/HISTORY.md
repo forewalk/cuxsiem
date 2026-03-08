@@ -25,11 +25,11 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-06 16:40 | 박지은 | 배포 | origin/develop push (Webhook 알림 채널 추가, 활동 내역 페이지 생성, 발송 결과 표시, 메시지 템플릿 JSON 렌더링 수정, 기본 인덱스 edr 변경) |
 | 2026-03-06 16:45 | 최지호 | 수리 | User 인터페이스 deleted_at 속성 누락으로 인한 프론트엔드 빌드 오류 수정 |
 | 2026-03-06 15:43 | 최지호 | 수정 | edr 리스트 추가, 리스트 횡이동 버튼 추가, 에이전트 리스트 그래프 삭제 |
-| 2026-03-06 02:00 | 박지은 | 배포 | origin/develop push (Webhook 알림 채널 추가, 활동 내역 페이지 생성, 발송 결과 표시, 메시지 템플릿 JSON 렌더링 수정, 기본 인덱스 edr 변경) |
+| 2026-03-06 16:40 | 박지은 | 배포 | origin/develop push (Webhook 알림 채널 추가, 활동 내역 페이지 생성, 발송 결과 표시, 메시지 템플릿 JSON 렌더링 수정, 기본 인덱스 edr 변경) |
 | 2026-03-05 19:00 | 김장훈 | 배포 | origin/develop push (OTP 초기화, OpenSearch 초기화 파일 정비, 빌드 오류 수정) |
-| 2026-03-05 14:34 | 최지호 | 수정 | 리스트 타임스탬프 타임존 버그 수정 |
 | 2026-03-05 11:12 | 최지호 | 수정 | 사용자 설정 헤더 버그 수정 |
 | 2026-03-05 11:05| 박지은 | 수정 | 알림 규칙 모달 UI 개선 (트리거 조건 OpenSearch 응답 직접 참조, 쿼리 결과 raw JSON 표시, i18n 처리) |
 | 2026-03-05 10:35 | 최지호 | 수정 | origin/feature/dashboard push (사용자 설정 표 수정) |
@@ -187,7 +187,7 @@
 | 2026-01-30 15:30 | 김장훈 | 추가 | backend/test_opensearch_connection.py OpenSearch 접속 테스트 스크립트 |
 | 2026-01-30 15:30 | 김장훈 | 수정 | backend/.env.example OPENSEARCH_USE_SSL=false 변경 (SSL 미사용) |
 | 2026-01-30 15:30 | 김장훈 | 수정 | ASSISTANT.md OpenSearch 인덱스 명명 규칙 (.cs- → cs_) |
-| 2026-01-29 22:50 | 김장훈 | 배포 | origin/develop push (HISTORY 규칙 강화, README 갱신, push 이력 의무화) |
+| 2026-01-29 22:50 | 김장훈 | 배포 | origin/develop push (HISTORY 규칙 강화, README 갱신, push i력 의무화) |
 | 2026-01-29 22:50 | 김장훈 | 수정 | README.md 문서 테이블에 ASSISTANT.md 추가, CLAUDE.md/GEMINI.md 설명 갱신 |
 | 2026-01-29 22:48 | 김장훈 | 수정 | HISTORY.md 날짜+시간 형식 변경, 원격 Git Push 이력 기록 의무화 |
 | 2026-01-29 22:48 | 김장훈 | 수정 | ASSISTANT.md 필수 행동 강령 추가 (Push 시 HISTORY.md 기록 의무) |
