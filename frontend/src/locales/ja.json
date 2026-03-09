@@ -151,6 +151,7 @@
   "last": "過去",
   "indexTitle": "インデックス",
   "searchPlaceholder": "ログ検索 (例: endpoint.os:windows)",
+  "alertSearchPlaceholder": "ルール名、メッセージ検索...",
   "lastUpdated": "最終更新",
   "totalLogs": "全ログ (フィルタ済)",
   "logActivityTrend": "ログ発生推移",

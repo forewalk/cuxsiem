@@ -150,6 +150,7 @@
   "last": "最近",
   "indexTitle": "索引",
   "searchPlaceholder": "搜索日志 (例如 endpoint.os:windows)",
+  "alertSearchPlaceholder": "按规则名、消息搜索...",
   "lastUpdated": "上次更新",
   "totalLogs": "总日志数 (已过滤)",
   "logActivityTrend": "日志生成趋势",
