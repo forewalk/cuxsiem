@@ -75,9 +75,7 @@ class AlertBase(BaseModel):
     message_template: str = Field(description="원본 메시지 템플릿")
     
     # 이벤트 관련
-    event_ref: str = Field(description="탐지된 Document ID")
     event_index: str = Field(description="원본 인덱스명")
-    event_source: Optional[Dict[str, Any]] = Field(default=None, description="원본 Document의 _source")
     
     # 중복 제거
     dedup_key: str

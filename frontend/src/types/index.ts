@@ -164,16 +164,13 @@ export interface NotificationHistory {
   message_template: string;     // 원본 템플릿
 
   // 이벤트 관련
-  event_ref: string;            // Document ID
   event_index: string;          // 원본 인덱스명
-  event_source?: Record<string, unknown>;  // 원본 _source
 
   // 기타
   dedup_key: string;
   receiver: NotificationReceiver | null;
   status: string;
   error_message: string | null;
-  severity: string | null;
   created_at: string;
 
   // 하위 호환성 (기존 코드와 호환)

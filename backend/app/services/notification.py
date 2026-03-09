@@ -386,14 +386,7 @@ class NotificationService:
             "message_template": message_template,
 
             # 집계 알림 특성
-            "event_ref": f"aggregation_{rule_id}",
             "event_index": target_index,
-            "event_source": {
-                "type": "aggregation",
-                "total": total,
-                "aggregations": aggregations,
-                "hits": hit_sources[:10]
-            },
 
             # 중복 제거 및 수신자
             "dedup_key": dedup_key,

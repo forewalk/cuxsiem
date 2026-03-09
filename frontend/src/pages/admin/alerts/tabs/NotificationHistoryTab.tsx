@@ -61,7 +61,7 @@ const NotificationRow: React.FC<{
           {formatDateTime(row.created_at)}
         </TableCell>
         <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-          <SeverityChip severity={row.rule_severity || row.severity} />
+          <SeverityChip severity={row.rule_severity || row.rule_severity} />
         </TableCell>
         <TableCell width={200} sx={{
           ...ALERT_TABLE_STYLES.bodyCell,
@@ -330,7 +330,7 @@ const NotificationHistoryTab: React.FC = () => {
                 <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
               ) : (
                 notifications
-                  .filter(row => selectedSeverities.length === 0 || (row.severity && selectedSeverities.includes(row.severity.toLowerCase())))
+                  .filter(row => selectedSeverities.length === 0 || (row.rule_severity && selectedSeverities.includes(row.rule_severity.toLowerCase())))
                   .map((row) => (
                     <NotificationRow
                       key={row.id}
