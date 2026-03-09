@@ -116,11 +116,7 @@ export interface NotificationRule {
   trigger_condition?: string;
   receiver: NotificationReceiver;
   is_active: boolean;
-  last_run_at?: string;
-  last_success_at?: string;
   last_triggered_at?: string;
-  last_error?: string;
-  error_count: number;
   total_alerts_count: number;
   created_at: string;
   updated_at: string;

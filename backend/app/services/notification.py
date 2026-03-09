@@ -447,12 +447,6 @@ class NotificationService:
             total = result.get("hits", {}).get("total", {}).get("value", 0)
             aggregations = result.get("aggregations") or result.get("aggs") or {}
 
-            await self.repository.update_rule(rule_id, {
-                "last_success_at": now.isoformat(),
-                "error_count": 0,
-                "last_error": None
-            })
-
             # 트리거 조건 체크 (공통)
             trigger_condition = rule.get("trigger_condition")
             if trigger_condition:
@@ -473,10 +467,5 @@ class NotificationService:
             return None
 
         except Exception as e:
-            error_msg = str(e)
-            logger.error(f"규칙 {rule_id} 탐지 실행 오류: {error_msg}")
-            await self.repository.update_rule(rule_id, {
-                "last_error": error_msg,
-                "error_count": rule.get("error_count", 0) + 1
-            })
+            logger.error(f"규칙 {rule_id} 탐지 실행 오류: {e}")
             return None
