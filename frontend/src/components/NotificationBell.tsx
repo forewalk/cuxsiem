@@ -1,24 +1,32 @@
-import React, { useState, useCallback } from 'react';
-import {
-  IconButton, Badge, Popover, Box, Typography,
-  List, ListItem, Divider, Button, CircularProgress, Chip
-} from '@mui/material';
+import { useTranslation } from '@/hooks/useTranslation';
+import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
+import { notificationService } from '@/services/notificationService';
+import useTabStore from '@/stores/tabStore';
+import { useLanguageStore } from '@/stores/useLanguageStore';
+import type { NotificationHistory } from '@/types';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import {
+  Badge,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Divider,
+  IconButton,
+  List, ListItem,
+  Popover,
+  Typography
+} from '@mui/material';
 import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import utc from 'dayjs/plugin/utc';
-import 'dayjs/locale/ko';
 import 'dayjs/locale/en';
 import 'dayjs/locale/ja';
+import 'dayjs/locale/ko';
 import 'dayjs/locale/zh-cn';
-import { notificationService } from '@/services/notificationService';
-import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
-import useTabStore from '@/stores/tabStore';
-import { useLanguageStore } from '@/stores/useLanguageStore';
-import { useTranslation } from '@/hooks/useTranslation';
-import type { NotificationHistory } from '@/types';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import utc from 'dayjs/plugin/utc';
+import React, { useCallback, useState } from 'react';
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
@@ -86,7 +94,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
         onClose={handleClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { width: 360, maxHeight: 480, display: 'flex', flexDirection: 'column' } } }}
+        slotProps={{ paper: { sx: { mt: 1.5, width: 360, maxHeight: 480, display: 'flex', flexDirection: 'column', boxShadow: 0, border: '1px solid', borderColor: 'divider' } } }}
       >
         {/* 헤더 */}
         <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -130,20 +138,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
                         {dayjs.utc(n.created_at).local().locale(dayjsLocale).fromNow()}
                       </Typography>
                     </Box>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        lineHeight: 1.5,
-                        width: '100%',
-                      }}
-                    >
-                      {n.message?.split('\n')[0]}
-                    </Typography>
                   </ListItem>
                   {idx < notifications.length - 1 && <Divider />}
                 </React.Fragment>
