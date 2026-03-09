@@ -13,7 +13,7 @@ class NotificationRepository:
 
     def __init__(self):
         self.client = get_opensearch_client()
-        self.rules_index = "cs_notification_rules"
+        self.rules_index = "cs_alert_rules"
         self.alerts_index = "cs_alerts"
 
     # --- Notification Rules ---
@@ -154,11 +154,7 @@ class NotificationRepository:
         rule_data.update({
             "id": rule_id,
             "created_at": now,
-            "updated_at": now,
-            "error_count": 0,
-            "total_alerts_count": 0,
-            "last_error": None
-        })
+            "updated_at": now        })
 
         def insert():
             self.client.index(

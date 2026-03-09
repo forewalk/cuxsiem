@@ -65,7 +65,6 @@ try:
                 "message_template": {"type": "text"},
                 "severity": {"type": "keyword"},
                 "interval_min": {"type": "integer"},
-                "dedup_key_template": {"type": "keyword"},
                 "trigger_condition": {"type": "text"},
                 "channels": { 
                     "properties": {

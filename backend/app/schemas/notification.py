@@ -19,12 +19,6 @@ class NotificationRuleBase(BaseModel):
     # 주기 설정
     interval_min: int = Field(ge=1, le=1440, description="쿼리 실행 주기(분)")
     
-    # 중복 제거 설정
-    dedup_key_template: str = Field(
-        default="{{rule_id}}_{{_id}}",
-        description="중복 키 생성을 위한 템플릿 (이벤트 ID 기반 중복 제거)"
-    )
-    
     # 트리거 조건 (선택적)
     trigger_condition: Optional[str] = Field(
         default=None,
@@ -43,7 +37,6 @@ class NotificationRuleUpdate(BaseModel):
     message_template: Optional[str] = None
     severity: Optional[str] = None
     interval_min: Optional[int] = Field(None, ge=1)
-    dedup_key_template: Optional[str] = None
     trigger_condition: Optional[str] = None
     receiver: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None

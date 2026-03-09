@@ -1,28 +1,36 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import dayjs from 'dayjs';
-import {
-  Box, Typography, Paper, Stack, Divider, LinearProgress, Chip,
-  IconButton, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Collapse, TablePagination
-} from '@mui/material';
-import {
-  Notifications as NotificationsIcon,
-  KeyboardArrowDown as ExpandMoreIcon,
-  KeyboardArrowUp as ExpandLessIcon,
-  FilterList as FilterListIcon
-} from '@mui/icons-material';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { notificationService } from '@/services/notificationService.ts';
-import { useSettingsStore } from '@/stores/useSettingsStore';
-import { getAlertWsUrl } from '@/utils/wsUtils';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
+import { useSettingsStore } from '@/stores/useSettingsStore';
 import type { NotificationHistory } from '@/types';
 import { getRoleName } from '@/utils/roleUtils';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { getAlertWsUrl } from '@/utils/wsUtils';
+import {
+  KeyboardArrowUp as ExpandLessIcon,
+  KeyboardArrowDown as ExpandMoreIcon,
+  FilterList as FilterListIcon,
+  Notifications as NotificationsIcon
+} from '@mui/icons-material';
+import {
+  Box,
+  Chip,
+  Collapse,
+  Divider,
+  IconButton,
+  LinearProgress,
+  Paper, Stack,
+  Table, TableBody, TableCell, TableContainer, TableHead,
+  TablePagination,
+  TableRow,
+  Typography
+} from '@mui/material';
+import dayjs from 'dayjs';
+import React, { useCallback, useEffect, useState } from 'react';
 import AlertsControlBar from "../components/AlertsControlBar";
-import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
 import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS } from '../components/AlertTableStyles';
-import { useTranslation } from '@/hooks/useTranslation';
 
 // 행 컴포넌트
 const NotificationRow: React.FC<{
@@ -55,9 +63,9 @@ const NotificationRow: React.FC<{
         <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
           <SeverityChip severity={row.rule_severity || row.severity} />
         </TableCell>
-        <TableCell width={200} sx={{ 
-          ...ALERT_TABLE_STYLES.bodyCell, 
-          fontWeight: 'bold',
+        <TableCell width={200} sx={{
+          ...ALERT_TABLE_STYLES.bodyCell,
+          fontWeight: 'normal',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
@@ -88,9 +96,9 @@ const NotificationRow: React.FC<{
         <TableCell colSpan={5}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
-              <Typography 
-                variant="body1" 
-                sx={{ 
+              <Typography
+                variant="body1"
+                sx={{
                   color: 'text.primary',
                   fontWeight: 'medium',
                   p: 2,
@@ -106,8 +114,8 @@ const NotificationRow: React.FC<{
                   overflowWrap: 'break-word',
                   lineHeight: 1.8,
                   '&::-webkit-scrollbar': { width: 6, height: 6 },
-                  '&::-webkit-scrollbar-thumb': { 
-                    bgcolor: 'rgba(0,0,0,0.2)', 
+                  '&::-webkit-scrollbar-thumb': {
+                    bgcolor: 'rgba(0,0,0,0.2)',
                     borderRadius: 3,
                     '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' }
                   }
@@ -154,30 +162,30 @@ const NotificationHistoryTab: React.FC = () => {
     fetchRoleCodes();
   }, [fetchRoleCodes]);
 
-    // 고급 설정 로드 및 연동
-    useEffect(() => {
-      fetchSettings();
-    }, [fetchSettings]);
-  
-    useEffect(() => {
-      if (settings) {
-        if (settings.pagination_size) {
-          setRowsPerPage(settings.pagination_size);
-          setRowsPerPageOptions(prev => {
-            const newOptions = [...prev];
-            if (!newOptions.includes(settings.pagination_size!)) {
-              newOptions.unshift(settings.pagination_size!);
-              return newOptions.sort((a, b) => a - b);
-            }
-            return newOptions;
-          });
-        }
-        if (settings.time_filter_duration && settings.time_filter_unit) {
-          setFromValue(settings.time_filter_duration);
-          setFromUnit(settings.time_filter_unit);
-        }
+  // 고급 설정 로드 및 연동
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    if (settings) {
+      if (settings.pagination_size) {
+        setRowsPerPage(settings.pagination_size);
+        setRowsPerPageOptions(prev => {
+          const newOptions = [...prev];
+          if (!newOptions.includes(settings.pagination_size!)) {
+            newOptions.unshift(settings.pagination_size!);
+            return newOptions.sort((a, b) => a - b);
+          }
+          return newOptions;
+        });
       }
-    }, [settings]);  // 시간 범위를 ISO 날짜로 변환
+      if (settings.time_filter_duration && settings.time_filter_unit) {
+        setFromValue(settings.time_filter_duration);
+        setFromUnit(settings.time_filter_unit);
+      }
+    }
+  }, [settings]);  // 시간 범위를 ISO 날짜로 변환
   const calculateTimeRange = useCallback(() => {
     const now = dayjs();
     let from_date: string | undefined;
