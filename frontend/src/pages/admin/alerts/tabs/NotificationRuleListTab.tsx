@@ -64,24 +64,23 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
     query: {
       bool: {
         must: [{match_all: {}}],
-        filter: [{range: {"@timestamp": {gte: "now-2m"}}}]
+        filter: [{range: {"@timestamp": {gte: "now-5m"}}}]
       }
     },
     size: 100
   },
-  message_template: `총 {{total}}건의 위협이 탐지되었습니다.
+  message_template: `[{{meta.event.name}}] 총 {{total}}건 탐지
 
-위협 ID:
-{{threatInfo.threatId}}
+호스트: {{endpoint.name}} ({{endpoint.os}})
+이벤트: {{event.type}} / {{event.category}}
 
-위협 이름:
-{{threatInfo.threatName}}
+프로세스: {{src.process.name}} (PID: {{src.process.pid}})
+실행 경로: {{src.process.image.path}}
+실행 사용자: {{src.process.user}}
+명령어: {{src.process.cmdline}}
 
-영향받은 PC:
-{{agentDetectionInfo.agentComputerName}}
-
-계정:
-{{agentRealtimeInfo.accountName}}`,
+출발지: {{src.ip.address}}:{{src.port.number}}
+목적지: {{dst.ip.address}}:{{dst.port.number}}`,
   severity: 'info',
   interval_min: 1,
   dedup_key_template: '{{rule_id}}_{{_id}}',
@@ -243,11 +242,6 @@ const NotificationRuleListTab: React.FC = () => {
         
         return match;
       });
-    } else {
-      // 샘플 데이터로 렌더링
-      preview = preview.replace(/\{\{total\}\}/g, '15');
-      preview = preview.replace(/\{\{threatInfo\.threatName\}\}/g, 'Threat1\nThreat2\nThreat3');
-      preview = preview.replace(/\{\{agentDetectionInfo\.agentComputerName\}\}/g, 'DESKTOP-001\nDESKTOP-002');
     }
     
     return preview;
