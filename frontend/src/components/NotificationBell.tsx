@@ -126,7 +126,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
                     sx={{ px: 2, py: 1.5, flexDirection: 'column', gap: 0.5 }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                      <SeverityChip severity={n.rule_severity || n.severity} />
+                      <SeverityChip severity={n.rule_severity} />
                       <Typography
                         variant="body2"
                         fontWeight={600}
