@@ -38,7 +38,6 @@ class DetectionScheduler:
                 else:
                     try:
                         last_run_dt = datetime.fromisoformat(last_run_at.replace('Z', '+00:00'))
-                        # naive datetime이면 UTC로 간주 (timezone 충돌 방지)
                         if last_run_dt.tzinfo is None:
                             last_run_dt = last_run_dt.replace(tzinfo=timezone.utc)
                         elapsed_minutes = (now - last_run_dt).total_seconds() / 60

@@ -115,7 +115,6 @@ const ThreatListTab: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const initializedRef = useRef(false);
 
-
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   useEffect(() => {
@@ -188,7 +187,6 @@ const ThreatListTab: React.FC = () => {
     if (value === null || value === undefined) return "-";
     return typeof value === 'object' ? JSON.stringify(value) : String(value);
   };
-
 
   const flattenObject = (obj: any, prefix = ""): Record<string, any> => {
     return Object.keys(obj).reduce((acc: any, k: string) => {

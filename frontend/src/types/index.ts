@@ -113,15 +113,10 @@ export interface NotificationRule {
   message_template: string;
   severity: string;
   interval_min: number;
-  dedup_key_template: string;
   trigger_condition?: string;
   receiver: NotificationReceiver;
   is_active: boolean;
-  last_run_at?: string;
-  last_success_at?: string;
   last_triggered_at?: string;
-  last_error?: string;
-  error_count: number;
   total_alerts_count: number;
   created_at: string;
   updated_at: string;
@@ -135,7 +130,6 @@ export interface NotificationRuleCreate {
   message_template: string;
   severity: string;
   interval_min: number;
-  dedup_key_template: string;
   trigger_condition?: string;
   receiver: NotificationReceiver;
   is_active: boolean;
@@ -149,7 +143,6 @@ export interface NotificationRuleUpdate {
   message_template?: string;
   severity?: string;
   interval_min?: number;
-  dedup_key_template?: string;
   trigger_condition?: string;
   receiver?: NotificationReceiver;
   is_active?: boolean;
@@ -171,23 +164,14 @@ export interface NotificationHistory {
   message_template: string;     // 원본 템플릿
 
   // 이벤트 관련
-  event_ref: string;            // Document ID
   event_index: string;          // 원본 인덱스명
-  event_source?: Record<string, unknown>;  // 원본 _source
 
   // 기타
   dedup_key: string;
   receiver: NotificationReceiver | null;
   status: string;
   error_message: string | null;
-  severity: string | null;
   created_at: string;
-
-  // 채널별 발송 결과
-  delivery_results?: {
-    websocket?: { status: string; sent_at?: string; targets?: string[]; error?: string | null };
-    webhook?: { status: string; sent_at?: string; url?: string | null; status_code?: number | null; error?: string | null };
-  };
 
   // 하위 호환성 (기존 코드와 호환)
   title?: string;

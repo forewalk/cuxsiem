@@ -151,6 +151,7 @@
   "last": "Last",
   "indexTitle": "Index",
   "searchPlaceholder": "Search logs (e.g. endpoint.os:windows)",
+  "alertSearchPlaceholder": "Search by rule name, message...",
   "lastUpdated": "Last updated",
   "totalLogs": "Total Logs (Filtered)",
   "noLogs": "No Logs",
