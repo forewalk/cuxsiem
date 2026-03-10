@@ -156,8 +156,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
   };
 
   const handleRemoveFilter = (filterToRemove: string) => {
-    const filters = searchQuery.split(" AND ").map(s => s.trim());
-    const newFilters = filters.filter(f => f !== filterToRemove);
+    // 공백을 포함한 정확한 매칭을 위해 trim 처리
+    const filters = searchQuery.split(" AND ");
+    const newFilters = filters.filter(f => f.trim() !== filterToRemove.trim());
     onSearchQueryChange(newFilters.join(" AND "));
   };
 

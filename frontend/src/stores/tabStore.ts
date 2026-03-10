@@ -56,7 +56,24 @@ const useTabStore = create<TabState>((set, get) => ({
 
   removeTab: (id) => {
     const { tabs, activeTabId } = get();
+    const tabToRemove = tabs.find((t) => t.id === id);
     const newTabs = tabs.filter((tab) => tab.id !== id);
+
+    // 탭 삭제 시 해당 스토어 리셋
+    if (tabToRemove) {
+      import('./useDashboardStore').then(m => {
+        if (tabToRemove.component === 'DashboardTab') m.default.getState().reset();
+      });
+      import('./useThreatStore').then(m => {
+        if (tabToRemove.component === 'ThreatListTab') m.default.getState().reset();
+      });
+      import('./useEdrStore').then(m => {
+        if (tabToRemove.component === 'EdrListTab') m.default.getState().reset();
+      });
+      import('./useAgentStore').then(m => {
+        if (tabToRemove.component === 'AgentListTab') m.default.getState().reset();
+      });
+    }
 
     let newActiveTabId = activeTabId;
     if (activeTabId === id) {

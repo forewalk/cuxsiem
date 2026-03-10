@@ -14,7 +14,7 @@ import type { DashboardStatsResponse, DashboardPanel } from "../../../services/d
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useAuth } from "../../../hooks/useAuth";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
-import useThreatStore from "../../../stores/useThreatStore";
+import useDashboardStore from "../../../stores/useDashboardStore";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -264,7 +264,7 @@ const DashboardTab: React.FC = () => {
   const navigate = useNavigate();
   
   // 전역 스토어 사용
-  const { searchQuery, timeRange, setSearchQuery, setTimeRange } = useThreatStore();
+  const { searchQuery, timeRange, setSearchQuery, setTimeRange } = useDashboardStore();
   
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [originalPanels, setOriginalPanels] = useState<DashboardPanel[] | null>(null);
@@ -300,7 +300,7 @@ const DashboardTab: React.FC = () => {
     const fromDt = searchParams.get('fromDate');
     const toDt = searchParams.get('toDate');
 
-    const currentStore = useThreatStore.getState();
+    const currentStore = useDashboardStore.getState();
     
     // 쿼리 업데이트
     if (hasQueryParam && currentStore.searchQuery !== query) {
