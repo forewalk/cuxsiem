@@ -442,7 +442,7 @@ export const LoginPage: React.FC = () => {
               <img 
                 src="/Shinhan-Bank.svg" 
                 alt="Logo" 
-                style={{ width: "200%", height: "200%", objectFit: "contain" }} 
+                style={{ width: "100%", height: "100%", objectFit: "contain" }} 
               />
             </Box>
           </Box>
