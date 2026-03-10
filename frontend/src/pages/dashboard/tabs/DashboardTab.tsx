@@ -302,8 +302,8 @@ const DashboardTab: React.FC = () => {
 
     const currentStore = useDashboardStore.getState();
     
-    // 쿼리 업데이트
-    if (hasQueryParam && currentStore.searchQuery !== query) {
+    // 쿼리 업데이트 (파라미터가 없으면 ""으로 초기화)
+    if (currentStore.searchQuery !== query) {
       setSearchQuery(query);
     }
 

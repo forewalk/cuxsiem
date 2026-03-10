@@ -144,12 +144,14 @@ const EdrListTab: React.FC = () => {
       const toUn = searchParams.get('edrToUnit') || 'm';
       const fromDt = searchParams.get('edrFromDate');
       const toDt = searchParams.get('edrToDate');
-      
+
       const currentStore = useEdrStore.getState();
-      
-      if (hasQueryParam && currentStore.searchQuery !== query) {
+
+      // 파라미터가 없으면 초기값("")으로 설정하여 필터 삭제 반영
+      if (currentStore.searchQuery !== query) {
         setSearchQuery(query);
       }
+
       if (hasCategoryParam && currentStore.activeCategory !== category) {
         setActiveCategory(category);
       }
