@@ -240,7 +240,6 @@ const ThreatListTab: React.FC = () => {
   }, [language]);
 
   const handleTimeChange = (fV: number | null, fU: string, tV: number | null, tU: string, fD: string | null = null, tD: string | null = null) => {
-    setTimeRange({ fromValue: fV, fromUnit: fU, toValue: tV, toUnit: tU, fromDate: fD, toDate: tD });
     const newParams = new URLSearchParams(searchParams);
     if (fV !== null) newParams.set('threatFromValue', fV.toString()); else newParams.delete('threatFromValue');
     if (fU) newParams.set('threatFromUnit', fU); else newParams.delete('threatFromUnit');
@@ -252,7 +251,6 @@ const ThreatListTab: React.FC = () => {
   };
 
   const handleSearchQueryChange = (q: string) => {
-    setSearchQuery(q);
     const newParams = new URLSearchParams(searchParams);
     if (q) newParams.set('threatQuery', q); else newParams.delete('threatQuery');
     navigate(`?${newParams.toString()}`, { replace: false });
@@ -276,10 +274,13 @@ const ThreatListTab: React.FC = () => {
       const filteredFieldList = fieldList.filter(f => !f.name.toLowerCase().startsWith("kubernetesinfo.") && !f.name.toLowerCase().startsWith("containerinfo.") && !f.name.toLowerCase().startsWith("ecsinfo."));
       setFields([{ name: "_source", type: "code" }, ...filteredFieldList]);
     } catch (err) { setError("Failed to load data."); } finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize, searchParams]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setPage(0); }, [searchParams]);
+  useEffect(() => { 
+    // 실제 필터가 변경되었을 때만 페이지 리셋
+    setPage(0); 
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
 
   const handleBarClick = (s: string, e: string) => { handleTimeChange(null, "m", null, "m", s, e); };
 

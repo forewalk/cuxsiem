@@ -356,14 +356,13 @@ const DashboardTab: React.FC = () => {
       if (stats && stats.summary) { setData(stats); }
     } catch (err) { console.error("Error fetching dashboard data:", err); }
     finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, searchParams]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
 
   useEffect(() => { 
     if (!isEditMode) fetchData(); 
   }, [fetchData, isEditMode]);
 
   const handleTimeChange = useCallback((fv: number | null, fu: string, tv: number | null, tu: string, fd: string | null, td: string | null) => {
-    setTimeRange({ fromValue: fv, fromUnit: fu, toValue: tv, toUnit: tu, fromDate: fd, toDate: td });
     // URLSearchParams 업데이트 (navigate 사용)
     const newParams = new URLSearchParams(searchParams);
     if (fv !== null) newParams.set('fromValue', fv.toString()); else newParams.delete('fromValue');
@@ -373,16 +372,15 @@ const DashboardTab: React.FC = () => {
     if (fd) newParams.set('fromDate', fd); else newParams.delete('fromDate');
     if (td) newParams.set('toDate', td); else newParams.delete('toDate');
     navigate(`?${newParams.toString()}`, { replace: false });
-  }, [setTimeRange, searchParams, navigate]);
+  }, [searchParams, navigate]);
 
   const handleSearchQueryChange = useCallback((q: string) => {
-    setSearchQuery(q);
     // URLSearchParams 업데이트 (navigate 사용)
     const newParams = new URLSearchParams(searchParams);
     if (q) newParams.set('query', q);
     else newParams.delete('query');
     navigate(`?${newParams.toString()}`, { replace: false });
-  }, [setSearchQuery, searchParams, navigate]);
+  }, [searchParams, navigate]);
 
   const handleEditToggle = () => { if (!isEditMode) setOriginalPanels(data?.panels ? JSON.parse(JSON.stringify(data.panels)) : null); setIsEditMode(!isEditMode); };
   const handleCancel = () => { if (originalPanels && data) setData({ ...data, panels: JSON.parse(JSON.stringify(originalPanels)) }); setEditingTitleKey(null); setIsEditMode(false); };

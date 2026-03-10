@@ -301,7 +301,6 @@ const EdrListTab: React.FC = () => {
   }, [language]);
 
   const handleTimeChange = (fV: number | null, fU: string, tV: number | null, tU: string, fD: string | null = null, tD: string | null = null) => {
-    setTimeRange({ fromValue: fV, fromUnit: fU, toValue: tV, toUnit: tU, fromDate: fD, toDate: tD });
     const newParams = new URLSearchParams(searchParams);
     if (fV !== null) newParams.set('edrFromValue', fV.toString()); else newParams.delete('edrFromValue');
     if (fU) newParams.set('edrFromUnit', fU); else newParams.delete('edrFromUnit');
@@ -313,14 +312,12 @@ const EdrListTab: React.FC = () => {
   };
 
   const handleSearchQueryChange = (q: string) => {
-    setSearchQuery(q);
     const newParams = new URLSearchParams(searchParams);
     if (q) newParams.set('edrQuery', q); else newParams.delete('edrQuery');
     navigate(`?${newParams.toString()}`, { replace: false });
   };
 
   const handleCategoryChange = (category: string) => {
-    setActiveCategory(category);
     // URL 파라미터 업데이트
     const newParams = new URLSearchParams(searchParams);
     if (category !== 'all') newParams.set('edrCategory', category); else newParams.delete('edrCategory');
@@ -355,10 +352,13 @@ const EdrListTab: React.FC = () => {
       setData(stats); setLogs(logList);
       setFields([{ name: "_source", type: "code" }, ...fieldList]);
     } catch (err) { setError("Failed to load EDR data."); } finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, activeCategory, page, pageSize, searchParams]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, activeCategory, page, pageSize]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setPage(0); }, [searchParams]);
+  useEffect(() => { 
+    // 필터가 실제로 변경되었을 때만 페이지 리셋
+    setPage(0); 
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, activeCategory]);
 
   const handleExportExcel = useCallback(() => {
     if (!logs || logs.length === 0) return;
