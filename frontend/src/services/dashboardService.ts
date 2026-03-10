@@ -124,3 +124,27 @@ export const saveDashboardLayout = async (dashboardId: string, panels: Dashboard
 export const resetDashboard = async (dashboardId: string): Promise<void> => {
   await api.post(`/api/v1/dashboard/reset/${dashboardId}`);
 };
+
+/**
+ * 사용자별 리스트 컬럼 순서 조회
+ */
+export const getColumnSettings = async (viewId: string): Promise<string[]> => {
+  const response = await api.get<string[]>(`/api/v1/dashboard/columns/${viewId}`);
+  return response.data;
+};
+
+/**
+ * 사용자별 리스트 컬럼 순서 저장
+ */
+export const saveColumnSettings = async (viewId: string, columns: string[]): Promise<boolean> => {
+  const response = await api.post(`/api/v1/dashboard/columns/${viewId}`, columns);
+  return response.data.status === "success";
+};
+
+/**
+ * 사용자별 리스트 컬럼 순서 초기화
+ */
+export const resetColumnSettings = async (viewId: string): Promise<boolean> => {
+  const response = await api.delete(`/api/v1/dashboard/columns/${viewId}`);
+  return response.data.status === "success";
+};

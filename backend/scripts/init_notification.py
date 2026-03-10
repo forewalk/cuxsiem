@@ -65,7 +65,6 @@ try:
                 "message_template": {"type": "text"},
                 "severity": {"type": "keyword"},
                 "interval_min": {"type": "integer"},
-                "dedup_key_template": {"type": "keyword"},
                 "trigger_condition": {"type": "text"},
                 "channels": { 
                     "properties": {
@@ -101,10 +100,7 @@ try:
                 },
                 "is_active": {"type": "boolean"},
                 "last_run_at": {"type": "date"},
-                "last_success_at": {"type": "date"},
                 "last_triggered_at": {"type": "date"},
-                "last_error": {"type": "text"},
-                "error_count": {"type": "integer"},
                 "total_alerts_count": {"type": "integer"},
                 "created_at": {"type": "date"},
                 "updated_at": {"type": "date"},

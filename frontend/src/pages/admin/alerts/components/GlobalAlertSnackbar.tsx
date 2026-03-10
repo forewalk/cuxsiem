@@ -95,21 +95,6 @@ export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackb
               >
                 {snackbar.title}
               </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  opacity: 0.9, 
-                  fontSize: '0.85rem',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  lineHeight: 1.4
-                }}
-              >
-                {snackbar.message}
-              </Typography>
             </Box>
           </Alert>
         </Snackbar>

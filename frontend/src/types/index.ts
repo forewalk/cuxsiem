@@ -21,6 +21,7 @@ export interface User {
   otp_enabled: boolean;
   created_at: string;
   last_login_at: string | null;
+  deleted_at?: string | null;
 }
 
 export interface LoginRequest {
@@ -95,6 +96,13 @@ export interface IndexListResponse {
 }
 
 
+export interface NotificationReceiver {
+  type: string;
+  values: string[];
+  webhook_url?: string;
+  webhook_headers?: Record<string, string>;
+}
+
 // 알림 규칙
 export interface NotificationRule {
   id: string;
@@ -105,15 +113,10 @@ export interface NotificationRule {
   message_template: string;
   severity: string;
   interval_min: number;
-  dedup_key_template: string;
   trigger_condition?: string;
-  receiver: Record<string, unknown>;
+  receiver: NotificationReceiver;
   is_active: boolean;
-  last_run_at?: string;
-  last_success_at?: string;
   last_triggered_at?: string;
-  last_error?: string;
-  error_count: number;
   total_alerts_count: number;
   created_at: string;
   updated_at: string;
@@ -127,9 +130,8 @@ export interface NotificationRuleCreate {
   message_template: string;
   severity: string;
   interval_min: number;
-  dedup_key_template: string;
   trigger_condition?: string;
-  receiver: Record<string, unknown>;
+  receiver: NotificationReceiver;
   is_active: boolean;
 }
 
@@ -141,9 +143,8 @@ export interface NotificationRuleUpdate {
   message_template?: string;
   severity?: string;
   interval_min?: number;
-  dedup_key_template?: string;
   trigger_condition?: string;
-  receiver?: Record<string, unknown>;
+  receiver?: NotificationReceiver;
   is_active?: boolean;
 }
 
@@ -163,16 +164,13 @@ export interface NotificationHistory {
   message_template: string;     // 원본 템플릿
 
   // 이벤트 관련
-  event_ref: string;            // Document ID
   event_index: string;          // 원본 인덱스명
-  event_source?: Record<string, unknown>;  // 원본 _source
 
   // 기타
   dedup_key: string;
-  receiver: Record<string, unknown> | null;
+  receiver: NotificationReceiver | null;
   status: string;
   error_message: string | null;
-  severity: string | null;
   created_at: string;
 
   // 하위 호환성 (기존 코드와 호환)

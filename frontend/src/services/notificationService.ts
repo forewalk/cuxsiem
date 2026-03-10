@@ -88,5 +88,11 @@ export const notificationService = {
       params
     });
     return response.data;
+  },
+
+  /* Webhook 연결 테스트 */
+  testWebhook: async (url: string, headers?: Record<string, string>) => {
+    const response = await api.post('/api/v1/notifications/webhook/test', { url, headers });
+    return response.data;
   }
 };

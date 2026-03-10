@@ -13,7 +13,7 @@ class NotificationRepository:
 
     def __init__(self):
         self.client = get_opensearch_client()
-        self.rules_index = "cs_notification_rules"
+        self.rules_index = "cs_alert_rules"
         self.alerts_index = "cs_alerts"
 
     # --- Notification Rules ---
@@ -154,11 +154,7 @@ class NotificationRepository:
         rule_data.update({
             "id": rule_id,
             "created_at": now,
-            "updated_at": now,
-            "error_count": 0,
-            "total_alerts_count": 0,
-            "last_error": None
-        })
+            "updated_at": now        })
 
         def insert():
             self.client.index(
@@ -260,6 +256,23 @@ class NotificationRepository:
             )
             return alert_data
         return await loop.run_in_executor(None, insert)
+
+    async def update_alert(self, alert_id: str, data: Dict[str, Any]) -> bool:
+        """알림 문서 부분 업데이트 (delivery_results 등)"""
+        loop = asyncio.get_event_loop()
+        def update():
+            try:
+                self.client.update(
+                    index=self.alerts_index,
+                    id=alert_id,
+                    body={"doc": data},
+                    refresh=True,
+                )
+                return True
+            except Exception as e:
+                logger.error(f"알림 업데이트 실패 ({alert_id}): {e}")
+                return False
+        return await loop.run_in_executor(None, update)
 
     async def get_alert_by_dedup_key(self, dedup_key: str) -> Optional[Dict[str, Any]]:
         """dedup_key로 기존 알림 조회"""

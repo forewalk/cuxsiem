@@ -9,7 +9,7 @@ import PasswordPolicyTab from '../../pages/admin/tabs/PasswordPolicyTab';
 import DashboardTab from '../../pages/dashboard/tabs/DashboardTab';
 import ThreatListTab from '../../pages/dashboard/tabs/ThreatListTab';
 import AgentListTab from '../../pages/dashboard/tabs/AgentListTab';
-import AgentDashboardTab from '../../pages/dashboard/tabs/AgentDashboardTab';
+import EdrListTab from '../../pages/dashboard/tabs/EdrListTab';
 import LogStreamingTab from '../../pages/admin/tabs/LogStreamingTab';
 import NotificationRuleListTab from '../../pages/admin/alerts/tabs/NotificationRuleListTab';
 import NotificationHistoryTab from '../../pages/admin/alerts/tabs/NotificationHistoryTab';
@@ -27,7 +27,7 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   DashboardTab: DashboardTab,
   ThreatListTab: ThreatListTab,
   AgentListTab: AgentListTab,
-  AgentDashboardTab: AgentDashboardTab,
+  EdrListTab: EdrListTab,
   LogStreamingTab: LogStreamingTab,
   NotificationRuleListTab: NotificationRuleListTab,
   NotificationHistoryTab: NotificationHistoryTab,
@@ -179,9 +179,10 @@ const TabManager: React.FC = () => {
               key={tab.id}
               sx={{
                 height: '100%',
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                display: activeTabId === tab.id ? 'block' : 'none',
+                width: '100%',
+                overflow: 'hidden',
+                display: activeTabId === tab.id ? 'flex' : 'none',
+                flexDirection: 'column',
               }}
             >
               {TabComponent ? (

@@ -8,7 +8,7 @@ from datetime import datetime
 class NotificationRuleBase(BaseModel):
     name: str
     description: Optional[str] = None
-    target_index: str = "logs-sentinel_one.threats"
+    target_index: str = "logs-sentinel_one.edr"
     condition_config: Dict[str, Any]
     message_template: str = Field(
         default="Detected {{total}} events.",
@@ -18,12 +18,6 @@ class NotificationRuleBase(BaseModel):
     
     # 주기 설정
     interval_min: int = Field(ge=1, le=1440, description="쿼리 실행 주기(분)")
-    
-    # 중복 제거 설정
-    dedup_key_template: str = Field(
-        default="{{rule_id}}_{{_id}}",
-        description="중복 키 생성을 위한 템플릿 (이벤트 ID 기반 중복 제거)"
-    )
     
     # 트리거 조건 (선택적)
     trigger_condition: Optional[str] = Field(
@@ -43,7 +37,6 @@ class NotificationRuleUpdate(BaseModel):
     message_template: Optional[str] = None
     severity: Optional[str] = None
     interval_min: Optional[int] = Field(None, ge=1)
-    dedup_key_template: Optional[str] = None
     trigger_condition: Optional[str] = None
     receiver: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
@@ -52,11 +45,7 @@ class NotificationRuleResponse(NotificationRuleBase):
     id: str
 
     # 운영 관리 필드
-    last_run_at: Optional[datetime] = None
-    last_success_at: Optional[datetime] = None
     last_triggered_at: Optional[datetime] = None
-    last_error: Optional[str] = None
-    error_count: int = 0
     total_alerts_count: int = 0
 
     created_at: datetime
@@ -86,9 +75,7 @@ class AlertBase(BaseModel):
     message_template: str = Field(description="원본 메시지 템플릿")
     
     # 이벤트 관련
-    event_ref: str = Field(description="탐지된 Document ID")
     event_index: str = Field(description="원본 인덱스명")
-    event_source: Optional[Dict[str, Any]] = Field(default=None, description="원본 Document의 _source")
     
     # 중복 제거
     dedup_key: str
@@ -105,6 +92,7 @@ class AlertResponse(AlertBase):
     id: str
     severity: Optional[str] = None
     created_at: datetime
+    delivery_results: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

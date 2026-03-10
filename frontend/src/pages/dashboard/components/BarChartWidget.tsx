@@ -2,7 +2,11 @@ import React, { useMemo, useState, useRef } from "react";
 import { Box, Typography, useTheme, Tooltip } from "@mui/material";
 import type { HistogramItem } from "../../../services/dashboardService";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
+
+// dayjs 확장
+dayjs.extend(utc);
 
 // i18n 번역 로드
 import koMessages from "../../../locales/ko.json";
@@ -132,7 +136,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
   const CustomTooltip = ({ item }: { item: HistogramItem }) => (
     <Box sx={{ p: 0.5 }}>
       <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.7)' }}>
-        {dayjs(item.timestamp).format("YYYY-MM-DD HH:mm:ss")}
+        {dayjs.utc(item.timestamp).local().format("YYYY-MM-DD HH:mm:ss")}
       </Typography>
       <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
         {t('countLabel') || 'Count'}: {item.count.toLocaleString()}
@@ -272,7 +276,7 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({ data, height, title, em
                 whiteSpace: 'nowrap'
               }}
             >
-              {dayjs(item.timestamp).format("HH:mm")}
+              {dayjs.utc(item.timestamp).local().format("HH:mm")}
             </Typography>
           );
         })}

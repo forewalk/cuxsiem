@@ -113,10 +113,5 @@ docker save cruxsiem-frontend:latest | gzip > cruxsiem-frontend.tar.gz
 | 이름 | 역할 |
 |------|------|
 | 김장훈 | orchestrator |
-| 박지은 | full-builder |
 | 최지호 | full-builder |
-| 김경인 | advisor |
-| 김경수 | supporter |
-| 박상현 | supporter |
-| 박재현 | supporter |
-| 전성욱 | supporter |
+| 박지은 | full-builder |

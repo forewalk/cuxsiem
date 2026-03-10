@@ -147,17 +147,21 @@ function App() {
 
           /* 내부의 모든 요소에 대해서만 스크롤바 스타일 적용 */
           ::-webkit-scrollbar {
-            width: 10px !important;
-            height: 10px !important;
+            width: 12px;
+            height: 12px;
+            display: block !important;
           }
           ::-webkit-scrollbar-track {
-            background: transparent !important;
+            background: ${darkMode ? '#2d2d2d' : '#e0e0e0'} !important;
+            border-radius: 0px;
           }
           ::-webkit-scrollbar-thumb {
             background-color: ${darkMode ? '#5b6b7f' : '#8895a5'} !important;
-            border-radius: 10px !important;
-            border: 2px solid transparent !important;
-            background-clip: content-box !important;
+            border-radius: 0px;
+            border: 1px solid ${darkMode ? '#2d2d2d' : '#e0e0e0'};
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background-color: ${darkMode ? '#718096' : '#5b6b7f'} !important;
           }
           ::-webkit-scrollbar-thumb:hover {
             background-color: ${darkMode ? '#718096' : '#5b6b7f'} !important;
@@ -338,8 +342,7 @@ function App() {
             }
 
             /* 차트 내 축 라벨 폰트 크기 축소 (겹침 방지) */
-            #threat-dashboard-grid-container .MuiTypography-caption,
-            #agent-dashboard-grid-container .MuiTypography-caption {
+            #threat-dashboard-grid-container .MuiTypography-caption {
               font-size: 8px !important;
               line-height: 1 !important;
             }

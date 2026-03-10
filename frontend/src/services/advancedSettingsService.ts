@@ -4,6 +4,7 @@ export interface AdvancedSettings {
   user_register: boolean;
   allow_multiple_sessions: boolean;
   tab_count?: number;
+  user_id?: string;
   pagination_size?: number;
   time_filter_duration?: number;
   time_filter_unit?: string;

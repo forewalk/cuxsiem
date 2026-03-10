@@ -80,7 +80,8 @@ class DashboardRepository:
                 "total_agents": {"filter": {"match_all": {}}},
                 "active_agents": {"filter": {"term": {"isActive": True}}},
                 "inactive_agents": {"filter": {"term": {"isActive": False}}},
-                "infected_agents": {"filter": {"term": {"infected": True}}}
+                "infected_agents": {"filter": {"term": {"infected": True}}},
+                "edr_event_categories": {"terms": {"field": "event.category", "size": 20}}
             }
 
             final_aggs = {
@@ -125,10 +126,13 @@ class DashboardRepository:
                     final_aggs[pk] = agg_body
 
             body = {"size": 0, "track_total_hits": True, "query": {"bool": {"must": must_queries, "must_not": [{"exists": {"field": "deleted_at"}}]}}, "aggs": final_aggs}
-            return self.client.search(index=index_name, body=body)
+            try:
+                return self.client.search(index=index_name, body=body)
+            except:
+                return {"hits": {"total": {"value": 0}, "hits": []}, "aggregations": {}}
         return await loop.run_in_executor(None, search)
 
-    async def get_indices(self) -> List[str]: return [self.fixed_index, "logs-sentinel_one.agents"]
+    async def get_indices(self) -> List[str]: return [self.fixed_index, "logs-sentinel_one.agents", "logs-sentinel_one.edr"]
     async def get_field_mappings(self, index_name: str) -> List[Dict[str, str]]:
         loop = asyncio.get_event_loop()
         def get_mapping():
@@ -148,10 +152,18 @@ class DashboardRepository:
             except: return []
         return await loop.run_in_executor(None, get_mapping)
 
-    async def get_panels(self, dashboard_id: str) -> List[Dict[str, Any]]:
+    async def get_panels(self, dashboard_id: str, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         loop = asyncio.get_event_loop()
         def search():
-            body = {"query": {"match": {"dashboard_id": dashboard_id}}, "sort": [{"display_order": {"order": "asc"}}], "size": 100}
+            must_queries = [{"match": {"dashboard_id": dashboard_id}}]
+            if user_id: must_queries.append({"match": {"user_id": user_id}})
+            else: must_queries.append({"bool": {"must_not": [{"exists": {"field": "user_id"}}]}})
+            
+            body = {
+                "query": {"bool": {"must": must_queries}},
+                "sort": [{"display_order": {"order": "asc"}}],
+                "size": 100
+            }
             try:
                 res = self.client.search(index="cs_dashboards", body=body)
                 panels = []
@@ -175,8 +187,8 @@ class DashboardRepository:
             except: return False
         return await loop.run_in_executor(None, update)
 
-    async def bulk_update_panels(self, dashboard_id: str, updates: List[Dict[str, Any]]) -> bool:
-        existing_panels = await self.get_panels(dashboard_id)
+    async def bulk_update_panels(self, dashboard_id: str, updates: List[Dict[str, Any]], user_id: Optional[str] = None) -> bool:
+        existing_panels = await self.get_panels(dashboard_id, user_id)
         existing_keys = {p['panel_key'] for p in existing_panels}
         new_keys = {item['panel_key'] for item in updates}
         keys_to_delete = existing_keys - new_keys
@@ -184,11 +196,14 @@ class DashboardRepository:
         def bulk():
             body = []
             for item in updates:
-                doc_id = f"{dashboard_id}_{item['panel_key']}"
+                # user_id가 있으면 ID에 포함
+                doc_id = f"{dashboard_id}_{user_id}_{item['panel_key']}" if user_id else f"{dashboard_id}_{item['panel_key']}"
                 body.append({"index": {"_index": "cs_dashboards", "_id": doc_id}})
-                body.append({"dashboard_id": dashboard_id, **item, "updated_at": datetime.utcnow().isoformat()})
+                doc_body = {"dashboard_id": dashboard_id, **item, "updated_at": datetime.utcnow().isoformat()}
+                if user_id: doc_body["user_id"] = user_id
+                body.append(doc_body)
             for pk in keys_to_delete:
-                doc_id = f"{dashboard_id}_{pk}"
+                doc_id = f"{dashboard_id}_{user_id}_{pk}" if user_id else f"{dashboard_id}_{pk}"
                 body.append({"delete": {"_index": "cs_dashboards", "_id": doc_id}})
             if not body: return True
             try:
@@ -215,3 +230,14 @@ class DashboardRepository:
                 return [hit["_source"] for hit in res.get("hits", {}).get("hits", [])]
             except: return []
         return await loop.run_in_executor(None, search)
+
+    async def delete_user_panels(self, dashboard_id: str, user_id: str) -> bool:
+        """사용자 전용 패널 설정 삭제"""
+        loop = asyncio.get_event_loop()
+        def delete():
+            try:
+                query = {"query": {"bool": {"must": [{"match": {"dashboard_id": dashboard_id}}, {"match": {"user_id": user_id}}]}}}
+                self.client.delete_by_query(index="cs_dashboards", body=query, refresh=True)
+                return True
+            except: return False
+        return await loop.run_in_executor(None, delete)
