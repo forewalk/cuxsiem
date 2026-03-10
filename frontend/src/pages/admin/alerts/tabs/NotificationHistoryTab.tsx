@@ -8,129 +8,31 @@ import type { NotificationHistory } from '@/types';
 import { getRoleName } from '@/utils/roleUtils';
 import { getAlertWsUrl } from '@/utils/wsUtils';
 import {
-  KeyboardArrowUp as ExpandLessIcon,
-  KeyboardArrowDown as ExpandMoreIcon,
+  KeyboardArrowRight as KeyboardArrowRightIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
   FilterList as FilterListIcon,
-  Notifications as NotificationsIcon
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import {
   Box,
+  Button,
   Chip,
   Collapse,
-  Divider,
   IconButton,
   LinearProgress,
-  Paper, Stack,
-  Table, TableBody, TableCell, TableContainer, TableHead,
-  TablePagination,
-  TableRow,
-  Typography
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Typography,
+  useTheme
 } from '@mui/material';
 import dayjs from 'dayjs';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AlertsControlBar from "../components/AlertsControlBar";
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
-import { ALERT_TABLE_STYLES, formatDateTime, SEVERITY_OPTIONS } from '../components/AlertTableStyles';
-
-// 행 컴포넌트
-const NotificationRow: React.FC<{
-  row: NotificationHistory;
-  roleNames: Record<string, string>;
-  language: string;
-}> = ({ row, roleNames, language }) => {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <React.Fragment>
-      <TableRow
-        hover
-        onClick={() => setOpen(!open)}
-        sx={{
-          ...ALERT_TABLE_STYLES.bodyRow,
-          cursor: 'pointer',
-          '& > td': { borderBottom: open ? 'none' : undefined },
-          bgcolor: open ? 'action.selected' : 'inherit'
-        }}
-      >
-        <TableCell width={80} sx={{ pl: 7 }}>
-          <IconButton size="small">
-            {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </IconButton>
-        </TableCell>
-        <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.bodyCell, pl: 3 }}>
-          {formatDateTime(row.created_at)}
-        </TableCell>
-        <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-          <SeverityChip severity={row.rule_severity || row.rule_severity} />
-        </TableCell>
-        <TableCell width={200} sx={{
-          ...ALERT_TABLE_STYLES.bodyCell,
-          fontWeight: 'normal',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          pl: 7
-        }}>
-          {row.rule_name || row.title}
-        </TableCell>
-        <TableCell width={220} sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-          <Stack direction="row" spacing={0.5} flexWrap="wrap">
-            {row.receiver?.values && Array.isArray(row.receiver.values) ? (
-              row.receiver.values.map((role: string) => (
-                <Chip
-                  key={role}
-                  label={getRoleName(role, roleNames, language)}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.7rem', height: 20 }}
-                />
-              ))
-            ) : (
-              <Typography variant="caption" color="text.secondary">-</Typography>
-            )}
-          </Stack>
-        </TableCell>
-      </TableRow>
-
-      <TableRow sx={{ '& > td': { p: 0, borderBottom: open ? undefined : 'none' } }}>
-        <TableCell colSpan={5}>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ py: 3, px: 4, bgcolor: 'action.hover', borderTop: '1px solid', borderColor: 'divider' }}>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: 'text.primary',
-                  fontWeight: 'medium',
-                  p: 2,
-                  bgcolor: 'action.selected',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  minHeight: '100px',
-                  maxHeight: '400px',
-                  overflow: 'auto',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  overflowWrap: 'break-word',
-                  lineHeight: 1.8,
-                  '&::-webkit-scrollbar': { width: 6, height: 6 },
-                  '&::-webkit-scrollbar-thumb': {
-                    bgcolor: 'rgba(0,0,0,0.2)',
-                    borderRadius: 3,
-                    '&:hover': { bgcolor: 'rgba(0,0,0,0.3)' }
-                  }
-                }}
-              >
-                {row.message}
-              </Typography>
-
-            </Box>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </React.Fragment>
-  );
-};
+import { formatDateTime, SEVERITY_OPTIONS } from '../components/AlertTableStyles';
 
 const NotificationHistoryTab: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationHistory[]>([]);
@@ -138,15 +40,17 @@ const NotificationHistoryTab: React.FC = () => {
   const [page, setPage] = useState(0);
   const { settings, fetchSettings } = useSettingsStore();
   const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([25, 50, 100]);
+  const [pageSizeOptions] = useState<number[]>([20, 50, 100, 500]);
   const [loading, setLoading] = useState(true);
   const { t, language } = useTranslation();
   const { roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
+  const theme = useTheme();
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
-  // 시간 범위 상태
   const [fromValue, setFromValue] = useState<number | null>(settings?.time_filter_duration ?? null);
   const [fromUnit, setFromUnit] = useState<string>(settings?.time_filter_unit ?? "m");
   const [toValue, setToValue] = useState<number | null>(null);
@@ -154,58 +58,45 @@ const NotificationHistoryTab: React.FC = () => {
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
 
-
-  // 필터 메뉴 상태
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
 
-  useEffect(() => {
-    fetchRoleCodes();
-  }, [fetchRoleCodes]);
+  const toggleRow = (idx: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  };
 
-  // 고급 설정 로드 및 연동
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+  useEffect(() => { fetchRoleCodes(); }, [fetchRoleCodes]);
+
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   useEffect(() => {
     if (settings) {
-      if (settings.pagination_size) {
-        setRowsPerPage(settings.pagination_size);
-        setRowsPerPageOptions(prev => {
-          const newOptions = [...prev];
-          if (!newOptions.includes(settings.pagination_size!)) {
-            newOptions.unshift(settings.pagination_size!);
-            return newOptions.sort((a, b) => a - b);
-          }
-          return newOptions;
-        });
-      }
+      if (settings.pagination_size) setRowsPerPage(settings.pagination_size);
       if (settings.time_filter_duration && settings.time_filter_unit) {
         setFromValue(settings.time_filter_duration);
         setFromUnit(settings.time_filter_unit);
       }
     }
-  }, [settings]);  // 시간 범위를 ISO 날짜로 변환
+  }, [settings]);
+
   const calculateTimeRange = useCallback(() => {
     const now = dayjs();
     let from_date: string | undefined;
     let to_date: string | undefined;
 
-    // fromDate가 있으면 절대 시간 사용
     if (fromDate) {
       from_date = fromDate;
     } else if (fromValue !== null) {
-      // 상대 시간 계산
-      const fromMoment = now.subtract(fromValue, fromUnit as dayjs.ManipulateType);
-      from_date = fromMoment.toISOString();
+      from_date = now.subtract(fromValue, fromUnit as dayjs.ManipulateType).toISOString();
     }
 
-    // toDate가 있으면 절대 시간 사용, 없으면 현재 시간
     if (toDate) {
       to_date = toDate;
     } else if (toValue !== null) {
-      const toMoment = now.subtract(toValue, toUnit as dayjs.ManipulateType);
-      to_date = toMoment.toISOString();
+      to_date = now.subtract(toValue, toUnit as dayjs.ManipulateType).toISOString();
     } else {
       to_date = now.toISOString();
     }
@@ -227,13 +118,11 @@ const NotificationHistoryTab: React.FC = () => {
         to_date
       };
 
-      // 중요도 필터 추가
       if (selectedSeverities.length > 0) {
         params.severities = selectedSeverities.join(',');
       }
 
       const data = await notificationService.getNotifications(params);
-
       setNotifications(data.items);
       setTotal(data.total);
     } catch (error) {
@@ -243,13 +132,9 @@ const NotificationHistoryTab: React.FC = () => {
     }
   }, [page, rowsPerPage, searchQuery, selectedSeverities, calculateTimeRange]);
 
-  useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+  useEffect(() => { loadNotifications(); }, [loadNotifications]);
 
-  // WebSocket으로 실시간 알림 수신 시 자동 새로고침
   const wsUrl = getAlertWsUrl();
-
   const token = localStorage.getItem('access_token');
 
   useWebSocket({
@@ -257,14 +142,15 @@ const NotificationHistoryTab: React.FC = () => {
     token: token,
     onMessage: (data: any) => {
       if (data.type === 'new_alert') {
-        // 새 알림 수신 시 자동 새로고침 (폴링 모드로 조용히)
         loadNotifications(true);
       }
     }
   });
 
+  const filteredNotifications = notifications;
+
   return (
-    <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
+    <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
 
       <AlertsControlBar
@@ -276,85 +162,174 @@ const NotificationHistoryTab: React.FC = () => {
         fromDate={fromDate}
         toDate={toDate}
         onTimeChange={(fv, fu, tv, tu, fd, td) => {
-          setFromValue(fv);
-          setFromUnit(fu);
-          setToValue(tv);
-          setToUnit(tu);
-          setFromDate(fd);
-          setToDate(td);
-          setPage(0);
+          setFromValue(fv); setFromUnit(fu); setToValue(tv); setToUnit(tu); setFromDate(fd); setToDate(td); setPage(0);
         }}
         searchQuery={searchQuery}
-        onSearchQueryChange={(q) => {
-          setSearchQuery(q);
-          setPage(0);
-        }}
+        onSearchQueryChange={(q) => { setSearchQuery(q); setPage(0); }}
         onRefresh={() => { setPage(0); loadNotifications(); }}
       />
 
-      <Paper {...ALERT_TABLE_STYLES.paper}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2, pb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <NotificationsIcon color="primary" />
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationHistory')}</Typography>
-            <Chip label={`${total} ${t('countUnit')}`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
-          </Box>
-        </Stack>
+      <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: 1.5, mt: 1 }}>
+        <Box sx={{ px: 0.5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>
+            {t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({filteredNotifications.length}/{total})</Box>
+          </Typography>
+        </Box>
 
-        <Divider sx={{ mx: 2 }} />
+        <Paper
+          elevation={1}
+          ref={tableScrollRef}
+          sx={{
+            borderRadius: 1.5,
+            bgcolor: 'background.paper',
+            mb: 1,
+            flex: '1 1 0',
+            minHeight: 0,
+            overflowX: 'auto',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            '&::-webkit-scrollbar': { height: '14px', width: '14px', display: 'block !important' },
+            '&::-webkit-scrollbar-track': { background: theme.palette.mode === 'dark' ? '#2d2d2d' : '#f0f0f0' },
+            '&::-webkit-scrollbar-thumb': { background: theme.palette.primary.main, borderRadius: '7px' }
+          }}
+        >
+          <Box sx={{ width: 'max-content', minWidth: '100%' }}>
+            {/* 헤더 */}
+            <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2, alignItems: 'center' }}>
+              <Box sx={{ width: 40, flexShrink: 0 }} />
+              <Typography variant="caption" sx={{ width: 200, minWidth: 200, flexShrink: 0, fontWeight: 'bold', fontSize: '0.75rem', px: 1 }}>{t('occurrenceDate')}</Typography>
+              <Box sx={{ width: 120, minWidth: 120, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('severity')}</Typography>
+                <IconButton size="small" onClick={(e) => setSeverityAnchor(e.currentTarget)} sx={{ p: 0.25, ml: 0.5 }}>
+                  <FilterListIcon sx={{ fontSize: 14, color: selectedSeverities.length > 0 ? 'primary.main' : 'text.secondary' }} />
+                </IconButton>
+              </Box>
+              <Typography variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontWeight: 'bold', fontSize: '0.75rem', px: 1 }}>{t('ruleName')}</Typography>
+              <Typography variant="caption" sx={{ width: 300, minWidth: 300, flexShrink: 0, fontWeight: 'bold', fontSize: '0.75rem', px: 1 }}>{t('receiverGroup')}</Typography>
+            </Box>
 
-        <TableContainer {...ALERT_TABLE_STYLES.container}>
-          <Table {...ALERT_TABLE_STYLES.table} size="small" sx={{ tableLayout: 'fixed' }}>
-            <TableHead>
-              <TableRow>
-                <TableCell width={50} sx={{ ...ALERT_TABLE_STYLES.headerCell }} />
-                <TableCell width={180} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 3 }}>{t('occurrenceDate')}</TableCell>
-                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {t('severity')}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => setSeverityAnchor(e.currentTarget)}
-                      sx={{ p: 0.25 }}
-                    >
-                      <FilterListIcon sx={{ fontSize: 16, color: selectedSeverities.length > 0 ? 'primary.main' : 'text.secondary' }} />
+            {/* 바디 */}
+            {filteredNotifications.length > 0 ? filteredNotifications.map((row, idx) => {
+              const isExpanded = expandedRows.has(idx);
+              return (
+                <Box key={row.id} sx={{ borderBottom: idx < filteredNotifications.length - 1 ? 1 : 0, borderColor: 'divider' }}>
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'center', py: 0.75, px: 2, '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer', bgcolor: isExpanded ? 'action.selected' : 'transparent' }}
+                    onClick={() => toggleRow(idx)}
+                  >
+                    <IconButton size="small" sx={{ p: 0, mr: 1, flexShrink: 0, width: 32 }}>
+                      {isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
                     </IconButton>
+                    <Typography variant="caption" sx={{ width: 200, minWidth: 200, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {formatDateTime(row.created_at)}
+                    </Typography>
+                    <Box sx={{ width: 120, minWidth: 120, flexShrink: 0, px: 1 }}>
+                      <SeverityChip severity={row.rule_severity} />
+                    </Box>
+                    <Typography variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
+                      {row.rule_name || row.title}
+                    </Typography>
+                    <Box sx={{ width: 300, minWidth: 300, flexShrink: 0, px: 1 }}>
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                        {row.receiver?.values && Array.isArray(row.receiver.values) ? (
+                          row.receiver.values.map((role: string) => (
+                            <Chip
+                              key={role}
+                              label={getRoleName(role, roleNames, language)}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: '0.7rem', height: 20 }}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">-</Typography>
+                        )}
+                      </Stack>
+                    </Box>
                   </Box>
-                </TableCell>
-                <TableCell width={200} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 7 }}>{t('ruleName')}</TableCell>
-                <TableCell width={250} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('receiverGroup')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {notifications.length === 0 ? (
-                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: 'text.disabled' }}>{loading ? t('loading') : t('noNotificationHistory')}</TableCell></TableRow>
-              ) : (
-                notifications
-                  .filter(row => selectedSeverities.length === 0 || (row.rule_severity && selectedSeverities.includes(row.rule_severity.toLowerCase())))
-                  .map((row) => (
-                    <NotificationRow
-                      key={row.id}
-                      row={row}
-                      roleNames={roleNames}
-                      language={language}
-                    />
-                  ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                  <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                    <Box sx={{ p: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)', borderBottom: 1, borderColor: 'divider' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'text.primary',
+                          p: 3,
+                          pl: 7,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          lineHeight: 1.8,
+                          fontSize: '0.85rem',
+                          maxHeight: '400px',
+                          overflow: 'auto'
+                        }}
+                      >
+                        {row.message}
+                      </Typography>
+                    </Box>
+                  </Collapse>
+                </Box>
+              );
+            }) : !loading && (
+              <Box sx={{ width: '100%', py: 10, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.disabled">{t('noNotificationHistory')}</Typography>
+              </Box>
+            )}
+          </Box>
+        </Paper>
 
-        <TablePagination
-          {...ALERT_TABLE_STYLES.pagination}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(_, p) => setPage(p)}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          rowsPerPageOptions={rowsPerPageOptions}
-        />
-      </Paper>
+        {/* 페이지네이션 */}
+        <Paper elevation={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0, borderRadius: '8px 8px 0 0', zIndex: 10 }}>
+          <Box sx={{ width: 250 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+              {t('showingInfo', {
+                from: (page * rowsPerPage + 1).toLocaleString(),
+                to: Math.min((page + 1) * rowsPerPage, total).toLocaleString(),
+                total: total.toLocaleString()
+              })}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton size="small" disabled={page === 0 || loading} onClick={() => setPage(p => p - 1)} sx={{ border: 1, borderColor: 'divider' }}>
+              <ChevronLeftIcon fontSize="small" />
+            </IconButton>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              {(() => {
+                const totalPages = Math.ceil(total / rowsPerPage);
+                let startPage = Math.max(0, page - 2);
+                const endPage = Math.min(totalPages - 1, startPage + 4);
+                if (endPage - startPage + 1 < 5) startPage = Math.max(0, endPage - 4);
+                const btns = [];
+                for (let i = startPage; i <= endPage; i++) {
+                  btns.push(
+                    <Button key={i} size="small" onClick={() => setPage(i)} disabled={loading} sx={{
+                      minWidth: 28, height: 32, p: 0, fontSize: '0.85rem',
+                      fontWeight: i === page ? 'bold' : 'normal',
+                      bgcolor: 'transparent',
+                      color: i === page ? 'primary.main' : 'text.secondary',
+                      border: 'none', borderRadius: 0,
+                      borderBottom: i === page ? 2 : 0,
+                      borderColor: 'primary.main',
+                      '&:hover': { bgcolor: 'action.hover' },
+                      mx: 0.25
+                    }}>{i + 1}</Button>
+                  );
+                }
+                return btns;
+              })()}
+            </Box>
+            <IconButton size="small" disabled={((page + 1) * rowsPerPage >= total) || loading} onClick={() => setPage(p => p + 1)} sx={{ border: 1, borderColor: 'divider' }}>
+              <ChevronRightIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 250, justifyContent: 'flex-end', mr: 1 }}>
+            <Typography variant="caption" color="text.secondary">{t('rowsPerPage')}</Typography>
+            <Select value={rowsPerPage} onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(0); }} size="small" variant="standard" sx={{ fontSize: '0.75rem', '&:before, &:after': { border: 'none' }, '& .MuiSelect-select': { py: 0.5 } }}>
+              {pageSizeOptions.map(o => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
+            </Select>
+          </Box>
+        </Paper>
+      </Box>
 
       {/* 중요도 필터 메뉴 */}
       <AlertTableFilterMenu

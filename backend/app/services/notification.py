@@ -214,53 +214,101 @@ class NotificationService:
 
     def _evaluate_trigger_condition(self, condition: str, context: Dict[str, Any], raise_errors: bool = False) -> bool:
         """
-        트리거 조건 평가
-        - Python 표현식을 안전하게 평가
-        - raise_errors: True일 경우 에러 발생 시 예외를 던짐 (테스트용)
+        트리거 조건 평가 (AST 기반 안전 평가)
+        - 비교/논리 연산만 허용, 함수 호출·코드 실행 차단
+        - 지원: >, >=, <, <=, ==, !=, and, or, not, 숫자, 문자열, True/False/None
+        - 점 표기법(hits.total.value), 인덱스 접근(buckets[0]) 지원
         """
         if not condition or not condition.strip():
             return True
 
         try:
-            # 1. 문법 검사 (보안 및 유효성 확인)
             import ast
-            try:
-                ast.parse(condition)
-            except SyntaxError as e:
-                if raise_errors:
-                    raise Exception(f"Syntax error in condition: {e.msg}")
-                return True
 
-            # 2. 안전한 네임스페이스 설정
-            import math
-            safe_namespace = {
-                '__builtins__': {},
-                'math': math,
-                'abs': abs,
-                'min': min,
-                'max': max,
-                'sum': sum,
-                'len': len,
-            }
-            for key, value in context.items():
-                if isinstance(value, dict):
-                    safe_namespace[key] = DotDict(value)
-                elif isinstance(value, list):
-                    safe_namespace[key] = [DotDict(x) if isinstance(x, dict) else x for x in value]
-                else:
-                    safe_namespace[key] = value
-
-            # 3. 평가 실행
-            # eval은 여전히 주의가 필요하지만, __builtins__를 비워 위험을 최소화함
-            result = eval(condition, safe_namespace)
+            tree = ast.parse(condition, mode='eval')
+            result = self._eval_node(tree.body, context)
             return bool(result)
 
         except Exception as e:
             if raise_errors:
-                # 구체적인 에러 메시지 전달 (예: NameError, AttributeError 등)
                 raise e
             logger.error(f"[트리거] 조건 평가 실패: '{condition}' - {e}")
             return True
+
+    def _eval_node(self, node, context: Dict[str, Any]):
+        """AST 노드를 재귀적으로 평가. 허용된 노드 타입만 처리."""
+        import ast
+
+        if isinstance(node, ast.Expression):
+            return self._eval_node(node.body, context)
+
+        # 리터럴: 숫자, 문자열, True, False, None
+        if isinstance(node, ast.Constant):
+            return node.value
+
+        # 변수 참조: total, hits 등
+        if isinstance(node, ast.Name):
+            if node.id not in context:
+                raise NameError(f"Unknown variable: '{node.id}'")
+            val = context[node.id]
+            return DotDict(val) if isinstance(val, dict) else val
+
+        # 점 표기법: hits.total.value
+        if isinstance(node, ast.Attribute):
+            obj = self._eval_node(node.value, context)
+            if isinstance(obj, dict):
+                if node.attr not in obj:
+                    raise AttributeError(f"'{node.attr}' not found")
+                return obj[node.attr]
+            if hasattr(obj, node.attr):
+                return getattr(obj, node.attr)
+            raise AttributeError(f"'{node.attr}' not found")
+
+        # 인덱스 접근: buckets[0]
+        if isinstance(node, ast.Subscript):
+            obj = self._eval_node(node.value, context)
+            idx = self._eval_node(node.slice, context)
+            return obj[idx]
+
+        # 비교: >, >=, <, <=, ==, !=
+        if isinstance(node, ast.Compare):
+            left = self._eval_node(node.left, context)
+            ops_map = {
+                ast.Gt: lambda a, b: a > b,
+                ast.GtE: lambda a, b: a >= b,
+                ast.Lt: lambda a, b: a < b,
+                ast.LtE: lambda a, b: a <= b,
+                ast.Eq: lambda a, b: a == b,
+                ast.NotEq: lambda a, b: a != b,
+                ast.In: lambda a, b: a in b,
+                ast.NotIn: lambda a, b: a not in b,
+            }
+            for op, comparator in zip(node.ops, node.comparators):
+                right = self._eval_node(comparator, context)
+                op_func = ops_map.get(type(op))
+                if op_func is None:
+                    raise ValueError(f"Unsupported operator: {type(op).__name__}")
+                if not op_func(left, right):
+                    return False
+                left = right
+            return True
+
+        # 논리 연산: and, or
+        if isinstance(node, ast.BoolOp):
+            if isinstance(node.op, ast.And):
+                return all(self._eval_node(v, context) for v in node.values)
+            if isinstance(node.op, ast.Or):
+                return any(self._eval_node(v, context) for v in node.values)
+
+        # 단항 연산: not, -
+        if isinstance(node, ast.UnaryOp):
+            operand = self._eval_node(node.operand, context)
+            if isinstance(node.op, ast.Not):
+                return not operand
+            if isinstance(node.op, ast.USub):
+                return -operand
+
+        raise ValueError(f"Disallowed expression: {type(node).__name__}")
 
     async def _deliver_alert(self, created_alert: Dict[str, Any], receiver: Dict[str, Any]):
         """

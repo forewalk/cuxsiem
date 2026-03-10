@@ -9,16 +9,18 @@ import { getRoleName } from '@/utils/roleUtils';
 import { getAlertWsUrl } from '@/utils/wsUtils';
 import MonacoEditor from '@monaco-editor/react';
 import {
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
   FilterList as FilterListIcon,
-  NotificationsActive as NotificationsActiveIcon
 } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -30,17 +32,10 @@ import {
   LinearProgress,
   MenuItem,
   Paper,
+  Select,
   Snackbar,
   Stack,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TableSortLabel,
   TextField,
   Typography,
   useTheme
@@ -49,7 +44,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTableFilterMenu } from '../components/AlertTableFilterMenu';
 import {
   ACTIVE_STATUS_OPTIONS,
-  ALERT_TABLE_STYLES,
   formatDateTime,
   SEVERITY_OPTIONS
 } from '../components/AlertTableStyles';
@@ -97,7 +91,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [page, setPage] = useState(0);
   const { settings, fetchSettings } = useSettingsStore();
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [rowsPerPageOptions, setRowsPerPageOptions] = useState<number[]>([10, 25, 50]);
+  const [pageSizeOptions] = useState<number[]>([20, 50, 100, 500]);
   const [loading, setLoading] = useState(true);
   const { t, language } = useTranslation();
   const { roleCodes, roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
@@ -128,14 +122,6 @@ const NotificationRuleListTab: React.FC = () => {
   useEffect(() => {
     if (settings && settings.pagination_size) {
       setRowsPerPage(settings.pagination_size);
-      setRowsPerPageOptions(prev => {
-        const newOptions = [...prev];
-        if (!newOptions.includes(settings.pagination_size!)) {
-          newOptions.unshift(settings.pagination_size!);
-          return newOptions.sort((a, b) => a - b);
-        }
-        return newOptions;
-      });
     }
   }, [settings]);
 
@@ -456,166 +442,138 @@ const NotificationRuleListTab: React.FC = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1, overflowY: 'auto', height: '100%', position: 'relative', p: 3 }}>
+    <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
 
-      <Paper {...ALERT_TABLE_STYLES.paper} sx={{
-        ...ALERT_TABLE_STYLES.paper.sx,
-        height: 'calc(100vh - 170px)'
-      }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 2, pb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <NotificationsActiveIcon color="primary" />
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{t('notificationRuleList')}</Typography>
-            <Chip label={`${total} ${t('countUnit')}`} size="small" variant="outlined"
-              sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
-          </Box>
+      <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: 1.5 }}>
+        <Box sx={{ px: 0.5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>
+            {t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({rules.length}/{total})</Box>
+          </Typography>
           <Button
             variant="contained"
             disableElevation
             size="small"
             onClick={() => handleOpenDialog()}
-            sx={{
-              borderRadius: 1,
-              textTransform: 'none',
-              fontWeight: 'bold',
-              bgcolor: 'primary.main',
-              '&:hover': { bgcolor: 'primary.dark' }
-            }}
+            sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
           >
             {t('addRule')}
           </Button>
-        </Stack>
+        </Box>
 
-        <Divider sx={{ mx: 2 }} />
-
-        <TableContainer {...ALERT_TABLE_STYLES.container}>
-          <Table {...ALERT_TABLE_STYLES.table} size="small" sx={{ tableLayout: 'fixed' }}>
-            <TableHead>
-              <TableRow>
-                <TableCell width={250} sx={{ ...ALERT_TABLE_STYLES.headerCell, pl: 7 }}>
-                  <TableSortLabel
-                    active={sortBy === 'name'}
-                    direction={sortBy === 'name' ? order : 'desc'}
-                    onClick={() => handleSort('name')}
-                  >
-                    {t('ruleName')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {t('severity')}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => setSeverityAnchor(e.currentTarget)}
-                      sx={{ p: 0.25 }}
-                    >
-                      <FilterListIcon
-                        sx={{ fontSize: 16, color: selectedSeverities.length > 0 ? 'primary.main' : 'text.secondary' }} />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    {t('activeStatus')}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => setActiveAnchor(e.currentTarget)}
-                      sx={{ p: 0.25 }}
-                    >
-                      <FilterListIcon
-                        sx={{ fontSize: 16, color: activeFilter !== null ? 'primary.main' : 'text.secondary' }} />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
-                  <TableSortLabel
-                    active={sortBy === 'last_triggered_at'}
-                    direction={sortBy === 'last_triggered_at' ? order : 'desc'}
-                    onClick={() => handleSort('last_triggered_at')}
-                  >
-                    {t('lastTriggered')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
-                  <TableSortLabel
-                    active={sortBy === 'created_at'}
-                    direction={sortBy === 'created_at' ? order : 'desc'}
-                    onClick={() => handleSort('created_at')}
-                  >
-                    {t('createdAt')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell width={160} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>
-                  <TableSortLabel
-                    active={sortBy === 'updated_at'}
-                    direction={sortBy === 'updated_at' ? order : 'desc'}
-                    onClick={() => handleSort('updated_at')}
-                  >
-                    {t('updatedAt')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell width={100} sx={{ ...ALERT_TABLE_STYLES.headerCell }}>{t('actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rules.length === 0 ? (
-                <TableRow><TableCell colSpan={7} align="center" sx={{
-                  py: 8,
-                  color: 'text.disabled'
-                }}>{loading ? t('loading') : t('noRulesRegistered')}</TableCell></TableRow>
-              ) : (
-                rules.map((rule) => (
-                  <TableRow key={rule.id} hover sx={{ ...ALERT_TABLE_STYLES.bodyRow }}>
-                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, pl: 7 }}>{rule.name}</TableCell>
-                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}><SeverityChip
-                      severity={rule.severity} /></TableCell>
-                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-                      <Switch
-                        size="small"
-                        checked={rule.is_active}
-                        onChange={() => handleToggleActive(rule)}
-                        color="primary"
-                      />
-                    </TableCell>
-                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-                      {formatDateTime(rule.last_triggered_at)}
-                    </TableCell>
-                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, color: 'text.secondary' }}>
-                      {formatDateTime(rule.created_at)}
-                    </TableCell>
-                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell, color: 'text.secondary' }}>
-                      {formatDateTime(rule.updated_at)}
-                    </TableCell>
-                    <TableCell sx={{ ...ALERT_TABLE_STYLES.bodyCell }}>
-                      <Stack direction="row" spacing={0.5} justifyContent="flex-start">
-                        <IconButton size="small" onClick={() => handleOpenDialog(rule)}><EditIcon
-                          fontSize="small" /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => setDeleteId(rule.id)}><DeleteIcon
-                          fontSize="small" /></IconButton>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <TablePagination
-          {...ALERT_TABLE_STYLES.pagination}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(_, p) => setPage(p)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
+        <Paper
+          elevation={1}
+          sx={{
+            borderRadius: 1.5,
+            bgcolor: 'background.paper',
+            mb: 1,
+            flex: '1 1 0',
+            minHeight: 0,
+            overflowX: 'auto',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            '&::-webkit-scrollbar': { height: '14px', width: '14px', display: 'block !important' },
+            '&::-webkit-scrollbar-track': { background: theme.palette.mode === 'dark' ? '#2d2d2d' : '#f0f0f0' },
+            '&::-webkit-scrollbar-thumb': { background: theme.palette.primary.main, borderRadius: '7px' }
           }}
-          rowsPerPageOptions={rowsPerPageOptions}
-        />
-      </Paper>
+        >
+          <Box sx={{ width: 'max-content', minWidth: '100%' }}>
+            {/* 헤더 */}
+            <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2, alignItems: 'center' }}>
+              <Box sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1, cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('ruleName')}</Typography>
+                {sortBy === 'name' && (order === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14, ml: 0.5 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14, ml: 0.5 }} />)}
+              </Box>
+              <Box sx={{ width: 120, minWidth: 120, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('severity')}</Typography>
+                <IconButton size="small" onClick={(e) => setSeverityAnchor(e.currentTarget)} sx={{ p: 0.25, ml: 0.5 }}>
+                  <FilterListIcon sx={{ fontSize: 14, color: selectedSeverities.length > 0 ? 'primary.main' : 'text.secondary' }} />
+                </IconButton>
+              </Box>
+              <Box sx={{ width: 100, minWidth: 100, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('activeStatus')}</Typography>
+                <IconButton size="small" onClick={(e) => setActiveAnchor(e.currentTarget)} sx={{ p: 0.25, ml: 0.5 }}>
+                  <FilterListIcon sx={{ fontSize: 14, color: activeFilter !== null ? 'primary.main' : 'text.secondary' }} />
+                </IconButton>
+              </Box>
+              <Box sx={{ width: 180, minWidth: 180, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1, cursor: 'pointer' }} onClick={() => handleSort('last_triggered_at')}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('lastTriggered')}</Typography>
+                {sortBy === 'last_triggered_at' && (order === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14, ml: 0.5 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14, ml: 0.5 }} />)}
+              </Box>
+              <Box sx={{ width: 180, minWidth: 180, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1, cursor: 'pointer' }} onClick={() => handleSort('created_at')}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('createdAt')}</Typography>
+                {sortBy === 'created_at' && (order === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14, ml: 0.5 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14, ml: 0.5 }} />)}
+              </Box>
+              <Box sx={{ width: 180, minWidth: 180, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1, cursor: 'pointer' }} onClick={() => handleSort('updated_at')}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('updatedAt')}</Typography>
+                {sortBy === 'updated_at' && (order === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14, ml: 0.5 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14, ml: 0.5 }} />)}
+              </Box>
+              <Typography variant="caption" sx={{ width: 100, minWidth: 100, flexShrink: 0, fontWeight: 'bold', fontSize: '0.75rem', px: 1 }}>{t('actions')}</Typography>
+            </Box>
+
+            {/* 바디 */}
+            {rules.length > 0 ? rules.map((rule, idx) => (
+              <Box key={rule.id} sx={{ display: 'flex', alignItems: 'center', py: 0.75, px: 2, borderBottom: idx < rules.length - 1 ? 1 : 0, borderColor: 'divider', '&:hover': { bgcolor: 'action.hover' } }}>
+                <Typography variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>{rule.name}</Typography>
+                <Box sx={{ width: 120, minWidth: 120, flexShrink: 0, px: 1 }}>
+                  <SeverityChip severity={rule.severity} />
+                </Box>
+                <Box sx={{ width: 100, minWidth: 100, flexShrink: 0, px: 1 }}>
+                  <Switch size="small" checked={rule.is_active} onChange={() => handleToggleActive(rule)} color="primary" />
+                </Box>
+                <Typography variant="caption" sx={{ width: 180, minWidth: 180, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap' }}>{formatDateTime(rule.last_triggered_at)}</Typography>
+                <Typography variant="caption" sx={{ width: 180, minWidth: 180, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', color: 'text.secondary' }}>{formatDateTime(rule.created_at)}</Typography>
+                <Typography variant="caption" sx={{ width: 180, minWidth: 180, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', color: 'text.secondary' }}>{formatDateTime(rule.updated_at)}</Typography>
+                <Box sx={{ width: 100, minWidth: 100, flexShrink: 0, px: 1 }}>
+                  <Stack direction="row" spacing={0.5}>
+                    <IconButton size="small" onClick={() => handleOpenDialog(rule)}><EditIcon fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => setDeleteId(rule.id)}><DeleteIcon fontSize="small" /></IconButton>
+                  </Stack>
+                </Box>
+              </Box>
+            )) : !loading && (
+              <Box sx={{ width: '100%', py: 10, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.disabled">{t('noRulesRegistered')}</Typography>
+              </Box>
+            )}
+          </Box>
+        </Paper>
+
+        {/* 페이지네이션 */}
+        <Paper elevation={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0, borderRadius: '8px 8px 0 0', zIndex: 10 }}>
+          <Box sx={{ width: 250 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+              {t('showingInfo', { from: (page * rowsPerPage + 1).toLocaleString(), to: Math.min((page + 1) * rowsPerPage, total).toLocaleString(), total: total.toLocaleString() })}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton size="small" disabled={page === 0 || loading} onClick={() => setPage(p => p - 1)} sx={{ border: 1, borderColor: 'divider' }}><ChevronLeftIcon fontSize="small" /></IconButton>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              {(() => {
+                const totalPages = Math.ceil(total / rowsPerPage);
+                let startPage = Math.max(0, page - 2);
+                const endPage = Math.min(totalPages - 1, startPage + 4);
+                if (endPage - startPage + 1 < 5) startPage = Math.max(0, endPage - 4);
+                const btns = [];
+                for (let i = startPage; i <= endPage; i++) {
+                  btns.push(
+                    <Button key={i} size="small" onClick={() => setPage(i)} disabled={loading} sx={{ minWidth: 28, height: 32, p: 0, fontSize: '0.85rem', fontWeight: i === page ? 'bold' : 'normal', bgcolor: 'transparent', color: i === page ? 'primary.main' : 'text.secondary', border: 'none', borderRadius: 0, borderBottom: i === page ? 2 : 0, borderColor: 'primary.main', '&:hover': { bgcolor: 'action.hover' }, mx: 0.25 }}>{i + 1}</Button>
+                  );
+                }
+                return btns;
+              })()}
+            </Box>
+            <IconButton size="small" disabled={((page + 1) * rowsPerPage >= total) || loading} onClick={() => setPage(p => p + 1)} sx={{ border: 1, borderColor: 'divider' }}><ChevronRightIcon fontSize="small" /></IconButton>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 250, justifyContent: 'flex-end', mr: 1 }}>
+            <Typography variant="caption" color="text.secondary">{t('rowsPerPage')}</Typography>
+            <Select value={rowsPerPage} onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(0); }} size="small" variant="standard" sx={{ fontSize: '0.75rem', '&:before, &:after': { border: 'none' }, '& .MuiSelect-select': { py: 0.5 } }}>
+              {pageSizeOptions.map(o => (<MenuItem key={o} value={o}>{o}</MenuItem>))}
+            </Select>
+          </Box>
+        </Paper>
+      </Box>
 
       {/* 중요도 필터 메뉴 */}
       <AlertTableFilterMenu
