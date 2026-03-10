@@ -27,6 +27,10 @@ export const advancedSettingsService = {
     const response = await api.get('/api/v1/advanced-settings');
     return response.data;
   },
+  getPublicSettings: async (): Promise<{ user_register: boolean; otp_required: boolean }> => {
+    const response = await api.get('/api/v1/advanced-settings/public');
+    return response.data;
+  },
   updateSettings: async (settings: AdvancedSettings): Promise<AdvancedSettings> => {
     const response = await api.put('/api/v1/advanced-settings', settings);
     return response.data;

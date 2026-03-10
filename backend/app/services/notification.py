@@ -154,22 +154,38 @@ class NotificationService:
     def _render_message_template(self, template: str, context: Dict[str, Any]) -> str:
         """
         메시지 템플릿 렌더링
-        - {{변수}} 형식 지원
+        - {{변수}} 형식 지원 (공백 허용)
         - {{nested.field}} 중첩 필드 접근 지원
         - 중첩 필드가 context에 없으면 모든 hits에서 자동 추출
         """
 
         def get_nested_value(obj: Any, keys: list) -> Any:
-            """중첩 필드 값 추출"""
+            """중첩 필드 값 추출 (점 표기법 및 flattened key 지원)"""
+            if not obj:
+                return None
+            
+            # 1. 일반적인 중첩 구조 탐색
             value = obj
+            found_nested = True
             for k in keys:
                 if isinstance(value, dict):
                     value = value.get(k)
                     if value is None:
-                        return None
+                        found_nested = False
+                        break
                 else:
-                    return None
-            return value
+                    found_nested = False
+                    break
+            
+            if found_nested:
+                return value
+
+            # 2. Flattened key 탐색 (예: {"endpoint.name": "host1"})
+            full_key = ".".join(keys)
+            if isinstance(obj, dict):
+                return obj.get(full_key)
+            
+            return None
 
         def to_str(value: Any) -> str:
             if isinstance(value, (dict, list)):
@@ -177,14 +193,21 @@ class NotificationService:
             return str(value)
 
         def replace_var(match):
-            key = match.group(1)
+            # 공백 제거 후 키 추출
+            key = match.group(1).strip()
 
             # 단순 키 접근 (total, rule_name 등)
             if '.' not in key:
                 value = context.get(key)
                 if value is None:
-                    return f"{{{{{key}}}}}"
-                return to_str(value)
+                    # hits._source에서도 찾아보기 (첫 번째 hit 기준)
+                    hit_sources = context.get("_hit_sources", [])
+                    if hit_sources and isinstance(hit_sources, list):
+                        value = hit_sources[0].get(key)
+                
+                if value is not None:
+                    return to_str(value)
+                return f"{{{{{key}}}}}"
 
             # 중첩 필드 접근
             keys = key.split('.')
@@ -204,13 +227,14 @@ class NotificationService:
                         values.append(to_str(hit_value))
 
                 if values:
+                    # 유니크한 값만 추출하여 병합
                     unique_values = list(dict.fromkeys(values))
                     return "\n".join(unique_values)
 
             return f"{{{{{key}}}}}"
 
-        # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
-        return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
+        # 정규식: {{ 변수명 }} 형식 (앞뒤 공백 허용)
+        return re.sub(r"\{\{\s*([\w\.@]+)\s*\}\}", replace_var, template)
 
     def _evaluate_trigger_condition(self, condition: str, context: Dict[str, Any], raise_errors: bool = False) -> bool:
         """

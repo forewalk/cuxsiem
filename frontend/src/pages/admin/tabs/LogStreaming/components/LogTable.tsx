@@ -62,7 +62,7 @@ const LogTable = ({
                 flexGrow: isMessage ? 1 : 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis'
               }}
             >
-              {isTimestamp ? t('time') : f.toUpperCase()}
+              {isTimestamp ? t('time') : f}
             </Typography>
           );
         })}

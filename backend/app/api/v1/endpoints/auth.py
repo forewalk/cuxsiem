@@ -43,7 +43,16 @@ async def apply_account(request: UserApply):
     
     사용자로부터 정보를 입력받아 비활성 계정을 생성합니다.
     역할은 'user', 상태는 'inactive'로 강제 설정됩니다.
+    고급 설정의 'user_register'가 활성화되어 있어야 합니다.
     """
+    from app.services.advanced_settings import advanced_settings_service
+    settings = await advanced_settings_service.get_settings("global")
+    if not settings.user_register:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="현재 계정 신청이 비활성화되어 있습니다."
+        )
+
     user_service = UserService()
     # UserApply를 UserCreate로 변환하면서 role과 is_active를 강제로 설정
     create_request = UserCreate(

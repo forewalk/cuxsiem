@@ -1,53 +1,64 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  Box, Paper, Typography, Alert, LinearProgress, 
-  List, ListItem, ListItemIcon, ListItemText, IconButton, Tooltip,
-  Button, TextField, Select, MenuItem, useTheme, Collapse, Checkbox,
-  Menu
+import {
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  Collapse,
+  IconButton,
+  LinearProgress,
+  List, ListItem, ListItemIcon, ListItemText,
+  Menu,
+  MenuItem,
+  Paper,
+  Select,
+  TextField,
+  Tooltip,
+  Typography,
+  useTheme
 } from "@mui/material";
-import ControlBar from "../components/ControlBar";
-import BarChartWidget from "../components/BarChartWidget";
+import dayjs from "dayjs";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as XLSX from "xlsx";
-import { getDashboardStats, getIndexFields, getIndexLogs, getColumnSettings, saveColumnSettings, resetColumnSettings } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
+import { getColumnSettings, getDashboardStats, getIndexFields, getIndexLogs, resetColumnSettings, saveColumnSettings } from "../../../services/dashboardService";
+import useEdrStore from "../../../stores/useEdrStore";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
-import useEdrStore from "../../../stores/useEdrStore";
-import dayjs from "dayjs";
+import BarChartWidget from "../components/BarChartWidget";
+import ControlBar from "../components/ControlBar";
 
 // 아이콘
-import SearchIcon from "@mui/icons-material/Search";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AbcIcon from "@mui/icons-material/Abc";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import ReorderIcon from "@mui/icons-material/Reorder";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
-import NotificationsPausedIcon from "@mui/icons-material/NotificationsPaused";
-import DescriptionIcon from "@mui/icons-material/Description";
-import PublicIcon from "@mui/icons-material/Public";
-import DnsIcon from "@mui/icons-material/Dns";
-import LinkIcon from "@mui/icons-material/Link";
-import StorageIcon from "@mui/icons-material/Storage";
-import ScheduleIcon from "@mui/icons-material/Schedule";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import AbcIcon from "@mui/icons-material/Abc";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CodeIcon from "@mui/icons-material/Code";
-import TagIcon from "@mui/icons-material/Tag";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
+import DescriptionIcon from "@mui/icons-material/Description";
+import DnsIcon from "@mui/icons-material/Dns";
+import { default as KeyboardArrowDownIcon, default as KeyboardArrowDownIconMenu } from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import LinkIcon from "@mui/icons-material/Link";
+import NotificationsPausedIcon from "@mui/icons-material/NotificationsPaused";
+import PublicIcon from "@mui/icons-material/Public";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
-import KeyboardArrowDownIconMenu from "@mui/icons-material/KeyboardArrowDown";
+import ReorderIcon from "@mui/icons-material/Reorder";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import SearchIcon from "@mui/icons-material/Search";
+import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
+import StorageIcon from "@mui/icons-material/Storage";
+import TagIcon from "@mui/icons-material/Tag";
 
 // i18n
-import koMessages from "../../../locales/ko.json";
+import cnMessages from "../../../locales/cn.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
-import cnMessages from "../../../locales/cn.json";
+import koMessages from "../../../locales/ko.json";
 
 const CATEGORY_FIELDS: Record<string, string[]> = {
   all: ["@timestamp", "event.category", "event.type", "agent.computerName", "src.process.name", "src.process.user"],
@@ -115,28 +126,52 @@ const EdrListTab: React.FC = () => {
 
   useEffect(() => {
     const applyUrlParamsToStore = () => {
-      const currentSearchParams = new URLSearchParams(window.location.search);
-      const query = currentSearchParams.get('edrQuery') || "";
-      if (searchQuery !== query) setSearchQuery(query);
-      const category = currentSearchParams.get('edrCategory') || "all";
-      if (activeCategory !== category) setActiveCategory(category);
-      const fromVal = currentSearchParams.get('edrFromValue');
-      const fromUn = currentSearchParams.get('edrFromUnit');
-      const defaultStoreRange = useEdrStore.getState().timeRange;
-      const newRange = {
-        fromValue: fromVal ? parseInt(fromVal, 10) : defaultStoreRange.fromValue,
-        fromUnit: fromUn || defaultStoreRange.fromUnit,
-        toValue: currentSearchParams.get('edrToValue') ? parseInt(currentSearchParams.get('edrToValue')!, 10) : null,
-        toUnit: currentSearchParams.get('edrToUnit') || 'm',
-        fromDate: currentSearchParams.get('edrFromDate'),
-        toDate: currentSearchParams.get('edrToDate'),
-      };
-      if (JSON.stringify(timeRange) !== JSON.stringify(newRange)) setTimeRange(newRange);
+      const hasTimeParams = searchParams.has('edrFromValue') || searchParams.has('edrFromDate');
+      const hasQueryParam = searchParams.has('edrQuery');
+      const hasCategoryParam = searchParams.has('edrCategory');
+      
+      // 이 탭과 관련된 파라미터가 아예 없으면 무시
+      if (!hasTimeParams && !hasQueryParam && !hasCategoryParam) {
+        const hasOtherTabParams = searchParams.has('fromValue') || searchParams.has('threatFromValue');
+        if (hasOtherTabParams) return;
+      }
+
+      const query = searchParams.get('edrQuery') || "";
+      const category = searchParams.get('edrCategory') || "all";
+      const fromVal = searchParams.get('edrFromValue');
+      const fromUn = searchParams.get('edrFromUnit');
+      const toVal = searchParams.get('edrToValue');
+      const toUn = searchParams.get('edrToUnit') || 'm';
+      const fromDt = searchParams.get('edrFromDate');
+      const toDt = searchParams.get('edrToDate');
+      
+      const currentStore = useEdrStore.getState();
+      
+      if (hasQueryParam && currentStore.searchQuery !== query) {
+        setSearchQuery(query);
+      }
+      if (hasCategoryParam && currentStore.activeCategory !== category) {
+        setActiveCategory(category);
+      }
+      
+      if (hasTimeParams) {
+        const newRange = {
+          fromValue: fromVal ? parseInt(fromVal, 10) : null,
+          fromUnit: fromUn || 'm',
+          toValue: toVal ? parseInt(toVal, 10) : null,
+          toUnit: toUn,
+          fromDate: fromDt || null,
+          toDate: toDt || null,
+        };
+        
+        if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newRange)) {
+          setTimeRange(newRange);
+        }
+      }
     };
+    
     applyUrlParamsToStore();
-    window.addEventListener('popstate', applyUrlParamsToStore);
-    return () => window.removeEventListener('popstate', applyUrlParamsToStore);
-  }, [searchQuery, activeCategory, timeRange, setTimeRange, setSearchQuery, setActiveCategory]);
+  }, [searchParams, setSearchQuery, setActiveCategory, setTimeRange]);
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -171,14 +206,14 @@ const EdrListTab: React.FC = () => {
         // 카테고리별 저장된 설정을 먼저 시도
         const currentCategory = new URLSearchParams(window.location.search).get('edrCategory') || "all";
         const saved = await getColumnSettings(`edr_${currentCategory}`);
-        
+
         if (saved && saved.length > 0) {
           setSelectedFieldNames(saved);
         } else {
           // 저장된 설정이 없으면 해당 카테고리의 기본 필드 사용
           setSelectedFieldNames(CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS.all);
         }
-      } catch (err) { 
+      } catch (err) {
         console.error("Failed to load column settings", err);
         const currentCategory = new URLSearchParams(window.location.search).get('edrCategory') || "all";
         setSelectedFieldNames(CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS.all);
@@ -259,10 +294,10 @@ const EdrListTab: React.FC = () => {
 
   const handleToggleField = useCallback(async (fieldName: string) => {
     setSelectedFieldNames(prev => {
-      const next = prev.includes(fieldName) 
+      const next = prev.includes(fieldName)
         ? prev.filter(name => name !== fieldName)
         : [...prev, fieldName];
-      
+
       saveColumnSettings(`edr_${activeCategory}`, next).catch(err => console.error("Failed to save column settings", err));
       return next;
     });
@@ -277,7 +312,6 @@ const EdrListTab: React.FC = () => {
   }, [language]);
 
   const handleTimeChange = (fV: number | null, fU: string, tV: number | null, tU: string, fD: string | null = null, tD: string | null = null) => {
-    setTimeRange({ fromValue: fV, fromUnit: fU, toValue: tV, toUnit: tU, fromDate: fD, toDate: tD });
     const newParams = new URLSearchParams(searchParams);
     if (fV !== null) newParams.set('edrFromValue', fV.toString()); else newParams.delete('edrFromValue');
     if (fU) newParams.set('edrFromUnit', fU); else newParams.delete('edrFromUnit');
@@ -289,14 +323,12 @@ const EdrListTab: React.FC = () => {
   };
 
   const handleSearchQueryChange = (q: string) => {
-    setSearchQuery(q);
     const newParams = new URLSearchParams(searchParams);
     if (q) newParams.set('edrQuery', q); else newParams.delete('edrQuery');
     navigate(`?${newParams.toString()}`, { replace: false });
   };
 
   const handleCategoryChange = (category: string) => {
-    setActiveCategory(category);
     // URL 파라미터 업데이트
     const newParams = new URLSearchParams(searchParams);
     if (category !== 'all') newParams.set('edrCategory', category); else newParams.delete('edrCategory');
@@ -313,7 +345,7 @@ const EdrListTab: React.FC = () => {
       if (!fromDate && fromValue !== null) finalFromDate = dayjs().subtract(fromValue, fromUnit as any).toISOString();
       if (!toDate && toValue !== null) finalToDate = dayjs().subtract(toValue, toUnit as any).toISOString();
       else if (!toDate && !fromDate) finalToDate = dayjs().toISOString();
-      
+
       const baseQuery = searchQuery || undefined;
       let combinedQuery = searchQuery || "";
       if (activeCategory !== 'all') {
@@ -327,14 +359,17 @@ const EdrListTab: React.FC = () => {
         getIndexFields(targetIndex),
         getIndexLogs("edr-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, combinedQuery || undefined, pageSize, page * pageSize)
       ]);
-      
+
       setData(stats); setLogs(logList);
       setFields([{ name: "_source", type: "code" }, ...fieldList]);
     } catch (err) { setError("Failed to load EDR data."); } finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, activeCategory, page, pageSize, searchParams]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, activeCategory, page, pageSize]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setPage(0); }, [searchParams]);
+  useEffect(() => { 
+    // 필터가 실제로 변경되었을 때만 페이지 리셋
+    setPage(0); 
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, activeCategory]);
 
   const handleExportExcel = useCallback(() => {
     if (!logs || logs.length === 0) return;
@@ -382,10 +417,10 @@ const EdrListTab: React.FC = () => {
     <Box id="edr-list-tab-container" sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
       <ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} onReset={handleResetColumns} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary.total_logs} onDownload={handleExportExcel} />
-      
+
       {/* 카테고리 메뉴 영역 */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', pr: 1 }}>
-        <Box ref={categoryScrollRef} sx={{ 
+        <Box ref={categoryScrollRef} sx={{
           display: 'flex', alignItems: 'center', gap: 0.5, py: 1.2, px: 2, flexGrow: 1, overflowX: 'auto',
           '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none'
         }}>
@@ -393,7 +428,7 @@ const EdrListTab: React.FC = () => {
             <Button key={cat.id} onClick={() => handleCategoryChange(cat.id)} startIcon={cat.icon} sx={{ minWidth: 'fit-content', px: 2, py: 0.8, borderRadius: 1, textTransform: 'none', fontSize: '0.8rem', fontWeight: activeCategory === cat.id ? 600 : 400, color: activeCategory === cat.id ? 'primary.main' : 'text.secondary', bgcolor: activeCategory === cat.id ? 'action.selected' : 'transparent', '&:hover': { bgcolor: 'action.hover' }, position: 'relative', '&::after': activeCategory === cat.id ? { content: '""', position: 'absolute', bottom: -4, left: '15%', right: '15%', height: '3px', bgcolor: 'primary.main', borderRadius: '2px 2px 0 0' } : {} }}>
               {cat.label}
               <Box component="span" sx={{ ml: 1, fontSize: '0.75rem', opacity: activeCategory === cat.id ? 1 : 0.7, fontWeight: 'bold', color: activeCategory === cat.id ? 'primary.main' : 'text.secondary' }}>
-                {categoryCounts[cat.id] !== undefined ? (categoryCounts[cat.id] >= 1000 ? `${(categoryCounts[cat.id]/1000).toFixed(1)}K` : categoryCounts[cat.id]) : 0}
+                {categoryCounts[cat.id] !== undefined ? (categoryCounts[cat.id] >= 1000 ? `${(categoryCounts[cat.id] / 1000).toFixed(1)}K` : categoryCounts[cat.id]) : 0}
               </Box>
             </Button>
           ))}
@@ -441,7 +476,7 @@ const EdrListTab: React.FC = () => {
                   <Box sx={{ width: 32, flexShrink: 0 }} />
                   {sortedDisplayFields.map((fn, idx) => (
                     <Box key={fn} sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', borderRight: 1, borderColor: 'transparent' }}>
-                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn.includes('.') ? fn.split('.').pop() : fn}</Typography>
+                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn}</Typography>
                     </Box>
                   ))}
                 </Box>
@@ -464,7 +499,7 @@ const EdrListTab: React.FC = () => {
                               return sk.map((k, i, arr) => (
                                 <Box key={k} sx={{ display: 'flex', borderBottom: i < arr.length - 1 ? '1px solid' : 'none', borderColor: 'divider', '&:hover': { bgcolor: 'action.hover' }, alignItems: 'stretch' }}>
                                   <Box sx={{ width: 250, p: 1, pl: 8, flexShrink: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRight: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-                                    <Typography variant="caption" sx={{ fontWeight: k === "@timestamp" ? 'bold' : 500, color: k === "@timestamp" ? 'primary.main' : 'text.secondary', wordBreak: 'break-all', lineHeight: 1.2 }}>{k.includes('.') ? k.split('.').pop() : k}</Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: k === "@timestamp" ? 'bold' : 500, color: k === "@timestamp" ? 'primary.main' : 'text.secondary', wordBreak: 'break-all', lineHeight: 1.2 }}>{k}</Typography>
                                   </Box>
                                   <Box sx={{ p: 1, flexGrow: 1, pl: 2, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                                     <Typography variant="caption" sx={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', color: 'text.primary', display: 'block', lineHeight: 1.6, fontWeight: k === "@timestamp" ? 'bold' : 'normal' }}>{fl[k] !== undefined ? String(fl[k]) : "-"}</Typography>
