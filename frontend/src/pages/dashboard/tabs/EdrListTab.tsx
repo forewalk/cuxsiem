@@ -116,39 +116,55 @@ const EdrListTab: React.FC = () => {
   useEffect(() => {
     const applyUrlParamsToStore = () => {
       const currentSearchParams = new URLSearchParams(window.location.search);
+      
+      const hasTimeParams = currentSearchParams.has('edrFromValue') || currentSearchParams.has('edrFromDate');
+      const hasQueryParam = currentSearchParams.has('edrQuery');
+      const hasCategoryParam = currentSearchParams.has('edrCategory');
+      
+      // 이 탭과 관련된 파라미터가 없으면 무시
+      if (!hasTimeParams && !hasQueryParam && !hasCategoryParam) {
+        const hasOtherTabParams = currentSearchParams.has('fromValue') || currentSearchParams.has('threatFromValue');
+        if (hasOtherTabParams) return;
+      }
+
       const query = currentSearchParams.get('edrQuery') || "";
       const category = currentSearchParams.get('edrCategory') || "all";
+      const fromVal = currentSearchParams.get('edrFromValue');
+      const fromUn = currentSearchParams.get('edrFromUnit');
+      const toVal = currentSearchParams.get('edrToValue');
+      const toUn = currentSearchParams.get('edrToUnit') || 'm';
+      const fromDt = currentSearchParams.get('edrFromDate');
+      const toDt = currentSearchParams.get('edrToDate');
       
       const currentStore = useEdrStore.getState();
       
-      if (currentStore.searchQuery !== query) {
+      if (hasQueryParam && currentStore.searchQuery !== query) {
         setSearchQuery(query);
       }
-      if (currentStore.activeCategory !== category) {
+      if (hasCategoryParam && currentStore.activeCategory !== category) {
         setActiveCategory(category);
       }
       
-      const fromVal = currentSearchParams.get('edrFromValue');
-      const fromUn = currentSearchParams.get('edrFromUnit');
-      
-      const newRange = {
-        fromValue: fromVal ? parseInt(fromVal, 10) : currentStore.timeRange.fromValue,
-        fromUnit: fromUn || currentStore.timeRange.fromUnit,
-        toValue: currentSearchParams.get('edrToValue') ? parseInt(currentSearchParams.get('edrToValue')!, 10) : null,
-        toUnit: currentSearchParams.get('edrToUnit') || 'm',
-        fromDate: currentSearchParams.get('edrFromDate'),
-        toDate: currentSearchParams.get('edrToDate'),
-      };
-      
-      if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newRange)) {
-        setTimeRange(newRange);
+      if (hasTimeParams) {
+        const newRange = {
+          fromValue: fromVal ? parseInt(fromVal, 10) : null,
+          fromUnit: fromUn || 'm',
+          toValue: toVal ? parseInt(toVal, 10) : null,
+          toUnit: toUn,
+          fromDate: fromDt || null,
+          toDate: toDt || null,
+        };
+        
+        if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newRange)) {
+          setTimeRange(newRange);
+        }
       }
     };
     
     applyUrlParamsToStore();
     window.addEventListener('popstate', applyUrlParamsToStore);
     return () => window.removeEventListener('popstate', applyUrlParamsToStore);
-  }, [setSearchQuery, setActiveCategory, setTimeRange]); // searchQuery, activeCategory, timeRange 제거하여 루프 방지
+  }, [setSearchQuery, setActiveCategory, setTimeRange]);
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);

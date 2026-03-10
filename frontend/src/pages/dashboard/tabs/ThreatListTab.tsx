@@ -71,34 +71,50 @@ const ThreatListTab: React.FC = () => {
   useEffect(() => {
     const applyUrlParamsToStore = () => {
       const currentSearchParams = new URLSearchParams(window.location.search);
+      
+      const hasTimeParams = currentSearchParams.has('threatFromValue') || currentSearchParams.has('threatFromDate');
+      const hasQueryParam = currentSearchParams.has('threatQuery');
+      
+      // 이 탭과 관련된 파라미터가 없으면 무시
+      if (!hasTimeParams && !hasQueryParam) {
+        const hasOtherTabParams = currentSearchParams.has('fromValue') || currentSearchParams.has('fromDate') || currentSearchParams.has('edrQuery');
+        if (hasOtherTabParams) return;
+      }
+
       const query = currentSearchParams.get('threatQuery') || "";
+      const fromVal = currentSearchParams.get('threatFromValue');
+      const fromUn = currentSearchParams.get('threatFromUnit');
+      const toVal = currentSearchParams.get('threatToValue');
+      const toUn = currentSearchParams.get('threatToUnit') || 'm';
+      const fromDt = currentSearchParams.get('threatFromDate');
+      const toDt = currentSearchParams.get('threatToDate');
       
       const currentStore = useThreatStore.getState();
-      if (currentStore.searchQuery !== query) {
+      
+      if (hasQueryParam && currentStore.searchQuery !== query) {
         setSearchQuery(query);
       }
       
-      const fromVal = currentSearchParams.get('threatFromValue');
-      const fromUn = currentSearchParams.get('threatFromUnit');
-      
-      const newRange = {
-        fromValue: fromVal ? parseInt(fromVal, 10) : currentStore.timeRange.fromValue,
-        fromUnit: fromUn || currentStore.timeRange.fromUnit,
-        toValue: currentSearchParams.get('threatToValue') ? parseInt(currentSearchParams.get('threatToValue')!, 10) : null,
-        toUnit: currentSearchParams.get('threatToUnit') || 'm',
-        fromDate: currentSearchParams.get('threatFromDate'),
-        toDate: currentSearchParams.get('threatToDate'),
-      };
-      
-      if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newRange)) {
-        setTimeRange(newRange);
+      if (hasTimeParams) {
+        const newRange = {
+          fromValue: fromVal ? parseInt(fromVal, 10) : null,
+          fromUnit: fromUn || 'm',
+          toValue: toVal ? parseInt(toVal, 10) : null,
+          toUnit: toUn,
+          fromDate: fromDt || null,
+          toDate: toDt || null,
+        };
+        
+        if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newRange)) {
+          setTimeRange(newRange);
+        }
       }
     };
     
     applyUrlParamsToStore();
     window.addEventListener('popstate', applyUrlParamsToStore);
     return () => window.removeEventListener('popstate', applyUrlParamsToStore);
-  }, [setSearchQuery, setTimeRange]); // searchQuery, timeRange 제거하여 루프 방지
+  }, [setSearchQuery, setTimeRange]); // searchParams가 없어도 popstate와 mount시 체크함
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);

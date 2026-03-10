@@ -282,11 +282,17 @@ const DashboardTab: React.FC = () => {
 
   // URL 쿼리 파라미터에서 초기 상태 로드 및 스토어 동기화
   useEffect(() => {
-    const query = searchParams.get('query') || "";
-    if (searchQuery !== query) {
-      setSearchQuery(query);
+    // 이 탭과 관련된 파라미터가 있는지 확인
+    const hasTimeParams = searchParams.has('fromValue') || searchParams.has('fromDate');
+    const hasQueryParam = searchParams.has('query');
+    
+    // 만약 다른 탭의 파라미터(예: threatFromValue)만 있고 현재 탭 파라미터가 없으면 무시
+    if (!hasTimeParams && !hasQueryParam) {
+      const hasOtherTabParams = searchParams.has('threatFromValue') || searchParams.has('threatFromDate') || searchParams.has('edrQuery');
+      if (hasOtherTabParams) return;
     }
 
+    const query = searchParams.get('query') || "";
     const fromVal = searchParams.get('fromValue');
     const fromUn = searchParams.get('fromUnit');
     const toVal = searchParams.get('toValue');
@@ -294,23 +300,29 @@ const DashboardTab: React.FC = () => {
     const fromDt = searchParams.get('fromDate');
     const toDt = searchParams.get('toDate');
 
-    // Zustand 스토어의 현재 상태를 스냅샷으로 가져옴
-    const currentStoreRange = useThreatStore.getState().timeRange;
-
-    const newTimeRange = {
-      fromValue: fromVal ? parseInt(fromVal, 10) : currentStoreRange.fromValue,
-      fromUnit: fromUn || currentStoreRange.fromUnit,
-      toValue: toVal ? parseInt(toVal, 10) : null,
-      toUnit: toUn || 'm',
-      fromDate: fromDt || null,
-      toDate: toDt || null,
-    };
-
-    // 깊은 비교를 통해 실제 변경이 있을 때만 업데이트
-    if (JSON.stringify(currentStoreRange) !== JSON.stringify(newTimeRange)) {
-      setTimeRange(newTimeRange);
+    const currentStore = useThreatStore.getState();
+    
+    // 쿼리 업데이트
+    if (hasQueryParam && currentStore.searchQuery !== query) {
+      setSearchQuery(query);
     }
-  }, [searchParams, setSearchQuery, setTimeRange]); // searchQuery, timeRange를 의존성에서 제거하여 무한 루프 방지
+
+    // 시간 범위 업데이트
+    if (hasTimeParams) {
+      const newTimeRange = {
+        fromValue: fromVal ? parseInt(fromVal, 10) : null,
+        fromUnit: fromUn || 'm',
+        toValue: toVal ? parseInt(toVal, 10) : null,
+        toUnit: toUn || 'm',
+        fromDate: fromDt || null,
+        toDate: toDt || null,
+      };
+
+      if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newTimeRange)) {
+        setTimeRange(newTimeRange);
+      }
+    }
+  }, [searchParams, setSearchQuery, setTimeRange]);
 
   // 고급 설정 로드 (초기 1회)
   useEffect(() => {
