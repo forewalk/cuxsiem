@@ -70,31 +70,31 @@ const ThreatListTab: React.FC = () => {
 
   useEffect(() => {
     const applyUrlParamsToStore = () => {
-      const currentSearchParams = new URLSearchParams(window.location.search);
+      const hasTimeParams = searchParams.has('threatFromValue') || searchParams.has('threatFromDate');
+      const hasQueryParam = searchParams.has('threatQuery');
       
-      const hasTimeParams = currentSearchParams.has('threatFromValue') || currentSearchParams.has('threatFromDate');
-      const hasQueryParam = currentSearchParams.has('threatQuery');
-      
-      // 이 탭과 관련된 파라미터가 없으면 무시
+      // 이 탭과 관련된 파라미터가 아예 없으면 무시 (다른 탭의 동작임)
       if (!hasTimeParams && !hasQueryParam) {
-        const hasOtherTabParams = currentSearchParams.has('fromValue') || currentSearchParams.has('fromDate') || currentSearchParams.has('edrQuery');
+        const hasOtherTabParams = searchParams.has('fromValue') || searchParams.has('fromDate') || searchParams.has('edrQuery');
         if (hasOtherTabParams) return;
       }
 
-      const query = currentSearchParams.get('threatQuery') || "";
-      const fromVal = currentSearchParams.get('threatFromValue');
-      const fromUn = currentSearchParams.get('threatFromUnit');
-      const toVal = currentSearchParams.get('threatToValue');
-      const toUn = currentSearchParams.get('threatToUnit') || 'm';
-      const fromDt = currentSearchParams.get('threatFromDate');
-      const toDt = currentSearchParams.get('threatToDate');
+      const query = searchParams.get('threatQuery') || "";
+      const fromVal = searchParams.get('threatFromValue');
+      const fromUn = searchParams.get('threatFromUnit');
+      const toVal = searchParams.get('threatToValue');
+      const toUn = searchParams.get('threatToUnit') || 'm';
+      const fromDt = searchParams.get('threatFromDate');
+      const toDt = searchParams.get('threatToDate');
       
       const currentStore = useThreatStore.getState();
       
+      // 쿼리 업데이트
       if (hasQueryParam && currentStore.searchQuery !== query) {
         setSearchQuery(query);
       }
       
+      // 시간 범위 업데이트 (해당 파라미터가 있을 때만)
       if (hasTimeParams) {
         const newRange = {
           fromValue: fromVal ? parseInt(fromVal, 10) : null,
@@ -112,9 +112,7 @@ const ThreatListTab: React.FC = () => {
     };
     
     applyUrlParamsToStore();
-    window.addEventListener('popstate', applyUrlParamsToStore);
-    return () => window.removeEventListener('popstate', applyUrlParamsToStore);
-  }, [setSearchQuery, setTimeRange]); // searchParams가 없어도 popstate와 mount시 체크함
+  }, [searchParams, setSearchQuery, setTimeRange]);
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);

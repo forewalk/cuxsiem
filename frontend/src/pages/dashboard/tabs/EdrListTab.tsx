@@ -115,26 +115,24 @@ const EdrListTab: React.FC = () => {
 
   useEffect(() => {
     const applyUrlParamsToStore = () => {
-      const currentSearchParams = new URLSearchParams(window.location.search);
+      const hasTimeParams = searchParams.has('edrFromValue') || searchParams.has('edrFromDate');
+      const hasQueryParam = searchParams.has('edrQuery');
+      const hasCategoryParam = searchParams.has('edrCategory');
       
-      const hasTimeParams = currentSearchParams.has('edrFromValue') || currentSearchParams.has('edrFromDate');
-      const hasQueryParam = currentSearchParams.has('edrQuery');
-      const hasCategoryParam = currentSearchParams.has('edrCategory');
-      
-      // 이 탭과 관련된 파라미터가 없으면 무시
+      // 이 탭과 관련된 파라미터가 아예 없으면 무시
       if (!hasTimeParams && !hasQueryParam && !hasCategoryParam) {
-        const hasOtherTabParams = currentSearchParams.has('fromValue') || currentSearchParams.has('threatFromValue');
+        const hasOtherTabParams = searchParams.has('fromValue') || searchParams.has('threatFromValue');
         if (hasOtherTabParams) return;
       }
 
-      const query = currentSearchParams.get('edrQuery') || "";
-      const category = currentSearchParams.get('edrCategory') || "all";
-      const fromVal = currentSearchParams.get('edrFromValue');
-      const fromUn = currentSearchParams.get('edrFromUnit');
-      const toVal = currentSearchParams.get('edrToValue');
-      const toUn = currentSearchParams.get('edrToUnit') || 'm';
-      const fromDt = currentSearchParams.get('edrFromDate');
-      const toDt = currentSearchParams.get('edrToDate');
+      const query = searchParams.get('edrQuery') || "";
+      const category = searchParams.get('edrCategory') || "all";
+      const fromVal = searchParams.get('edrFromValue');
+      const fromUn = searchParams.get('edrFromUnit');
+      const toVal = searchParams.get('edrToValue');
+      const toUn = searchParams.get('edrToUnit') || 'm';
+      const fromDt = searchParams.get('edrFromDate');
+      const toDt = searchParams.get('edrToDate');
       
       const currentStore = useEdrStore.getState();
       
@@ -162,9 +160,7 @@ const EdrListTab: React.FC = () => {
     };
     
     applyUrlParamsToStore();
-    window.addEventListener('popstate', applyUrlParamsToStore);
-    return () => window.removeEventListener('popstate', applyUrlParamsToStore);
-  }, [setSearchQuery, setActiveCategory, setTimeRange]);
+  }, [searchParams, setSearchQuery, setActiveCategory, setTimeRange]);
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
