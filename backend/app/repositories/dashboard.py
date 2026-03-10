@@ -24,10 +24,18 @@ class DashboardRepository:
 
     def _preprocess_query(self, query: Optional[str]) -> Optional[str]:
         if not query: return query
-        # isActive: "1" -> isActive: true, isActive: "0" -> isActive: false 변환
-        # OpenSearch query_string에서 불리언 필드는 따옴표 없는 true/false여야 함
         import re
         q = query
+
+        # 1. 따옴표 내부의 역슬래시(\)를 이스케이프(\\) 처리 (윈도우 경로 등 지원)
+        # 예: "C:\Users" -> "C:\\Users"
+        def escape_backslashes(match):
+            content = match.group(1)
+            return f'"{content.replace("\\", "\\\\")}"'
+        
+        q = re.sub(r'"([^"]*)"', escape_backslashes, q)
+
+        # 2. isActive: "1" -> isActive: true 등 불리언 변환
         # : "1" -> : true
         q = re.sub(r':\s*["\']?1["\']?', ': true', q)
         # : "0" -> : false
