@@ -72,24 +72,33 @@ const ThreatListTab: React.FC = () => {
     const applyUrlParamsToStore = () => {
       const currentSearchParams = new URLSearchParams(window.location.search);
       const query = currentSearchParams.get('threatQuery') || "";
-      if (searchQuery !== query) setSearchQuery(query);
+      
+      const currentStore = useThreatStore.getState();
+      if (currentStore.searchQuery !== query) {
+        setSearchQuery(query);
+      }
+      
       const fromVal = currentSearchParams.get('threatFromValue');
       const fromUn = currentSearchParams.get('threatFromUnit');
-      const defaultRange = useThreatStore.getState().timeRange;
+      
       const newRange = {
-        fromValue: fromVal ? parseInt(fromVal, 10) : defaultRange.fromValue,
-        fromUnit: fromUn || defaultRange.fromUnit,
+        fromValue: fromVal ? parseInt(fromVal, 10) : currentStore.timeRange.fromValue,
+        fromUnit: fromUn || currentStore.timeRange.fromUnit,
         toValue: currentSearchParams.get('threatToValue') ? parseInt(currentSearchParams.get('threatToValue')!, 10) : null,
         toUnit: currentSearchParams.get('threatToUnit') || 'm',
         fromDate: currentSearchParams.get('threatFromDate'),
         toDate: currentSearchParams.get('threatToDate'),
       };
-      if (JSON.stringify(timeRange) !== JSON.stringify(newRange)) setTimeRange(newRange);
+      
+      if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newRange)) {
+        setTimeRange(newRange);
+      }
     };
+    
     applyUrlParamsToStore();
     window.addEventListener('popstate', applyUrlParamsToStore);
     return () => window.removeEventListener('popstate', applyUrlParamsToStore);
-  }, [searchQuery, setSearchQuery, timeRange, setTimeRange]);
+  }, [setSearchQuery, setTimeRange]); // searchQuery, timeRange 제거하여 루프 방지
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);

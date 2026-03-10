@@ -283,7 +283,9 @@ const DashboardTab: React.FC = () => {
   // URL 쿼리 파라미터에서 초기 상태 로드 및 스토어 동기화
   useEffect(() => {
     const query = searchParams.get('query') || "";
-    if (searchQuery !== query) setSearchQuery(query);
+    if (searchQuery !== query) {
+      setSearchQuery(query);
+    }
 
     const fromVal = searchParams.get('fromValue');
     const fromUn = searchParams.get('fromUnit');
@@ -292,20 +294,23 @@ const DashboardTab: React.FC = () => {
     const fromDt = searchParams.get('fromDate');
     const toDt = searchParams.get('toDate');
 
-    const defaultThreatStoreTimeRange = useThreatStore.getState().timeRange; // Zustand 스토어의 기본 시간 범위 참조
+    // Zustand 스토어의 현재 상태를 스냅샷으로 가져옴
+    const currentStoreRange = useThreatStore.getState().timeRange;
 
     const newTimeRange = {
-      fromValue: fromVal ? parseInt(fromVal, 10) : defaultThreatStoreTimeRange.fromValue,
-      fromUnit: fromUn || defaultThreatStoreTimeRange.fromUnit,
-      toValue: toVal ? parseInt(toVal, 10) : defaultThreatStoreTimeRange.toValue,
-      toUnit: toUn || defaultThreatStoreTimeRange.toUnit,
-      fromDate: fromDt || defaultThreatStoreTimeRange.fromDate,
-      toDate: toDt || defaultThreatStoreTimeRange.toDate,
+      fromValue: fromVal ? parseInt(fromVal, 10) : currentStoreRange.fromValue,
+      fromUnit: fromUn || currentStoreRange.fromUnit,
+      toValue: toVal ? parseInt(toVal, 10) : null,
+      toUnit: toUn || 'm',
+      fromDate: fromDt || null,
+      toDate: toDt || null,
     };
-    if (JSON.stringify(timeRange) !== JSON.stringify(newTimeRange)) {
+
+    // 깊은 비교를 통해 실제 변경이 있을 때만 업데이트
+    if (JSON.stringify(currentStoreRange) !== JSON.stringify(newTimeRange)) {
       setTimeRange(newTimeRange);
     }
-  }, [searchParams, setSearchQuery, setTimeRange, searchQuery, timeRange]);
+  }, [searchParams, setSearchQuery, setTimeRange]); // searchQuery, timeRange를 의존성에서 제거하여 무한 루프 방지
 
   // 고급 설정 로드 (초기 1회)
   useEffect(() => {

@@ -117,26 +117,38 @@ const EdrListTab: React.FC = () => {
     const applyUrlParamsToStore = () => {
       const currentSearchParams = new URLSearchParams(window.location.search);
       const query = currentSearchParams.get('edrQuery') || "";
-      if (searchQuery !== query) setSearchQuery(query);
       const category = currentSearchParams.get('edrCategory') || "all";
-      if (activeCategory !== category) setActiveCategory(category);
+      
+      const currentStore = useEdrStore.getState();
+      
+      if (currentStore.searchQuery !== query) {
+        setSearchQuery(query);
+      }
+      if (currentStore.activeCategory !== category) {
+        setActiveCategory(category);
+      }
+      
       const fromVal = currentSearchParams.get('edrFromValue');
       const fromUn = currentSearchParams.get('edrFromUnit');
-      const defaultStoreRange = useEdrStore.getState().timeRange;
+      
       const newRange = {
-        fromValue: fromVal ? parseInt(fromVal, 10) : defaultStoreRange.fromValue,
-        fromUnit: fromUn || defaultStoreRange.fromUnit,
+        fromValue: fromVal ? parseInt(fromVal, 10) : currentStore.timeRange.fromValue,
+        fromUnit: fromUn || currentStore.timeRange.fromUnit,
         toValue: currentSearchParams.get('edrToValue') ? parseInt(currentSearchParams.get('edrToValue')!, 10) : null,
         toUnit: currentSearchParams.get('edrToUnit') || 'm',
         fromDate: currentSearchParams.get('edrFromDate'),
         toDate: currentSearchParams.get('edrToDate'),
       };
-      if (JSON.stringify(timeRange) !== JSON.stringify(newRange)) setTimeRange(newRange);
+      
+      if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newRange)) {
+        setTimeRange(newRange);
+      }
     };
+    
     applyUrlParamsToStore();
     window.addEventListener('popstate', applyUrlParamsToStore);
     return () => window.removeEventListener('popstate', applyUrlParamsToStore);
-  }, [searchQuery, activeCategory, timeRange, setTimeRange, setSearchQuery, setActiveCategory]);
+  }, [setSearchQuery, setActiveCategory, setTimeRange]); // searchQuery, activeCategory, timeRange 제거하여 루프 방지
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
