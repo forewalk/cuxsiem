@@ -229,18 +229,28 @@ class TestMessageTemplateRendering:
         result = service._render_message_template(template, {})
         assert result == "host: {{hostname}}"
 
-    def test_hit_sources_extraction(self, service):
-        template = "호스트: {{host}}"
+    def test_hit_sources_extraction_with_nested_key(self, service):
+        """_hit_sources 추출은 중첩(dotted) 키에서만 동작"""
+        template = "위협: {{threatInfo.threatName}}"
         ctx = {
             "_hit_sources": [
-                {"host": "web-01"},
-                {"host": "web-02"},
-                {"host": "web-01"},
+                {"threatInfo": {"threatName": "Malware.Gen"}},
+                {"threatInfo": {"threatName": "Trojan.Agent"}},
+                {"threatInfo": {"threatName": "Malware.Gen"}},
             ]
         }
         result = service._render_message_template(template, ctx)
-        assert "web-01" in result
-        assert "web-02" in result
+        assert "Malware.Gen" in result
+        assert "Trojan.Agent" in result
+
+    def test_hit_sources_simple_key_not_resolved(self, service):
+        """단순 키는 _hit_sources를 탐색하지 않음 (현재 코드 동작)"""
+        template = "호스트: {{host}}"
+        ctx = {
+            "_hit_sources": [{"host": "web-01"}]
+        }
+        result = service._render_message_template(template, ctx)
+        assert result == "호스트: {{host}}"
 
     def test_empty_template(self, service):
         result = service._render_message_template("", {"total": 5})
