@@ -155,10 +155,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
     }
   };
 
-  const handleRemoveFilter = (filterToRemove: string) => {
-    // 공백을 포함한 정확한 매칭을 위해 trim 처리
+  const handleRemoveFilter = (indexToRemove: number) => {
     const filters = searchQuery.split(" AND ");
-    const newFilters = filters.filter(f => f.trim() !== filterToRemove.trim());
+    const newFilters = filters.filter((_, index) => index !== indexToRemove);
     onSearchQueryChange(newFilters.join(" AND "));
   };
 
@@ -495,7 +494,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               <Typography variant="caption" sx={{ color: TEXT_COLOR, fontSize: '0.75rem' }}>
                 {filter.trim()}
               </Typography>
-              <IconButton size="small" onClick={() => handleRemoveFilter(filter.trim())} sx={{ ml: 0.5, p: 0.1, color: TEXT_COLOR }}>
+              <IconButton size="small" onClick={() => handleRemoveFilter(index)} sx={{ ml: 0.5, p: 0.1, color: TEXT_COLOR }}>
                 <CloseIcon sx={{ fontSize: 12 }} />
               </IconButton>
             </Box>
