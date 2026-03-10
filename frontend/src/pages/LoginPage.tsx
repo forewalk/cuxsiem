@@ -72,10 +72,10 @@ export const LoginPage: React.FC = () => {
   const [signupSuccessMsg, setSignupSuccessMsg] = useState('');
 
   useEffect(() => {
-    // 고급 설정(사용자 가입 활성화 여부, OTP 필수 여부) 로드
+    // 고급 설정(사용자 가입 활성화 여부, OTP 필수 여부) 로드 - 공개 엔드포인트 사용
     const loadAdvancedSettings = async () => {
       try {
-        const settings = await advancedSettingsService.getSettings();
+        const settings = await advancedSettingsService.getPublicSettings();
         setUserRegisterEnabled(settings.user_register);
         setOtpRequired(settings.otp_required ?? false);
       } catch (err) {
