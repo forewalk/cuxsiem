@@ -31,7 +31,8 @@ class DashboardRepository:
         # 예: "C:\Users" -> "C:\\Users"
         def escape_backslashes(match):
             content = match.group(1)
-            return f'"{content.replace("\\", "\\\\")}"'
+            escaped = content.replace("\\", "\\\\")
+            return f'"{escaped}"'
         
         q = re.sub(r'"([^"]*)"', escape_backslashes, q)
 
