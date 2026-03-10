@@ -188,15 +188,22 @@ const EdrListTab: React.FC = () => {
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
-  // 사용자별 컬럼 설정 초기화
+  // 전체 초기화 (검색어, 시간, 카테고리, 컬럼, 페이지, URL)
   const handleResetColumns = async () => {
     try {
-      const success = await resetColumnSettings(`edr_${activeCategory}`);
-      if (success) {
-        const defaultFields = CATEGORY_FIELDS[activeCategory] || CATEGORY_FIELDS.all;
-        setSelectedFieldNames(defaultFields);
-      }
+      await resetColumnSettings(`edr_${activeCategory}`);
     } catch (err) { console.error("Failed to reset columns", err); }
+
+    setSearchQuery("");
+    setActiveCategory("all");
+    setTimeRange({
+      fromValue: settings?.time_filter_duration ?? 15,
+      fromUnit: settings?.time_filter_unit ?? 'm',
+      toValue: null, toUnit: 'm', fromDate: null, toDate: null,
+    });
+    setSelectedFieldNames(CATEGORY_FIELDS.all);
+    setPage(0);
+    navigate('?', { replace: true });
   };
 
   // 사용자별 컬럼 순서 로드

@@ -9,8 +9,8 @@ import { getRoleName } from '@/utils/roleUtils';
 import { getAlertWsUrl } from '@/utils/wsUtils';
 import MonacoEditor from '@monaco-editor/react';
 import {
-  ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
+  ArrowUpward as ArrowUpwardIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Delete as DeleteIcon,
@@ -73,8 +73,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
 실행 사용자: {{src.process.user}}
 명령어: {{src.process.cmdline}}
 
-출발지: {{src.ip.address}}:{{src.port.number}}
-목적지: {{dst.ip.address}}:{{dst.port.number}}`,
+`,
   severity: 'info',
   interval_min: 1,
   trigger_condition: '',
