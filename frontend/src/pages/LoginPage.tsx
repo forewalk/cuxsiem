@@ -440,7 +440,7 @@ export const LoginPage: React.FC = () => {
               }}
             >
               <img 
-                src="/cruxsiem.svg" 
+                src="/Shinhan-Bank.svg" 
                 alt="Logo" 
                 style={{ width: "100%", height: "100%", objectFit: "contain" }} 
               />
