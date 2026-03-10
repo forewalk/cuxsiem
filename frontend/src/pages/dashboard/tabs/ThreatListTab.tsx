@@ -1,42 +1,53 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  Box, Paper, Typography, Alert, LinearProgress, 
-  List, ListItem, ListItemIcon, ListItemText, IconButton, Tooltip,
-  Button, TextField, Select, MenuItem, useTheme, Collapse, Checkbox,
-  Menu
+import {
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  Collapse,
+  IconButton,
+  LinearProgress,
+  List, ListItem, ListItemIcon, ListItemText,
+  Menu,
+  MenuItem,
+  Paper,
+  Select,
+  TextField,
+  Tooltip,
+  Typography,
+  useTheme
 } from "@mui/material";
-import ControlBar from "../components/ControlBar";
-import BarChartWidget from "../components/BarChartWidget";
+import dayjs from "dayjs";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as XLSX from "xlsx";
-import { getDashboardStats, getIndexFields, getDashboardIndices, getIndexLogs, getColumnSettings, saveColumnSettings, resetColumnSettings } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
+import { getColumnSettings, getDashboardIndices, getDashboardStats, getIndexFields, getIndexLogs, resetColumnSettings, saveColumnSettings } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
 import useThreatStore from "../../../stores/useThreatStore";
-import dayjs from "dayjs";
+import BarChartWidget from "../components/BarChartWidget";
+import ControlBar from "../components/ControlBar";
 
 // 아이콘
-import SearchIcon from "@mui/icons-material/Search";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AbcIcon from "@mui/icons-material/Abc";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import KeyboardArrowDownIconMenu from "@mui/icons-material/KeyboardArrowDown";
-import AbcIcon from "@mui/icons-material/Abc";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CodeIcon from "@mui/icons-material/Code";
-import TagIcon from "@mui/icons-material/Tag";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
+import { default as KeyboardArrowDownIcon, default as KeyboardArrowDownIconMenu } from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
+import SearchIcon from "@mui/icons-material/Search";
+import TagIcon from "@mui/icons-material/Tag";
 
 // i18n
-import koMessages from "../../../locales/ko.json";
+import cnMessages from "../../../locales/cn.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
-import cnMessages from "../../../locales/cn.json";
+import koMessages from "../../../locales/ko.json";
 
 const ThreatListTab: React.FC = () => {
   const { language } = useLanguageStore();
@@ -221,10 +232,10 @@ const ThreatListTab: React.FC = () => {
 
   const handleToggleField = useCallback(async (fieldName: string) => {
     setSelectedFieldNames(prev => {
-      const next = prev.includes(fieldName) 
+      const next = prev.includes(fieldName)
         ? prev.filter(name => name !== fieldName)
         : [...prev, fieldName];
-      
+
       // 상태 업데이트 직후 서버에 저장 (비동기)
       saveColumnSettings("threat", next).catch(err => console.error("Failed to save column settings", err));
       return next;
@@ -358,7 +369,7 @@ const ThreatListTab: React.FC = () => {
                   <Box sx={{ width: 32, flexShrink: 0 }} />
                   {sortedDisplayFields.map((fn, idx) => (
                     <Box key={fn} sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', borderRight: 1, borderColor: 'transparent' }}>
-                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn.includes('.') ? fn.split('.').pop() : fn}</Typography>
+                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn}</Typography>
                     </Box>
                   ))}
                 </Box>
@@ -381,7 +392,7 @@ const ThreatListTab: React.FC = () => {
                               return sk.map((k, i, arr) => (
                                 <Box key={k} sx={{ display: 'flex', borderBottom: i < arr.length - 1 ? '1px solid' : 'none', borderColor: 'divider', '&:hover': { bgcolor: 'action.hover' }, alignItems: 'stretch' }}>
                                   <Box sx={{ width: 250, p: 1, pl: 8, flexShrink: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRight: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-                                    <Typography variant="caption" sx={{ fontWeight: k === "@timestamp" ? 'bold' : 500, color: k === "@timestamp" ? 'primary.main' : 'text.secondary', wordBreak: 'break-all', lineHeight: 1.2 }}>{k.includes('.') ? k.split('.').pop() : k}</Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: k === "@timestamp" ? 'bold' : 500, color: k === "@timestamp" ? 'primary.main' : 'text.secondary', wordBreak: 'break-all', lineHeight: 1.2 }}>{k}</Typography>
                                   </Box>
                                   <Box sx={{ p: 1, flexGrow: 1, pl: 2, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                                     <Typography variant="caption" sx={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', color: 'text.primary', display: 'block', lineHeight: 1.6, fontWeight: k === "@timestamp" ? 'bold' : 'normal' }}>{fl[k] !== undefined ? String(fl[k]) : "-"}</Typography>
