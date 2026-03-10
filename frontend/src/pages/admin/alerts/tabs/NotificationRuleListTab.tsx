@@ -175,36 +175,57 @@ const NotificationRuleListTab: React.FC = () => {
       // 중첩 필드 접근 헬퍼 함수
       const getNestedValue = (obj: any, path: string): any => {
         const keys = path.split('.');
+        if (!obj) return null;
+
+        // 1. 일반적인 중첩 구조 탐색
         let value = obj;
+        let foundNested = true;
         for (const key of keys) {
           if (value && typeof value === 'object' && key in value) {
             value = value[key];
           } else {
-            return null;
+            foundNested = false;
+            break;
           }
         }
-        return value;
+        if (foundNested) return value;
+
+        // 2. Flattened key 탐색 (예: {"endpoint.name": "host1"})
+        if (obj && typeof obj === 'object' && path in obj) {
+          return obj[path];
+        }
+
+        return null;
       };
 
       // 템플릿 컨텍스트 구성 (백엔드와 동일: OpenSearch 응답 전체 + 메타 정보)
       const context: any = {
         ...queryTestResult,
         total,
+        rule_name: formData.name || 'Test Rule',
+        severity: formData.severity,
+        target_index: formData.target_index
       };
 
       const toStr = (v: any): string =>
         typeof v === 'object' && v !== null ? JSON.stringify(v, null, 2) : String(v);
 
-      // {{변수}} 형식을 모두 치환
-      preview = preview.replace(/\{\{([\w\.@]+)\}\}/g, (match, key) => {
+      // {{ 변수 }} 형식을 모두 치환 (공백 허용)
+      preview = preview.replace(/\{\{\s*([\w\.@]+)\s*\}\}/g, (match, keyFull) => {
+        const key = keyFull.trim();
+
         // 단순 키 접근 (total 등)
         if (!key.includes('.')) {
-          const value = context[key];
+          let value = context[key];
+          // context에 없으면 첫 번째 hit의 _source에서 찾아보기
+          if ((value === null || value === undefined) && hitSources.length > 0) {
+            value = hitSources[0][key];
+          }
           return value !== null && value !== undefined ? toStr(value) : match;
         }
 
         // 1차: context 전체에서 직접 탐색 (예: hits.total.value, aggregations.threats.buckets)
-        const ctxValue = getNestedValue(queryTestResult, key);
+        const ctxValue = getNestedValue(context, key);
         if (ctxValue !== null && ctxValue !== undefined) {
           return toStr(ctxValue);
         }
@@ -230,7 +251,7 @@ const NotificationRuleListTab: React.FC = () => {
     }
 
     return preview;
-  }, [formData.message_template, queryTestResult]);
+  }, [formData.message_template, formData.name, formData.severity, formData.target_index, queryTestResult]);
 
   const loadRules = useCallback(async () => {
     if (!user || user.role !== 'role-1') { setLoading(false); return; }
