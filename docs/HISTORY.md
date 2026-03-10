@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-10 16:30 | 박지은 | 배포 | origin/develop push (feature/dashboard 머지 - EDR/Threat 리스트 컬럼 원본 필드명 표시, alerts 머지) |
 | 2026-03-10 09:44 | 박지은 | 수정 | origin/feature/alerts push (알림센터 테이블 위협현황-리스트 스타일로 통일) |
 | 2026-03-09 14:47 | 박지은 | 리팩터 | 알림 규칙 dead code 제거 (개별 문서 알림 경로, dedup_key_template, 미사용 운영 필드) |
 | 2026-03-09 15:30 | 박지은 | 배포 | origin/develop push (알림 리팩터링, severity 타입 수정, 빌드 오류 해결) |
