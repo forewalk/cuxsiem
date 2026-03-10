@@ -147,9 +147,7 @@ const NotificationHistoryTab: React.FC = () => {
     }
   });
 
-  const filteredNotifications = notifications.filter(
-    row => selectedSeverities.length === 0 || (row.rule_severity && selectedSeverities.includes(row.rule_severity.toLowerCase()))
-  );
+  const filteredNotifications = notifications;
 
   return (
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
