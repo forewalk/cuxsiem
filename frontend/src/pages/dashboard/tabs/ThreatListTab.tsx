@@ -100,8 +100,8 @@ const ThreatListTab: React.FC = () => {
       
       const currentStore = useThreatStore.getState();
       
-      // 쿼리 업데이트
-      if (hasQueryParam && currentStore.searchQuery !== query) {
+      // 쿼리 업데이트 (파라미터가 없으면 ""으로 초기화)
+      if (currentStore.searchQuery !== query) {
         setSearchQuery(query);
       }
       
@@ -193,14 +193,21 @@ const ThreatListTab: React.FC = () => {
     try { await saveColumnSettings("threat", newOrder); } catch (err) { console.error("Failed to save column settings", err); }
   };
 
+  // 전체 초기화 (검색어, 시간, 컬럼, 페이지, URL)
   const handleResetColumns = async () => {
     try {
-      const success = await resetColumnSettings("threat");
-      if (success) {
-        const defaultFields = ["threatInfo.createdAt", "agentRealtimeInfo.agentComputerName", "threatInfo.analystVerdict", "threatInfo.classification", "threatInfo.confidenceLevel", "threatInfo.fileExtension", "threatInfo.filePath", "threatInfo.incidentStatus", "threatInfo.mitigationStatus", "threatInfo.processUser", "threatInfo.threatName"];
-        setSelectedFieldNames(defaultFields);
-      }
+      await resetColumnSettings("threat");
     } catch (err) { console.error("Failed to reset columns", err); }
+
+    setSearchQuery("");
+    setTimeRange({
+      fromValue: settings?.time_filter_duration ?? 15,
+      fromUnit: settings?.time_filter_unit ?? 'm',
+      toValue: null, toUnit: 'm', fromDate: null, toDate: null,
+    });
+    setSelectedFieldNames(["threatInfo.createdAt", "agentRealtimeInfo.agentComputerName", "threatInfo.analystVerdict", "threatInfo.classification", "threatInfo.confidenceLevel", "threatInfo.fileExtension", "threatInfo.filePath", "threatInfo.incidentStatus", "threatInfo.mitigationStatus", "threatInfo.processUser", "threatInfo.threatName"]);
+    setPage(0);
+    navigate('?', { replace: true });
   };
 
   const getValueByPath = (obj: any, path: string) => {
