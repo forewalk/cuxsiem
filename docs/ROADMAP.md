@@ -43,7 +43,7 @@
 - [ ] 위험도 대시보드
 
 ### 알림 기능
-- [ ] 웹훅 연동
+- [x] 웹훅 연동
 - [x] 화면 하단 알림 (관리자 권한 체크)
 - [x] 알림 시나리오 구성
 
@@ -90,8 +90,33 @@
   - [ ] 환경 검증 및 헬스 체크
   - [ ] One-command 데모 환경 배포
 
-### 개인화 (Personalization)
-- [ ] 개인화 설정 (대시보드 위치/크기, 구조 레이아웃, 이름 등)
+## Phase 5: 이중화 (HA) 아키텍처
+
+### 배치/스케줄링 이중화
+- [ ] 배치 라이브러리 선정 및 중복 실행 방지 전략
+  - [ ] 현행 BackgroundTask/APScheduler → 다중 인스턴스 환경 대응 검토
+  - [ ] 분산 락(Distributed Lock) 도입 (Redis/OpenSearch 기반 Advisory Lock)
+  - [ ] 또는 단일 스케줄러 인스턴스 분리 (Dedicated Worker 패턴)
+  - [ ] 라이선스 검사, 알림 시나리오 실행 등 주기적 태스크 대상 식별
+- [ ] Celery + Redis(Broker) 또는 ARQ 등 태스크 큐 도입 검토
+  - [ ] 장애 시 재시도(Retry) 및 Dead Letter 처리 정책
+
+### 애플리케이션 서버 이중화
+- [ ] FastAPI (Uvicorn) 다중 인스턴스 구성
+  - [ ] Nginx 로드 밸런서 라운드로빈/헬스체크 설정
+  - [ ] Sticky Session 또는 Stateless 설계 검증 (JWT 기반이므로 Stateless 지향)
+- [ ] 인메모리 상태 제거 — 세션/캐시를 Redis 등 외부 스토어로 이관
+
+### 데이터 레이어 이중화
+- [ ] OpenSearch 클러스터 다중 노드 구성 (Master 3+, Data 2+)
+  - [ ] 샤드/레플리카 정책 수립 (replica: 1 이상)
+  - [ ] 스냅샷 백업 및 복구 절차 자동화
+- [ ] Kafka 클러스터 이중화 (Broker 3+, Replication Factor 설정)
+- [ ] Vector 파이프라인 이중화 (다중 인스턴스 + Kafka Consumer Group)
+
+### 모니터링 및 장애 감지
+- [ ] 각 컴포넌트 헬스체크 엔드포인트 통합 (`/health`, `/readiness`)
+- [ ] 장애 시 자동 알림 (웹훅/이메일) 연동
 
 ---
 
