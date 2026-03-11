@@ -2,25 +2,26 @@
 
 이 파일은 Gemini가 이 저장소에서 작업할 때 참조하는 가이드입니다.
 
-이 저장소에서 작업하기 전에 반드시 `ASSISTANT.md`를 읽어야 합니다.
+## 필수: 작업 전 ASSISTANT.md 전체 읽기
 
-## 필수: ASSISTANT.md 선행 참조
+**모든 작업 시작 전 반드시 `ASSISTANT.md`를 읽을 것.**
 
-**작업 시작 전 `ASSISTANT.md`를 반드시 읽을 것.** 다음 내용이 포함되어 있습니다:
+## 절대 금지 규칙 (ASSISTANT.md 읽기 전에도 적용)
 
-| 섹션 | 주요 내용 |
-|------|-----------|
-| 필수 행동 강령 | 원격 Push 금지 규칙, `docs/HISTORY.md` 기록 의무 |
-| 빌드 및 실행 명령어 | 백엔드(`uvicorn`), 프론트엔드(`npm run dev`), 테스트(`pytest`), 린트 |
-| 아키텍처 | 백엔드 레이어(Endpoint→Service→Repository→Model→OpenSearch) |
-| OpenSearch 규칙 | 인덱스 네이밍(`cs_` 접두사), soft delete(`deleted_at`), 필드 규칙 |
-| 프론트엔드 구조 | 디렉토리 구조, MUI 사용법, 테마/색상 매핑, 공통 레이아웃 컴포넌트 |
-| i18n 규칙 | **모든 텍스트 하드코딩 금지**, `src/locales/*.json`에서 관리 |
-| 9단계 워크플로우 | 슬래시 커맨드 목록(`/workflow-start`, `/develop`, `/test` 등) |
-| 프로젝트 문서 | `docs/ARCHITECTURE.md`, `docs/INSTALL.md`, `docs/GIT_GUIDE.md` 등 |
+1. **원격 Push 금지**: 사용자 명시적 요청 없이 `git push` 금지
+2. **테스트 없이 기능 구현 금지**: 새 기능/버그 수정 시 반드시 테스트 먼저 작성
+3. **UI 텍스트 하드코딩 금지**: 모든 텍스트는 `frontend/src/locales/*.json`에서 관리
+
+## ASSISTANT.md 주요 섹션 위치
+
+| 섹션 | 내용 |
+|------|------|
+| 빌드/실행 명령어 | `uvicorn`, `npm run dev`, `pytest`, `npm test` |
+| 아키텍처 | Endpoint→Service→Repository→Model→OpenSearch |
+| OpenSearch 규칙 | `cs_` 접두사, soft delete, 필드 네이밍 |
+| 프론트엔드 구조 | MUI v7, 테마/색상, AppLayout 컴포넌트 |
+| 9단계 워크플로우 | `/workflow-start`, `/develop`, `/test` 등 |
 
 ## 주의사항
 
-- **이 파일에 프로젝트 가이드 내용을 추가하지 마세요.**
-- 새로운 규칙, 아키텍처 변경, 컨벤션 등 모든 갱신 사항은 **`ASSISTANT.md`에 작성**하세요.
-- 이 파일은 Gemini 전용 진입점 역할만 합니다.
+- 이 파일에 추가 가이드를 작성하지 말 것. 모든 갱신 사항은 **`ASSISTANT.md`에 작성**.
