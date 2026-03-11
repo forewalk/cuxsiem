@@ -1,38 +1,38 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import TextField from "@mui/material/TextField";
-import FormControl from "@mui/material/FormControl";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import Button from "@mui/material/Button";
-import Popover from "@mui/material/Popover";
-import Divider from "@mui/material/Divider";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
-import IconButton from "@mui/material/IconButton";
-import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import SearchIcon from "@mui/icons-material/Search";
+import { useLanguageStore } from "@/stores/useLanguageStore.ts";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import StopIcon from "@mui/icons-material/Stop";
 import CloseIcon from "@mui/icons-material/Close";
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import SearchIcon from "@mui/icons-material/Search";
+import StopIcon from "@mui/icons-material/Stop";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import FormControl from "@mui/material/FormControl";
+import IconButton from "@mui/material/IconButton";
+import MenuItem from "@mui/material/MenuItem";
+import Popover from "@mui/material/Popover";
+import Select from "@mui/material/Select";
+import { useTheme } from "@mui/material/styles";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import { useLanguageStore } from "@/stores/useLanguageStore.ts";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from "dayjs";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 // dayjs 로케일 임포트
-import 'dayjs/locale/ko';
-import 'dayjs/locale/ja';
 import 'dayjs/locale/en';
+import 'dayjs/locale/ja';
+import 'dayjs/locale/ko';
 
 interface ControlBarProps {
   t: (key: string, params?: Record<string, string>) => string;
@@ -284,6 +284,26 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
             </IconButton>
           )}
         </Box>
+
+        <Button
+          variant="contained"
+          disableElevation
+          startIcon={<SearchIcon sx={{ fontSize: 16 }} />}
+          onClick={() => onSearchQueryChange(tempQuery)}
+          sx={{
+            bgcolor: KIBANA_TEAL,
+            color: '#fff',
+            textTransform: 'none',
+            fontWeight: 'bold',
+            px: 1.5,
+            minWidth: 70,
+            minHeight: 32,
+            fontSize: '0.75rem',
+            '&:hover': { bgcolor: '#004a4d' }
+          }}
+        >
+          {t('search')}
+        </Button>
 
         <Box sx={{ display: 'flex', gap: 0.5, width: { xs: '100%', lg: 'auto' } }}>
           {/* 3. Time Picker Section (More compact) */}
