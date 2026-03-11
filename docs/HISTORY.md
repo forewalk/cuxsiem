@@ -25,8 +25,9 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-03-11 00:30 | 박지은 | 배포 | origin/feature/alerts push (Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
-| 2026-03-10 22:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
+| 2026-03-11 09:30 | 박지은 | 배포 | origin/feature/alerts push (알림 중요도 5단계 변경, Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
+| 2026-03-11 09:15 | 박지은 | 수정 | origin/feature/alerts push (Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
+| 2026-03-10 22:00 | 박지은 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
 | 2026-03-10 21:00 | 박지은 | 배포 | origin/feature/alerts push (알림 규칙 메시지 템플릿 기본값 변경) |
 | 2026-03-10 16:50 | 김장훈 | 수리 | 백엔드 SyntaxError 수정 (f-string 역슬래시 제약 해결) |
 | 2026-03-10 16:45 | 김장훈 | 배포 | origin/develop push (사용자 신청 활성화 및 401 에러 수정, 알림 템플릿 개선, 대시보드 무한루프 및 중복호출 해결, 윈도우 경로 검색 지원) |

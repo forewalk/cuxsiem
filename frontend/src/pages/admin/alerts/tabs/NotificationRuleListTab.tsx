@@ -652,9 +652,11 @@ const NotificationRuleListTab: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })} size="small" />
                   <TextField select label={t('severity')} sx={{ minWidth: 130 }} value={formData.severity}
                     onChange={(e) => setFormData({ ...formData, severity: e.target.value })} size="small">
-                    <MenuItem value="info">{t('severityInfo')}</MenuItem>
-                    <MenuItem value="warning">{t('severityWarning')}</MenuItem>
-                    <MenuItem value="error">{t('severityError')}</MenuItem>
+                    <MenuItem value="info">INFO</MenuItem>
+                    <MenuItem value="low">LOW</MenuItem>
+                    <MenuItem value="medium">MEDIUM</MenuItem>
+                    <MenuItem value="high">HIGH</MenuItem>
+                    <MenuItem value="critical">CRITICAL</MenuItem>
                   </TextField>
                 </Stack>
                 <TextField label={t('ruleDescriptionLabel')} fullWidth multiline rows={2} value={formData.description}

@@ -92,7 +92,7 @@ export const formatDateTimeWithTz = (dateString: string | null | undefined): str
 /**
  * 중요도 필터 옵션
  */
-export const SEVERITY_OPTIONS = ['info', 'warning', 'error'] as const;
+export const SEVERITY_OPTIONS = ['info', 'low', 'medium', 'high', 'critical'] as const;
 
 /**
  * 활성 상태 필터 옵션
