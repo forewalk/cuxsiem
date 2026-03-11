@@ -25,8 +25,17 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+<<<<<<< HEAD
 | 2026-03-11 17:17 | 최지호 | 수정 | origin/feature/dashboard push (리스트 필드 순서 변경을 위한 수정모드 추가) |
+=======
+| 2026-03-11 | 박지은 | 수정 | develop에 feature/dashboard 머지 (EDR-리스트 요구사항 적용, 충돌 마커 제거) |
+>>>>>>> 29f4fde9140accc0a2b70643e26b75119bc003c0
 | 2026-03-11 15:51 | 최지호 | 수정 | origin/feature/dashboard push (EDR-리스트 요구사항 적용) |
+| 2026-03-11 | 김장훈 | 배포 | origin/develop push (CruxSIEM 명칭 통일, CLAUDE.md/GEMINI.md 개선, 로고 SVG 교체, 알림 엔드포인트/규칙탭 확장 병합) |
+| 2026-03-11 09:47 | 박지은 | 배포 | origin/develop push (feature/alerts 머지 - 알림 중요도 5단계 변경, 검색 버튼 추가) |
+| 2026-03-11 09:30 | 박지은 | 배포 | origin/feature/alerts push (알림 중요도 5단계 변경, Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
+| 2026-03-11 09:15 | 박지은 | 수정 | origin/feature/alerts push (Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
+| 2026-03-10 22:00 | 박지은 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
 | 2026-03-10 22:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
 | 2026-03-10 21:00 | 박지은 | 배포 | origin/feature/alerts push (알림 규칙 메시지 템플릿 기본값 변경) |
 | 2026-03-10 16:50 | 김장훈 | 수리 | 백엔드 SyntaxError 수정 (f-string 역슬래시 제약 해결) |
@@ -165,7 +174,7 @@
 | 2026-02-09 15:11 | 김경수 | 수정 | feature/reallog/main push (develop rebase 충돌 해결) |
 | 2026-02-09 13:52 | 김장훈 | 배포 | origin/feature/pipeline push (develop 기준 신규 브랜치 생성) |
 | 2026-02-09 13:51 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
-| 2026-02-09 13:50 | 김장훈 | 배포 | origin/develop push (프로젝트명 cruxSIEM 변경 및 브랜치 정리) |
+| 2026-02-09 13:50 | 김장훈 | 배포 | origin/develop push (프로젝트명 CruxSIEM 변경 및 브랜치 정리) |
 | 2026-02-09 13:00 | 최지호 | 수정 | origin/feature/dashboard push (i18n, 탭 적용) |
 | 2026-02-09 16:35 | 박지은 | 추가 | 알림 시스템 백엔드 API 및 탐지 엔진 초기 구현 (Repository, Service, Endpoint) |
 | 2026-02-09 15:50 | 박지은 | 추가 | 알림 시스템 기획 및 상세 설계 완료 (워크플로우 1-5단계) |
@@ -196,7 +205,7 @@
 | 2026-01-30 19:11 | 김장훈 | 수정 | frontend/src/services/api.ts 로그인 페이지에서 401 에러 메시지 표시 처리 |
 | 2026-01-30 19:11 | 김장훈 | 추가 | frontend/src/locales/ 다국어 지원 파일 (ko.json, en.json, ja.json) |
 | 2026-01-30 19:11 | 김장훈 | 수정 | backend/app/core/security.py bcrypt 직접 사용으로 passlib 호환성 문제 해결 |
-| 2026-01-30 19:11 | 김장훈 | 수정 | 프로젝트명 CruxSIEM → cruxSIEM 표기 통일 |
+| 2026-01-30 19:11 | 김장훈 | 수정 | 프로젝트명 CruxSIEM → CruxSIEM 표기 통일 |
 | 2026-01-30 15:30 | 김장훈 | 배포 | origin/develop push (OpenSearch 접속 설정 및 테스트, 인덱스 명명 규칙 변경) |
 | 2026-01-30 15:30 | 김장훈 | 추가 | backend/test_opensearch_connection.py OpenSearch 접속 테스트 스크립트 |
 | 2026-01-30 15:30 | 김장훈 | 수정 | backend/.env.example OPENSEARCH_USE_SSL=false 변경 (SSL 미사용) |

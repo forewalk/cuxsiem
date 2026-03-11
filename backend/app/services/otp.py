@@ -26,7 +26,7 @@ class OTPService:
             encryption_key: AES-256 암호화 키 (환경변수에서 로드)
         """
         self.encryption = AESEncryption(encryption_key)
-        self.issuer = os.getenv("OTP_ISSUER", "cruxSIEM")
+        self.issuer = os.getenv("OTP_ISSUER", "CruxSIEM")
         self.max_attempts = int(os.getenv("OTP_MAX_ATTEMPTS", 5))
         self.time_window = int(os.getenv("OTP_TIME_WINDOW", 2))  # ±2 slices (60 sec)
 
@@ -53,7 +53,7 @@ class OTPService:
         Args:
             secret: TOTP 시크릿
             email: 사용자 이메일 (QR코드에 표시)
-            issuer: 발급자명 (기본값: cruxSIEM)
+            issuer: 발급자명 (기본값: CruxSIEM)
 
         Returns:
             (qr_code_base64, enrollment_uri) 튜플

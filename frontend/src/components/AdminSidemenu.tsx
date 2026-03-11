@@ -141,7 +141,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {(drawerOpen || isMobile) && (
             <Typography variant="h6" noWrap sx={{ ml: 1, fontWeight: 'bold' }}>
-              cruxSIEM
+              CruxSIEM
             </Typography>
           )}
         </Box>

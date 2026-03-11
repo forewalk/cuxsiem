@@ -435,7 +435,7 @@ class TestOTPSchemaValidation:
         response = OTPEnrollResponse(
             qr_code_image="data:image/png;base64,abc",
             manual_key="JBSWY3DPEBLW64TMMQ6XAWBW",
-            enrollment_uri="otpauth://totp/cruxSIEM:user@example.com",
+            enrollment_uri="otpauth://totp/CruxSIEM:user@example.com",
             expires_in=600
         )
 

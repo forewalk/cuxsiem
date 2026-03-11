@@ -10,7 +10,7 @@
 ## 1. 개요
 
 ### 1.1 목적
-cruxSIEM에 TOTP(Time-based One-Time Password) 기반 2단계 인증(2FA)을 추가하여 보안 관제 플랫폼의 계정 보안을 강화합니다.
+CruxSIEM에 TOTP(Time-based One-Time Password) 기반 2단계 인증(2FA)을 추가하여 보안 관제 플랫폼의 계정 보안을 강화합니다.
 
 ### 1.2 배경
 - SIEM 플랫폼은 민감한 보안 로그 및 이벤트 데이터를 다루므로 계정 탈취 시 피해가 큼
@@ -85,7 +85,7 @@ cruxSIEM에 TOTP(Time-based One-Time Password) 기반 2단계 인증(2FA)을 추
 ## 3. 사용자 시나리오
 
 ### 3.1 주요 사용자
-- cruxSIEM 모든 사용자 (admin, monitoring, approver, user)
+- CruxSIEM 모든 사용자 (admin, monitoring, approver, user)
 
 ### 3.2 사용 시나리오
 

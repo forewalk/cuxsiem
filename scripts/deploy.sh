@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Starting cruxSIEM deployment..."
+echo "Starting CruxSIEM deployment..."
 
 # 1. Load images
 # Find the image tarball (assuming only one exists or taking the latest)

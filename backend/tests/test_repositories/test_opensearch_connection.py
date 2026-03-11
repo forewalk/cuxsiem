@@ -30,7 +30,7 @@ def test_connection():
         print(f"  - Data Nodes: {health.get('number_of_data_nodes')}")
 
         # 3. 인덱스 목록 조회 (.cs- 접두사)
-        print("\n[3] cruxSIEM Indices (.cs-*):")
+        print("\n[3] CruxSIEM Indices (.cs-*):")
         try:
             indices = client.cat.indices(index=".cs-*", format="json")
             if indices:
