@@ -415,5 +415,15 @@
   "webhookBodyHelp": "Must be valid JSON. Leave empty for default body. Variables: {{id}}, {{rule_name}}, {{rule_severity}}, {{message}}, {{created_at}}, {{rule_target_index}}",
   "testConnection": "Test Connection",
   "webhookTestSuccess": "Webhook connection test succeeded",
-  "webhookTestFail": "Webhook connection test failed"
+  "webhookTestFail": "Webhook connection test failed",
+  "export": "Export",
+  "import": "Import",
+  "exportSuccess": "Rules exported successfully",
+  "exportFailed": "Failed to export rules",
+  "importSuccess": "Rules imported successfully",
+  "importFailed": "Failed to import rules",
+  "importCreated": "created",
+  "importErrors": "errors",
+  "importInvalidFormat": "Invalid JSON format",
+  "selectRulesToExport": "Select rules to export"
 }
