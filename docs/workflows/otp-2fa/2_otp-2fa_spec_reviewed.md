@@ -280,7 +280,7 @@ id=otp-policy
 
 ### 환경변수 목록 확정
 - `OTP_ENCRYPTION_KEY`: TOTP 시크릿 키 AES 암호화 키 (최소 32바이트, 앱 시작 시 검증)
-- `OTP_ISSUER`: QR코드에 표시될 발급자명 (기본: "cruxSIEM")
+- `OTP_ISSUER`: QR코드에 표시될 발급자명 (기본: "CruxSIEM")
 
 ---
 

@@ -25,7 +25,7 @@ class OTPEnrollResponse(BaseModel):
     enrollment_uri: str = Field(
         ...,
         description="OTP 앱용 provisioning URI",
-        example="otpauth://totp/cruxSIEM:user@example.com?secret=..."
+        example="otpauth://totp/CruxSIEM:user@example.com?secret=..."
     )
     expires_in: int = Field(
         default=600,
@@ -38,7 +38,7 @@ class OTPEnrollResponse(BaseModel):
             "example": {
                 "qr_code_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
                 "manual_key": "JBSWY3DPEBLW64TMMQ6XAWBW",
-                "enrollment_uri": "otpauth://totp/cruxSIEM:user@example.com?secret=...",
+                "enrollment_uri": "otpauth://totp/CruxSIEM:user@example.com?secret=...",
                 "expires_in": 600
             }
         }

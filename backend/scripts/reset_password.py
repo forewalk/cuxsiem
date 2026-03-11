@@ -71,7 +71,7 @@ def reset_password(username, new_password):
         return False
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Reset user password for cruxSIEM")
+    parser = argparse.ArgumentParser(description="Reset user password for CruxSIEM")
     parser.add_argument("--username", help="Username to reset password", default="administrator")
     parser.add_argument("--password", help="New password (if not provided, will prompt)")
 

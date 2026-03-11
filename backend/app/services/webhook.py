@@ -76,7 +76,7 @@ async def send_test_webhook(url: str, headers: Optional[Dict[str, str]] = None) 
     """Webhook 연결 테스트용 요청"""
     test_payload = {
         "type": "test",
-        "message": "cruxSIEM Webhook 연결 테스트",
+        "message": "CruxSIEM Webhook 연결 테스트",
         "timestamp": datetime.utcnow().isoformat(),
     }
     return await send_webhook(url, test_payload, headers)

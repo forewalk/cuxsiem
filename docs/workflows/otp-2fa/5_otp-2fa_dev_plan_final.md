@@ -26,7 +26,7 @@
 
 ## 개요
 
-TOTP(Time-based One-Time Password) 기반 OTP 2단계 인증을 cruxSIEM에 추가하는 프로젝트입니다.
+TOTP(Time-based One-Time Password) 기반 OTP 2단계 인증을 CruxSIEM에 추가하는 프로젝트입니다.
 
 **핵심 목표:**
 - 계정 보안 강화
@@ -197,7 +197,7 @@ frontend/src/
 {
   "qr_code_image": "data:image/png;base64,iVBORw0KGgo...",
   "manual_key": "JBSWY3DPEBLW64TMMQ6XAWBW",
-  "enrollment_uri": "otpauth://totp/cruxSIEM:user@example.com?secret=...",
+  "enrollment_uri": "otpauth://totp/CruxSIEM:user@example.com?secret=...",
   "expires_in": 600
 }
 ```
@@ -505,7 +505,7 @@ pip install \
 ```bash
 # .env 또는 시스템 환경변수
 OTP_ENCRYPTION_KEY=<32바이트 이상의 키>
-OTP_ISSUER=cruxSIEM
+OTP_ISSUER=CruxSIEM
 OTP_TOKEN_EXPIRY=300
 OTP_MAX_ATTEMPTS=5
 OTP_TIME_WINDOW=2

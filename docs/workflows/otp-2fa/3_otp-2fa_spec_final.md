@@ -34,7 +34,7 @@
 ## 1. 개요
 
 ### 1.1 목적
-cruxSIEM에 TOTP(Time-based One-Time Password) 기반 2단계 인증(2FA)을 추가하여 보안 관제 플랫폼의 계정 보안을 강화합니다.
+CruxSIEM에 TOTP(Time-based One-Time Password) 기반 2단계 인증(2FA)을 추가하여 보안 관제 플랫폼의 계정 보안을 강화합니다.
 
 ### 1.2 배경
 - SIEM 플랫폼은 민감한 보안 로그 및 이벤트 데이터를 다루므로 계정 탈취 시 피해가 큼
@@ -210,7 +210,7 @@ OTP 등록 사용자: {"otp_required": true, "temp_token": "...", ...}
 ## 8. 환경변수
 
 - OTP_ENCRYPTION_KEY: AES 암호화 키 (최소 32바이트)
-- OTP_ISSUER: QR코드 발급자명 (기본: "cruxSIEM")
+- OTP_ISSUER: QR코드 발급자명 (기본: "CruxSIEM")
 - OTP_TOKEN_EXPIRY: 임시 토큰 유효기간 (기본: 300초)
 - OTP_MAX_ATTEMPTS: 최대 시도 횟수 (기본: 5)
 - OTP_TIME_WINDOW: 시간 윈도우 (기본: 2)

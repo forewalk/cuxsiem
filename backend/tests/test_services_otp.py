@@ -62,7 +62,7 @@ class TestOTPServiceGeneration:
         assert uri.startswith("otpauth://totp/")
         # @ 기호는 URL 인코딩되어 %40으로 표시
         assert ("user@example.com" in uri or "user%40example.com" in uri)
-        assert "cruxSIEM" in uri
+        assert "CruxSIEM" in uri
 
     def test_generate_qr_code_with_custom_issuer(self, otp_service):
         """QR코드 생성 - 커스텀 발급자명"""
@@ -73,7 +73,7 @@ class TestOTPServiceGeneration:
         _, uri = otp_service.generate_qr_code(secret, email, issuer=custom_issuer)
 
         assert custom_issuer in uri
-        assert "cruxSIEM" not in uri
+        assert "CruxSIEM" not in uri
 
     def test_verify_code_accepts_valid_code(self, otp_service):
         """OTP 코드 검증 - 유효한 코드"""
