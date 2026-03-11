@@ -407,6 +407,8 @@
   "webhookUrl": "Webhook URL",
   "webhookHeaders": "请求头 (JSON)",
   "webhookHeadersHelp": "请以JSON格式输入自定义请求头（可选）",
+  "webhookBody": "请求正文（JSON模板）",
+  "webhookBodyHelp": "必须为有效JSON格式。留空则发送默认正文。变量: {{id}}, {{rule_name}}, {{rule_severity}}, {{message}}, {{created_at}}, {{rule_target_index}}",
   "testConnection": "连接测试",
   "webhookTestSuccess": "Webhook连接测试成功",
   "webhookTestFail": "Webhook连接测试失败"

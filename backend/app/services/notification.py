@@ -373,7 +373,7 @@ class NotificationService:
         webhook_url = receiver.get("webhook_url")
         if webhook_url:
             webhook_headers = receiver.get("webhook_headers") or {}
-            webhook_payload = {
+            default_payload = {
                 "id": alert_id,
                 "rule_name": created_alert.get("rule_name"),
                 "rule_severity": created_alert.get("rule_severity"),
@@ -381,6 +381,9 @@ class NotificationService:
                 "created_at": created_alert.get("created_at"),
                 "rule_target_index": created_alert.get("rule_target_index"),
             }
+            webhook_payload = self._build_webhook_payload(
+                receiver.get("webhook_body", ""), default_payload
+            )
             webhook_result = await send_webhook(webhook_url, webhook_payload, webhook_headers)
             delivery_results["webhook"] = webhook_result
         else:
@@ -397,6 +400,29 @@ class NotificationService:
             await self.repository.update_alert(alert_id, {"delivery_results": delivery_results})
         except Exception as e:
             logger.error(f"delivery_results 업데이트 실패 ({alert_id}): {e}")
+
+    def _build_webhook_payload(
+        self, body_template: str, default_payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        커스텀 webhook body 템플릿이 있으면 변수 치환 후 JSON 파싱하여 반환.
+        템플릿이 비어있거나 파싱 실패 시 기본 payload 반환.
+        변수 값은 JSON 문자열 내부에서 안전하도록 이스케이프 처리.
+        """
+        if not body_template or not body_template.strip():
+            return default_payload
+
+        try:
+            rendered = body_template
+            for key, value in default_payload.items():
+                safe_value = json.dumps(str(value) if value is not None else "", ensure_ascii=False)
+                safe_value = safe_value[1:-1]
+                rendered = rendered.replace("{{" + key + "}}", safe_value)
+            rendered = re.sub(r"\{\{[^}]+\}\}", "", rendered)
+            return json.loads(rendered)
+        except (json.JSONDecodeError, Exception) as e:
+            logger.warning(f"Webhook body 템플릿 파싱 실패, 기본 payload 사용: {e}")
+            return default_payload
 
     async def _create_aggregation_alert(
         self,

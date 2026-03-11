@@ -77,7 +77,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   severity: 'info',
   interval_min: 1,
   trigger_condition: '',
-  receiver: { type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: {} },
+  receiver: { type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: {}, webhook_body: '' },
   is_active: true
 };
 
@@ -138,6 +138,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [dslString, setDslString] = useState(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [webhookHeadersStr, setWebhookHeadersStr] = useState('');
+  const [webhookBodyStr, setWebhookBodyStr] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -319,17 +320,20 @@ const NotificationRuleListTab: React.FC = () => {
           })(),
           webhook_url: rule.receiver?.webhook_url || '',
           webhook_headers: rule.receiver?.webhook_headers || {},
+          webhook_body: rule.receiver?.webhook_body || '',
         },
         is_active: rule.is_active
       });
       setDslString(JSON.stringify(rule.condition_config, null, 2));
       const wh = rule.receiver?.webhook_headers;
       setWebhookHeadersStr(wh && Object.keys(wh).length > 0 ? JSON.stringify(wh, null, 2) : '');
+      setWebhookBodyStr(rule.receiver?.webhook_body || '');
     } else {
       setEditingRule(null);
       setFormData(DEFAULT_FORM_DATA);
       setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
       setWebhookHeadersStr('');
+      setWebhookBodyStr('');
     }
     setJsonError(null);
     setOpen(true);
@@ -1002,31 +1006,95 @@ const NotificationRuleListTab: React.FC = () => {
                     {t('testConnection')}
                   </Button>
                 </Box>
-                <TextField
-                  label={t('webhookHeaders')}
-                  fullWidth
-                  size="small"
-                  multiline
-                  minRows={2}
-                  maxRows={4}
-                  placeholder={'{"Authorization": "Bearer token", "X-Custom": "value"}'}
-                  value={webhookHeadersStr}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setWebhookHeadersStr(val);
-                    if (!val.trim()) {
-                      setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: {} } });
-                      return;
-                    }
-                    try {
-                      const parsed = JSON.parse(val);
-                      setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: parsed } });
-                    } catch {
-                      // 타이핑 중 JSON 파싱 실패는 무시, 문자열은 계속 표시
-                    }
-                  }}
-                  helperText={t('webhookHeadersHelp')}
-                />
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 500, mb: 0.5, display: 'block' }}>
+                    {t('webhookHeaders')}
+                  </Typography>
+                  <Box sx={{
+                    height: 120,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    '&:focus-within': { borderColor: 'primary.main', borderWidth: 2 },
+                  }}>
+                    <MonacoEditor
+                      height="100%"
+                      language="json"
+                      theme={monacoTheme}
+                      value={webhookHeadersStr}
+                      onChange={(val) => {
+                        const v = val ?? '';
+                        setWebhookHeadersStr(v);
+                        if (!v.trim()) {
+                          setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: {} } });
+                          return;
+                        }
+                        try {
+                          const parsed = JSON.parse(v);
+                          setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: parsed } });
+                        } catch {
+                          // 타이핑 중 JSON 파싱 실패는 무시
+                        }
+                      }}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 12,
+                        lineNumbers: 'on',
+                        lineNumbersMinChars: 2,
+                        lineDecorationsWidth: 4,
+                        glyphMargin: false,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        tabSize: 2,
+                        wordWrap: 'on',
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    {t('webhookHeadersHelp')}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 500, mb: 0.5, display: 'block' }}>
+                    {t('webhookBody')}
+                  </Typography>
+                  <Box sx={{
+                    height: 180,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    '&:focus-within': { borderColor: 'primary.main', borderWidth: 2 },
+                  }}>
+                    <MonacoEditor
+                      height="100%"
+                      language="json"
+                      theme={monacoTheme}
+                      value={webhookBodyStr}
+                      onChange={(val) => {
+                        const v = val ?? '';
+                        setWebhookBodyStr(v);
+                        setFormData({ ...formData, receiver: { ...formData.receiver, webhook_body: v } });
+                      }}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 12,
+                        lineNumbers: 'on',
+                        lineNumbersMinChars: 2,
+                        lineDecorationsWidth: 4,
+                        glyphMargin: false,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        tabSize: 2,
+                        wordWrap: 'on',
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    {t('webhookBodyHelp')}
+                  </Typography>
+                </Box>
               </Stack>
             </Grid>
           </Grid>
