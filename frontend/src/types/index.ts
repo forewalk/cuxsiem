@@ -101,6 +101,7 @@ export interface NotificationReceiver {
   values: string[];
   webhook_url?: string;
   webhook_headers?: Record<string, string>;
+  webhook_body?: string;
 }
 
 // 알림 규칙

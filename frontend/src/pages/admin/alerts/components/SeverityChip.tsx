@@ -14,23 +14,31 @@ export const SeverityChip: React.FC<SeverityChipProps> = ({
 }) => {
   if (!severity) return <>-</>;
 
-  let color: "info" | "warning" | "error" | "default" = "default";
-  switch (severity.toLowerCase()) {
-    case 'info': color = "info"; break;
-    case 'warning': color = "warning"; break;
-    case 'error': color = "error"; break;
-  }
+  const getMuiColor = (s: string): 'error' | 'warning' | 'info' | 'default' => {
+    switch (s.toLowerCase()) {
+      case 'critical':
+      case 'high':
+        return 'error';
+      case 'medium':
+        return 'warning';
+      case 'low':
+      case 'info':
+        return 'info';
+      default:
+        return 'default';
+    }
+  };
 
   return (
     <Chip
       label={severity.toUpperCase()}
-      color={color}
+      color={getMuiColor(severity)}
       size={size}
       variant={variant}
       sx={{
         fontWeight: 'bold',
         height: 20,
-        fontSize: '0.65rem'
+        fontSize: '0.65rem',
       }}
     />
   );

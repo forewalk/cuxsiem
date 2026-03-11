@@ -15,12 +15,15 @@ import {
   ChevronRight as ChevronRightIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
+  FileDownload as FileDownloadIcon,
+  FileUpload as FileUploadIcon,
   FilterList as FilterListIcon,
 } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
@@ -37,6 +40,7 @@ import {
   Stack,
   Switch,
   TextField,
+  Tooltip,
   Typography,
   useTheme
 } from '@mui/material';
@@ -77,7 +81,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   severity: 'info',
   interval_min: 1,
   trigger_condition: '',
-  receiver: { type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: {} },
+  receiver: { type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: {}, webhook_body: '' },
   is_active: true
 };
 
@@ -124,6 +128,7 @@ const NotificationRuleListTab: React.FC = () => {
     }
   }, [settings]);
 
+  const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
   const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<boolean | null>(null);
 
@@ -138,6 +143,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [dslString, setDslString] = useState(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [webhookHeadersStr, setWebhookHeadersStr] = useState('');
+  const [webhookBodyStr, setWebhookBodyStr] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -319,17 +325,20 @@ const NotificationRuleListTab: React.FC = () => {
           })(),
           webhook_url: rule.receiver?.webhook_url || '',
           webhook_headers: rule.receiver?.webhook_headers || {},
+          webhook_body: rule.receiver?.webhook_body || '',
         },
         is_active: rule.is_active
       });
       setDslString(JSON.stringify(rule.condition_config, null, 2));
       const wh = rule.receiver?.webhook_headers;
       setWebhookHeadersStr(wh && Object.keys(wh).length > 0 ? JSON.stringify(wh, null, 2) : '');
+      setWebhookBodyStr(rule.receiver?.webhook_body || '');
     } else {
       setEditingRule(null);
       setFormData(DEFAULT_FORM_DATA);
       setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
       setWebhookHeadersStr('');
+      setWebhookBodyStr('');
     }
     setJsonError(null);
     setOpen(true);
@@ -453,6 +462,69 @@ const NotificationRuleListTab: React.FC = () => {
     setPage(0);
   };
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleExport = async () => {
+    try {
+      const exportFields = [
+        "name", "description", "target_index", "condition_config",
+        "message_template", "severity", "interval_min", "trigger_condition",
+        "receiver", "is_active"
+      ];
+      const selectedRules = rules
+        .filter(r => selectedRuleIds.has(r.id))
+        .map(r => {
+          const obj: Record<string, any> = {};
+          for (const k of exportFields) if (k in r) obj[k] = (r as any)[k];
+          return obj;
+        });
+
+      const data = {
+        version: "1.0",
+        exported_at: new Date().toISOString(),
+        rules: selectedRules
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `alert-rules-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setSelectedRuleIds(new Set());
+      setSnackbar({ open: true, message: t('exportSuccess'), severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: t('exportFailed'), severity: 'error' });
+    }
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const json = JSON.parse(ev.target?.result as string);
+        const rules = json.rules || json;
+        if (!Array.isArray(rules) || rules.length === 0) {
+          setSnackbar({ open: true, message: t('importInvalidFormat'), severity: 'error' });
+          return;
+        }
+        const result = await notificationService.importRules(rules, false);
+        setSnackbar({
+          open: true,
+          message: `${t('importSuccess')}: ${result.created} ${t('importCreated')}${result.errors.length > 0 ? `, ${result.errors.length} ${t('importErrors')}` : ''}`,
+          severity: result.errors.length > 0 ? 'error' : 'success'
+        });
+        loadRules();
+      } catch {
+        setSnackbar({ open: true, message: t('importFailed'), severity: 'error' });
+      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   if (user && user.role !== 'role-1') {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -470,15 +542,41 @@ const NotificationRuleListTab: React.FC = () => {
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>
             {t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({rules.length}/{total})</Box>
           </Typography>
-          <Button
-            variant="contained"
-            disableElevation
-            size="small"
-            onClick={() => handleOpenDialog()}
-            sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
-          >
-            {t('addRule')}
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Tooltip title={selectedRuleIds.size === 0 ? t('selectRulesToExport') : ''}>
+              <span>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={selectedRuleIds.size === 0}
+                  startIcon={<FileDownloadIcon sx={{ fontSize: 16 }} />}
+                  onClick={handleExport}
+                  sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}
+                >
+                  {t('export')}{selectedRuleIds.size > 0 ? ` (${selectedRuleIds.size})` : ''}
+                </Button>
+              </span>
+            </Tooltip>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<FileUploadIcon sx={{ fontSize: 16 }} />}
+              onClick={() => fileInputRef.current?.click()}
+              sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}
+            >
+              {t('import')}
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".json" hidden onChange={handleImport} />
+            <Button
+              variant="contained"
+              disableElevation
+              size="small"
+              onClick={() => handleOpenDialog()}
+              sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
+            >
+              {t('addRule')}
+            </Button>
+          </Stack>
         </Box>
 
         <Paper
@@ -501,6 +599,16 @@ const NotificationRuleListTab: React.FC = () => {
           <Box sx={{ width: 'max-content', minWidth: '100%' }}>
             {/* 헤더 */}
             <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2, alignItems: 'center' }}>
+              <Checkbox
+                size="small"
+                checked={rules.length > 0 && selectedRuleIds.size === rules.length}
+                indeterminate={selectedRuleIds.size > 0 && selectedRuleIds.size < rules.length}
+                onChange={(e) => {
+                  if (e.target.checked) setSelectedRuleIds(new Set(rules.map(r => r.id)));
+                  else setSelectedRuleIds(new Set());
+                }}
+                sx={{ p: 0.25, mr: 0.5 }}
+              />
               <Box sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1, cursor: 'pointer' }} onClick={() => handleSort('name')}>
                 <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('ruleName')}</Typography>
                 {sortBy === 'name' && (order === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14, ml: 0.5 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14, ml: 0.5 }} />)}
@@ -535,6 +643,19 @@ const NotificationRuleListTab: React.FC = () => {
             {/* 바디 */}
             {rules.length > 0 ? rules.map((rule, idx) => (
               <Box key={rule.id} sx={{ display: 'flex', alignItems: 'center', py: 0.75, px: 2, borderBottom: idx < rules.length - 1 ? 1 : 0, borderColor: 'divider', '&:hover': { bgcolor: 'action.hover' } }}>
+                <Checkbox
+                  size="small"
+                  checked={selectedRuleIds.has(rule.id)}
+                  onChange={() => {
+                    setSelectedRuleIds(prev => {
+                      const next = new Set(prev);
+                      if (next.has(rule.id)) next.delete(rule.id);
+                      else next.add(rule.id);
+                      return next;
+                    });
+                  }}
+                  sx={{ p: 0.25, mr: 0.5 }}
+                />
                 <Typography variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>{rule.name}</Typography>
                 <Box sx={{ width: 120, minWidth: 120, flexShrink: 0, px: 1 }}>
                   <SeverityChip severity={rule.severity} />
@@ -648,9 +769,11 @@ const NotificationRuleListTab: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })} size="small" />
                   <TextField select label={t('severity')} sx={{ minWidth: 130 }} value={formData.severity}
                     onChange={(e) => setFormData({ ...formData, severity: e.target.value })} size="small">
-                    <MenuItem value="info">{t('severityInfo')}</MenuItem>
-                    <MenuItem value="warning">{t('severityWarning')}</MenuItem>
-                    <MenuItem value="error">{t('severityError')}</MenuItem>
+                    <MenuItem value="info">INFO</MenuItem>
+                    <MenuItem value="low">LOW</MenuItem>
+                    <MenuItem value="medium">MEDIUM</MenuItem>
+                    <MenuItem value="high">HIGH</MenuItem>
+                    <MenuItem value="critical">CRITICAL</MenuItem>
                   </TextField>
                 </Stack>
                 <TextField label={t('ruleDescriptionLabel')} fullWidth multiline rows={2} value={formData.description}
@@ -1002,31 +1125,95 @@ const NotificationRuleListTab: React.FC = () => {
                     {t('testConnection')}
                   </Button>
                 </Box>
-                <TextField
-                  label={t('webhookHeaders')}
-                  fullWidth
-                  size="small"
-                  multiline
-                  minRows={2}
-                  maxRows={4}
-                  placeholder={'{"Authorization": "Bearer token", "X-Custom": "value"}'}
-                  value={webhookHeadersStr}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setWebhookHeadersStr(val);
-                    if (!val.trim()) {
-                      setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: {} } });
-                      return;
-                    }
-                    try {
-                      const parsed = JSON.parse(val);
-                      setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: parsed } });
-                    } catch {
-                      // 타이핑 중 JSON 파싱 실패는 무시, 문자열은 계속 표시
-                    }
-                  }}
-                  helperText={t('webhookHeadersHelp')}
-                />
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 500, mb: 0.5, display: 'block' }}>
+                    {t('webhookHeaders')}
+                  </Typography>
+                  <Box sx={{
+                    height: 120,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    '&:focus-within': { borderColor: 'primary.main', borderWidth: 2 },
+                  }}>
+                    <MonacoEditor
+                      height="100%"
+                      language="json"
+                      theme={monacoTheme}
+                      value={webhookHeadersStr}
+                      onChange={(val) => {
+                        const v = val ?? '';
+                        setWebhookHeadersStr(v);
+                        if (!v.trim()) {
+                          setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: {} } });
+                          return;
+                        }
+                        try {
+                          const parsed = JSON.parse(v);
+                          setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: parsed } });
+                        } catch {
+                          // 타이핑 중 JSON 파싱 실패는 무시
+                        }
+                      }}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 12,
+                        lineNumbers: 'on',
+                        lineNumbersMinChars: 2,
+                        lineDecorationsWidth: 4,
+                        glyphMargin: false,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        tabSize: 2,
+                        wordWrap: 'on',
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    {t('webhookHeadersHelp')}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 500, mb: 0.5, display: 'block' }}>
+                    {t('webhookBody')}
+                  </Typography>
+                  <Box sx={{
+                    height: 180,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    '&:focus-within': { borderColor: 'primary.main', borderWidth: 2 },
+                  }}>
+                    <MonacoEditor
+                      height="100%"
+                      language="json"
+                      theme={monacoTheme}
+                      value={webhookBodyStr}
+                      onChange={(val) => {
+                        const v = val ?? '';
+                        setWebhookBodyStr(v);
+                        setFormData({ ...formData, receiver: { ...formData.receiver, webhook_body: v } });
+                      }}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 12,
+                        lineNumbers: 'on',
+                        lineNumbersMinChars: 2,
+                        lineDecorationsWidth: 4,
+                        glyphMargin: false,
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        tabSize: 2,
+                        wordWrap: 'on',
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    {t('webhookBodyHelp')}
+                  </Typography>
+                </Box>
               </Stack>
             </Grid>
           </Grid>

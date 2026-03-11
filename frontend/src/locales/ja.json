@@ -419,7 +419,19 @@
   "webhookUrl": "Webhook URL",
   "webhookHeaders": "リクエストヘッダー (JSON)",
   "webhookHeadersHelp": "カスタムヘッダーをJSON形式で入力してください（任意）",
+  "webhookBody": "リクエストボディ（JSONテンプレート）",
+  "webhookBodyHelp": "必ずJSON形式で記述。空欄の場合はデフォルトボディを送信。変数: {{id}}, {{rule_name}}, {{rule_severity}}, {{message}}, {{created_at}}, {{rule_target_index}}",
   "testConnection": "接続テスト",
   "webhookTestSuccess": "Webhook接続テスト成功",
-  "webhookTestFail": "Webhook接続テスト失敗"
+  "webhookTestFail": "Webhook接続テスト失敗",
+  "export": "Export",
+  "import": "Import",
+  "exportSuccess": "ルールのエクスポート完了",
+  "exportFailed": "ルールのエクスポート失敗",
+  "importSuccess": "ルールのインポート完了",
+  "importFailed": "ルールのインポート失敗",
+  "importCreated": "件作成",
+  "importErrors": "件エラー",
+  "importInvalidFormat": "正しいJSON形式ではありません",
+  "selectRulesToExport": "エクスポートするルールを選択してください"
 }
