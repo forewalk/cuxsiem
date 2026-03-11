@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-11 17:17 | 최지호 | 수정 | origin/feature/dashboard push (리스트 필드 순서 변경을 위한 수정모드 추가) |
 | 2026-03-11 15:51 | 최지호 | 수정 | origin/feature/dashboard push (EDR-리스트 요구사항 적용) |
 | 2026-03-10 22:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
 | 2026-03-10 21:00 | 박지은 | 배포 | origin/feature/alerts push (알림 규칙 메시지 템플릿 기본값 변경) |
