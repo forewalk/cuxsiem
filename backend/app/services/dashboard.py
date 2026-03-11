@@ -23,7 +23,8 @@ class DashboardService:
             "agent-dashboard": "logs-sentinel_one.agents",
             "edr-dashboard": "logs-sentinel_one.edr"
         }
-        return await self.repository.get_logs(index_map.get(dashboard_id, "logs-sentinel_one.threats"), **kwargs)
+        index_name = index_map.get(dashboard_id, "logs-sentinel_one.threats")
+        return await self.repository.get_logs(index_name, **kwargs)
 
     async def get_dashboard_stats(
         self, 

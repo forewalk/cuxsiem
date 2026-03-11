@@ -42,6 +42,8 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import SearchIcon from "@mui/icons-material/Search";
 import TagIcon from "@mui/icons-material/Tag";
+import NorthIcon from "@mui/icons-material/North";
+import SouthIcon from "@mui/icons-material/South";
 
 // i18n
 import cnMessages from "../../../locales/cn.json";
@@ -65,9 +67,69 @@ const ThreatListTab: React.FC = () => {
   const [actionAnchorEl, setActionAnchorEl] = useState<null | HTMLElement>(null);
   const openActionMenu = Boolean(actionAnchorEl);
 
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('threatListColumnWidths');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const resizingRef = useRef<{ field: string; startX: number; startWidth: number } | null>(null);
+
+  const handleResizeStart = (e: React.MouseEvent, field: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startWidth = columnWidths[field] || 250;
+    resizingRef.current = { field, startX: e.clientX, startWidth };
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const { field, startX, startWidth } = resizingRef.current;
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.max(50, startWidth + deltaX);
+      setColumnWidths(prev => ({ ...prev, [field]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      if (resizingRef.current) {
+        localStorage.setItem('threatListColumnWidths', JSON.stringify(columnWidths));
+      }
+      resizingRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>([
     "threatInfo.createdAt", "agentRealtimeInfo.agentComputerName", "threatInfo.analystVerdict", "threatInfo.classification", "threatInfo.confidenceLevel", "threatInfo.fileExtension", "threatInfo.filePath", "threatInfo.incidentStatus", "threatInfo.mitigationStatus", "threatInfo.processUser", "threatInfo.threatName"
   ]);
+
+  // 정렬 상태 추가
+  const [sortField, setSortField] = useState<string>("@timestamp");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isSorted, setIsSorted] = useState<boolean>(false);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      if (sortOrder === "desc") {
+        setSortOrder("asc");
+        setIsSorted(true);
+      } else if (sortOrder === "asc" && isSorted) {
+        setSortField("@timestamp");
+        setSortOrder("desc");
+        setIsSorted(false);
+      } else {
+        setSortOrder("desc");
+        setIsSorted(true);
+      }
+    } else {
+      setSortField(field);
+      setSortOrder("desc");
+      setIsSorted(true);
+    }
+    setPage(0);
+  };
 
   const handleActionClick = (event: React.MouseEvent<HTMLButtonElement>) => { setActionAnchorEl(event.currentTarget); };
   const handleActionClose = () => { setActionAnchorEl(null); };
@@ -288,13 +350,13 @@ const ThreatListTab: React.FC = () => {
       const [stats, fieldList, logList] = await Promise.all([
         getDashboardStats("threat-status", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, searchQuery || undefined),
         getIndexFields(targetIndex),
-        getIndexLogs("threat-status", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize)
+        getIndexLogs("threat-status", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize, sortField, sortOrder)
       ]);
       setData(stats); setLogs(logList);
       const filteredFieldList = fieldList.filter(f => !f.name.toLowerCase().startsWith("kubernetesinfo.") && !f.name.toLowerCase().startsWith("containerinfo.") && !f.name.toLowerCase().startsWith("ecsinfo."));
       setFields([{ name: "_source", type: "code" }, ...filteredFieldList]);
     } catch (err) { setError("Failed to load data."); } finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize, sortField, sortOrder]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { 
@@ -345,7 +407,7 @@ const ThreatListTab: React.FC = () => {
       <ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} onReset={handleResetColumns} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary.total_logs} onDownload={handleExportExcel} />
       {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', flex: '1 1 0', overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 }, minHeight: 0 }}>
-        <Paper elevation={1} sx={{ width: { xs: 0, md: 220 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
+        <Paper elevation={1} sx={{ width: { xs: 0, md: 280 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
           <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields')} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover' } }} /></Box>
           <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
           <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1, minHeight: 0 }}><List disablePadding sx={{ mb: 2 }}>{selectedList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} selected onAction={handleToggleField} />)}</List><Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, px: 0.5, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('availableFields')}</Typography><List disablePadding sx={{ pb: 4 }}>{availableList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} onAction={handleToggleField} />)}</List></Box>
@@ -376,11 +438,66 @@ const ThreatListTab: React.FC = () => {
                 <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2, alignItems: 'center' }}>
                   <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }}><Checkbox size="small" indeterminate={selectedRowIndices.size > 0 && selectedRowIndices.size < logs.length} checked={logs.length > 0 && selectedRowIndices.size === logs.length} onChange={handleSelectAll} sx={{ p: 0 }} /></Box>
                   <Box sx={{ width: 32, flexShrink: 0 }} />
-                  {sortedDisplayFields.map((fn, idx) => (
-                    <Box key={fn} sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', borderRight: 1, borderColor: 'transparent' }}>
-                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn}</Typography>
-                    </Box>
-                  ))}
+                  {sortedDisplayFields.map((fn, idx) => {
+                    const width = columnWidths[fn] || 250;
+                    return (
+                      <Box key={fn} sx={{ 
+                        width, 
+                        minWidth: width, 
+                        flexShrink: 0, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        borderRight: 1, 
+                        borderColor: 'divider',
+                        position: 'relative',
+                        '&:hover .resize-handle': { opacity: 1 }
+                      }}>
+                        <Typography 
+                          variant="caption" 
+                          draggable 
+                          onDragStart={() => handleDragStart(idx)} 
+                          onDragOver={handleDragOver} 
+                          onDrop={() => handleDrop(idx)} 
+                          onClick={() => handleSort(fn)}
+                          sx={{ 
+                            flexGrow: 1, 
+                            fontWeight: 'bold', 
+                            fontSize: '0.75rem', 
+                            px: 1, 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap', 
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                          }}
+                        >
+                          {fn.includes('.') ? fn.split('.').pop() : fn}
+                          {sortField === fn && isSorted && (
+                            sortOrder === "asc" ? <NorthIcon sx={{ fontSize: 12 }} /> : <SouthIcon sx={{ fontSize: 12 }} />
+                          )}
+                        </Typography>
+                        <Box
+                          className="resize-handle"
+                          onMouseDown={(e) => handleResizeStart(e, fn)}
+                          sx={{
+                            position: 'absolute',
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: '4px',
+                            cursor: 'col-resize',
+                            bgcolor: 'primary.main',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            zIndex: 1,
+                            '&:hover': { opacity: 1 }
+                          }}
+                        />
+                      </Box>
+                    );
+                  })}
                 </Box>
                 {logs.length > 0 ? logs.map((log, idx) => {
                   const isExpanded = expandedRows.has(idx);
@@ -390,7 +507,29 @@ const ThreatListTab: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, px: 2, '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer' }} onClick={() => toggleRow(idx)}>
                         <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}><Checkbox size="small" checked={isSelected} onChange={() => handleSelectRow(idx)} sx={{ p: 0 }} /></Box>
                         <IconButton size="small" sx={{ p: 0, mr: 1, flexShrink: 0 }}>{isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}</IconButton>
-                        {sortedDisplayFields.map(fn => (<Typography key={fn} variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fn === "threatInfo.createdAt" || fn === "@timestamp" ? dayjs(log[fn.split('.').pop() || fn]).format("MMM D, YYYY @ HH:mm:ss.SSS") : getValueByPath(log, fn)}</Typography>))}
+                        {sortedDisplayFields.map(fn => {
+                          const width = columnWidths[fn] || 250;
+                          return (
+                            <Typography 
+                              key={fn} 
+                              variant="caption" 
+                              sx={{ 
+                                width, 
+                                minWidth: width, 
+                                flexShrink: 0, 
+                                fontSize: '0.75rem', 
+                                px: 1, 
+                                whiteSpace: 'nowrap', 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis' 
+                              }}
+                            >
+                              {fn === "threatInfo.createdAt" || fn === "@timestamp" 
+                                ? dayjs(log[fn.split('.').pop() || fn]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
+                                : getValueByPath(log, fn)}
+                            </Typography>
+                          );
+                        })}
                       </Box>
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)', borderBottom: 1, borderColor: 'divider' }}>

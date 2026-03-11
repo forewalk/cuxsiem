@@ -78,9 +78,11 @@ export const getIndexLogs = async (
   toDate?: string,
   query?: string,
   size: number = 20,
-  offset: number = 0
+  offset: number = 0,
+  sortField: string = "@timestamp",
+  sortOrder: string = "desc"
 ): Promise<any[]> => {
-  let url = `/api/v1/dashboard/logs?dashboard_id=${dashboardId}&size=${size}&offset=${offset}`;
+  let url = `/api/v1/dashboard/logs?dashboard_id=${dashboardId}&size=${size}&offset=${offset}&sort_field=${sortField}&sort_order=${sortOrder}`;
   if (fromValue !== undefined) url += `&from_value=${fromValue}`;
   if (fromUnit) url += `&from_unit=${fromUnit}`;
   if (toValue !== undefined) url += `&to_value=${toValue}`;
