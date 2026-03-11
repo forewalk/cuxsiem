@@ -20,7 +20,7 @@ import dayjs from "dayjs";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as XLSX from "xlsx";
-import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
+import type { DashboardStatsResponse, IndexField, DashboardPanel } from "../../../services/dashboardService";
 import { getColumnSettings, getDashboardStats, getIndexFields, getIndexLogs, resetColumnSettings, saveColumnSettings } from "../../../services/dashboardService";
 import useEdrStore from "../../../stores/useEdrStore";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
@@ -29,30 +29,36 @@ import BarChartWidget from "../components/BarChartWidget";
 import ControlBar from "../components/ControlBar";
 
 // 아이콘
-import AbcIcon from "@mui/icons-material/Abc";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import CodeIcon from "@mui/icons-material/Code";
-import DescriptionIcon from "@mui/icons-material/Description";
-import DnsIcon from "@mui/icons-material/Dns";
-import { default as KeyboardArrowDownIcon, default as KeyboardArrowDownIconMenu } from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import LinkIcon from "@mui/icons-material/Link";
-import NotificationsPausedIcon from "@mui/icons-material/NotificationsPaused";
-import PublicIcon from "@mui/icons-material/Public";
-import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
-import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
-import ReorderIcon from "@mui/icons-material/Reorder";
-import ScheduleIcon from "@mui/icons-material/Schedule";
-import SearchIcon from "@mui/icons-material/Search";
-import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
-import StorageIcon from "@mui/icons-material/Storage";
-import TagIcon from "@mui/icons-material/Tag";
+import {
+  Abc as AbcIcon,
+  AddCircle as AddCircleIcon,
+  ArrowBackIosNew as ArrowBackIosNewIcon,
+  ArrowForwardIos as ArrowForwardIosIcon,
+  CalendarToday as CalendarTodayIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Code as CodeIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+  KeyboardArrowRight as KeyboardArrowRightIcon,
+  RemoveCircle as RemoveCircleIcon,
+  Reorder as ReorderIcon,
+  Search as SearchIcon,
+  Tag as TagIcon,
+  Description as FileIcon,
+  Public as NetworkIcon,
+  Storage as RegistryIcon,
+  AccountTree as ProcessIcon,
+  SettingsInputComponent as CrossProcessIcon,
+  LocationOn as IpIcon,
+  GroupWork as GroupIcon,
+  Dns as DnsIcon,
+  NotificationsPaused as IndicatorsIcon,
+  Schedule as TaskIcon,
+  Link as UrlIcon,
+  North as NorthIcon,
+  South as SouthIcon
+} from "@mui/icons-material";
+import KeyboardArrowDownIconMenu from "@mui/icons-material/KeyboardArrowDown";
 
 // i18n
 import cnMessages from "../../../locales/cn.json";
@@ -60,19 +66,38 @@ import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
 import koMessages from "../../../locales/ko.json";
 
+const DEFAULT_FIELDS = ["@timestamp", "event.category", "event.type", "agent.computerName", "src.process.name", "src.process.user"];
+
 const CATEGORY_FIELDS: Record<string, string[]> = {
-  all: ["@timestamp", "event.category", "event.type", "agent.computerName", "src.process.name", "src.process.user"],
+  all: DEFAULT_FIELDS,
   process: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "src.process.cmdline", "src.process.user", "src.process.parent.name"],
   cross_process: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "tgt.process.name", "tgt.process.cmdline"],
-  indicator: ["@timestamp", "event.type", "agent.computerName", "indicator.category", "indicator.name", "indicator.metadata"],
+  indicators: ["@timestamp", "event.type", "agent.computerName", "indicator.category", "indicator.name", "indicator.metadata"],
   file: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "tgt.file.path", "tgt.file.oldPath"],
   network: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "network.sourceIp", "network.destinationIp", "network.destinationPort"],
-  dns: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "dns.request", "dns.response"],
+  dns: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "event.dns.request", "event.dns.response"],
   url: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "url.address"],
   registry: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "registry.keyPath", "registry.value"],
   scheduled_task: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "task.name", "task.command"],
-  windows_event: ["@timestamp", "event.type", "agent.computerName", "win.event.provider", "win.event.id", "win.event.message"],
+  ip: ["@timestamp", "event.type", "agent.computerName", "src.process.name", "network.sourceIp", "network.destinationIp"],
+  group: ["@timestamp", "event.type", "agent.computerName", "group.name"],
 };
+
+// Figma 기준 고정 카테고리 정의
+const EDR_CATEGORIES = [
+  { id: 'all', label: 'All Events', icon: <ReorderIcon sx={{ fontSize: 16 }} /> },
+  { id: 'process', label: 'Processes', icon: <ProcessIcon sx={{ fontSize: 16 }} /> },
+  { id: 'cross_process', label: 'Cross Processes', icon: <CrossProcessIcon sx={{ fontSize: 16 }} /> },
+  { id: 'indicators', label: 'Indicators', icon: <IndicatorsIcon sx={{ fontSize: 16 }} /> },
+  { id: 'file', label: 'Files', icon: <FileIcon sx={{ fontSize: 16 }} /> },
+  { id: 'network', label: 'Network Actions', icon: <NetworkIcon sx={{ fontSize: 16 }} /> },
+  { id: 'dns', label: 'DNS', icon: <DnsIcon sx={{ fontSize: 16 }} /> },
+  { id: 'url', label: 'URL', icon: <UrlIcon sx={{ fontSize: 16 }} /> },
+  { id: 'registry', label: 'Registry', icon: <RegistryIcon sx={{ fontSize: 16 }} /> },
+  { id: 'scheduled_task', label: 'Scheduled Tasks', icon: <TaskIcon sx={{ fontSize: 16 }} /> },
+  { id: 'ip', label: 'IP', icon: <IpIcon sx={{ fontSize: 16 }} /> },
+  { id: 'group', label: 'Group', icon: <GroupIcon sx={{ fontSize: 16 }} /> },
+];
 
 const EdrListTab: React.FC = () => {
   const { language } = useLanguageStore();
@@ -91,24 +116,74 @@ const EdrListTab: React.FC = () => {
   const [actionAnchorEl, setActionAnchorEl] = useState<null | HTMLElement>(null);
   const openActionMenu = Boolean(actionAnchorEl);
 
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('edrListColumnWidths');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const resizingRef = useRef<{ field: string; startX: number; startWidth: number } | null>(null);
+
+  const handleResizeStart = (e: React.MouseEvent, field: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startWidth = columnWidths[field] || 250;
+    resizingRef.current = { field, startX: e.clientX, startWidth };
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const { field, startX, startWidth } = resizingRef.current;
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.max(50, startWidth + deltaX);
+      setColumnWidths(prev => ({ ...prev, [field]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      if (resizingRef.current) {
+        localStorage.setItem('edrListColumnWidths', JSON.stringify(columnWidths));
+      }
+      resizingRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   const handleActionClick = (event: React.MouseEvent<HTMLButtonElement>) => { setActionAnchorEl(event.currentTarget); };
   const handleActionClose = () => { setActionAnchorEl(null); };
 
-  const categories = useMemo(() => [
-    { id: 'all', label: 'All Events', icon: <ReorderIcon sx={{ fontSize: 16 }} /> },
-    { id: 'process', label: 'Processes', icon: <AccountTreeIcon sx={{ fontSize: 16 }} /> },
-    { id: 'cross_process', label: 'Cross Processes', icon: <SettingsInputComponentIcon sx={{ fontSize: 16 }} /> },
-    { id: 'indicator', label: 'Indicators', icon: <NotificationsPausedIcon sx={{ fontSize: 16 }} /> },
-    { id: 'file', label: 'Files', icon: <DescriptionIcon sx={{ fontSize: 16 }} /> },
-    { id: 'network', label: 'Network Actions', icon: <PublicIcon sx={{ fontSize: 16 }} /> },
-    { id: 'dns', label: 'DNS', icon: <DnsIcon sx={{ fontSize: 16 }} /> },
-    { id: 'url', label: 'URL', icon: <LinkIcon sx={{ fontSize: 16 }} /> },
-    { id: 'registry', label: 'Registry', icon: <StorageIcon sx={{ fontSize: 16 }} /> },
-    { id: 'scheduled_task', label: 'Scheduled Tasks', icon: <ScheduleIcon sx={{ fontSize: 16 }} /> },
-    { id: 'windows_event', label: 'Windows Event Logs', icon: <ReceiptLongIcon sx={{ fontSize: 16 }} /> },
-  ], []);
+  // 카테고리별 카운트 상태
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
 
-  const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>(CATEGORY_FIELDS.all);
+  // 정렬 상태 추가
+  const [sortField, setSortField] = useState<string>("@timestamp");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isSorted, setIsSorted] = useState<boolean>(false); // 명시적 정렬 여부
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      if (sortOrder === "desc") {
+        setSortOrder("asc");
+        setIsSorted(true);
+      } else if (sortOrder === "asc" && isSorted) {
+        // asc -> none (default)
+        setSortField("@timestamp");
+        setSortOrder("desc");
+        setIsSorted(false);
+      } else {
+        setSortOrder("desc");
+        setIsSorted(true);
+      }
+    } else {
+      setSortField(field);
+      setSortOrder("desc");
+      setIsSorted(true);
+    }
+    setPage(0);
+  };
+
+  const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>(DEFAULT_FIELDS);
 
   const scrollTable = (direction: 'left' | 'right') => {
     if (tableScrollRef.current) {
@@ -152,7 +227,7 @@ const EdrListTab: React.FC = () => {
         setSearchQuery(query);
       }
 
-      if (hasCategoryParam && currentStore.activeCategory !== category) {
+      if (currentStore.activeCategory !== category) {
         setActiveCategory(category);
       }
       
@@ -176,6 +251,7 @@ const EdrListTab: React.FC = () => {
   }, [searchParams, setSearchQuery, setActiveCategory, setTimeRange]);
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
+  const [filteredData, setFilteredData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [fields, setFields] = useState<IndexField[]>([]);
   const [fieldSearchQuery, setFieldSearchQuery] = useState("");
@@ -203,7 +279,7 @@ const EdrListTab: React.FC = () => {
       fromUnit: settings?.time_filter_unit ?? 'm',
       toValue: null, toUnit: 'm', fromDate: null, toDate: null,
     });
-    setSelectedFieldNames(CATEGORY_FIELDS.all);
+    setSelectedFieldNames(CATEGORY_FIELDS[activeCategory] || DEFAULT_FIELDS);
     setPage(0);
     navigate('?', { replace: true });
   };
@@ -216,16 +292,23 @@ const EdrListTab: React.FC = () => {
         const currentCategory = new URLSearchParams(window.location.search).get('edrCategory') || "all";
         const saved = await getColumnSettings(`edr_${currentCategory}`);
 
+        let fieldsToUse = CATEGORY_FIELDS[currentCategory] || DEFAULT_FIELDS;
+
         if (saved && saved.length > 0) {
-          setSelectedFieldNames(saved);
-        } else {
-          // 저장된 설정이 없으면 해당 카테고리의 기본 필드 사용
-          setSelectedFieldNames(CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS.all);
+          // 필드명 마이그레이션 (구버전 dns.request 등을 신규 버전으로 교체)
+          const migrated = saved.map(f => {
+            if (f === "dns.request") return "event.dns.request";
+            if (f === "dns.response") return "event.dns.response";
+            return f;
+          });
+          fieldsToUse = migrated;
         }
+        
+        setSelectedFieldNames(fieldsToUse);
       } catch (err) {
         console.error("Failed to load column settings", err);
         const currentCategory = new URLSearchParams(window.location.search).get('edrCategory') || "all";
-        setSelectedFieldNames(CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS.all);
+        setSelectedFieldNames(CATEGORY_FIELDS[currentCategory] || DEFAULT_FIELDS);
       }
     };
     loadSettings();
@@ -363,16 +446,46 @@ const EdrListTab: React.FC = () => {
       }
 
       const targetIndex = "logs-sentinel_one.edr";
-      const [stats, fieldList, logList] = await Promise.all([
-        getDashboardStats("edr-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, baseQuery),
+      const edrPanelConfig: DashboardPanel[] = [{
+        dashboard_id: "edr-dashboard",
+        panel_key: "edr_event_categories",
+        widget_type: "bar",
+        target_field: "event.category",
+        custom_titles: {},
+        default_title_key: "categories",
+        grid_width: 12,
+        grid_height: 300,
+        custom_query: "",
+        default_query: "*",
+        is_visible: true,
+        display_order: 1
+      }];
+
+      const [totalStats, filteredStats, fieldList, logList] = await Promise.all([
+        getDashboardStats("edr-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, baseQuery, edrPanelConfig),
+        getDashboardStats("edr-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, combinedQuery || undefined, edrPanelConfig),
         getIndexFields(targetIndex),
-        getIndexLogs("edr-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, combinedQuery || undefined, pageSize, page * pageSize)
+        getIndexLogs("edr-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, combinedQuery || undefined, pageSize, page * pageSize, sortField, sortOrder)
       ]);
 
-      setData(stats); setLogs(logList);
+      setData(totalStats); 
+      setFilteredData(filteredStats);
+      setLogs(logList);
       setFields([{ name: "_source", type: "code" }, ...fieldList]);
+
+      // 카테고리 카운트 업데이트 (집계 결과 기반 매핑)
+      const counts: Record<string, number> = { all: totalStats.summary.total_logs };
+      const edrPanel = totalStats.panels.find(p => p.panel_key === "edr_event_categories");
+      if (edrPanel && edrPanel.chart_data) {
+        edrPanel.chart_data.forEach(item => {
+          // OpenSearch에서 온 label을 소문자로 변환하여 매핑 (resilience)
+          const key = item.label.toLowerCase();
+          counts[key] = item.value;
+        });
+      }
+      setCategoryCounts(counts);
     } catch (err) { setError("Failed to load EDR data."); } finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, activeCategory, page, pageSize]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, activeCategory, page, pageSize, sortField, sortOrder]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { 
@@ -413,13 +526,6 @@ const EdrListTab: React.FC = () => {
     );
   };
 
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: data?.summary.total_logs ?? 0 };
-    const edrPanel = data?.panels.find(p => p.panel_key === "edr_event_categories");
-    if (edrPanel && edrPanel.chart_data) { edrPanel.chart_data.forEach(item => { counts[item.label] = item.value; }); }
-    return counts;
-  }, [data]);
-
   const sortedDisplayFields = useMemo(() => [...selectedFieldNames], [selectedFieldNames]);
 
   return (
@@ -433,14 +539,31 @@ const EdrListTab: React.FC = () => {
           display: 'flex', alignItems: 'center', gap: 0.5, py: 1.2, px: 2, flexGrow: 1, overflowX: 'auto',
           '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none'
         }}>
-          {categories.map((cat) => (
-            <Button key={cat.id} onClick={() => handleCategoryChange(cat.id)} startIcon={cat.icon} sx={{ minWidth: 'fit-content', px: 2, py: 0.8, borderRadius: 1, textTransform: 'none', fontSize: '0.8rem', fontWeight: activeCategory === cat.id ? 600 : 400, color: activeCategory === cat.id ? 'primary.main' : 'text.secondary', bgcolor: activeCategory === cat.id ? 'action.selected' : 'transparent', '&:hover': { bgcolor: 'action.hover' }, position: 'relative', '&::after': activeCategory === cat.id ? { content: '""', position: 'absolute', bottom: -4, left: '15%', right: '15%', height: '3px', bgcolor: 'primary.main', borderRadius: '2px 2px 0 0' } : {} }}>
-              {cat.label}
-              <Box component="span" sx={{ ml: 1, fontSize: '0.75rem', opacity: activeCategory === cat.id ? 1 : 0.7, fontWeight: 'bold', color: activeCategory === cat.id ? 'primary.main' : 'text.secondary' }}>
-                {categoryCounts[cat.id] !== undefined ? (categoryCounts[cat.id] >= 1000 ? `${(categoryCounts[cat.id] / 1000).toFixed(1)}K` : categoryCounts[cat.id]) : 0}
-              </Box>
-            </Button>
-          ))}
+          {EDR_CATEGORIES.map((cat) => {
+            const count = categoryCounts[cat.id] || 0;
+            const isActive = activeCategory === cat.id;
+            return (
+              <Button 
+                key={cat.id} 
+                onClick={() => handleCategoryChange(cat.id)} 
+                startIcon={cat.icon}
+                sx={{ 
+                  minWidth: 'fit-content', px: 2, py: 0.8, borderRadius: 1, textTransform: 'none', fontSize: '0.8rem', 
+                  fontWeight: isActive ? 600 : 400, 
+                  color: isActive ? 'primary.main' : 'text.secondary', 
+                  bgcolor: isActive ? 'action.selected' : 'transparent', 
+                  '&:hover': { bgcolor: 'action.hover' }, 
+                  position: 'relative', 
+                  '&::after': isActive ? { content: '""', position: 'absolute', bottom: -4, left: '15%', right: '15%', height: '3px', bgcolor: 'primary.main', borderRadius: '2px 2px 0 0' } : {} 
+                }}
+              >
+                {cat.label}
+                <Box component="span" sx={{ ml: 1, fontSize: '0.75rem', opacity: isActive ? 1 : 0.7, fontWeight: 'bold', color: isActive ? 'primary.main' : 'text.secondary' }}>
+                  {count >= 1000 ? `${(count / 1000).toFixed(1)}K` : count}
+                </Box>
+              </Button>
+            );
+          })}
         </Box>
         <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
           <IconButton size="small" onClick={() => scrollCategories('left')} sx={{ border: 1, borderColor: 'divider' }}><ChevronLeftIcon sx={{ fontSize: 16 }} /></IconButton>
@@ -450,7 +573,7 @@ const EdrListTab: React.FC = () => {
 
       {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', flex: '1 1 0', overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 }, minHeight: 0 }}>
-        <Paper elevation={1} sx={{ width: { xs: 0, md: 220 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
+        <Paper elevation={1} sx={{ width: { xs: 0, md: 280 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
           <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields')} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover' } }} /></Box>
           <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
           <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1, minHeight: 0 }}>
@@ -461,7 +584,7 @@ const EdrListTab: React.FC = () => {
         </Paper>
         <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Box sx={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1.5, pr: 0 }}>
-            <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: 180, minHeight: 180, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}><Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}><BarChartWidget data={data?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} /></Box></Paper>
+            <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: 180, minHeight: 180, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}><Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}><BarChartWidget data={filteredData?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} /></Box></Paper>
             <Box sx={{ px: 0.5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>{t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({logs.length}/{data?.summary.total_logs ?? 0})</Box></Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -483,11 +606,66 @@ const EdrListTab: React.FC = () => {
                 <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2, alignItems: 'center' }}>
                   <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }}><Checkbox size="small" indeterminate={selectedRowIndices.size > 0 && selectedRowIndices.size < logs.length} checked={logs.length > 0 && selectedRowIndices.size === logs.length} onChange={handleSelectAll} sx={{ p: 0 }} /></Box>
                   <Box sx={{ width: 32, flexShrink: 0 }} />
-                  {sortedDisplayFields.map((fn, idx) => (
-                    <Box key={fn} sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', borderRight: 1, borderColor: 'transparent' }}>
-                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn}</Typography>
-                    </Box>
-                  ))}
+                  {sortedDisplayFields.map((fn, idx) => {
+                    const width = columnWidths[fn] || 250;
+                    return (
+                      <Box key={fn} sx={{ 
+                        width, 
+                        minWidth: width, 
+                        flexShrink: 0, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        borderRight: 1, 
+                        borderColor: 'divider',
+                        position: 'relative',
+                        '&:hover .resize-handle': { opacity: 1 }
+                      }}>
+                        <Typography 
+                          variant="caption" 
+                          draggable 
+                          onDragStart={() => handleDragStart(idx)} 
+                          onDragOver={handleDragOver} 
+                          onDrop={() => handleDrop(idx)} 
+                          onClick={() => handleSort(fn)}
+                          sx={{ 
+                            flexGrow: 1, 
+                            fontWeight: 'bold', 
+                            fontSize: '0.75rem', 
+                            px: 1, 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap', 
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                          }}
+                        >
+                          {fn}
+                          {sortField === fn && isSorted && (
+                            sortOrder === "asc" ? <NorthIcon sx={{ fontSize: 12 }} /> : <SouthIcon sx={{ fontSize: 12 }} />
+                          )}
+                        </Typography>
+                        <Box
+                          className="resize-handle"
+                          onMouseDown={(e) => handleResizeStart(e, fn)}
+                          sx={{
+                            position: 'absolute',
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: '4px',
+                            cursor: 'col-resize',
+                            bgcolor: 'primary.main',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            zIndex: 1,
+                            '&:hover': { opacity: 1 }
+                          }}
+                        />
+                      </Box>
+                    );
+                  })}
                 </Box>
                 {logs.length > 0 ? logs.map((log, idx) => {
                   const isExpanded = expandedRows.has(idx);
@@ -497,7 +675,27 @@ const EdrListTab: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, px: 2, '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer' }} onClick={() => toggleRow(idx)}>
                         <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}><Checkbox size="small" checked={isSelected} onChange={() => handleSelectRow(idx)} sx={{ p: 0 }} /></Box>
                         <IconButton size="small" sx={{ p: 0, mr: 1, flexShrink: 0 }}>{isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}</IconButton>
-                        {sortedDisplayFields.map(fn => (<Typography key={fn} variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fn === "@timestamp" ? dayjs(log[fn]).format("MMM D, YYYY @ HH:mm:ss.SSS") : getValueByPath(log, fn)}</Typography>))}
+                        {sortedDisplayFields.map(fn => {
+                          const width = columnWidths[fn] || 250;
+                          return (
+                            <Typography 
+                              key={fn} 
+                              variant="caption" 
+                              sx={{ 
+                                width, 
+                                minWidth: width, 
+                                flexShrink: 0, 
+                                fontSize: '0.75rem', 
+                                px: 1, 
+                                whiteSpace: 'nowrap', 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis' 
+                              }}
+                            >
+                              {fn === "@timestamp" ? dayjs(log[fn]).format("MMM D, YYYY @ HH:mm:ss.SSS") : getValueByPath(log, fn)}
+                            </Typography>
+                          );
+                        })}
                       </Box>
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)', borderBottom: 1, borderColor: 'divider' }}>
