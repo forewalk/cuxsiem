@@ -93,7 +93,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
   indexOptions = [],
   selectedIndex = '*',
   onIndexChange,
-  userRole,
   onDownload
 }) => {
   const theme = useTheme();
@@ -543,7 +542,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!isEditMode && onEdit && userRole === 'role-1' && (
+            {!isEditMode && onEdit && (
               <Button
                 variant="outlined"
                 size="small"
@@ -558,7 +557,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
               </Button>
             )}
 
-            {/* 리스트 화면(onEdit 없음)일 때만 다운로드 왼쪽에 초기화 버튼 상시 노출 */}
             {!isEditMode && !onEdit && onReset && (
               <Button
                 variant="outlined"
@@ -613,7 +611,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
                   </Button>
                 )}
 
-                {/* 대시보드 수정 모드일 때만 초기화 버튼 노출 (원래 위치) */}
                 {onReset && (
                   <Button
                     variant="outlined"
