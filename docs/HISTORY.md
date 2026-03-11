@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-11 09:47 | 박지은 | 배포 | origin/develop push (feature/alerts 머지 - 알림 중요도 5단계 변경, 검색 버튼 추가) |
 | 2026-03-11 09:30 | 박지은 | 배포 | origin/feature/alerts push (알림 중요도 5단계 변경, Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
 | 2026-03-11 09:15 | 박지은 | 수정 | origin/feature/alerts push (Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
 | 2026-03-10 22:00 | 박지은 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
