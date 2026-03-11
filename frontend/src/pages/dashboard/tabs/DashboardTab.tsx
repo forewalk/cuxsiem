@@ -14,7 +14,7 @@ import type { DashboardStatsResponse, DashboardPanel } from "../../../services/d
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useAuth } from "../../../hooks/useAuth";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
-import useThreatStore from "../../../stores/useThreatStore";
+import useDashboardStore from "../../../stores/useDashboardStore";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
@@ -264,7 +264,7 @@ const DashboardTab: React.FC = () => {
   const navigate = useNavigate();
   
   // 전역 스토어 사용
-  const { searchQuery, timeRange, setSearchQuery, setTimeRange } = useThreatStore();
+  const { searchQuery, timeRange, setSearchQuery, setTimeRange } = useDashboardStore();
   
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [originalPanels, setOriginalPanels] = useState<DashboardPanel[] | null>(null);
@@ -282,9 +282,17 @@ const DashboardTab: React.FC = () => {
 
   // URL 쿼리 파라미터에서 초기 상태 로드 및 스토어 동기화
   useEffect(() => {
-    const query = searchParams.get('query') || "";
-    if (searchQuery !== query) setSearchQuery(query);
+    // 이 탭과 관련된 파라미터가 있는지 확인
+    const hasTimeParams = searchParams.has('fromValue') || searchParams.has('fromDate');
+    const hasQueryParam = searchParams.has('query');
+    
+    // 만약 다른 탭의 파라미터(예: threatFromValue)만 있고 현재 탭 파라미터가 없으면 무시
+    if (!hasTimeParams && !hasQueryParam) {
+      const hasOtherTabParams = searchParams.has('threatFromValue') || searchParams.has('threatFromDate') || searchParams.has('edrQuery');
+      if (hasOtherTabParams) return;
+    }
 
+    const query = searchParams.get('query') || "";
     const fromVal = searchParams.get('fromValue');
     const fromUn = searchParams.get('fromUnit');
     const toVal = searchParams.get('toValue');
@@ -292,20 +300,29 @@ const DashboardTab: React.FC = () => {
     const fromDt = searchParams.get('fromDate');
     const toDt = searchParams.get('toDate');
 
-    const defaultThreatStoreTimeRange = useThreatStore.getState().timeRange; // Zustand 스토어의 기본 시간 범위 참조
-
-    const newTimeRange = {
-      fromValue: fromVal ? parseInt(fromVal, 10) : defaultThreatStoreTimeRange.fromValue,
-      fromUnit: fromUn || defaultThreatStoreTimeRange.fromUnit,
-      toValue: toVal ? parseInt(toVal, 10) : defaultThreatStoreTimeRange.toValue,
-      toUnit: toUn || defaultThreatStoreTimeRange.toUnit,
-      fromDate: fromDt || defaultThreatStoreTimeRange.fromDate,
-      toDate: toDt || defaultThreatStoreTimeRange.toDate,
-    };
-    if (JSON.stringify(timeRange) !== JSON.stringify(newTimeRange)) {
-      setTimeRange(newTimeRange);
+    const currentStore = useDashboardStore.getState();
+    
+    // 쿼리 업데이트 (파라미터가 없으면 ""으로 초기화)
+    if (currentStore.searchQuery !== query) {
+      setSearchQuery(query);
     }
-  }, [searchParams, setSearchQuery, setTimeRange, searchQuery, timeRange]);
+
+    // 시간 범위 업데이트
+    if (hasTimeParams) {
+      const newTimeRange = {
+        fromValue: fromVal ? parseInt(fromVal, 10) : null,
+        fromUnit: fromUn || 'm',
+        toValue: toVal ? parseInt(toVal, 10) : null,
+        toUnit: toUn || 'm',
+        fromDate: fromDt || null,
+        toDate: toDt || null,
+      };
+
+      if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newTimeRange)) {
+        setTimeRange(newTimeRange);
+      }
+    }
+  }, [searchParams, setSearchQuery, setTimeRange]);
 
   // 고급 설정 로드 (초기 1회)
   useEffect(() => {
@@ -339,14 +356,13 @@ const DashboardTab: React.FC = () => {
       if (stats && stats.summary) { setData(stats); }
     } catch (err) { console.error("Error fetching dashboard data:", err); }
     finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, searchParams]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
 
   useEffect(() => { 
     if (!isEditMode) fetchData(); 
   }, [fetchData, isEditMode]);
 
   const handleTimeChange = useCallback((fv: number | null, fu: string, tv: number | null, tu: string, fd: string | null, td: string | null) => {
-    setTimeRange({ fromValue: fv, fromUnit: fu, toValue: tv, toUnit: tu, fromDate: fd, toDate: td });
     // URLSearchParams 업데이트 (navigate 사용)
     const newParams = new URLSearchParams(searchParams);
     if (fv !== null) newParams.set('fromValue', fv.toString()); else newParams.delete('fromValue');
@@ -356,16 +372,15 @@ const DashboardTab: React.FC = () => {
     if (fd) newParams.set('fromDate', fd); else newParams.delete('fromDate');
     if (td) newParams.set('toDate', td); else newParams.delete('toDate');
     navigate(`?${newParams.toString()}`, { replace: false });
-  }, [setTimeRange, searchParams, navigate]);
+  }, [searchParams, navigate]);
 
   const handleSearchQueryChange = useCallback((q: string) => {
-    setSearchQuery(q);
     // URLSearchParams 업데이트 (navigate 사용)
     const newParams = new URLSearchParams(searchParams);
     if (q) newParams.set('query', q);
     else newParams.delete('query');
     navigate(`?${newParams.toString()}`, { replace: false });
-  }, [setSearchQuery, searchParams, navigate]);
+  }, [searchParams, navigate]);
 
   const handleEditToggle = () => { if (!isEditMode) setOriginalPanels(data?.panels ? JSON.parse(JSON.stringify(data.panels)) : null); setIsEditMode(!isEditMode); };
   const handleCancel = () => { if (originalPanels && data) setData({ ...data, panels: JSON.parse(JSON.stringify(originalPanels)) }); setEditingTitleKey(null); setIsEditMode(false); };

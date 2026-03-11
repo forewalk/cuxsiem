@@ -1,42 +1,53 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  Box, Paper, Typography, Alert, LinearProgress, 
-  List, ListItem, ListItemIcon, ListItemText, IconButton, Tooltip,
-  Button, TextField, Select, MenuItem, useTheme, Collapse, Checkbox,
-  Menu
+import {
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  Collapse,
+  IconButton,
+  LinearProgress,
+  List, ListItem, ListItemIcon, ListItemText,
+  Menu,
+  MenuItem,
+  Paper,
+  Select,
+  TextField,
+  Tooltip,
+  Typography,
+  useTheme
 } from "@mui/material";
-import ControlBar from "../components/ControlBar";
-import BarChartWidget from "../components/BarChartWidget";
+import dayjs from "dayjs";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as XLSX from "xlsx";
-import { getDashboardStats, getIndexFields, getDashboardIndices, getIndexLogs, getColumnSettings, saveColumnSettings, resetColumnSettings } from "../../../services/dashboardService";
 import type { DashboardStatsResponse, IndexField } from "../../../services/dashboardService";
+import { getColumnSettings, getDashboardIndices, getDashboardStats, getIndexFields, getIndexLogs, resetColumnSettings, saveColumnSettings } from "../../../services/dashboardService";
 import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
 import useThreatStore from "../../../stores/useThreatStore";
-import dayjs from "dayjs";
+import BarChartWidget from "../components/BarChartWidget";
+import ControlBar from "../components/ControlBar";
 
 // 아이콘
-import SearchIcon from "@mui/icons-material/Search";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AbcIcon from "@mui/icons-material/Abc";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import KeyboardArrowDownIconMenu from "@mui/icons-material/KeyboardArrowDown";
-import AbcIcon from "@mui/icons-material/Abc";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CodeIcon from "@mui/icons-material/Code";
-import TagIcon from "@mui/icons-material/Tag";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
+import { default as KeyboardArrowDownIcon, default as KeyboardArrowDownIconMenu } from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
+import SearchIcon from "@mui/icons-material/Search";
+import TagIcon from "@mui/icons-material/Tag";
 
 // i18n
-import koMessages from "../../../locales/ko.json";
+import cnMessages from "../../../locales/cn.json";
 import enMessages from "../../../locales/en.json";
 import jaMessages from "../../../locales/ja.json";
-import cnMessages from "../../../locales/cn.json";
+import koMessages from "../../../locales/ko.json";
 
 const ThreatListTab: React.FC = () => {
   const { language } = useLanguageStore();
@@ -70,26 +81,49 @@ const ThreatListTab: React.FC = () => {
 
   useEffect(() => {
     const applyUrlParamsToStore = () => {
-      const currentSearchParams = new URLSearchParams(window.location.search);
-      const query = currentSearchParams.get('threatQuery') || "";
-      if (searchQuery !== query) setSearchQuery(query);
-      const fromVal = currentSearchParams.get('threatFromValue');
-      const fromUn = currentSearchParams.get('threatFromUnit');
-      const defaultRange = useThreatStore.getState().timeRange;
-      const newRange = {
-        fromValue: fromVal ? parseInt(fromVal, 10) : defaultRange.fromValue,
-        fromUnit: fromUn || defaultRange.fromUnit,
-        toValue: currentSearchParams.get('threatToValue') ? parseInt(currentSearchParams.get('threatToValue')!, 10) : null,
-        toUnit: currentSearchParams.get('threatToUnit') || 'm',
-        fromDate: currentSearchParams.get('threatFromDate'),
-        toDate: currentSearchParams.get('threatToDate'),
-      };
-      if (JSON.stringify(timeRange) !== JSON.stringify(newRange)) setTimeRange(newRange);
+      const hasTimeParams = searchParams.has('threatFromValue') || searchParams.has('threatFromDate');
+      const hasQueryParam = searchParams.has('threatQuery');
+      
+      // 이 탭과 관련된 파라미터가 아예 없으면 무시 (다른 탭의 동작임)
+      if (!hasTimeParams && !hasQueryParam) {
+        const hasOtherTabParams = searchParams.has('fromValue') || searchParams.has('fromDate') || searchParams.has('edrQuery');
+        if (hasOtherTabParams) return;
+      }
+
+      const query = searchParams.get('threatQuery') || "";
+      const fromVal = searchParams.get('threatFromValue');
+      const fromUn = searchParams.get('threatFromUnit');
+      const toVal = searchParams.get('threatToValue');
+      const toUn = searchParams.get('threatToUnit') || 'm';
+      const fromDt = searchParams.get('threatFromDate');
+      const toDt = searchParams.get('threatToDate');
+      
+      const currentStore = useThreatStore.getState();
+      
+      // 쿼리 업데이트 (파라미터가 없으면 ""으로 초기화)
+      if (currentStore.searchQuery !== query) {
+        setSearchQuery(query);
+      }
+      
+      // 시간 범위 업데이트 (해당 파라미터가 있을 때만)
+      if (hasTimeParams) {
+        const newRange = {
+          fromValue: fromVal ? parseInt(fromVal, 10) : null,
+          fromUnit: fromUn || 'm',
+          toValue: toVal ? parseInt(toVal, 10) : null,
+          toUnit: toUn,
+          fromDate: fromDt || null,
+          toDate: toDt || null,
+        };
+        
+        if (JSON.stringify(currentStore.timeRange) !== JSON.stringify(newRange)) {
+          setTimeRange(newRange);
+        }
+      }
     };
+    
     applyUrlParamsToStore();
-    window.addEventListener('popstate', applyUrlParamsToStore);
-    return () => window.removeEventListener('popstate', applyUrlParamsToStore);
-  }, [searchQuery, setSearchQuery, timeRange, setTimeRange]);
+  }, [searchParams, setSearchQuery, setTimeRange]);
 
   const [data, setData] = useState<DashboardStatsResponse | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -160,14 +194,21 @@ const ThreatListTab: React.FC = () => {
     try { await saveColumnSettings("threat", newOrder); } catch (err) { console.error("Failed to save column settings", err); }
   };
 
+  // 전체 초기화 (검색어, 시간, 컬럼, 페이지, URL)
   const handleResetColumns = async () => {
     try {
-      const success = await resetColumnSettings("threat");
-      if (success) {
-        const defaultFields = ["threatInfo.createdAt", "agentRealtimeInfo.agentComputerName", "threatInfo.analystVerdict", "threatInfo.classification", "threatInfo.confidenceLevel", "threatInfo.fileExtension", "threatInfo.filePath", "threatInfo.incidentStatus", "threatInfo.mitigationStatus", "threatInfo.processUser", "threatInfo.threatName"];
-        setSelectedFieldNames(defaultFields);
-      }
+      await resetColumnSettings("threat");
     } catch (err) { console.error("Failed to reset columns", err); }
+
+    setSearchQuery("");
+    setTimeRange({
+      fromValue: settings?.time_filter_duration ?? 15,
+      fromUnit: settings?.time_filter_unit ?? 'm',
+      toValue: null, toUnit: 'm', fromDate: null, toDate: null,
+    });
+    setSelectedFieldNames(["threatInfo.createdAt", "agentRealtimeInfo.agentComputerName", "threatInfo.analystVerdict", "threatInfo.classification", "threatInfo.confidenceLevel", "threatInfo.fileExtension", "threatInfo.filePath", "threatInfo.incidentStatus", "threatInfo.mitigationStatus", "threatInfo.processUser", "threatInfo.threatName"]);
+    setPage(0);
+    navigate('?', { replace: true });
   };
 
   const getValueByPath = (obj: any, path: string) => {
@@ -200,10 +241,10 @@ const ThreatListTab: React.FC = () => {
 
   const handleToggleField = useCallback(async (fieldName: string) => {
     setSelectedFieldNames(prev => {
-      const next = prev.includes(fieldName) 
+      const next = prev.includes(fieldName)
         ? prev.filter(name => name !== fieldName)
         : [...prev, fieldName];
-      
+
       // 상태 업데이트 직후 서버에 저장 (비동기)
       saveColumnSettings("threat", next).catch(err => console.error("Failed to save column settings", err));
       return next;
@@ -219,7 +260,6 @@ const ThreatListTab: React.FC = () => {
   }, [language]);
 
   const handleTimeChange = (fV: number | null, fU: string, tV: number | null, tU: string, fD: string | null = null, tD: string | null = null) => {
-    setTimeRange({ fromValue: fV, fromUnit: fU, toValue: tV, toUnit: tU, fromDate: fD, toDate: tD });
     const newParams = new URLSearchParams(searchParams);
     if (fV !== null) newParams.set('threatFromValue', fV.toString()); else newParams.delete('threatFromValue');
     if (fU) newParams.set('threatFromUnit', fU); else newParams.delete('threatFromUnit');
@@ -231,7 +271,6 @@ const ThreatListTab: React.FC = () => {
   };
 
   const handleSearchQueryChange = (q: string) => {
-    setSearchQuery(q);
     const newParams = new URLSearchParams(searchParams);
     if (q) newParams.set('threatQuery', q); else newParams.delete('threatQuery');
     navigate(`?${newParams.toString()}`, { replace: false });
@@ -255,10 +294,13 @@ const ThreatListTab: React.FC = () => {
       const filteredFieldList = fieldList.filter(f => !f.name.toLowerCase().startsWith("kubernetesinfo.") && !f.name.toLowerCase().startsWith("containerinfo.") && !f.name.toLowerCase().startsWith("ecsinfo."));
       setFields([{ name: "_source", type: "code" }, ...filteredFieldList]);
     } catch (err) { setError("Failed to load data."); } finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize, searchParams]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setPage(0); }, [searchParams]);
+  useEffect(() => { 
+    // 실제 필터가 변경되었을 때만 페이지 리셋
+    setPage(0); 
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
 
   const handleBarClick = (s: string, e: string) => { handleTimeChange(null, "m", null, "m", s, e); };
 
@@ -336,7 +378,7 @@ const ThreatListTab: React.FC = () => {
                   <Box sx={{ width: 32, flexShrink: 0 }} />
                   {sortedDisplayFields.map((fn, idx) => (
                     <Box key={fn} sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', borderRight: 1, borderColor: 'transparent' }}>
-                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn.includes('.') ? fn.split('.').pop() : fn}</Typography>
+                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn}</Typography>
                     </Box>
                   ))}
                 </Box>
@@ -359,7 +401,7 @@ const ThreatListTab: React.FC = () => {
                               return sk.map((k, i, arr) => (
                                 <Box key={k} sx={{ display: 'flex', borderBottom: i < arr.length - 1 ? '1px solid' : 'none', borderColor: 'divider', '&:hover': { bgcolor: 'action.hover' }, alignItems: 'stretch' }}>
                                   <Box sx={{ width: 250, p: 1, pl: 8, flexShrink: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)', borderRight: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-                                    <Typography variant="caption" sx={{ fontWeight: k === "@timestamp" ? 'bold' : 500, color: k === "@timestamp" ? 'primary.main' : 'text.secondary', wordBreak: 'break-all', lineHeight: 1.2 }}>{k.includes('.') ? k.split('.').pop() : k}</Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: k === "@timestamp" ? 'bold' : 500, color: k === "@timestamp" ? 'primary.main' : 'text.secondary', wordBreak: 'break-all', lineHeight: 1.2 }}>{k}</Typography>
                                   </Box>
                                   <Box sx={{ p: 1, flexGrow: 1, pl: 2, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                                     <Typography variant="caption" sx={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', color: 'text.primary', display: 'block', lineHeight: 1.6, fontWeight: k === "@timestamp" ? 'bold' : 'normal' }}>{fl[k] !== undefined ? String(fl[k]) : "-"}</Typography>

@@ -105,17 +105,23 @@ const AgentListTab: React.FC = () => {
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
-  // 사용자별 컬럼 설정 초기화
+  // 전체 초기화 (검색어, 시간, 컬럼, 페이지, URL)
   const handleResetColumns = async () => {
     try {
-      const success = await resetColumnSettings("agent");
-      if (success) {
-        const defaultFields = [
-          "createdAt", "groupName", "agentVersion", "domain", "computerName", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
-        ];
-        setSelectedFieldNames(defaultFields);
-      }
+      await resetColumnSettings("agent");
     } catch (err) { console.error("Failed to reset columns", err); }
+
+    setSearchQuery("");
+    setTimeRange({
+      fromValue: settings?.time_filter_duration ?? 15,
+      fromUnit: settings?.time_filter_unit ?? 'm',
+      toValue: null, toUnit: 'm', fromDate: null, toDate: null,
+    });
+    setSelectedFieldNames([
+      "createdAt", "groupName", "agentVersion", "domain", "computerName", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
+    ]);
+    setPage(0);
+    navigate('?', { replace: true });
   };
 
   // 사용자별 컬럼 순서 로드

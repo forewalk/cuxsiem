@@ -25,13 +25,22 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-10 22:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
+| 2026-03-10 21:00 | 박지은 | 배포 | origin/feature/alerts push (알림 규칙 메시지 템플릿 기본값 변경) |
+| 2026-03-10 16:50 | 김장훈 | 수리 | 백엔드 SyntaxError 수정 (f-string 역슬래시 제약 해결) |
+| 2026-03-10 16:45 | 김장훈 | 배포 | origin/develop push (사용자 신청 활성화 및 401 에러 수정, 알림 템플릿 개선, 대시보드 무한루프 및 중복호출 해결, 윈도우 경로 검색 지원) |
+| 2026-03-10 16:30 | 박지은 | 배포 | origin/develop push (feature/dashboard 머지 - EDR/Threat 리스트 컬럼 원본 필드명 표시, alerts 머지) |
+| 2026-03-10 09:44 | 박지은 | 수정 | origin/feature/alerts push (알림센터 테이블 위협현황-리스트 스타일로 통일) |
+| 2026-03-09 14:47 | 박지은 | 리팩터 | 알림 규칙 dead code 제거 (개별 문서 알림 경로, dedup_key_template, 미사용 운영 필드) |
+| 2026-03-09 15:30 | 박지은 | 배포 | origin/develop push (알림 리팩터링, severity 타입 수정, 빌드 오류 해결) |
+| 2026-03-09 08:50 | 박지은 | 배포 | origin/feature/alerts push (feature/dashboard 병합, 충돌 마커 제거) |
 | 2026-03-06 17:46 | 최지호 | 배포 | origin/feature/dashboard push (고급설정 개인화, 스트리밍 버그 수정, EDR 리스트 필드 전환 적용) |
 | 2026-03-06 17:43 | 최지호 | 수정 | 고급설정 개인화, 스트리밍 버그 수정, EDR 리스트 필드 전환 적용 |
+| 2026-03-06 16:40 | 박지은 | 배포 | origin/develop push (Webhook 알림 채널 추가, 활동 내역 페이지 생성, 발송 결과 표시, 메시지 템플릿 JSON 렌더링 수정, 기본 인덱스 edr 변경) |
 | 2026-03-06 16:45 | 최지호 | 수리 | User 인터페이스 deleted_at 속성 누락으로 인한 프론트엔드 빌드 오류 수정 |
 | 2026-03-06 15:43 | 최지호 | 수정 | edr 리스트 추가, 리스트 횡이동 버튼 추가, 에이전트 리스트 그래프 삭제 |
-| 2026-03-06 02:00 | 박지은 | 배포 | origin/develop push (Webhook 알림 채널 추가, 활동 내역 페이지 생성, 발송 결과 표시, 메시지 템플릿 JSON 렌더링 수정, 기본 인덱스 edr 변경) |
+| 2026-03-06 16:40 | 박지은 | 배포 | origin/develop push (Webhook 알림 채널 추가, 활동 내역 페이지 생성, 발송 결과 표시, 메시지 템플릿 JSON 렌더링 수정, 기본 인덱스 edr 변경) |
 | 2026-03-05 19:00 | 김장훈 | 배포 | origin/develop push (OTP 초기화, OpenSearch 초기화 파일 정비, 빌드 오류 수정) |
-| 2026-03-05 14:34 | 최지호 | 수정 | 리스트 타임스탬프 타임존 버그 수정 |
 | 2026-03-05 11:12 | 최지호 | 수정 | 사용자 설정 헤더 버그 수정 |
 | 2026-03-05 11:05| 박지은 | 수정 | 알림 규칙 모달 UI 개선 (트리거 조건 OpenSearch 응답 직접 참조, 쿼리 결과 raw JSON 표시, i18n 처리) |
 | 2026-03-05 10:35 | 최지호 | 수정 | origin/feature/dashboard push (사용자 설정 표 수정) |
@@ -189,7 +198,7 @@
 | 2026-01-30 15:30 | 김장훈 | 추가 | backend/test_opensearch_connection.py OpenSearch 접속 테스트 스크립트 |
 | 2026-01-30 15:30 | 김장훈 | 수정 | backend/.env.example OPENSEARCH_USE_SSL=false 변경 (SSL 미사용) |
 | 2026-01-30 15:30 | 김장훈 | 수정 | ASSISTANT.md OpenSearch 인덱스 명명 규칙 (.cs- → cs_) |
-| 2026-01-29 22:50 | 김장훈 | 배포 | origin/develop push (HISTORY 규칙 강화, README 갱신, push 이력 의무화) |
+| 2026-01-29 22:50 | 김장훈 | 배포 | origin/develop push (HISTORY 규칙 강화, README 갱신, push i력 의무화) |
 | 2026-01-29 22:50 | 김장훈 | 수정 | README.md 문서 테이블에 ASSISTANT.md 추가, CLAUDE.md/GEMINI.md 설명 갱신 |
 | 2026-01-29 22:48 | 김장훈 | 수정 | HISTORY.md 날짜+시간 형식 변경, 원격 Git Push 이력 기록 의무화 |
 | 2026-01-29 22:48 | 김장훈 | 수정 | ASSISTANT.md 필수 행동 강령 추가 (Push 시 HISTORY.md 기록 의무) |
@@ -223,3 +232,4 @@
 | 2026-01-29 14:08 | 김장훈 | 설정 | OpenSearch 개발서버 접속정보 반영 (ns1.cruxdata.co.kr:11723) |
 | 2026-01-29 14:08 | 김장훈 | 수정 | README.md 프로젝트 소개 및 참여자 정보 작성 |
 | 2026-01-29 14:08 | 김장훈 | 설정 | 개발 시작 준비 완료 검증 (백엔드/프론트엔드 빌드 및 서버 기동 확인) |
+

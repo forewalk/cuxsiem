@@ -82,7 +82,14 @@ const LogStreaming: React.FC = () => {
     const nextPaused = !isPaused;
     setIsPaused(nextPaused);
     if (!nextPaused) {
+      // 스트리밍 시작: 버튼 클릭 시점 기준으로 로그 클리어 후 시작
       startStreaming();
+      timeRange.setFromValue(15);
+      timeRange.setFromUnit("m");
+      timeRange.setFromISO(null);
+      timeRange.setToValue(null);
+      timeRange.setToUnit("m");
+      timeRange.setToISO(null);
       setAutoScroll(true);
     }
   };

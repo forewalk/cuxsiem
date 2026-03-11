@@ -260,7 +260,7 @@ const AlertsControlBar: React.FC<ControlBarProps> = ({
               fullWidth
               size="small"
               variant="standard"
-              placeholder={t('searchPlaceholder') || t('search')}
+              placeholder={t('alertSearchPlaceholder')}
               value={tempQuery}
               onChange={handleSearchChange}
               sx={{

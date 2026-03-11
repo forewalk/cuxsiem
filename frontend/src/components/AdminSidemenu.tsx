@@ -282,17 +282,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                     <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><LockIcon /></ListItemIcon>
                     <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
                   </ListItemButton>
-                  
-                  {/* 알림 규칙 - role-1 전용 */}
-                  <ListItemButton
-                    sx={{ pl: 4, minHeight: listItemHeight }}
-                    onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}
-                  >
-                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}>
-                      <NotificationsIcon />
-                    </ListItemIcon>
-                    <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
-                  </ListItemButton>
                 </>
               )}
 

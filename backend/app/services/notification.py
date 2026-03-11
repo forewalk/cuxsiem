@@ -151,52 +151,41 @@ class NotificationService:
             user_role=user_role
         )
 
-    def _generate_dedup_key(self, rule: Dict[str, Any], event: Dict[str, Any]) -> str:
-        """
-        중복 제거 키 생성
-        - 룰 ID와 이벤트 고유 ID({{_id}}) 또는 주요 필드 조합을 기반으로 함
-        - 시간 의존성을 제거하여 동일 이벤트에 대해 항상 동일한 키 생성
-        """
-        template = rule.get("dedup_key_template", "{{rule_id}}_{{_id}}")
-
-        key = template.replace("{{rule_id}}", rule["id"])
-        key = key.replace("{{rule_name}}", rule.get("name", ""))
-
-        # 이벤트 메타데이터 처리
-        if "{{_id}}" in key:
-            key = key.replace("{{_id}}", str(event.get("_id", "unknown")))
-        if "{{_index}}" in key:
-            key = key.replace("{{_index}}", str(event.get("_index", "unknown")))
-
-        matches = re.findall(r"\{\{([^}]+)\}\}", key)
-        source = event.get("_source", {})
-
-        for field in matches:
-            if field in ["rule_id", "rule_name", "_id", "_index"]: continue
-            val = str(source.get(field, "unknown"))
-            key = key.replace(f"{{{{{field}}}}}", val)
-
-        return key
-
     def _render_message_template(self, template: str, context: Dict[str, Any]) -> str:
         """
         메시지 템플릿 렌더링
-        - {{변수}} 형식 지원
+        - {{변수}} 형식 지원 (공백 허용)
         - {{nested.field}} 중첩 필드 접근 지원
         - 중첩 필드가 context에 없으면 모든 hits에서 자동 추출
         """
 
         def get_nested_value(obj: Any, keys: list) -> Any:
-            """중첩 필드 값 추출"""
+            """중첩 필드 값 추출 (점 표기법 및 flattened key 지원)"""
+            if not obj:
+                return None
+            
+            # 1. 일반적인 중첩 구조 탐색
             value = obj
+            found_nested = True
             for k in keys:
                 if isinstance(value, dict):
                     value = value.get(k)
                     if value is None:
-                        return None
+                        found_nested = False
+                        break
                 else:
-                    return None
-            return value
+                    found_nested = False
+                    break
+            
+            if found_nested:
+                return value
+
+            # 2. Flattened key 탐색 (예: {"endpoint.name": "host1"})
+            full_key = ".".join(keys)
+            if isinstance(obj, dict):
+                return obj.get(full_key)
+            
+            return None
 
         def to_str(value: Any) -> str:
             if isinstance(value, (dict, list)):
@@ -204,14 +193,21 @@ class NotificationService:
             return str(value)
 
         def replace_var(match):
-            key = match.group(1)
+            # 공백 제거 후 키 추출
+            key = match.group(1).strip()
 
             # 단순 키 접근 (total, rule_name 등)
             if '.' not in key:
                 value = context.get(key)
                 if value is None:
-                    return f"{{{{{key}}}}}"
-                return to_str(value)
+                    # hits._source에서도 찾아보기 (첫 번째 hit 기준)
+                    hit_sources = context.get("_hit_sources", [])
+                    if hit_sources and isinstance(hit_sources, list):
+                        value = hit_sources[0].get(key)
+                
+                if value is not None:
+                    return to_str(value)
+                return f"{{{{{key}}}}}"
 
             # 중첩 필드 접근
             keys = key.split('.')
@@ -231,63 +227,112 @@ class NotificationService:
                         values.append(to_str(hit_value))
 
                 if values:
+                    # 유니크한 값만 추출하여 병합
                     unique_values = list(dict.fromkeys(values))
                     return "\n".join(unique_values)
 
             return f"{{{{{key}}}}}"
 
-        # 정규식: {{변수명}} 또는 {{nested.field.name}} 형식
-        return re.sub(r"\{\{([\w\.@]+)\}\}", replace_var, template)
+        # 정규식: {{ 변수명 }} 형식 (앞뒤 공백 허용)
+        return re.sub(r"\{\{\s*([\w\.@]+)\s*\}\}", replace_var, template)
 
     def _evaluate_trigger_condition(self, condition: str, context: Dict[str, Any], raise_errors: bool = False) -> bool:
         """
-        트리거 조건 평가
-        - Python 표현식을 안전하게 평가
-        - raise_errors: True일 경우 에러 발생 시 예외를 던짐 (테스트용)
+        트리거 조건 평가 (AST 기반 안전 평가)
+        - 비교/논리 연산만 허용, 함수 호출·코드 실행 차단
+        - 지원: >, >=, <, <=, ==, !=, and, or, not, 숫자, 문자열, True/False/None
+        - 점 표기법(hits.total.value), 인덱스 접근(buckets[0]) 지원
         """
         if not condition or not condition.strip():
             return True
 
         try:
-            # 1. 문법 검사 (보안 및 유효성 확인)
             import ast
-            try:
-                ast.parse(condition)
-            except SyntaxError as e:
-                if raise_errors:
-                    raise Exception(f"Syntax error in condition: {e.msg}")
-                return True
 
-            # 2. 안전한 네임스페이스 설정
-            import math
-            safe_namespace = {
-                '__builtins__': {},
-                'math': math,
-                'abs': abs,
-                'min': min,
-                'max': max,
-                'sum': sum,
-                'len': len,
-            }
-            for key, value in context.items():
-                if isinstance(value, dict):
-                    safe_namespace[key] = DotDict(value)
-                elif isinstance(value, list):
-                    safe_namespace[key] = [DotDict(x) if isinstance(x, dict) else x for x in value]
-                else:
-                    safe_namespace[key] = value
-
-            # 3. 평가 실행
-            # eval은 여전히 주의가 필요하지만, __builtins__를 비워 위험을 최소화함
-            result = eval(condition, safe_namespace)
+            tree = ast.parse(condition, mode='eval')
+            result = self._eval_node(tree.body, context)
             return bool(result)
 
         except Exception as e:
             if raise_errors:
-                # 구체적인 에러 메시지 전달 (예: NameError, AttributeError 등)
                 raise e
             logger.error(f"[트리거] 조건 평가 실패: '{condition}' - {e}")
             return True
+
+    def _eval_node(self, node, context: Dict[str, Any]):
+        """AST 노드를 재귀적으로 평가. 허용된 노드 타입만 처리."""
+        import ast
+
+        if isinstance(node, ast.Expression):
+            return self._eval_node(node.body, context)
+
+        # 리터럴: 숫자, 문자열, True, False, None
+        if isinstance(node, ast.Constant):
+            return node.value
+
+        # 변수 참조: total, hits 등
+        if isinstance(node, ast.Name):
+            if node.id not in context:
+                raise NameError(f"Unknown variable: '{node.id}'")
+            val = context[node.id]
+            return DotDict(val) if isinstance(val, dict) else val
+
+        # 점 표기법: hits.total.value
+        if isinstance(node, ast.Attribute):
+            obj = self._eval_node(node.value, context)
+            if isinstance(obj, dict):
+                if node.attr not in obj:
+                    raise AttributeError(f"'{node.attr}' not found")
+                return obj[node.attr]
+            if hasattr(obj, node.attr):
+                return getattr(obj, node.attr)
+            raise AttributeError(f"'{node.attr}' not found")
+
+        # 인덱스 접근: buckets[0]
+        if isinstance(node, ast.Subscript):
+            obj = self._eval_node(node.value, context)
+            idx = self._eval_node(node.slice, context)
+            return obj[idx]
+
+        # 비교: >, >=, <, <=, ==, !=
+        if isinstance(node, ast.Compare):
+            left = self._eval_node(node.left, context)
+            ops_map = {
+                ast.Gt: lambda a, b: a > b,
+                ast.GtE: lambda a, b: a >= b,
+                ast.Lt: lambda a, b: a < b,
+                ast.LtE: lambda a, b: a <= b,
+                ast.Eq: lambda a, b: a == b,
+                ast.NotEq: lambda a, b: a != b,
+                ast.In: lambda a, b: a in b,
+                ast.NotIn: lambda a, b: a not in b,
+            }
+            for op, comparator in zip(node.ops, node.comparators):
+                right = self._eval_node(comparator, context)
+                op_func = ops_map.get(type(op))
+                if op_func is None:
+                    raise ValueError(f"Unsupported operator: {type(op).__name__}")
+                if not op_func(left, right):
+                    return False
+                left = right
+            return True
+
+        # 논리 연산: and, or
+        if isinstance(node, ast.BoolOp):
+            if isinstance(node.op, ast.And):
+                return all(self._eval_node(v, context) for v in node.values)
+            if isinstance(node.op, ast.Or):
+                return any(self._eval_node(v, context) for v in node.values)
+
+        # 단항 연산: not, -
+        if isinstance(node, ast.UnaryOp):
+            operand = self._eval_node(node.operand, context)
+            if isinstance(node.op, ast.Not):
+                return not operand
+            if isinstance(node.op, ast.USub):
+                return -operand
+
+        raise ValueError(f"Disallowed expression: {type(node).__name__}")
 
     async def _deliver_alert(self, created_alert: Dict[str, Any], receiver: Dict[str, Any]):
         """
@@ -413,14 +458,7 @@ class NotificationService:
             "message_template": message_template,
 
             # 집계 알림 특성
-            "event_ref": f"aggregation_{rule_id}",
             "event_index": target_index,
-            "event_source": {
-                "type": "aggregation",
-                "total": total,
-                "aggregations": aggregations,
-                "hits": hit_sources[:10]
-            },
 
             # 중복 제거 및 수신자
             "dedup_key": dedup_key,
@@ -474,115 +512,25 @@ class NotificationService:
             total = result.get("hits", {}).get("total", {}).get("value", 0)
             aggregations = result.get("aggregations") or result.get("aggs") or {}
 
-            await self.repository.update_rule(rule_id, {
-                "last_success_at": now.isoformat(),
-                "error_count": 0,
-                "last_error": None
-            })
-
             # 트리거 조건 체크 (공통)
             trigger_condition = rule.get("trigger_condition")
             if trigger_condition:
                 if not self._evaluate_trigger_condition(trigger_condition, DotDict(result)):
                     return None
 
-            # 집계 결과가 있거나, 여러 문서를 한 번에 처리하는 경우
-            if aggregations or (total > 1 and condition_config.get("size", 10) > 1):
-                created_alert = await self._create_aggregation_alert(rule, result, now, aggregations, total)
-
-                if created_alert:
-                    await self.repository.update_rule(rule_id, {
-                        "last_triggered_at": now.isoformat(),
-                        "total_alerts_count": rule.get("total_alerts_count", 0) + 1
-                    })
-                    return created_alert
+            if total == 0:
                 return None
 
-            # 기존 로직: 개별 문서 기반 알림 (total == 1인 경우만)
-            if total > 0:
-                created_alerts = []
-                newly_created_count = 0
+            created_alert = await self._create_aggregation_alert(rule, result, now, aggregations, total)
 
-                # 모든 히트에 대해 개별 알림 생성 루프
-                for hit in hits:
-                    event_ref = hit.get("_id")
-                    event_index = hit.get("_index")
-                    event_source = hit.get("_source", {})
-                    dedup_key = self._generate_dedup_key(rule, hit)
-
-                    # 중복 체크: 이미 동일한 dedup_key를 가진 알림이 있는지 확인
-                    existing_alert = await self.repository.get_alert_by_dedup_key(dedup_key)
-                    if existing_alert:
-                        continue
-
-                    # 메시지 템플릿 렌더링을 위한 context 구성 (OpenSearch 응답 전체 + 메타 정보)
-                    template_context = {
-                        **result,
-                        "total": total,
-                        "rule_name": rule.get("name"),
-                        "rule_id": rule_id,
-                        "rule_severity": rule.get("severity"),
-                        "target_index": target_index,
-                        "_id": event_ref,
-                        "_index": event_index,
-                        "_hit_sources": [event_source],
-                        **event_source
-                    }
-
-                    message_template = rule.get("message_template", "Detected {{total}} events.")
-                    rendered_message = self._render_message_template(message_template, template_context)
-
-                    # cs_alerts 인덱스에 저장할 알림 데이터
-                    alert_data = {
-                        "rule_id": rule_id,
-
-                        # 규칙 메타데이터
-                        "rule_name": rule.get("name", "Unknown Rule"),
-                        "rule_description": rule.get("description"),
-                        "rule_severity": rule.get("severity", "info"),
-                        "rule_target_index": target_index,
-
-                        # 메시지 관련
-                        "message": rendered_message,
-                        "message_template": message_template,
-
-                        # 이벤트 관련
-                        "event_ref": event_ref,
-                        "event_index": event_index,
-                        "event_source": event_source,
-
-                        # 중복 제거 및 수신자
-                        "dedup_key": dedup_key,
-                        "severity": rule.get("severity", "info"),
-                        "receiver": rule.get("receiver"),
-
-                        # 상태
-                        "status": "created",
-                        "created_at": now.isoformat()
-                    }
-
-                    created_alert = await self.repository.create_alert(alert_data)
-                    created_alerts.append(created_alert)
-                    newly_created_count += 1
-
-                    # WebSocket + Webhook 전달 및 delivery_results 기록
-                    await self._deliver_alert(created_alert, rule.get("receiver", {}))
-
-                # 룰 통계 업데이트: 실제 생성된 알림 수 가산
-                if newly_created_count > 0:
-                    await self.repository.update_rule(rule_id, {
-                        "last_triggered_at": now.isoformat(),
-                        "total_alerts_count": rule.get("total_alerts_count", 0) + newly_created_count
-                    })
-
-                return created_alerts[0] if created_alerts else None
+            if created_alert:
+                await self.repository.update_rule(rule_id, {
+                    "last_triggered_at": now.isoformat(),
+                    "total_alerts_count": rule.get("total_alerts_count", 0) + 1
+                })
+                return created_alert
             return None
 
         except Exception as e:
-            error_msg = str(e)
-            logger.error(f"규칙 {rule_id} 탐지 실행 오류: {error_msg}")
-            await self.repository.update_rule(rule_id, {
-                "last_error": error_msg,
-                "error_count": rule.get("error_count", 0) + 1
-            })
+            logger.error(f"규칙 {rule_id} 탐지 실행 오류: {e}")
             return None
