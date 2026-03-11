@@ -94,5 +94,22 @@ export const notificationService = {
   testWebhook: async (url: string, headers?: Record<string, string>) => {
     const response = await api.post('/api/v1/notifications/webhook/test', { url, headers });
     return response.data;
-  }
+  },
+
+  /* 규칙 Export */
+  exportRules: async () => {
+    const response = await api.get('/api/v1/notifications/rules/export');
+    return response.data;
+  },
+
+  /* 규칙 Import */
+  importRules: async (rules: any[], overwrite: boolean = false) => {
+    const response = await api.post<{
+      created: number;
+      updated: number;
+      errors: any[];
+      total_processed: number;
+    }>('/api/v1/notifications/rules/import', { rules, overwrite });
+    return response.data;
+  },
 };
