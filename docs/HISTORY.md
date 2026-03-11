@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-11 | 박지은 | 수정 | develop에 feature/dashboard 머지 (EDR-리스트 요구사항 적용, 충돌 마커 제거) |
 | 2026-03-11 15:51 | 최지호 | 수정 | origin/feature/dashboard push (EDR-리스트 요구사항 적용) |
 | 2026-03-11 | 김장훈 | 배포 | origin/develop push (CruxSIEM 명칭 통일, CLAUDE.md/GEMINI.md 개선, 로고 SVG 교체, 알림 엔드포인트/규칙탭 확장 병합) |
 | 2026-03-11 09:47 | 박지은 | 배포 | origin/develop push (feature/alerts 머지 - 알림 중요도 5단계 변경, 검색 버튼 추가) |
