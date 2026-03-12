@@ -26,13 +26,14 @@
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
 | 2026-03-12 14:25 | 박지은 | 배포 | origin/develop push (Monaco 에디터 CDN 의존 제거, 폐쇄망 로컬 번들링 전환) |
+| 2026-03-11 17:17 | 최지호 | 수정 | origin/feature/dashboard push (리스트 필드 순서 변경을 위한 수정모드 추가) |
 | 2026-03-11 | 박지은 | 수정 | develop에 feature/dashboard 머지 (EDR-리스트 요구사항 적용, 충돌 마커 제거) |
 | 2026-03-11 15:51 | 최지호 | 수정 | origin/feature/dashboard push (EDR-리스트 요구사항 적용) |
-| 2026-03-11 | 김장훈 | 배포 | origin/develop push (CruxSIEM 명칭 통일, CLAUDE.md/GEMINI.md 개선, 로고 SVG 교체, 알림 엔드포인트/규칙탭 확장 병합) |
 | 2026-03-11 09:47 | 박지은 | 배포 | origin/develop push (feature/alerts 머지 - 알림 중요도 5단계 변경, 검색 버튼 추가) |
 | 2026-03-11 09:30 | 박지은 | 배포 | origin/feature/alerts push (알림 중요도 5단계 변경, Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
 | 2026-03-11 09:15 | 박지은 | 수정 | origin/feature/alerts push (Webhook Body 커스터마이징, 헤더/바디 Monaco 에디터 적용) |
-| 2026-03-10 22:00 | 박지은 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
+| 2026-03-11 | 박지은 | 수정 | develop에 feature/dashboard 머지 (EDR-리스트 요구사항 적용, 충돌 마커 제거) |
+| 2026-03-11 | 김장훈 | 배포 | origin/develop push (CruxSIEM 명칭 통일, CLAUDE.md/GEMINI.md 개선, 로고 SVG 교체, 알림 엔드포인트/규칙탭 확장 병합) |
 | 2026-03-10 22:00 | 김장훈 | 배포 | origin/develop push (feature/dashboard 머지 - 리스트 초기화 버튼 전체 리셋 기능 수정, alerts 머지) |
 | 2026-03-10 21:00 | 박지은 | 배포 | origin/feature/alerts push (알림 규칙 메시지 템플릿 기본값 변경) |
 | 2026-03-10 16:50 | 김장훈 | 수리 | 백엔드 SyntaxError 수정 (f-string 역슬래시 제약 해결) |
@@ -47,9 +48,8 @@
 | 2026-03-06 16:40 | 박지은 | 배포 | origin/develop push (Webhook 알림 채널 추가, 활동 내역 페이지 생성, 발송 결과 표시, 메시지 템플릿 JSON 렌더링 수정, 기본 인덱스 edr 변경) |
 | 2026-03-06 16:45 | 최지호 | 수리 | User 인터페이스 deleted_at 속성 누락으로 인한 프론트엔드 빌드 오류 수정 |
 | 2026-03-06 15:43 | 최지호 | 수정 | edr 리스트 추가, 리스트 횡이동 버튼 추가, 에이전트 리스트 그래프 삭제 |
-| 2026-03-06 16:40 | 박지은 | 배포 | origin/develop push (Webhook 알림 채널 추가, 활동 내역 페이지 생성, 발송 결과 표시, 메시지 템플릿 JSON 렌더링 수정, 기본 인덱스 edr 변경) |
 | 2026-03-05 19:00 | 김장훈 | 배포 | origin/develop push (OTP 초기화, OpenSearch 초기화 파일 정비, 빌드 오류 수정) |
-| 2026-03-05 11:12 | 최지호 | 수정 | 리스트 타임스탬프 타임존 버그 수정 |
+| 2026-03-05 14:34 | 최지호 | 수정 | 리스트 타임스탬프 타임존 버그 수정 |
 | 2026-03-05 11:12 | 최지호 | 수정 | 사용자 설정 헤더 버그 수정 |
 | 2026-03-05 11:05| 박지은 | 수정 | 알림 규칙 모달 UI 개선 (트리거 조건 OpenSearch 응답 직접 참조, 쿼리 결과 raw JSON 표시, i18n 처리) |
 | 2026-03-05 10:35 | 최지호 | 수정 | origin/feature/dashboard push (사용자 설정 표 수정) |
@@ -171,7 +171,7 @@
 | 2026-02-09 15:11 | 김경수 | 수정 | feature/reallog/main push (develop rebase 충돌 해결) |
 | 2026-02-09 13:52 | 김장훈 | 배포 | origin/feature/pipeline push (develop 기준 신규 브랜치 생성) |
 | 2026-02-09 13:51 | 김장훈 | 배포 | origin/main push (develop 브랜치로 main 갱신) |
-| 2026-02-09 13:50 | 김장훈 | 배포 | origin/develop push (프로젝트명 CruxSIEM 변경 및 브랜치 정리) |
+| 2026-02-09 13:50 | 김장훈 | 배포 | origin/develop push (프로젝트명 cruxSIEM 변경 및 브랜치 정리) |
 | 2026-02-09 13:00 | 최지호 | 수정 | origin/feature/dashboard push (i18n, 탭 적용) |
 | 2026-02-09 16:35 | 박지은 | 추가 | 알림 시스템 백엔드 API 및 탐지 엔진 초기 구현 (Repository, Service, Endpoint) |
 | 2026-02-09 15:50 | 박지은 | 추가 | 알림 시스템 기획 및 상세 설계 완료 (워크플로우 1-5단계) |

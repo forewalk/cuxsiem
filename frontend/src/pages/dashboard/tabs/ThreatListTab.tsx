@@ -110,6 +110,32 @@ const ThreatListTab: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [isSorted, setIsSorted] = useState<boolean>(false);
 
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalFields, setOriginalFields] = useState<string[] | null>(null);
+
+  const handleEditToggle = () => {
+    if (!isEditMode) {
+      setOriginalFields([...selectedFieldNames]);
+    }
+    setIsEditMode(true);
+  };
+
+  const handleCancel = () => {
+    if (originalFields) {
+      setSelectedFieldNames([...originalFields]);
+    }
+    setIsEditMode(false);
+  };
+
+  const handleSave = async () => {
+    try {
+      await saveColumnSettings("threat", selectedFieldNames);
+      setIsEditMode(false);
+    } catch (err) {
+      console.error("Failed to save column settings", err);
+    }
+  };
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       if (sortOrder === "desc") {
@@ -253,7 +279,6 @@ const ThreatListTab: React.FC = () => {
     newOrder.splice(targetIdx, 0, movedItem);
     setSelectedFieldNames(newOrder);
     setDragIdx(null);
-    try { await saveColumnSettings("threat", newOrder); } catch (err) { console.error("Failed to save column settings", err); }
   };
 
   // 전체 초기화 (검색어, 시간, 컬럼, 페이지, URL)
@@ -303,16 +328,13 @@ const ThreatListTab: React.FC = () => {
 
   const handleToggleField = useCallback(async (fieldName: string) => {
     setSelectedFieldNames(prev => {
-      const next = prev.includes(fieldName)
+      const next = prev.includes(fieldName) 
         ? prev.filter(name => name !== fieldName)
         : [...prev, fieldName];
 
-      // 상태 업데이트 직후 서버에 저장 (비동기)
-      saveColumnSettings("threat", next).catch(err => console.error("Failed to save column settings", err));
       return next;
     });
   }, []);
-
   const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
@@ -404,7 +426,18 @@ const ThreatListTab: React.FC = () => {
   return (
     <Box id="threat-list-tab-container" sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      <ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} onReset={handleResetColumns} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary.total_logs} onDownload={handleExportExcel} />
+      <ControlBar 
+        t={t} 
+        fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} 
+        onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} 
+        onRefresh={fetchData} onReset={handleResetColumns} 
+        lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} 
+        totalLogs={data?.summary.total_logs} onDownload={handleExportExcel}
+        isEditMode={isEditMode}
+        onEdit={handleEditToggle}
+        onCancel={handleCancel}
+        onSave={handleSave}
+      />
       {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', flex: '1 1 0', overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 }, minHeight: 0 }}>
         <Paper elevation={1} sx={{ width: { xs: 0, md: 280 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
@@ -454,10 +487,10 @@ const ThreatListTab: React.FC = () => {
                       }}>
                         <Typography 
                           variant="caption" 
-                          draggable 
-                          onDragStart={() => handleDragStart(idx)} 
-                          onDragOver={handleDragOver} 
-                          onDrop={() => handleDrop(idx)} 
+                          draggable={isEditMode} 
+                          onDragStart={() => isEditMode && handleDragStart(idx)} 
+                          onDragOver={(e) => isEditMode && handleDragOver(e)} 
+                          onDrop={() => isEditMode && handleDrop(idx)} 
                           onClick={() => handleSort(fn)}
                           sx={{ 
                             flexGrow: 1, 
@@ -467,7 +500,7 @@ const ThreatListTab: React.FC = () => {
                             overflow: 'hidden', 
                             textOverflow: 'ellipsis', 
                             whiteSpace: 'nowrap', 
-                            cursor: 'pointer',
+                            cursor: isEditMode ? 'grab' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 0.5
