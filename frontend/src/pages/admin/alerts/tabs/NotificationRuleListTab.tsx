@@ -8,6 +8,7 @@ import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { getRoleName } from '@/utils/roleUtils';
 import { getAlertWsUrl } from '@/utils/wsUtils';
 import MonacoEditor from '@monaco-editor/react';
+import { WebhookHeadersEditor, type HeaderEntry } from '../components/WebhookHeadersEditor';
 import {
   ArrowDownward as ArrowDownwardIcon,
   ArrowUpward as ArrowUpwardIcon,
@@ -142,7 +143,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [formData, setFormData] = useState<NotificationRuleCreate>(DEFAULT_FORM_DATA);
   const [dslString, setDslString] = useState(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [webhookHeadersStr, setWebhookHeadersStr] = useState('');
+  const [webhookHeaders, setWebhookHeaders] = useState<HeaderEntry[]>([{ key: '', value: '' }]);
   const [webhookBodyStr, setWebhookBodyStr] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
@@ -331,13 +332,17 @@ const NotificationRuleListTab: React.FC = () => {
       });
       setDslString(JSON.stringify(rule.condition_config, null, 2));
       const wh = rule.receiver?.webhook_headers;
-      setWebhookHeadersStr(wh && Object.keys(wh).length > 0 ? JSON.stringify(wh, null, 2) : '');
+      setWebhookHeaders(
+        wh && Object.keys(wh).length > 0
+          ? Object.entries(wh).map(([key, value]) => ({ key, value }))
+          : [{ key: '', value: '' }]
+      );
       setWebhookBodyStr(rule.receiver?.webhook_body || '');
     } else {
       setEditingRule(null);
       setFormData(DEFAULT_FORM_DATA);
       setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
-      setWebhookHeadersStr('');
+      setWebhookHeaders([{ key: '', value: '' }]);
       setWebhookBodyStr('');
     }
     setJsonError(null);
@@ -1129,50 +1134,18 @@ const NotificationRuleListTab: React.FC = () => {
                   <Typography variant="caption" sx={{ fontWeight: 500, mb: 0.5, display: 'block' }}>
                     {t('webhookHeaders')}
                   </Typography>
-                  <Box sx={{
-                    height: 120,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    '&:focus-within': { borderColor: 'primary.main', borderWidth: 2 },
-                  }}>
-                    <MonacoEditor
-                      height="100%"
-                      language="json"
-                      theme={monacoTheme}
-                      value={webhookHeadersStr}
-                      onChange={(val) => {
-                        const v = val ?? '';
-                        setWebhookHeadersStr(v);
-                        if (!v.trim()) {
-                          setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: {} } });
-                          return;
-                        }
-                        try {
-                          const parsed = JSON.parse(v);
-                          setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: parsed } });
-                        } catch {
-                          // 타이핑 중 JSON 파싱 실패는 무시
-                        }
-                      }}
-                      options={{
-                        minimap: { enabled: false },
-                        fontSize: 12,
-                        lineNumbers: 'on',
-                        lineNumbersMinChars: 2,
-                        lineDecorationsWidth: 4,
-                        glyphMargin: false,
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        tabSize: 2,
-                        wordWrap: 'on',
-                      }}
-                    />
-                  </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                    {t('webhookHeadersHelp')}
-                  </Typography>
+                  <WebhookHeadersEditor
+                    headers={webhookHeaders}
+                    onChange={(updated) => {
+                      setWebhookHeaders(updated);
+                      const record: Record<string, string> = {};
+                      updated.forEach(({ key, value }) => {
+                        if (key.trim()) record[key.trim()] = value;
+                      });
+                      setFormData({ ...formData, receiver: { ...formData.receiver, webhook_headers: record } });
+                    }}
+                    t={t}
+                  />
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ fontWeight: 500, mb: 0.5, display: 'block' }}>
