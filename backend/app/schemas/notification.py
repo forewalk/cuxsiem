@@ -40,6 +40,12 @@ class NotificationRuleUpdate(BaseModel):
     trigger_condition: Optional[str] = None
     receiver: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
+    changed_fields: Optional[List[str]] = Field(None, exclude=True)
+
+class ChangeHistoryEntry(BaseModel):
+    user_id: str
+    changed_at: datetime
+    changed_fields: List[str] = []
 
 class NotificationRuleResponse(NotificationRuleBase):
     id: str
@@ -51,6 +57,7 @@ class NotificationRuleResponse(NotificationRuleBase):
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
+    change_history: List[ChangeHistoryEntry] = []
 
     model_config = ConfigDict(from_attributes=True)
 

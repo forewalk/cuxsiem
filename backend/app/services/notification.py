@@ -63,12 +63,13 @@ class NotificationService:
             to_date=to_date
         )
 
-    async def create_rule(self, rule_in: NotificationRuleBase):
-        return await self.repository.create_rule(rule_in.model_dump())
+    async def create_rule(self, rule_in: NotificationRuleBase, user_id: str = ""):
+        return await self.repository.create_rule(rule_in.model_dump(), user_id=user_id)
 
-    async def update_rule(self, rule_id: str, rule_in: NotificationRuleUpdate):
-        data = rule_in.model_dump(exclude_none=True)
-        return await self.repository.update_rule(rule_id, data)
+    async def update_rule(self, rule_id: str, rule_in: NotificationRuleUpdate, user_id: str = ""):
+        changed_fields = rule_in.changed_fields or []
+        data = rule_in.model_dump(exclude_none=True, exclude={"changed_fields"})
+        return await self.repository.update_rule(rule_id, data, user_id=user_id, changed_fields=changed_fields)
 
     async def delete_rule(self, rule_id: str):
         return await self.repository.delete_rule(rule_id)

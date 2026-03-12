@@ -281,10 +281,12 @@ class TestRuleCRUD:
             **rule_in.model_dump()
         })
 
-        result = await service.create_rule(rule_in)
+        result = await service.create_rule(rule_in, user_id="admin01")
         assert result["id"] == "new-rule-id"
         assert result["name"] == "Test Rule"
         service.repository.create_rule.assert_called_once()
+        call_kwargs = service.repository.create_rule.call_args
+        assert call_kwargs[1]["user_id"] == "admin01"
 
     @pytest.mark.asyncio
     async def test_get_rule(self, service):
@@ -301,14 +303,17 @@ class TestRuleCRUD:
     @pytest.mark.asyncio
     async def test_update_rule(self, service):
         from app.schemas.notification import NotificationRuleUpdate
-        update_in = NotificationRuleUpdate(name="Updated Rule", severity="error")
+        update_in = NotificationRuleUpdate(name="Updated Rule", severity="error", changed_fields=["name", "severity"])
         service.repository.update_rule = AsyncMock(return_value={
             "id": "rule-001", "name": "Updated Rule", "severity": "error"
         })
 
-        result = await service.update_rule("rule-001", update_in)
+        result = await service.update_rule("rule-001", update_in, user_id="admin01")
         assert result["name"] == "Updated Rule"
         assert result["severity"] == "error"
+        call_kwargs = service.repository.update_rule.call_args
+        assert call_kwargs[1]["user_id"] == "admin01"
+        assert call_kwargs[1]["changed_fields"] == ["name", "severity"]
 
     @pytest.mark.asyncio
     async def test_delete_rule_soft_delete(self, service):

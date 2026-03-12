@@ -144,17 +144,18 @@ class NotificationRepository:
             return total, rules
         return await loop.run_in_executor(None, search)
 
-    async def create_rule(self, rule_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def create_rule(self, rule_data: Dict[str, Any], user_id: str = "") -> Dict[str, Any]:
         """규칙 생성 및 운영 필드 초기화"""
         loop = asyncio.get_event_loop()
         rule_id = str(uuid.uuid4())
 
-        # 기본 및 운영 필드 초기값 설정
         now = datetime.utcnow().isoformat()
         rule_data.update({
             "id": rule_id,
             "created_at": now,
-            "updated_at": now        })
+            "updated_at": now,
+            "change_history": [{"user_id": user_id, "changed_at": now, "changed_fields": ["created"]}] if user_id else [],
+        })
 
         def insert():
             self.client.index(
@@ -166,27 +167,33 @@ class NotificationRepository:
             return rule_data
         return await loop.run_in_executor(None, insert)
 
-    async def update_rule(self, rule_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def update_rule(self, rule_id: str, data: Dict[str, Any], user_id: str = "", changed_fields: list = None) -> Optional[Dict[str, Any]]:
         """규칙 수정"""
         loop = asyncio.get_event_loop()
-        data["updated_at"] = datetime.utcnow().isoformat()
+        now = datetime.utcnow().isoformat()
+        data["updated_at"] = now
         logger.info(f"[리포지토리] 규칙 업데이트 시작 - ID: {rule_id}")
         logger.info(f"[리포지토리] 업데이트할 데이터 키: {list(data.keys())}")
         
         def update_doc():
             try:
-                # condition_config가 있으면 전체 문서를 조회해서 교체 후 저장
+                existing = self.client.get(index=self.rules_index, id=rule_id)
+                existing_doc = existing['_source']
+
+                # change_history에 이력 추가
+                if user_id:
+                    history = existing_doc.get("change_history", [])
+                    entry = {"user_id": user_id, "changed_at": now}
+                    if changed_fields:
+                        entry["changed_fields"] = changed_fields
+                    history.append(entry)
+                    data["change_history"] = history
+
                 if 'condition_config' in data:
                     logger.info(f"[리포지토리] condition_config 포함 - 전체 문서 교체 방식 사용")
-                    # 1. 기존 문서 조회
-                    existing = self.client.get(index=self.rules_index, id=rule_id)
-                    existing_doc = existing['_source']
-                    
-                    # 2. 업데이트할 필드 교체 (condition_config는 완전히 교체됨)
                     for key, value in data.items():
                         existing_doc[key] = value
-                    
-                    # 3. 전체 문서 재색인 (완전 교체)
+
                     self.client.index(
                         index=self.rules_index,
                         id=rule_id,
@@ -195,7 +202,6 @@ class NotificationRepository:
                     )
                     logger.info(f"[리포지토리] condition_config 완전 교체 성공")
                 else:
-                    # condition_config가 없으면 일반 partial update
                     self.client.update(
                         index=self.rules_index,
                         id=rule_id,

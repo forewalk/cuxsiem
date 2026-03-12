@@ -52,8 +52,8 @@ async def list_rules(
 
 # --- 알림규칙 생성 ---
 @router.post("/rules", response_model=NotificationRuleResponse, status_code=status.HTTP_201_CREATED)
-async def create_rule(rule_in: NotificationRuleBase):
-    return await service.create_rule(rule_in)
+async def create_rule(rule_in: NotificationRuleBase, current_user: UserResponse = Depends(get_current_active_user)):
+    return await service.create_rule(rule_in, user_id=current_user.id)
 
 
 @router.get("/rules/{rule_id}", response_model=NotificationRuleResponse)
@@ -65,8 +65,8 @@ async def get_rule(rule_id: str):
 
 
 @router.put("/rules/{rule_id}", response_model=NotificationRuleResponse)
-async def update_rule(rule_id: str, rule_in: NotificationRuleUpdate):
-    rule = await service.update_rule(rule_id, rule_in)
+async def update_rule(rule_id: str, rule_in: NotificationRuleUpdate, current_user: UserResponse = Depends(get_current_active_user)):
+    rule = await service.update_rule(rule_id, rule_in, user_id=current_user.id)
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
     return rule

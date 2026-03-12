@@ -105,6 +105,12 @@ export interface NotificationReceiver {
 }
 
 // 알림 규칙
+export interface ChangeHistoryEntry {
+  user_id: string;
+  changed_at: string;
+  changed_fields?: string[];
+}
+
 export interface NotificationRule {
   id: string;
   name: string;
@@ -121,6 +127,7 @@ export interface NotificationRule {
   total_alerts_count: number;
   created_at: string;
   updated_at: string;
+  change_history?: ChangeHistoryEntry[];
 }
 
 export interface NotificationRuleCreate {
@@ -147,6 +154,7 @@ export interface NotificationRuleUpdate {
   trigger_condition?: string;
   receiver?: NotificationReceiver;
   is_active?: boolean;
+  changed_fields?: string[];
 }
 
 // 알림 내역 (cs_alerts 인덱스)
