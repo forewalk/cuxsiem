@@ -1,3 +1,4 @@
+import type { NotificationRule } from '@/types';
 import AddIcon from '@mui/icons-material/Add';
 import {
   Box,
@@ -12,7 +13,6 @@ import {
   Typography,
 } from '@mui/material';
 import React from 'react';
-import type { NotificationRule } from '@/types';
 import { SeverityChip } from './SeverityChip';
 
 interface NotificationRuleListProps {
@@ -67,7 +67,7 @@ export const NotificationRuleList: React.FC<NotificationRuleListProps> = ({
             onChange={(e) => onSelectAll(e.target.checked)}
             sx={{ p: 0.25 }}
           />
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
             {t('rules')} ({rules.length})
           </Typography>
         </Box>
@@ -108,10 +108,10 @@ export const NotificationRuleList: React.FC<NotificationRuleListProps> = ({
             <ListItemText
               primary={rule.name}
               primaryTypographyProps={{
-                variant: 'body2',
+                variant: 'caption',
                 fontWeight: 500,
                 noWrap: true,
-                sx: { fontSize: '0.8rem' },
+                sx: { fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
               }}
             />
             <SeverityChip severity={rule.severity} size="small" />

@@ -33,9 +33,7 @@ async def send_webhook(
         result["error"] = "Webhook URL 미설정"
         return result
 
-    request_headers = {"Content-Type": "application/json"}
-    if headers:
-        request_headers.update(headers)
+    request_headers = headers if headers else {}
 
     try:
         async with httpx.AsyncClient(timeout=timeout, verify=False) as client:

@@ -112,7 +112,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
   if (!showForm) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.paper', borderRadius: 1.5 }}>
-        <Typography variant="body1" color="text.secondary">{t('selectRulePrompt')}</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{t('selectRulePrompt')}</Typography>
       </Box>
     );
   }
@@ -121,7 +121,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'background.paper', borderRadius: 1.5, overflow: 'hidden' }}>
       {/* 헤더 */}
       <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
           {isEditing ? t('editRule') : t('addRule')}
         </Typography>
         <Stack direction="row" spacing={1}>
@@ -131,7 +131,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
             size="small"
             onClick={onSave}
             disabled={saveDisabled}
-            sx={{ textTransform: 'none' }}
+            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
             {t('save')}
           </Button>
@@ -144,22 +144,25 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
 
           {/* 1. 기본 정보 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>{t('basicInfo')}</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('basicInfo')}</Typography>
             <Stack spacing={2}>
               <Stack direction="row" spacing={2}>
                 <TextField label={t('ruleName')} fullWidth required value={formData.name}
-                  onChange={(e) => onFormDataChange({ ...formData, name: e.target.value })} size="small" />
+                  onChange={(e) => onFormDataChange({ ...formData, name: e.target.value })} size="small"
+                  InputProps={{ sx: { fontSize: '0.75rem' } }} InputLabelProps={{ sx: { fontSize: '0.75rem' } }} />
                 <TextField select label={t('severity')} sx={{ minWidth: 130 }} value={formData.severity}
-                  onChange={(e) => onFormDataChange({ ...formData, severity: e.target.value })} size="small">
-                  <MenuItem value="info">INFO</MenuItem>
-                  <MenuItem value="low">LOW</MenuItem>
-                  <MenuItem value="medium">MEDIUM</MenuItem>
-                  <MenuItem value="high">HIGH</MenuItem>
-                  <MenuItem value="critical">CRITICAL</MenuItem>
+                  onChange={(e) => onFormDataChange({ ...formData, severity: e.target.value })} size="small"
+                  InputProps={{ sx: { fontSize: '0.75rem' } }} InputLabelProps={{ sx: { fontSize: '0.75rem' } }}>
+                  <MenuItem value="info" sx={{ fontSize: '0.75rem' }}>INFO</MenuItem>
+                  <MenuItem value="low" sx={{ fontSize: '0.75rem' }}>LOW</MenuItem>
+                  <MenuItem value="medium" sx={{ fontSize: '0.75rem' }}>MEDIUM</MenuItem>
+                  <MenuItem value="high" sx={{ fontSize: '0.75rem' }}>HIGH</MenuItem>
+                  <MenuItem value="critical" sx={{ fontSize: '0.75rem' }}>CRITICAL</MenuItem>
                 </TextField>
               </Stack>
               <TextField label={t('ruleDescriptionLabel')} fullWidth multiline rows={2} value={formData.description}
-                onChange={(e) => onFormDataChange({ ...formData, description: e.target.value })} size="small" />
+                onChange={(e) => onFormDataChange({ ...formData, description: e.target.value })} size="small"
+                InputProps={{ sx: { fontSize: '0.75rem' } }} InputLabelProps={{ sx: { fontSize: '0.75rem' } }} />
             </Stack>
           </Grid>
 
@@ -167,20 +170,22 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
 
           {/* 2. 탐지 로직 및 주기 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>{t('detectionCondition')}</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('detectionCondition')}</Typography>
             <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
               <TextField
                 label={t('targetIndex')} fullWidth value={formData.target_index}
                 onChange={(e) => onFormDataChange({ ...formData, target_index: e.target.value })}
                 size="small" placeholder="logs-sentinel_one.edr"
-                inputProps={{ style: { fontFamily: 'monospace' } }}
+                inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.75rem' } }}
+                InputLabelProps={{ sx: { fontSize: '0.75rem' } }}
               />
               <TextField
                 label={t('intervalMin')} type="number" sx={{ minWidth: 180 }}
                 value={formData.interval_min}
                 onChange={(e) => onFormDataChange({ ...formData, interval_min: parseInt(e.target.value) })}
-                size="small" helperText={t('intervalMinHelper')}
-                inputProps={{ min: 1, max: 1440, step: 1 }}
+                size="small"
+                inputProps={{ min: 1, max: 1440, step: 1, style: { fontSize: '0.75rem' } }}
+                InputLabelProps={{ sx: { fontSize: '0.75rem' } }}
               />
             </Stack>
 
@@ -201,7 +206,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                     value={dslString}
                     onChange={(val) => onDslChange?.(val ?? '')}
                     options={{
-                      minimap: { enabled: false }, fontSize: 13,
+                      minimap: { enabled: false }, fontSize: 12,
                       lineNumbers: 'on', lineNumbersMinChars: 2, lineDecorationsWidth: 4,
                       glyphMargin: false, scrollBeyondLastLine: false, automaticLayout: true,
                       tabSize: 2, wordWrap: 'on', formatOnPaste: true, formatOnType: true,
@@ -213,7 +218,8 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                 {jsonError && <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>{jsonError}</Typography>}
                 <Box sx={{ mt: 1 }}>
                   <Button variant="contained" color="primary" onClick={onTestQuery}
-                    disabled={queryTestLoading || !!jsonError} size="small" fullWidth>
+                    disabled={queryTestLoading || !!jsonError} size="small" fullWidth
+                    sx={{ fontSize: '0.75rem', height: 32 }}>
                     {queryTestLoading ? t('queryRunning') : t('runQuery')}
                   </Button>
                 </Box>
@@ -226,7 +232,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                 <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
                   {queryTestLoading ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                      <Typography variant="body2" color="text.secondary">{t('queryRunning')}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{t('queryRunning')}</Typography>
                     </Box>
                   ) : queryTestError ? (
                     <Alert severity="error">{queryTestError}</Alert>
@@ -236,7 +242,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                     </Box>
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                      <Typography variant="body2" color="text.secondary">{t('runQueryPrompt')}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{t('runQueryPrompt')}</Typography>
                     </Box>
                   )}
                 </Paper>
@@ -252,15 +258,17 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                   size="small" placeholder={t('triggerConditionPlaceholder')}
                   helperText={triggerTestError || t('triggerConditionHelper')}
                   error={!!triggerTestError}
-                  inputProps={{ style: { fontFamily: 'monospace' } }}
+                  inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.75rem' } }}
+                  InputLabelProps={{ sx: { fontSize: '0.75rem' } }}
+                  FormHelperTextProps={{ sx: { fontSize: '0.65rem' } }}
                   sx={{ flex: 1 }}
                 />
                 <Button variant="outlined" onClick={onTestTrigger}
                   disabled={triggerTestLoading || !!jsonError}
-                  size="small" sx={{ height: 40, whiteSpace: 'nowrap', minWidth: 100 }}>
+                  size="small" sx={{ height: 32, whiteSpace: 'nowrap', minWidth: 80, fontSize: '0.75rem' }}>
                   {triggerTestLoading ? t('queryRunning') : t('testTrigger')}
                 </Button>
-                <Box sx={{ height: 40, minWidth: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1.5, fontFamily: 'monospace', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                <Box sx={{ height: 32, minWidth: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 1, px: 1, fontFamily: 'monospace', fontWeight: 'bold', fontSize: '0.75rem' }}>
                   {triggerTestLoading ? '...' : triggerTestResult !== null && triggerTestResult !== undefined ? String(triggerTestResult.evaluation) : '-'}
                 </Box>
               </Stack>
@@ -271,7 +279,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
 
           {/* 3. 알림 메시지 템플릿 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>{t('notificationMessageTemplate')}</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('notificationMessageTemplate')}</Typography>
             <Stack direction="row" spacing={2} sx={{ height: 400 }}>
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, color: 'text.secondary' }}>{t('messageTemplate')}</Typography>
@@ -279,7 +287,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                   multiline fullWidth required value={formData.message_template}
                   onChange={(e) => onFormDataChange({ ...formData, message_template: e.target.value })}
                   size="small" placeholder={t('messageTemplatePlaceholder')}
-                  inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }}
+                  inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.75rem' } }}
                   sx={{ flex: 1, '& .MuiInputBase-root': { height: '100%', alignItems: 'flex-start' }, '& textarea': { height: '100% !important', overflow: 'auto !important' } }}
                 />
               </Box>
@@ -287,11 +295,11 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                 <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, color: 'text.secondary' }}>{t('messagePreview')}</Typography>
                 <Paper elevation={0} sx={{ flex: 1, p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', overflow: 'auto' }}>
                   {formData.message_template ? (
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.8 }}>
+                    <Typography variant="caption" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.8, fontSize: '0.75rem' }}>
                       {renderMessagePreview}
                     </Typography>
                   ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>{t('messagePreviewEmpty')}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}>{t('messagePreviewEmpty')}</Typography>
                   )}
                   {!queryTestResult && formData.message_template && (
                     <Box sx={{ mt: 2, p: 1, bgcolor: 'info.lighter', borderRadius: 1, border: '1px solid', borderColor: 'info.light' }}>
@@ -307,7 +315,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
 
           {/* 4. 알림 수신 대상 역할 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>{t('notificationReceiverRoles')}</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('notificationReceiverRoles')}</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{t('selectReceiverRoles')}</Typography>
             <Stack direction="row" spacing={2} flexWrap="wrap">
               {roleCodes.map((rc) => (
@@ -326,6 +334,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                     />
                   }
                   label={getRoleNameFn ? getRoleNameFn(rc.code, roleNames, language) : rc.code}
+                  slotProps={{ typography: { fontSize: '0.75rem' } }}
                 />
               ))}
             </Stack>
@@ -335,7 +344,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
 
           {/* 5. Webhook 설정 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>{t('webhookSettings')}</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('webhookSettings')}</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{t('webhookDescription')}</Typography>
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
@@ -344,9 +353,10 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                   placeholder="http://192.168.1.100:8080/webhook"
                   value={formData.receiver?.webhook_url || ''}
                   onChange={(e) => onFormDataChange({ ...formData, receiver: { ...formData.receiver, webhook_url: e.target.value } })}
+                  InputProps={{ sx: { fontSize: '0.75rem' } }} InputLabelProps={{ sx: { fontSize: '0.75rem' } }}
                 />
                 <Button variant="outlined" size="small"
-                  sx={{ whiteSpace: 'nowrap', minWidth: 100, height: 40 }}
+                  sx={{ whiteSpace: 'nowrap', minWidth: 80, height: 32, fontSize: '0.75rem' }}
                   disabled={!formData.receiver?.webhook_url}
                   onClick={onTestWebhook}>
                   {t('testConnection')}
@@ -371,7 +381,6 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                     }}
                   />
                 </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>{t('webhookBodyHelp')}</Typography>
               </Box>
             </Stack>
           </Grid>
@@ -383,7 +392,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
               <Grid size={12}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
                   <HistoryIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{t('changeHistory')}</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}>{t('changeHistory')}</Typography>
                 </Box>
                 <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', '& td, & th': { px: 1.5, py: 0.75, fontSize: '0.75rem' } }}>
                   <thead>

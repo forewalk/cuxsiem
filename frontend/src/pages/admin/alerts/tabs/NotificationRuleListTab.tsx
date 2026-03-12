@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { notificationService } from '@/services/notificationService.ts';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
@@ -6,7 +7,6 @@ import { useSettingsStore } from '@/stores/useSettingsStore';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
 import { getRoleName } from '@/utils/roleUtils';
 import { getAlertWsUrl } from '@/utils/wsUtils';
-import type { HeaderEntry } from '../components/WebhookHeadersEditor';
 import {
   Delete as DeleteIcon,
   FileDownload as FileDownloadIcon,
@@ -27,9 +27,9 @@ import {
   Typography,
 } from '@mui/material';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from '@/hooks/useTranslation';
-import { NotificationRuleList } from '../components/NotificationRuleList';
 import { NotificationRuleDetail } from '../components/NotificationRuleDetail';
+import { NotificationRuleList } from '../components/NotificationRuleList';
+import type { HeaderEntry } from '../components/WebhookHeadersEditor';
 
 const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   name: '',
@@ -58,7 +58,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   severity: 'info',
   interval_min: 1,
   trigger_condition: '',
-  receiver: { type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: {}, webhook_body: '' },
+  receiver: { type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: { 'Content-Type': 'application/json' }, webhook_body: '{\n  "rule_name": "{{rule_name}}",\n  "severity": "{{rule_severity}}",\n  "message": "{{message}}",\n  "created_at": "{{created_at}}"\n}' },
   is_active: true
 };
 
@@ -127,7 +127,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [formData, setFormData] = useState<NotificationRuleCreate>(DEFAULT_FORM_DATA);
   const [dslString, setDslString] = useState(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [webhookHeaders, setWebhookHeaders] = useState<HeaderEntry[]>([{ key: '', value: '' }]);
+  const [webhookHeaders, setWebhookHeaders] = useState<HeaderEntry[]>([{ key: 'Content-Type', value: 'application/json' }]);
   const [webhookBodyStr, setWebhookBodyStr] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({ open: false, message: '', severity: 'success' });
 
@@ -269,8 +269,8 @@ const NotificationRuleListTab: React.FC = () => {
     setShowForm(true);
     setFormData(DEFAULT_FORM_DATA);
     setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
-    setWebhookHeaders([{ key: '', value: '' }]);
-    setWebhookBodyStr('');
+    setWebhookHeaders([{ key: 'Content-Type', value: 'application/json' }]);
+    setWebhookBodyStr(DEFAULT_FORM_DATA.receiver.webhook_body || '');
     setJsonError(null);
     setQueryTestResult(null);
     setQueryTestError(null);
@@ -385,7 +385,12 @@ const NotificationRuleListTab: React.FC = () => {
 
   const handleToggleActive = async (rule: NotificationRule) => {
     try {
-      await notificationService.updateRule(rule.id, { is_active: !rule.is_active });
+      const saved = await notificationService.updateRule(rule.id, { is_active: !rule.is_active, changed_fields: ['is_active'] });
+      if (selectedRule?.id === rule.id) {
+        setSelectedRule(saved);
+        originalFormRef.current = JSON.stringify({ ...formData, is_active: saved.is_active });
+        setFormData(prev => ({ ...prev, is_active: saved.is_active }));
+      }
       setSnackbar({ open: true, message: t('ruleSaveSuccess'), severity: 'success' });
       loadRules();
     } catch (error) {
@@ -474,31 +479,31 @@ const NotificationRuleListTab: React.FC = () => {
           {t('notificationCenter')}
         </Typography>
         <Stack direction="row" spacing={1}>
-        <Tooltip title={selectedRuleIds.size === 0 ? t('selectRulesToExport') : ''}>
-          <span>
-            <Button variant="outlined" size="small" disabled={selectedRuleIds.size === 0}
-              startIcon={<FileDownloadIcon sx={{ fontSize: 16 }} />} onClick={handleExport}
-              sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}>
-              {t('export')}{selectedRuleIds.size > 0 ? ` (${selectedRuleIds.size})` : ''}
-            </Button>
-          </span>
-        </Tooltip>
-        <Button variant="outlined" size="small" startIcon={<FileUploadIcon sx={{ fontSize: 16 }} />}
-          onClick={() => fileInputRef.current?.click()}
-          sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}>
-          {t('import')}
-        </Button>
-        <input ref={fileInputRef} type="file" accept=".json" hidden onChange={handleImport} />
-        <Tooltip title={selectedRuleIds.size === 0 ? t('selectRulesToDelete') : ''}>
-          <span>
-            <Button variant="outlined" color="error" size="small" disabled={selectedRuleIds.size === 0}
-              startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
-              onClick={() => setDeleteIds(Array.from(selectedRuleIds))}
-              sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}>
-              {t('deleteRule')}{selectedRuleIds.size > 0 ? ` (${selectedRuleIds.size})` : ''}
-            </Button>
-          </span>
-        </Tooltip>
+          <Tooltip title={selectedRuleIds.size === 0 ? t('selectRulesToExport') : ''}>
+            <span>
+              <Button variant="outlined" size="small" disabled={selectedRuleIds.size === 0}
+                startIcon={<FileDownloadIcon sx={{ fontSize: 16 }} />} onClick={handleExport}
+                sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                {t('export')}{selectedRuleIds.size > 0 ? ` (${selectedRuleIds.size})` : ''}
+              </Button>
+            </span>
+          </Tooltip>
+          <Button variant="outlined" size="small" startIcon={<FileUploadIcon sx={{ fontSize: 16 }} />}
+            onClick={() => fileInputRef.current?.click()}
+            sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}>
+            {t('import')}
+          </Button>
+          <input ref={fileInputRef} type="file" accept=".json" hidden onChange={handleImport} />
+          <Tooltip title={selectedRuleIds.size === 0 ? t('selectRulesToDelete') : ''}>
+            <span>
+              <Button variant="outlined" color="error" size="small" disabled={selectedRuleIds.size === 0}
+                startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setDeleteIds(Array.from(selectedRuleIds))}
+                sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                {t('deleteRule')}{selectedRuleIds.size > 0 ? ` (${selectedRuleIds.size})` : ''}
+              </Button>
+            </span>
+          </Tooltip>
         </Stack>
       </Box>
 
@@ -530,7 +535,7 @@ const NotificationRuleListTab: React.FC = () => {
         <Box
           onMouseDown={handleMouseDown}
           sx={{
-            width: 6,
+            width: 10,
             flexShrink: 0,
             cursor: 'col-resize',
             display: 'flex',
