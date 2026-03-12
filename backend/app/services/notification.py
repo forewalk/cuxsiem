@@ -373,7 +373,7 @@ class NotificationService:
         webhook_url = receiver.get("webhook_url")
         if webhook_url:
             webhook_headers = receiver.get("webhook_headers") or {}
-            default_payload = {
+            template_vars = {
                 "id": alert_id,
                 "rule_name": created_alert.get("rule_name"),
                 "rule_severity": created_alert.get("rule_severity"),
@@ -382,7 +382,7 @@ class NotificationService:
                 "rule_target_index": created_alert.get("rule_target_index"),
             }
             webhook_payload = self._build_webhook_payload(
-                receiver.get("webhook_body", ""), default_payload
+                receiver.get("webhook_body", ""), template_vars
             )
             webhook_result = await send_webhook(webhook_url, webhook_payload, webhook_headers)
             delivery_results["webhook"] = webhook_result
@@ -402,27 +402,26 @@ class NotificationService:
             logger.error(f"delivery_results 업데이트 실패 ({alert_id}): {e}")
 
     def _build_webhook_payload(
-        self, body_template: str, default_payload: Dict[str, Any]
+        self, body_template: str, template_vars: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         커스텀 webhook body 템플릿이 있으면 변수 치환 후 JSON 파싱하여 반환.
-        템플릿이 비어있거나 파싱 실패 시 기본 payload 반환.
-        변수 값은 JSON 문자열 내부에서 안전하도록 이스케이프 처리.
+        템플릿이 비어있거나 파싱 실패 시 빈 객체 반환.
         """
         if not body_template or not body_template.strip():
-            return default_payload
+            return {}
 
         try:
             rendered = body_template
-            for key, value in default_payload.items():
+            for key, value in template_vars.items():
                 safe_value = json.dumps(str(value) if value is not None else "", ensure_ascii=False)
                 safe_value = safe_value[1:-1]
                 rendered = rendered.replace("{{" + key + "}}", safe_value)
             rendered = re.sub(r"\{\{[^}]+\}\}", "", rendered)
             return json.loads(rendered)
         except (json.JSONDecodeError, Exception) as e:
-            logger.warning(f"Webhook body 템플릿 파싱 실패, 기본 payload 사용: {e}")
-            return default_payload
+            logger.warning(f"Webhook body 템플릿 파싱 실패: {e}")
+            return {}
 
     async def _create_aggregation_alert(
         self,

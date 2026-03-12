@@ -422,7 +422,7 @@
   "webhookHeaderValue": "値",
   "webhookAddHeader": "ヘッダー追加",
   "webhookBody": "リクエストボディ（JSONテンプレート）",
-  "webhookBodyHelp": "必ずJSON形式で記述。空欄の場合はデフォルトボディを送信。変数: {{id}}, {{rule_name}}, {{rule_severity}}, {{message}}, {{created_at}}, {{rule_target_index}}",
+  "webhookBodyHelp": "必ずJSON形式で記述。空欄の場合は空のボディ({})を送信。変数: {{id}}, {{rule_name}}, {{rule_severity}}, {{message}}, {{created_at}}, {{rule_target_index}}",
   "testConnection": "接続テスト",
   "webhookTestSuccess": "Webhook接続テスト成功",
   "webhookTestFail": "Webhook接続テスト失敗",
