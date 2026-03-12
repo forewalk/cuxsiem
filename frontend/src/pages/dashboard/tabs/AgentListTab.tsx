@@ -30,6 +30,8 @@ import CodeIcon from "@mui/icons-material/Code";
 import TagIcon from "@mui/icons-material/Tag";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
+import NorthIcon from "@mui/icons-material/North";
+import SouthIcon from "@mui/icons-material/South";
 
 // i18n
 import koMessages from "../../../locales/ko.json";
@@ -53,9 +55,95 @@ const AgentListTab: React.FC = () => {
   const [actionAnchorEl, setActionAnchorEl] = useState<null | HTMLElement>(null);
   const openActionMenu = Boolean(actionAnchorEl);
 
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('agentListColumnWidths');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const resizingRef = useRef<{ field: string; startX: number; startWidth: number } | null>(null);
+
+  const handleResizeStart = (e: React.MouseEvent, field: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const startWidth = columnWidths[field] || 250;
+    resizingRef.current = { field, startX: e.clientX, startWidth };
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const { field, startX, startWidth } = resizingRef.current;
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.max(50, startWidth + deltaX);
+      setColumnWidths(prev => ({ ...prev, [field]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      if (resizingRef.current) {
+        localStorage.setItem('agentListColumnWidths', JSON.stringify(columnWidths));
+      }
+      resizingRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>([
     "createdAt", "groupName", "agentVersion", "domain", "computerName", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
   ]);
+
+  // 정렬 상태 추가
+  const [sortField, setSortField] = useState<string>("@timestamp");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [isSorted, setIsSorted] = useState<boolean>(false);
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalFields, setOriginalFields] = useState<string[] | null>(null);
+
+  const handleEditToggle = () => {
+    if (!isEditMode) {
+      setOriginalFields([...selectedFieldNames]);
+    }
+    setIsEditMode(true);
+  };
+
+  const handleCancel = () => {
+    if (originalFields) {
+      setSelectedFieldNames([...originalFields]);
+    }
+    setIsEditMode(false);
+  };
+
+  const handleSave = async () => {
+    try {
+      await saveColumnSettings("agent", selectedFieldNames);
+      setIsEditMode(false);
+    } catch (err) {
+      console.error("Failed to save column settings", err);
+    }
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      if (sortOrder === "desc") {
+        setSortOrder("asc");
+        setIsSorted(true);
+      } else if (sortOrder === "asc" && isSorted) {
+        setSortField("@timestamp");
+        setSortOrder("desc");
+        setIsSorted(false);
+      } else {
+        setSortOrder("desc");
+        setIsSorted(true);
+      }
+    } else {
+      setSortField(field);
+      setSortOrder("desc");
+      setIsSorted(true);
+    }
+    setPage(0);
+  };
 
   const handleActionClick = (event: React.MouseEvent<HTMLButtonElement>) => { setActionAnchorEl(event.currentTarget); };
   const handleActionClose = () => { setActionAnchorEl(null); };
@@ -175,7 +263,6 @@ const AgentListTab: React.FC = () => {
     newOrder.splice(targetIdx, 0, movedItem);
     setSelectedFieldNames(newOrder);
     setDragIdx(null);
-    try { await saveColumnSettings("agent", newOrder); } catch (err) { console.error("Failed to save column settings", err); }
   };
 
   const getValueByPath = (obj: any, path: string) => {
@@ -211,7 +298,6 @@ const AgentListTab: React.FC = () => {
         ? prev.filter(name => name !== fieldName)
         : [...prev, fieldName];
       
-      saveColumnSettings("agent", next).catch(err => console.error("Failed to save column settings", err));
       return next;
     });
   }, []);
@@ -254,13 +340,13 @@ const AgentListTab: React.FC = () => {
       const [stats, fieldList, logList] = await Promise.all([
         getDashboardStats("agent-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, searchQuery || undefined),
         getIndexFields(targetIndex),
-        getIndexLogs("agent-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize)
+        getIndexLogs("agent-dashboard", undefined, undefined, undefined, undefined, finalFromDate ?? undefined, finalToDate ?? undefined, searchQuery || undefined, pageSize, page * pageSize, sortField, sortOrder)
       ]);
       setData(stats); setLogs(logList);
       const filteredFieldList = fieldList.filter(f => !f.name.toLowerCase().startsWith("kubernetesinfo.") && !f.name.toLowerCase().startsWith("containerinfo.") && !f.name.toLowerCase().startsWith("ecsinfo."));
       setFields([{ name: "_source", type: "code" }, ...filteredFieldList]);
     } catch (err) { setError("Failed to load data."); } finally { setLoading(false); }
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize, searchParams]);
+  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize, searchParams, sortField, sortOrder]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { setPage(0); }, [searchParams]);
@@ -303,10 +389,21 @@ const AgentListTab: React.FC = () => {
   return (
     <Box id="agent-list-tab-container" sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0 }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
-      <ControlBar t={t} fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} onRefresh={fetchData} onReset={handleResetColumns} lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} totalLogs={data?.summary.total_logs} onDownload={handleExportExcel} />
+      <ControlBar 
+        t={t} 
+        fromValue={fromValue} fromUnit={fromUnit} toValue={toValue} toUnit={toUnit} fromDate={fromDate} toDate={toDate} 
+        onTimeChange={handleTimeChange} searchQuery={searchQuery} onSearchQueryChange={handleSearchQueryChange} 
+        onRefresh={fetchData} onReset={handleResetColumns} 
+        lastUpdated={data?.last_updated ? dayjs(data.last_updated).add(9, 'hour').format("HH:mm:ss") : undefined} 
+        totalLogs={data?.summary.total_logs} onDownload={handleExportExcel}
+        isEditMode={isEditMode}
+        onEdit={handleEditToggle}
+        onCancel={handleCancel}
+        onSave={handleSave}
+      />
       {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', flex: '1 1 0', overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 }, minHeight: 0 }}>
-        <Paper elevation={1} sx={{ width: { xs: 0, md: 220 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
+        <Paper elevation={1} sx={{ width: { xs: 0, md: 280 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
           <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields')} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover' } }} /></Box>
           <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
           <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1, minHeight: 0 }}><List disablePadding sx={{ mb: 2 }}>{selectedList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} selected onAction={handleToggleField} />)}</List><Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, px: 0.5, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('availableFields')}</Typography><List disablePadding sx={{ pb: 4 }}>{availableList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} onAction={handleToggleField} />)}</List></Box>
@@ -338,11 +435,67 @@ const AgentListTab: React.FC = () => {
                 <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2, alignItems: 'center' }}>
                   <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }}><Checkbox size="small" indeterminate={selectedRowIndices.size > 0 && selectedRowIndices.size < logs.length} checked={logs.length > 0 && selectedRowIndices.size === logs.length} onChange={handleSelectAll} sx={{ p: 0 }} /></Box>
                   <Box sx={{ width: 32, flexShrink: 0 }} />
-                  {sortedDisplayFields.map((fn, idx) => (
-                    <Box key={fn} sx={{ width: 250, minWidth: 250, flexShrink: 0, display: 'flex', alignItems: 'center', borderRight: 1, borderColor: 'transparent' }}>
-                      <Typography variant="caption" draggable onDragStart={() => handleDragStart(idx)} onDragOver={handleDragOver} onDrop={() => handleDrop(idx)} sx={{ flexGrow: 1, fontWeight: 'bold', fontSize: '0.75rem', px: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'grab' }}>{fn}</Typography>
-                    </Box>
-                  ))}
+                  {sortedDisplayFields.map((fn, idx) => {
+                    const width = columnWidths[fn] || 250;
+                    return (
+                      <Box key={fn} sx={{ 
+                        width, 
+                        minWidth: width, 
+                        flexShrink: 0, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        borderRight: 1, 
+                        borderColor: 'divider',
+                        position: 'relative',
+                        '&:hover .resize-handle': { opacity: 1 }
+                      }}>
+                        <Typography 
+                          variant="caption" 
+                          draggable={isEditMode} 
+                          onDragStart={() => isEditMode && handleDragStart(idx)} 
+                          onDragOver={(e) => isEditMode && handleDragOver(e)} 
+                          onDrop={() => isEditMode && handleDrop(idx)} 
+                          onClick={() => handleSort(fn)}
+                          sx={{ 
+                            flexGrow: 1, 
+                            fontWeight: 'bold', 
+                            fontSize: '0.75rem', 
+                            px: 1, 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap', 
+                            cursor: isEditMode ? 'grab' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                          }}
+                        >
+                          {fn}
+                          {sortField === fn && isSorted && (
+                            sortOrder === "asc" ? <NorthIcon sx={{ fontSize: 12 }} /> : <SouthIcon sx={{ fontSize: 12 }} />
+                          )}
+                        </Typography>
+                        {/* 리사이즈 핸들 */}
+                        <Box
+                          className="resize-handle"
+                          onMouseDown={(e) => handleResizeStart(e, fn)}
+                          sx={{
+                            position: 'absolute',
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: '4px',
+                            cursor: 'col-resize',
+                            bgcolor: 'primary.main',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            zIndex: 1,
+                            '&:hover': { opacity: 1 }
+                          }}
+                        />
+                      </Box>
+                    );
+                  })}
                 </Box>
                 {logs.length > 0 ? logs.map((log, idx) => {
                   const isExpanded = expandedRows.has(idx);
@@ -352,7 +505,29 @@ const AgentListTab: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, px: 2, '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer' }} onClick={() => toggleRow(idx)}>
                         <Box sx={{ width: 40, flexShrink: 0, display: 'flex', justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}><Checkbox size="small" checked={isSelected} onChange={() => handleSelectRow(idx)} sx={{ p: 0 }} /></Box>
                         <IconButton size="small" sx={{ p: 0, mr: 1, flexShrink: 0 }}>{isExpanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}</IconButton>
-                        {sortedDisplayFields.map(fn => (<Typography key={fn} variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fn === "createdAt" || fn === "registeredAt" || fn === "@timestamp" ? dayjs(log[fn.split('.').pop() || fn]).format("MMM D, YYYY @ HH:mm:ss.SSS") : getValueByPath(log, fn)}</Typography>))}
+                        {sortedDisplayFields.map(fn => {
+                          const width = columnWidths[fn] || 250;
+                          return (
+                            <Typography 
+                              key={fn} 
+                              variant="caption" 
+                              sx={{ 
+                                width, 
+                                minWidth: width, 
+                                flexShrink: 0, 
+                                fontSize: '0.75rem', 
+                                px: 1, 
+                                whiteSpace: 'nowrap', 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis' 
+                              }}
+                            >
+                              {fn === "createdAt" || fn === "registeredAt" || fn === "@timestamp" 
+                                ? dayjs(log[fn.split('.').pop() || fn]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
+                                : getValueByPath(log, fn)}
+                            </Typography>
+                          );
+                        })}
                       </Box>
                       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                         <Box sx={{ p: 0, bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)', borderBottom: 1, borderColor: 'divider' }}>

@@ -221,7 +221,7 @@ class DashboardRepository:
             except: return False
         return await loop.run_in_executor(None, bulk)
 
-    async def get_logs(self, index_name: str, from_date=None, to_date=None, from_value=None, from_unit=None, to_value=None, to_unit=None, query=None, size=20, offset=0, sort_order="desc") -> List[Dict[str, Any]]:
+    async def get_logs(self, index_name: str, from_date=None, to_date=None, from_value=None, from_unit=None, to_value=None, to_unit=None, query=None, size=20, offset=0, sort_field="@timestamp", sort_order="desc") -> List[Dict[str, Any]]:
         loop = asyncio.get_event_loop()
         now = datetime.utcnow()
         start_time = self._parse_iso_date(from_date) or (now - self._parse_time(from_value or 15, from_unit or "m"))
@@ -233,7 +233,23 @@ class DashboardRepository:
         def search():
             must_queries = [{"range": {"@timestamp": {"gte": start_time.isoformat(), "lte": end_time.isoformat()}}}]
             if processed_query and processed_query.strip(): must_queries.append({"query_string": {"query": processed_query, "analyze_wildcard": True, "default_operator": "AND"}})
-            body = {"size": size, "from": offset, "track_total_hits": True, "query": {"bool": {"must": must_queries, "must_not": [{"exists": {"field": "deleted_at"}}]}}, "sort": [{"@timestamp": {"order": sort_order}}]}
+            
+            # 정렬 필드가 존재하지 않을 경우를 대비한 처리 (Keyword 필드 권장)
+            actual_sort_field = sort_field
+            if actual_sort_field != "@timestamp" and not actual_sort_field.endswith(".keyword"):
+                # 텍스트 필드의 경우 정렬을 위해 .keyword를 붙이는 것이 일반적임 (OpenSearch 관례)
+                # 다만 모든 필드에 적용하기보다는 프론트엔드에서 제어하거나 여기서 유연하게 처리
+                pass
+
+            sort_body = [{actual_sort_field: {"order": sort_order}}]
+            
+            body = {
+                "size": size, 
+                "from": offset, 
+                "track_total_hits": True, 
+                "query": {"bool": {"must": must_queries, "must_not": [{"exists": {"field": "deleted_at"}}]}}, 
+                "sort": sort_body
+            }
             try:
                 res = self.client.search(index=index_name, body=body)
                 return [hit["_source"] for hit in res.get("hits", {}).get("hits", [])]

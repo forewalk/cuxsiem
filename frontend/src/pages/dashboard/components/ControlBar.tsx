@@ -93,7 +93,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
   indexOptions = [],
   selectedIndex = '*',
   onIndexChange,
-  userRole,
   onDownload
 }) => {
   const theme = useTheme();
@@ -390,7 +389,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </Box>
         )}
 
-        {/* 2. Search Section (Expanded) */}
+        {/* 2. Search Section (Input Only) */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -402,7 +401,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           minHeight: 32
         }}>
           <Box sx={{ px: 0.75, display: 'flex', alignItems: 'center' }}>
-            <SearchIcon sx={{ color: KIBANA_TEAL, fontSize: 16 }} />
+            <SearchIcon sx={{ color: theme.palette.text.secondary, fontSize: 16 }} />
           </Box>
           <Box component="form" onSubmit={handleSearchSubmit} sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
             <TextField 
@@ -427,8 +426,29 @@ const ControlBar: React.FC<ControlBarProps> = ({
           )}
         </Box>
 
+        {/* 3. Search Button (Separate) */}
+        <Button
+          variant="contained"
+          disableElevation
+          startIcon={<SearchIcon sx={{ fontSize: 16 }} />}
+          onClick={() => handleSearchSubmit()}
+          sx={{
+            minWidth: 80,
+            height: 32,
+            borderRadius: 1,
+            bgcolor: '#2A595A', // 이미지의 어두운 Teal 색상
+            color: '#fff',
+            textTransform: 'none',
+            fontWeight: 'bold',
+            fontSize: '0.8rem',
+            '&:hover': { bgcolor: '#1e3f40' }
+          }}
+        >
+          {t('search')}
+        </Button>
+
         <Box sx={{ display: 'flex', gap: 0.5, width: { xs: '100%', lg: 'auto' } }}>
-          {/* 3. Time Picker Section (More compact) */}
+          {/* 4. Time Picker Section */}
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -455,21 +475,22 @@ const ControlBar: React.FC<ControlBarProps> = ({
             </Box>
           </Box>
 
+          {/* 5. Refresh Button */}
           <Button 
             variant="contained" 
             disableElevation
             startIcon={<RefreshIcon sx={{ fontSize: 16 }} />} 
             onClick={onRefresh} 
             sx={{ 
-              bgcolor: KIBANA_TEAL,
+              bgcolor: '#2A595A', // 이미지와 동일한 색상 유지
               color: '#fff',
               textTransform: 'none', 
               fontWeight: 'bold', 
               px: 1.5,
               minWidth: { xs: 'fit-content', md: 80 },
               minHeight: 32,
-              fontSize: '0.75rem',
-              '&:hover': { bgcolor: '#004a4d' } 
+              fontSize: '0.8rem',
+              '&:hover': { bgcolor: '#1e3f40' } 
             }}
           >
             {isMobile ? '' : t('refresh')}
@@ -521,7 +542,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {!isEditMode && onEdit && userRole === 'role-1' && (
+            {!isEditMode && onEdit && (
               <Button
                 variant="outlined"
                 size="small"
@@ -536,7 +557,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
               </Button>
             )}
 
-            {/* 리스트 화면(onEdit 없음)일 때만 다운로드 왼쪽에 초기화 버튼 상시 노출 */}
             {!isEditMode && !onEdit && onReset && (
               <Button
                 variant="outlined"
@@ -591,7 +611,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
                   </Button>
                 )}
 
-                {/* 대시보드 수정 모드일 때만 초기화 버튼 노출 (원래 위치) */}
                 {onReset && (
                   <Button
                     variant="outlined"

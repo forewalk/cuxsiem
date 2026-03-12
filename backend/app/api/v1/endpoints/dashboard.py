@@ -59,10 +59,26 @@ async def get_logs(
     to_date: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
     size: int = Query(20),
-    offset: int = Query(0)
+    offset: int = Query(0),
+    sort_field: str = Query("@timestamp"),
+    sort_order: str = Query("desc"),
+    current_user: UserResponse = Depends(get_current_active_user)
 ):
     service = DashboardService()
-    return await service.get_logs(dashboard_id=dashboard_id, from_value=from_value, from_unit=from_unit, to_value=to_value, to_unit=to_unit, from_date=from_date, to_date=to_date, query=q, size=size, offset=offset)
+    return await service.get_logs(
+        dashboard_id=dashboard_id, 
+        from_value=from_value, 
+        from_unit=from_unit, 
+        to_value=to_value, 
+        to_unit=to_unit, 
+        from_date=from_date, 
+        to_date=to_date, 
+        query=q, 
+        size=size, 
+        offset=offset,
+        sort_field=sort_field,
+        sort_order=sort_order
+    )
 
 @router.put("/panels/{dashboard_id}/{panel_key}")
 async def update_panel(dashboard_id: str, panel_key: str, update_data: DashboardPanelUpdate):

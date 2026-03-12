@@ -1,4 +1,4 @@
-# cruxSIEM - OpenSearch 신규 서버 초기화 가이드
+# CruxSIEM - OpenSearch 신규 서버 초기화 가이드
 
 ## 실행 순서
 
@@ -9,7 +9,7 @@
 4_data_cs_code.json       → 역할 코드 초기 데이터 (role-1~4)
 5_data_cs_policies.json   → 고급설정 + 패스워드 정책 기본값
 6_data_cs_dashboards.json → 대시보드 패널 초기 데이터 (19개)
-7_data_cs_users_admin.json → administrator 초기 계정 (초기 비밀번호: cruxSIEM1!)
+7_data_cs_users_admin.json → administrator 초기 계정 (초기 비밀번호: CruxSIEM1!)
 ```
 
 ---
@@ -81,7 +81,7 @@ curl -X POST "$OS/_bulk" \
 ## Step 7: 관리자 계정 삽입
 
 ```bash
-# cs_users (administrator, 초기 비밀번호: cruxSIEM1!)
+# cs_users (administrator, 초기 비밀번호: CruxSIEM1!)
 curl -X POST "$OS/_bulk" \
   -H "Content-Type: application/x-ndjson" \
   --data-binary @7_data_cs_users_admin.json
@@ -98,7 +98,7 @@ curl -X POST "$OS/_bulk" \
 | cs_code | **필수** | `4_data_cs_code.json` |
 | cs_policies | **필수** | `5_data_cs_policies.json` |
 | cs_dashboards | **필수** | `6_data_cs_dashboards.json` |
-| cs_users | **필수** (관리자) | `7_data_cs_users_admin.json` (초기 비밀번호: cruxSIEM1!) |
+| cs_users | **필수** (관리자) | `7_data_cs_users_admin.json` (초기 비밀번호: CruxSIEM1!) |
 | cs_alerts | 불필요 | 알림 발생 시 자동 생성 |
 | cs_login_attempts | 불필요 | 로그인 시 자동 생성 |
 | cs_sessions | 불필요 | 로그인 시 자동 생성 |
