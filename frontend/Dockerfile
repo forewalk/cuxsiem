@@ -10,7 +10,9 @@ RUN npm install
 # Copy source
 COPY . .
 
-# Build
+# Build (APP_VERSION은 docker build --build-arg로 주입)
+ARG APP_VERSION=dev
+ENV VITE_APP_VERSION=$APP_VERSION
 RUN npm run build
 
 # Stage 2: Serve

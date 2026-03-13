@@ -296,6 +296,14 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
           </Collapse>
         </List>
       </Box>
+
+      {(drawerOpen || isMobile) && (
+        <Box sx={{ px: 2, py: 1, borderTop: `1px solid ${theme.palette.divider}` }}>
+          <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>
+            v{import.meta.env.VITE_APP_VERSION || 'dev'}
+          </Typography>
+        </Box>
+      )}
     </Drawer>
   );
 };
