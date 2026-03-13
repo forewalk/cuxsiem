@@ -625,6 +625,14 @@ export const LoginPage: React.FC = () => {
               >
                 {t("copyright")}
               </Typography>
+              <Typography
+                variant="caption"
+                display="block"
+                textAlign="center"
+                sx={{ color: darkMode ? "#555555" : "#cccccc", mt: 0.5 }}
+              >
+                version: {import.meta.env.VITE_APP_VERSION || 'dev'}
+              </Typography>
             </Box>
           </Box>
         </Card>
