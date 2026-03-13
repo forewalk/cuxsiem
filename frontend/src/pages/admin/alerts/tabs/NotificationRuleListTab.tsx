@@ -44,7 +44,7 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
     },
     size: 100
   },
-  message_template: `[{{meta.event.name}}] 총 {{total}}건 탐지
+  message_template: `[{{rule_name}}]총 {{hits.total.value}}건의 이벤트가 탐지되었습니다.
 
 호스트: {{endpoint.name}} ({{endpoint.os}})
 이벤트: {{event.type}} / {{event.category}}
@@ -65,8 +65,8 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
 const NotificationRuleListTab: React.FC = () => {
   const { user } = useAuth();
   const [rules, setRules] = useState<NotificationRule[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
+  const [setTotal] = useState(0);
+  const [page] = useState(0);
   const { settings, fetchSettings } = useSettingsStore();
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);

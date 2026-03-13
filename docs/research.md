@@ -1,436 +1,766 @@
-# 알림 메시지 미리보기 시스템 연구 문서
+# 알림 시스템 (Alerts) 전체 연구 문서
 
 ## 목차
 
-1. [시스템 개요](#1-시스템-개요)
-2. [아키텍처 & 데이터 흐름](#2-아키텍처--데이터-흐름)
-3. [백엔드: 메시지 템플릿 렌더링](#3-백엔드-메시지-템플릿-렌더링)
-4. [프론트엔드: 미리보기 렌더링](#4-프론트엔드-미리보기-렌더링)
-5. [백엔드 vs 프론트엔드 차이점](#5-백엔드-vs-프론트엔드-차이점)
-6. [Webhook Body 템플릿](#6-webhook-body-템플릿)
-7. [사용 가능한 변수 목록](#7-사용-가능한-변수-목록)
-8. [변수 해석 우선순위](#8-변수-해석-우선순위)
-9. [알려진 이슈 & 불일치](#9-알려진-이슈--불일치)
-10. [테스트 커버리지](#10-테스트-커버리지)
+1. [파일 인벤토리](#1-파일-인벤토리)
+2. [컴포넌트 계층 구조](#2-컴포넌트-계층-구조)
+3. [상태 관리 (전체 Hook 목록)](#3-상태-관리-전체-hook-목록)
+4. [Props 흐름 (전체 데이터 전달)](#4-props-흐름-전체-데이터-전달)
+5. [API 호출](#5-api-호출)
+6. [이벤트 핸들러](#6-이벤트-핸들러)
+7. [비즈니스 로직](#7-비즈니스-로직)
+8. [메시지 미리보기 시스템](#8-메시지-미리보기-시스템)
+9. [Webhook Body 템플릿](#9-webhook-body-템플릿)
+10. [사용 가능한 변수 목록](#10-사용-가능한-변수-목록)
+11. [i18n 키 목록](#11-i18n-키-목록)
+12. [타입/인터페이스](#12-타입인터페이스)
+13. [외부 의존성](#13-외부-의존성)
+14. [알려진 이슈 & 개선점](#14-알려진-이슈--개선점)
 
 ---
 
-## 1. 시스템 개요
+## 1. 파일 인벤토리
 
-알림 메시지 미리보기 시스템은 **두 개의 병렬 구현**으로 구성된다:
+**총 11개 파일, ~2,500 lines**
 
-| 구현 | 위치 | 용도 |
+| # | 파일 경로 | Lines | 역할 |
+|---|----------|-------|------|
+| 1 | `components/index.ts` | 4 | 배럴 export |
+| 2 | `components/SeverityChip.tsx` | 47 | 심각도별 컬러 Chip 렌더링 |
+| 3 | `components/AlertTableStyles.ts` | 105 | 공유 테이블 스타일, 날짜 포맷터, 필터 옵션 상수 |
+| 4 | `components/AlertsControlBar.tsx` | 505 | Kibana 스타일 검색 + 시간 범위 선택 + 자동 새로고침 툴바 |
+| 5 | `components/GlobalAlertSnackbar.tsx` | 105 | 실시간 위협 알림 스택형 스낵바 |
+| 6 | `components/NotificationRuleList.tsx` | 134 | 마스터 패널 — 규칙 목록 (선택/활성 토글) |
+| 7 | `components/NotificationRuleDetail.tsx` | 429 | 디테일 패널 — 규칙 생성/수정 폼 (DSL 에디터, 웹훅, 이력) |
+| 8 | `components/AlertTableFilterMenu.tsx` | 70 | 체크박스 기반 드롭다운 필터 메뉴 |
+| 9 | `components/WebhookHeadersEditor.tsx` | 114 | Postman 스타일 Key-Value 헤더 에디터 (Autocomplete) |
+| 10 | `tabs/NotificationRuleListTab.tsx` | 633 | **메인 오케스트레이터** — 마스터-디테일 레이아웃, 전체 CRUD, Export/Import |
+| 11 | `tabs/NotificationHistoryTab.tsx` | 354 | 알림 발송 내역 조회 (검색, 시간 범위, 심각도 필터, 페이지네이션) |
+
+---
+
+## 2. 컴포넌트 계층 구조
+
+```
+NotificationRuleListTab (tabs/)
+├── LinearProgress (로딩 바)
+├── Action Bar (Export / Import / Delete 버튼)
+├── NotificationRuleList (components/)
+│   ├── Checkbox (전체 선택)
+│   ├── Button (규칙 추가)
+│   └── List > ListItemButton (각 규칙)
+│       ├── Checkbox (개별 선택)
+│       ├── ListItemText (규칙명)
+│       ├── SeverityChip (심각도)
+│       └── Switch (활성 토글)
+├── Resize Handle (드래그 구분선)
+├── NotificationRuleDetail (components/)
+│   ├── MonacoEditor (DSL 쿼리 에디터)
+│   ├── MonacoEditor (웹훅 본문 에디터)
+│   ├── WebhookHeadersEditor (components/)
+│   │   ├── Autocomplete (헤더 Key 드롭다운)
+│   │   ├── TextField (헤더 Value)
+│   │   └── IconButton (행 삭제)
+│   └── 변경 이력 테이블
+├── Dialog (삭제 확인)
+└── Snackbar (성공/에러 피드백)
+
+NotificationHistoryTab (tabs/)
+├── LinearProgress (로딩 바)
+├── AlertsControlBar (components/)
+│   ├── Search TextField
+│   ├── Time Picker (Popover)
+│   │   ├── Quick Select (공통 범위)
+│   │   ├── DateCalendar (절대 날짜)
+│   │   └── Relative / Now 탭
+│   ├── Refresh 버튼
+│   └── Auto-Refresh 컨트롤
+├── 결과 헤더
+├── Paper (스크롤 테이블)
+│   ├── 헤더 행 (FilterListIcon → AlertTableFilterMenu)
+│   └── 확장 가능한 행 (Collapse → 메시지 내용)
+├── 페이지네이션 바
+└── AlertTableFilterMenu (심각도 필터 팝업)
+```
+
+---
+
+## 3. 상태 관리 (전체 Hook 목록)
+
+### 3.1 NotificationRuleListTab.tsx (633 lines — 메인 상태 소유자)
+
+#### useState
+
+| 변수 | 타입 | 용도 |
 |------|------|------|
-| **백엔드 (Python)** | `backend/app/services/notification.py` | 실제 알림 생성 시 메시지 렌더링 |
-| **프론트엔드 (TypeScript)** | `frontend/src/pages/admin/alerts/tabs/NotificationRuleListTab.tsx` | UI에서 실시간 미리보기 |
+| `rules` | `NotificationRule[]` | API에서 가져온 규칙 목록 |
+| `total` | `number` | 총 규칙 수 |
+| `page` | `number` | 현재 페이지 (항상 0, setter 미노출) |
+| `rowsPerPage` | `number` | 페이지당 항목 수 (settings에서 초기화) |
+| `loading` | `boolean` | 로딩 상태 |
+| `listWidth` | `number` | 마스터 패널 너비 (기본 320px, 리사이즈 가능) |
+| `selectedRule` | `NotificationRule \| null` | 현재 선택된 규칙 |
+| `showForm` | `boolean` | 디테일 폼 표시 여부 |
+| `deleteIds` | `string[]` | 삭제 대기 ID 목록 (Dialog open 제어) |
+| `formData` | `NotificationRuleCreate` | 생성/수정 폼 상태 |
+| `dslString` | `string` | Monaco DSL 에디터의 JSON 문자열 |
+| `jsonError` | `string \| null` | DSL JSON 파싱 에러 |
+| `webhookHeaders` | `HeaderEntry[]` | 웹훅 헤더 Key-Value 쌍 |
+| `webhookBodyStr` | `string` | 웹훅 본문 JSON 문자열 |
+| `snackbar` | `{open, message, severity}` | 스낵바 알림 상태 |
+| `queryTestLoading` | `boolean` | 쿼리 테스트 로딩 |
+| `queryTestResult` | `any \| null` | 쿼리 테스트 OpenSearch 응답 |
+| `queryTestError` | `string \| null` | 쿼리 테스트 에러 |
+| `triggerTestLoading` | `boolean` | 트리거 테스트 로딩 |
+| `triggerTestResult` | `{evaluation, total, has_aggregations} \| null` | 트리거 테스트 결과 |
+| `triggerTestError` | `string \| null` | 트리거 테스트 에러 |
+| `selectedRuleIds` | `Set<string>` | 다중 선택 Set (Export/Delete용) |
 
-두 구현은 동일한 `{{변수}}` 문법을 사용하지만, 해석 범위와 동작에 차이가 있다.
+#### useRef
+
+| Ref | 타입 | 용도 |
+|-----|------|------|
+| `isResizing` | `MutableRefObject<boolean>` | 패널 리사이즈 활성 여부 |
+| `originalFormRef` | `MutableRefObject<string>` | 변경 감지용 원본 폼 데이터 JSON 스냅샷 |
+| `fileInputRef` | `RefObject<HTMLInputElement>` | Import용 숨겨진 파일 입력 |
+
+#### useMemo
+
+| 변수 | 의존성 | 용도 |
+|------|--------|------|
+| `renderMessagePreview` | `formData.message_template, name, severity, target_index, queryTestResult, selectedRule` | `{{변수}}` 치환으로 메시지 미리보기 생성 |
+
+#### useCallback
+
+| 함수 | 의존성 | 용도 |
+|------|--------|------|
+| `handleMouseDown` | `[]` | 패널 리사이즈 시작 (전역 mousemove/mouseup 리스너 등록) |
+| `loadRules` | `[page, rowsPerPage]` | API에서 규칙 목록 조회 |
+
+#### useEffect
+
+| 이펙트 | 의존성 | 용도 |
+|--------|--------|------|
+| `fetchRoleCodes()` | `[fetchRoleCodes]` | 마운트 시 역할 코드 로드 |
+| `fetchSettings()` | `[fetchSettings]` | 마운트 시 설정 로드 |
+| settings 적용 | `[settings]` | `pagination_size`로 `rowsPerPage` 설정 |
+| `loadRules()` | `[loadRules]` | page/rowsPerPage 변경 시 규칙 재로드 |
+
+#### 외부 Hook
+
+| Hook | 반환값 | 용도 |
+|------|--------|------|
+| `useAuth()` | `{ user }` | 역할 권한 체크 |
+| `useTranslation()` | `{ t, language }` | 다국어 |
+| `useWebSocket()` | — | `new_alert` 수신 시 규칙 목록 새로고침 |
+| `useRoleCodesStore()` | `{ roleCodes, roleNames, fetch }` | 역할 코드/이름 조회 |
+| `useSettingsStore()` | `{ settings, fetchSettings }` | 앱 설정 (페이지네이션, 시간 필터) |
 
 ---
 
-## 2. 아키텍처 & 데이터 흐름
+### 3.2 NotificationHistoryTab.tsx (354 lines)
 
-### 프론트엔드 미리보기 흐름
+#### useState
 
-```
-[사용자가 메시지 템플릿 입력]
-        │
-        ▼
-[사용자가 "쿼리 실행" 클릭]
-        │
-        ▼
-handleTestQuery() → notificationService.testQuery(target_index, condition_config)
-        │
-        ▼
-[백엔드] POST /api/v1/notifications/test-query → OpenSearch 쿼리 실행 → raw 응답 반환
-        │
-        ▼
-[프론트엔드] queryTestResult = OpenSearch raw 응답 저장
-        │
-        ▼
-renderMessagePreview (useMemo) → {{변수}}를 queryTestResult + formData로 치환
-        │
-        ▼
-NotificationRuleDetail 컴포넌트에서 미리보기 표시
-```
-
-### 백엔드 실제 알림 생성 흐름
-
-```
-[스케줄러가 탐지 규칙 실행]
-        │
-        ▼
-run_detection_for_rule() → OpenSearch 쿼리 실행
-        │
-        ▼
-_create_aggregation_alert() → template_context 구성
-        │
-        ▼
-_render_message_template(template, context) → {{변수}} 치환
-        │
-        ▼
-렌더링된 메시지를 cs_alerts 인덱스에 저장
-        │
-        ▼
-_deliver_alert() → WebSocket 전송 + Webhook 발송
-```
+| 변수 | 타입 | 용도 |
+|------|------|------|
+| `notifications` | `NotificationHistory[]` | 알림 내역 |
+| `total` | `number` | 총 결과 수 |
+| `page` | `number` | 현재 페이지 |
+| `rowsPerPage` | `number` | 페이지당 항목 수 (기본 25) |
+| `pageSizeOptions` | `number[]` | `[20, 50, 100, 500]` |
+| `loading` | `boolean` | 로딩 상태 |
+| `searchQuery` | `string` | 검색어 |
+| `selectedSeverities` | `string[]` | 활성 심각도 필터 |
+| `expandedRows` | `Set<number>` | 확장된 행 인덱스 Set |
+| `fromValue`, `fromUnit`, `toValue`, `toUnit`, `fromDate`, `toDate` | 시간 상태 | 시간 범위 6개 변수 |
+| `severityAnchor` | `HTMLElement \| null` | 심각도 필터 메뉴 앵커 |
 
 ---
 
-## 3. 백엔드: 메시지 템플릿 렌더링
+### 3.3 AlertsControlBar.tsx (505 lines)
 
-### 핵심 함수: `_render_message_template`
+#### useState
+
+| 변수 | 타입 | 용도 |
+|------|------|------|
+| `tempQuery` | `string` | 로컬 검색 입력 (Enter로 제출) |
+| `anchorEl` | `HTMLDivElement \| null` | Popover 앵커 |
+| `popoverType` | `'quick' \| 'detailed'` | 팝오버 뷰 타입 |
+| `editingPoint` | `'from' \| 'to'` | 편집 중인 시간 엔드포인트 |
+| `tabValue` | `number` | 상세 팝오버 탭 (0=절대, 1=상대, 2=현재) |
+| `popoverVal` | `number` | 시간 입력 숫자값 |
+| `popoverUnit` | `string` | 시간 입력 단위 (m/h/d) |
+| `popoverDate` | `Dayjs` | 절대 날짜 선택 |
+| `popoverTime` | `string` | 절대 시간 선택 (HH:mm) |
+| `autoRefreshValue` | `number` | 자동 새로고침 간격 값 |
+| `autoRefreshUnit` | `'seconds' \| 'minutes'` | 자동 새로고침 간격 단위 |
+| `isRefreshing` | `boolean` | 자동 새로고침 활성 여부 |
+
+---
+
+### 3.4 나머지 컴포넌트
+
+`NotificationRuleDetail`, `SeverityChip`, `AlertTableFilterMenu`, `WebhookHeadersEditor`, `GlobalAlertSnackbar`는 모두 **순수 프레젠테이션** — 내부 상태 없이 props만으로 동작.
+
+---
+
+## 4. Props 흐름 (전체 데이터 전달)
+
+### NotificationRuleListTab → NotificationRuleList
+
+| Prop | 타입 | 출처 |
+|------|------|------|
+| `width` | `number` | `listWidth` state |
+| `rules` | `NotificationRule[]` | `rules` state |
+| `selectedRuleId` | `string \| null` | `selectedRule?.id` |
+| `selectedRuleIds` | `Set<string>` | `selectedRuleIds` state |
+| `onSelect` | `(rule) => void` | `handleSelectRule` |
+| `onToggleSelect` | `(ruleId) => void` | inline — `selectedRuleIds` Set 토글 |
+| `onSelectAll` | `(checked) => void` | inline — 전체 선택/해제 |
+| `onAdd` | `() => void` | `handleAddNew` |
+| `onToggleActive` | `(rule) => void` | `handleToggleActive` |
+| `loading` | `boolean` | `loading` state |
+| `t` | function | 번역 함수 |
+
+### NotificationRuleListTab → NotificationRuleDetail
+
+| Prop | 타입 | 출처 |
+|------|------|------|
+| `showForm` | `boolean` | `showForm` state |
+| `isEditing` | `boolean` | `!!selectedRule` |
+| `formData` | `NotificationRuleCreate` | `formData` state |
+| `onFormDataChange` | `(data) => void` | `setFormData` |
+| `onSave` | `() => void` | `handleSave` |
+| `onDelete` | `() => void` | inline — `deleteIds` 설정 |
+| `t` | function | 번역 함수 |
+| `dslString` | `string` | `dslString` state |
+| `onDslChange` | `(value) => void` | `handleDslChange` |
+| `jsonError` | `string \| null` | state |
+| `onTestQuery` | `() => void` | `handleTestQuery` |
+| `queryTestLoading` | `boolean` | state |
+| `queryTestResult` | `any` | state |
+| `queryTestError` | `string \| null` | state |
+| `onTestTrigger` | `() => void` | `handleTestTrigger` |
+| `triggerTestLoading` | `boolean` | state |
+| `triggerTestResult` | object \| null | state |
+| `triggerTestError` | `string \| null` | state |
+| `renderMessagePreview` | `string` | useMemo 결과 |
+| `webhookHeaders` | `HeaderEntry[]` | state |
+| `onWebhookHeadersChange` | `(headers) => void` | `handleWebhookHeadersChange` |
+| `webhookBodyStr` | `string` | state |
+| `onWebhookBodyChange` | `(value) => void` | `handleWebhookBodyChange` |
+| `onTestWebhook` | `() => void` | `handleTestWebhook` |
+| `roleCodes` | `RoleCode[]` | `useRoleCodesStore` |
+| `roleNames` | `Record<string, Record<string, string>>` | `useRoleCodesStore` |
+| `language` | `string` | `useTranslation` |
+| `getRoleName` | function | `@/utils/roleUtils` |
+| `saveDisabled` | `boolean` | `!!jsonError \|\| !formData.name` |
+| `changeHistory` | `ChangeHistoryEntry[]` | `selectedRule?.change_history` |
+| `createdAt` | `string` | `selectedRule?.created_at` |
+
+### NotificationRuleDetail → WebhookHeadersEditor
+
+| Prop | 타입 | 출처 |
+|------|------|------|
+| `headers` | `HeaderEntry[]` | `webhookHeaders` prop |
+| `onChange` | `(headers) => void` | `onWebhookHeadersChange` prop |
+| `t` | function | 번역 함수 (컴포넌트 내 미사용) |
+
+### NotificationHistoryTab → AlertsControlBar
+
+| Prop | 타입 | 출처 |
+|------|------|------|
+| `t` | function | 번역 함수 |
+| `fromValue/fromUnit/toValue/toUnit/fromDate/toDate` | 시간 상태 | 각 state |
+| `onTimeChange` | `(fv, fu, tv, tu, fd, td) => void` | inline — 6개 시간 상태 설정 + 페이지 리셋 |
+| `searchQuery` | `string` | state |
+| `onSearchQueryChange` | `(q) => void` | inline — 검색어 설정 + 페이지 리셋 |
+| `onRefresh` | `() => void` | inline — 페이지 리셋 + 재로드 |
+
+### NotificationHistoryTab → AlertTableFilterMenu
+
+| Prop | 타입 | 출처 |
+|------|------|------|
+| `anchorEl` | `HTMLElement \| null` | `severityAnchor` state |
+| `open` | `boolean` | `Boolean(severityAnchor)` |
+| `onClose` | `() => void` | `severityAnchor` null 설정 |
+| `options` | `FilterOption[]` | `SEVERITY_OPTIONS.map(...)` |
+| `selectedValues` | `string[]` | `selectedSeverities` state |
+| `onToggle` | `(value) => void` | inline — severity 토글 |
+| `multiSelect` | `boolean` | `true` |
+
+---
+
+## 5. API 호출
+
+모든 API 호출은 `notificationService` (axios `api` wrapper)를 통해 수행:
+
+| 호출자 | 서비스 메서드 | HTTP | 엔드포인트 | 요청 | 응답 |
+|--------|-------------|------|-----------|------|------|
+| `loadRules` | `getRules` | GET | `/api/v1/notifications/rules` | `{skip, limit, sort_by, order}` | `{total, items: NotificationRule[]}` |
+| `handleSave` (생성) | `createRule` | POST | `/api/v1/notifications/rules` | `NotificationRuleCreate` | `NotificationRule` |
+| `handleSave` (수정) | `updateRule` | PUT | `/api/v1/notifications/rules/:id` | `{...formData, changed_fields}` | `NotificationRule` |
+| `handleDelete` | `deleteRule` | DELETE | `/api/v1/notifications/rules/:id` | (없음) | (void) |
+| `handleTestQuery` | `testQuery` | POST | `/api/v1/notifications/rules/test-query` | `{target_index, condition_config}` | OpenSearch raw 응답 |
+| `handleTestTrigger` | `testTrigger` | POST | `/api/v1/notifications/rules/test-trigger` | `{target_index, condition_config, trigger_condition}` | `{evaluation, total, has_aggregations}` |
+| `handleTestWebhook` | `testWebhook` | POST | `/api/v1/notifications/webhook/test` | `{url, headers}` | `{success, message}` |
+| `handleImport` | `importRules` | POST | `/api/v1/notifications/rules/import` | `{rules, overwrite: false}` | `{created, updated, errors, total_processed}` |
+| `loadNotifications` | `getNotifications` | GET | `/api/v1/notifications/` | `{skip, limit, query?, from_date?, to_date?, severities?}` | `{total, items: NotificationHistory[]}` |
+
+**WebSocket**: 두 탭 모두 `getAlertWsUrl()` + access_token으로 연결. `{type: 'new_alert'}` 메시지 수신 시 데이터 새로고침.
+
+---
+
+## 6. 이벤트 핸들러
+
+### 6.1 NotificationRuleListTab
+
+| 핸들러 | 트리거 | 동작 |
+|--------|--------|------|
+| `handleSelectRule(rule)` | 리스트에서 규칙 클릭 | selectedRule 설정, formData 채움, 테스트 결과 리셋, 원본 스냅샷 저장 |
+| `handleAddNew()` | "규칙 추가" 버튼 | 선택 해제, DEFAULT_FORM_DATA 세팅, 폼 표시 |
+| `handleDslChange(value)` | Monaco 에디터 onChange | dslString 업데이트, JSON 파싱 → formData.condition_config 업데이트 또는 jsonError 설정 |
+| `handleTestQuery()` | "쿼리 실행" 버튼 | JSON 에러 검증, testQuery API 호출, 결과/에러 저장 |
+| `handleTestTrigger()` | "트리거 테스트" 버튼 | JSON 에러 검증, testTrigger API 호출, 결과/에러 저장 |
+| `handleSave()` | "저장" 버튼 | 수정: changedFields 계산 → 변경 없으면 차단 → updateRule. 생성: createRule. 리스트 새로고침 |
+| `handleDelete()` | 삭제 확인 다이얼로그 "삭제" | deleteIds 각각에 대해 deleteRule 호출, 선택 해제, 리스트 새로고침 |
+| `handleToggleActive(rule)` | 리스트의 Switch | is_active 토글 + changed_fields: ['is_active'] → updateRule, selectedRule 동기화 |
+| `handleWebhookHeadersChange` | 헤더 에디터 변경 | webhookHeaders 업데이트 + 배열→Record 변환하여 formData.receiver 업데이트 |
+| `handleWebhookBodyChange` | 본문 에디터 변경 | webhookBodyStr 및 formData.receiver.webhook_body 업데이트 |
+| `handleTestWebhook()` | "연결 테스트" 버튼 | testWebhook API 호출 (URL + 헤더) |
+| `handleExport()` | "Export" 버튼 | selectedRuleIds로 규칙 필터, JSON Blob 생성, 다운로드 |
+| `handleImport(e)` | 파일 입력 변경 | JSON 파일 읽기, 형식 검증, importRules API 호출, 새로고침 |
+| `handleMouseDown()` | 리사이즈 핸들 mousedown | mousemove/mouseup 리스너로 패널 너비 조절 (200~600px) |
+
+### 6.2 NotificationHistoryTab
+
+| 핸들러 | 트리거 | 동작 |
+|--------|--------|------|
+| `toggleRow(idx)` | 테이블 행 클릭 | expandedRows Set에서 인덱스 토글 (메시지 확장/축소) |
+| `onTimeChange` | AlertsControlBar 콜백 | 6개 시간 상태 변수 설정 + 페이지 0으로 리셋 |
+| `onSearchQueryChange` | AlertsControlBar 콜백 | searchQuery 설정 + 페이지 리셋 |
+| `onRefresh` | AlertsControlBar 콜백 | 페이지 리셋 + loadNotifications 호출 |
+| 심각도 필터 토글 | AlertTableFilterMenu onToggle | selectedSeverities 배열에서 토글 |
+| 페이지 변경 | 페이지네이션 버튼 | `setPage(i)` |
+| 페이지 크기 변경 | Select 변경 | `setRowsPerPage(n)` + `setPage(0)` |
+
+### 6.3 AlertsControlBar
+
+| 핸들러 | 트리거 | 동작 |
+|--------|--------|------|
+| `handleSearchSubmit(e)` | Enter 키 | `onSearchQueryChange(tempQuery)` 호출 |
+| `handleQuickClick(e)` | 달력 아이콘 클릭 | 'quick' 모드 팝오버 열기 |
+| `handleFromClick(e)` | "from" 표시 클릭 | 'detailed' 모드, 'from' 편집 팝오버 열기 |
+| `handleToClick(e)` | "to" 표시 클릭 | 'detailed' 모드, 'to' 편집 팝오버 열기 |
+| `handleApplyTime()` | "적용" 버튼 | 탭에 따라 시간값 계산 → onTimeChange 호출 |
+| `handleCommonClick(val, unit)` | 공통 범위 옵션 클릭 | "today" 특수 처리, 그 외 상대 시간값으로 onTimeChange |
+| `toggleAutoRefresh()` | 재생/정지 버튼 | isRefreshing 토글 (autoRefreshValue > 0일 때) |
+
+### 6.4 WebhookHeadersEditor
+
+| 핸들러 | 트리거 | 동작 |
+|--------|--------|------|
+| `handleKeyChange(index, newKey)` | Autocomplete 변경 | 해당 인덱스 Key 업데이트, 마지막 빈 행 보장 |
+| `handleValueChange(index, newValue)` | TextField 변경 | 해당 인덱스 Value 업데이트, 마지막 빈 행 보장 |
+| `handleDelete(index)` | 삭제 아이콘 클릭 | 해당 인덱스 제거, 마지막 빈 행 보장 |
+
+---
+
+## 7. 비즈니스 로직
+
+### 7.1 변경 감지 (`getChangedFields`)
+
+`originalFormRef.current` (규칙 선택 시 JSON 스냅샷)과 현재 `formData`를 필드별 `JSON.stringify` 비교.
+
+**비교 대상 (12개 필드):**
+
+| 일반 필드 | Receiver 하위 필드 |
+|-----------|-------------------|
+| `name` | `receiver_type` |
+| `description` | `receiver_values` |
+| `target_index` | `webhook_url` |
+| `condition_config` | `webhook_headers` |
+| `message_template` | `webhook_body` |
+| `severity` | |
+| `interval_min` | |
+| `trigger_condition` | |
+| `is_active` | |
+
+변경된 필드가 없으면 "변경된 항목이 없습니다" 스낵바 표시 후 API 호출 차단.
+
+### 7.2 레거시 역할 매핑
+
+`handleSelectRule`에서 `{ admin: 'role-1', user: 'role-2' }` 매핑 적용. 현재 `roleCodes`에 존재하지 않는 코드는 필터링.
+
+### 7.3 심각도 → MUI 컬러 매핑 (SeverityChip)
+
+| 심각도 | MUI 컬러 |
+|--------|---------|
+| `critical`, `high` | `error` (빨강) |
+| `medium` | `warning` (주황) |
+| `low`, `info` | `info` (파랑) |
+| 기타 | `default` |
+
+### 7.4 시간 범위 계산 (`calculateTimeRange`)
+
+3가지 모드 지원:
+1. **절대 날짜** — `fromDate`/`toDate` ISO 문자열 직접 사용
+2. **상대** — `dayjs()`에서 `fromValue`/`toValue` + unit 차감
+3. **현재** — `toDate` 기본값 `dayjs().toISOString()`
+
+### 7.5 날짜 포맷 (AlertTableStyles)
+
+- `formatDateTime`: UTC → 로컬 → `YYYY-MM-DD HH:mm:ss`
+- `formatDateTimeWithTz`: UTC → 로컬 → `YYYY-MM-DD HH:mm:ss (UTC Z)`
+
+### 7.6 Export/Import
+
+**Export**: `selectedRuleIds`로 규칙 필터 → 10개 필드 추출 → `{version: "1.0", exported_at, rules}` JSON Blob → 다운로드
+
+**Import**: JSON 파일 읽기 → `{rules: [...]}` 또는 flat 배열 허용 → `importRules` API (overwrite: false)
+
+### 7.7 WebhookHeadersEditor 자동 행 추가
+
+`ensureTrailingEmpty`: 항상 마지막에 빈 행 유지. Key 또는 Value 입력 시 자동으로 새 빈 행 생성.
+
+### 7.8 페이지네이션 (NotificationHistoryTab)
+
+현재 페이지 중심으로 5개 버튼 슬라이딩 윈도우 + 이전/다음 화살표.
+
+---
+
+## 8. 메시지 미리보기 시스템
+
+### 8.1 백엔드: `_render_message_template`
 
 **파일**: `backend/app/services/notification.py` (line 155-238)
 
-#### 정규식
+**정규식**: `\{\{\s*([\w\.@]+)\s*\}\}`
 
-```python
-re.sub(r"\{\{\s*([\w\.@]+)\s*\}\}", replace_var, template)
-```
-
-- `[\w\.@]+` : 영숫자, 밑줄, 점(.), @만 허용
-- `\s*` : 중괄호 안 앞뒤 공백 허용
-- 예: `{{ endpoint.name }}` → 유효, `{{ a[0] }}` → 매칭 안 됨
-
-#### 변수 해석 알고리즘 (`replace_var`)
+**알고리즘**:
 
 ```
-{{변수명}} 발견 시:
+{{변수}} 발견 시:
 
 1. 단순 키 (점 없음, 예: {{total}})
    ├─ context[key] 조회 → 값 있으면 반환
    ├─ _hit_sources[0][key] 조회 (fallback) → 값 있으면 반환
-   └─ 값 없으면 → "{{key}}" 그대로 유지
+   └─ 값 없으면 → "{{key}}" 유지
 
 2. 중첩 키 (점 있음, 예: {{endpoint.name}})
-   ├─ context에서 중첩 탐색 (context["endpoint"]["name"]) → 값 있으면 반환
-   ├─ context에서 flattened key 탐색 (context["endpoint.name"]) → 값 있으면 반환
-   ├─ _hit_sources 전체 순회 → 각 hit에서 값 추출
-   │   ├─ 중첩 탐색: hit["endpoint"]["name"]
-   │   └─ flattened 탐색: hit["endpoint.name"]
-   │   → 유니크 값만 추출 → 줄바꿈(\n)으로 합쳐서 반환
-   └─ 값 없으면 → "{{key}}" 그대로 유지
+   ├─ context에서 중첩 탐색 (context["endpoint"]["name"])
+   ├─ context에서 flattened key (context["endpoint.name"])
+   ├─ _hit_sources 전체 순회:
+   │   ├─ 중첩 탐색 + flattened key
+   │   → 유니크 값 추출, \n으로 합치기
+   └─ 못 찾으면 → "{{key}}" 유지
 ```
 
-#### `get_nested_value` 헬퍼
-
-```python
-def get_nested_value(obj, keys):
-    # 1단계: 일반 중첩 구조 탐색 (obj["a"]["b"]["c"])
-    # 2단계: flattened key 탐색 (obj["a.b.c"])
-```
-
-- dict 아닌 값을 만나면 중첩 탐색 중단
-- flattened key fallback은 OpenSearch가 점 포함 필드명을 반환하는 경우 대응
-
-#### `to_str` 변환
-
-```python
-def to_str(value):
-    if isinstance(value, (dict, list)):
-        return json.dumps(value, ensure_ascii=False, indent=2)
-    return str(value)
-```
-
-- dict/list는 JSON 문자열로 변환 (pretty print)
-- 그 외는 `str()` 변환
-
-### template_context 구성
-
-**파일**: `backend/app/services/notification.py` (line 454-470)
+**context 구성** (line 454-470):
 
 ```python
 template_context = {
-    **result,                          # OpenSearch 전체 응답 (hits, aggregations 등)
-    "total": total,                    # hits.total.value
+    **result,                    # OpenSearch 전체 응답
+    "total": total,
     "rule_name": rule.get("name"),
     "rule_id": rule_id,
     "rule_severity": rule.get("severity"),
     "target_index": target_index,
-    "_hit_sources": hit_sources,       # [hit["_source"] for hit in hits]
+    "_hit_sources": hit_sources,
 }
 ```
 
-`**result`로 OpenSearch 응답 전체를 spread하므로, `{{hits.total.value}}`, `{{aggregations.threats.buckets}}` 같은 깊은 경로도 접근 가능하다.
+### 8.2 프론트엔드: `renderMessagePreview`
 
----
+**파일**: `frontend/src/pages/admin/alerts/tabs/NotificationRuleListTab.tsx` (line 152-210)
 
-## 4. 프론트엔드: 미리보기 렌더링
+**정규식**: `\{\{\s*([\w.@]+)\s*\}\}`
 
-### 핵심 로직: `renderMessagePreview`
-
-**파일**: `frontend/src/pages/admin/alerts/tabs/NotificationRuleListTab.tsx` (line 152-190)
-
-```typescript
-const renderMessagePreview = useMemo(() => {
-  let preview = formData.message_template;
-  if (queryTestResult) {
-    const total = queryTestResult.hits?.total?.value || 0;
-    const hits = queryTestResult.hits?.hits || [];
-    const hitSources = hits.map((h: any) => h._source);
-
-    preview = preview.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
-      const trimmed = varName.trim();
-
-      // 하드코딩된 특수 변수
-      if (trimmed === 'total') return String(total);
-      if (trimmed === 'rule_name') return formData.name || trimmed;
-      if (trimmed === 'rule_severity') return formData.severity || trimmed;
-      if (trimmed === 'rule_target_index') return formData.target_index || trimmed;
-
-      // _hit_sources에서 탐색
-      if (hitSources.length > 0) {
-        const values = hitSources.map((source: any) => {
-          const val = getNestedValue(source, trimmed);
-          return val !== null && val !== undefined ? String(val) : null;
-        }).filter((v: string | null) => v !== null);
-        if (values.length > 0) {
-          const uniqueValues = Array.from(new Set(values));
-          return uniqueValues.join('\n');
-        }
-      }
-      return match; // 미해석 변수는 그대로 유지
-    });
-  }
-  return preview;
-}, [formData.message_template, formData.name, formData.severity, formData.target_index, queryTestResult]);
-```
-
-#### 정규식
-
-```javascript
-/\{\{([^}]+)\}\}/g
-```
-
-- `[^}]+` : `}` 제외 모든 문자 허용 → 백엔드보다 관대함
-- 예: `{{ a[0] }}` → 매칭됨 (백엔드에서는 안 됨)
-
-#### 변수 해석 알고리즘
+**알고리즘** (백엔드와 동일하게 정렬됨):
 
 ```
-1. queryTestResult 없음 → 템플릿 원문 그대로 표시
+1. queryTestResult 없음 → 템플릿 원문 표시
 2. queryTestResult 있음:
-   ├─ "total" → queryTestResult.hits.total.value
-   ├─ "rule_name" → formData.name
-   ├─ "rule_severity" → formData.severity
-   ├─ "rule_target_index" → formData.target_index
-   ├─ 기타 변수 → hitSources 전체 순회
-   │   ├─ getNestedValue(source, path) → 중첩 탐색
-   │   └─ source[path] fallback → flattened key 탐색
-   │   → 유니크 값만 추출 → 줄바꿈(\n)으로 합치기
-   └─ 못 찾으면 → "{{변수명}}" 그대로 유지
+   ├─ context 구성 (...queryTestResult spread + 메타 필드)
+   ├─ 단순 키: context[key] → _hit_sources[0][key] fallback
+   ├─ 중첩 키: context 탐색 → _hit_sources 전체 순회
+   └─ 못 찾으면 → "{{key}}" 유지
 ```
 
-#### `getNestedValue` (프론트엔드)
-
-```typescript
-const getNestedValue = (obj: any, path: string): any => {
-  const keys = path.split('.');
-  let value = obj;
-  let foundNested = true;
-  for (const key of keys) {
-    if (value && typeof value === 'object' && key in value) {
-      value = value[key];
-    } else {
-      foundNested = false;
-      break;
-    }
-  }
-  if (foundNested) return value;
-  if (obj[path] !== undefined) return obj[path];  // flattened key fallback
-  return null;
-};
-```
-
-### UI 표시
-
-**파일**: `frontend/src/pages/admin/alerts/components/NotificationRuleDetail.tsx`
-
-- `renderMessagePreview`는 `NotificationRuleListTab` → `NotificationRuleDetail`로 prop 전달
-- `<Typography>` 컴포넌트에서 `whiteSpace: 'pre-wrap'`으로 줄바꿈 유지
-- `queryTestResult`가 없을 때는 `runQueryPreviewHint` 안내 메시지 표시
-
----
-
-## 5. 백엔드 vs 프론트엔드 차이점
+### 8.3 백엔드 vs 프론트엔드 동작 비교
 
 | 구분 | 백엔드 | 프론트엔드 |
 |------|--------|-----------|
-| **정규식** | `[\w\.@]+` (엄격) | `[^}]+` (관대) |
-| **단순 키 → _hit_sources fallback** | O (`_hit_sources[0]`에서 탐색) | X (하드코딩된 4개 변수만) |
-| **OpenSearch 전체 응답 접근** | O (`{{hits.total.value}}`, `{{aggregations.*}}`) | X (hitSources만 접근) |
-| **`{{rule_id}}` 지원** | O | X |
-| **값이 dict/list일 때** | JSON pretty print | `String()` 변환 |
-| **context 구성** | OpenSearch 전체 응답 + 메타 + _hit_sources | queryTestResult raw 응답에서 직접 추출 |
+| 정규식 | `[\w\.@]+` | `[\w.@]+` (동일) |
+| context 구성 | `**result` spread + 메타 | `...queryTestResult` spread + 메타 (동일) |
+| 단순 키 fallback | `_hit_sources[0]` | `hitSources[0]` (동일) |
+| 중첩 키 context 탐색 | O | O (동일) |
+| flattened key | O | O (동일) |
+| dict/list 변환 | `json.dumps(indent=2)` | `JSON.stringify(null, 2)` (동일) |
+| `rule_id` | O | O (`selectedRule?.id`) |
+| aggregations 접근 | O | O (context spread) |
 
 ---
 
-## 6. Webhook Body 템플릿
+## 9. Webhook Body 템플릿
 
-### 핵심 함수: `_build_webhook_payload`
+### `_build_webhook_payload` (백엔드)
 
 **파일**: `backend/app/services/notification.py` (line 405-425)
 
-메시지 템플릿 렌더링과는 **완전히 다른 방식**으로 동작한다.
-
-```python
-def _build_webhook_payload(self, body_template, template_vars):
-    # 1. 빈 템플릿 → 빈 객체 {} 반환
-    # 2. 단순 str.replace로 {{key}} 치환 (중첩 키 미지원)
-    # 3. 미해석 변수는 빈 문자열로 제거
-    # 4. json.loads()로 파싱 → 반드시 유효한 JSON이어야 함
-    # 5. 파싱 실패 시 빈 객체 {} 반환
-```
+메시지 템플릿과 완전히 다른 방식:
 
 | 구분 | 메시지 템플릿 | Webhook Body |
 |------|-------------|-------------|
-| **치환 방식** | `re.sub` + 복잡한 해석 | `str.replace` 루프 |
-| **중첩 키** | O (`{{endpoint.name}}`) | X (flat 키만) |
-| **_hit_sources 탐색** | O | X |
-| **미해석 변수** | 원문 유지 (`{{key}}`) | 빈 문자열로 제거 |
-| **출력 형식** | 문자열 | JSON 객체 (json.loads) |
-| **JSON 이스케이프** | X | O (json.dumps로 안전 처리) |
+| 치환 방식 | `re.sub` + 복잡한 해석 | `str.replace` 루프 |
+| 중첩 키 | O | X (flat 키만) |
+| _hit_sources | O | X |
+| 미해석 변수 | 원문 유지 | 빈 문자열로 제거 |
+| 출력 형식 | 문자열 | JSON 객체 (json.loads) |
 
-### Webhook 사용 가능 변수 (6개만)
+### Webhook 전용 변수 (6개)
 
-```python
-template_vars = {
-    "id":                alert_id,
-    "rule_name":         created_alert.get("rule_name"),
-    "rule_severity":     created_alert.get("rule_severity"),
-    "message":           created_alert.get("message"),        # 렌더링된 메시지
-    "created_at":        created_alert.get("created_at"),
-    "rule_target_index": created_alert.get("rule_target_index"),
+| 변수 | 소스 |
+|------|------|
+| `{{id}}` | 알림 ID |
+| `{{rule_name}}` | 규칙명 |
+| `{{rule_severity}}` | 심각도 |
+| `{{message}}` | 렌더링된 메시지 |
+| `{{created_at}}` | 알림 생성 시각 |
+| `{{rule_target_index}}` | 대상 인덱스 |
+
+---
+
+## 10. 사용 가능한 변수 목록
+
+### 메시지 템플릿
+
+| 변수 | 소스 | 예시 | 프론트 미리보기 |
+|------|------|------|:---:|
+| `{{total}}` | `hits.total.value` | `42` | O |
+| `{{rule_name}}` | 규칙명 | `"High Threat"` | O |
+| `{{rule_id}}` | 규칙 ID | `"rule-001"` | O |
+| `{{rule_severity}}` | 심각도 | `"critical"` | O |
+| `{{target_index}}` | 대상 인덱스 | `"logs-*"` | O |
+| `{{rule_target_index}}` | 대상 인덱스 (alias) | `"logs-*"` | O |
+| `{{hits.total.value}}` | OpenSearch 응답 | `5` | O |
+| `{{aggregations.*}}` | 집계 결과 | JSON | O |
+| `{{endpoint.name}}` | _hit_sources | `"web-01"` | O |
+| `{{threatInfo.threatName}}` | _hit_sources (중복 제거) | `"Malware\nTrojan"` | O |
+
+---
+
+## 11. i18n 키 목록
+
+### NotificationRuleListTab
+
+`notificationCenter`, `selectRulesToExport`, `export`, `import`, `selectRulesToDelete`, `deleteRule`, `confirmDeleteRules`, `confirmDeleteRule`, `cancel`, `noPermission`, `invalidJson`, `dslJsonError`, `queryTestSuccess`, `queryRunFailed`, `noChanges`, `ruleSaveSuccess`, `saveFailed`, `ruleDeleteSuccess`, `webhookTestSuccess`, `webhookTestFail`, `exportSuccess`, `exportFailed`, `importInvalidFormat`, `importSuccess`, `importCreated`, `importErrors`, `importFailed`
+
+### NotificationRuleDetail
+
+`selectRulePrompt`, `editRule`, `addRule`, `save`, `basicInfo`, `ruleName`, `severity`, `ruleDescriptionLabel`, `detectionCondition`, `targetIndex`, `intervalMin`, `defineExtractionQuery`, `queryRunning`, `runQuery`, `extractionQueryResponse`, `runQueryPrompt`, `triggerConditionLabel`, `triggerConditionPlaceholder`, `triggerConditionHelper`, `testTrigger`, `notificationMessageTemplate`, `messageTemplate`, `messageTemplatePlaceholder`, `messagePreview`, `messagePreviewEmpty`, `runQueryPreviewHint`, `notificationReceiverRoles`, `selectReceiverRoles`, `webhookSettings`, `webhookDescription`, `webhookUrl`, `testConnection`, `webhookHeaders`, `webhookBody`, `changeHistory`, `date`, `author`, `changedItems`, `field_*` (동적 필드명)
+
+### NotificationHistoryTab
+
+`results`, `occurrenceDate`, `severity`, `ruleName`, `receiverGroup`, `noNotificationHistory`, `showingInfo`, `rowsPerPage`
+
+### AlertsControlBar
+
+`alertSearchPlaceholder`, `search`, `refresh`, `lastUpdated`, `quickSelect`, `unit_m`, `unit_h`, `unit_d`, `apply`, `commonlyUsed`, `today`, `last24h`, `thisWeek`, `last7d`, `last15m`, `last30d`, `refreshEvery`, `seconds`, `minutes`, `start`, `setStartPoint`, `setEndPoint`, `absolute`, `relative`, `now`, `setToNow`, `startDate`, `endDate`, `minutesAgo`, `hoursAgo`, `daysAgo`, `all`
+
+### NotificationRuleList
+
+`rules`, `addRule`, `noRulesRegistered`
+
+---
+
+## 12. 타입/인터페이스
+
+### @/types/index.ts
+
+```typescript
+interface NotificationReceiver {
+  type: string;
+  values: string[];
+  webhook_url?: string;
+  webhook_headers?: Record<string, string>;
+  webhook_body?: string;
+}
+
+interface ChangeHistoryEntry {
+  user_id: string;
+  changed_at: string;
+  changed_fields?: string[];
+}
+
+interface NotificationRule {
+  id: string;
+  name: string;
+  description?: string;
+  target_index: string;
+  condition_config: Record<string, unknown>;
+  message_template: string;
+  severity: string;
+  interval_min: number;
+  trigger_condition?: string;
+  receiver: NotificationReceiver;
+  is_active: boolean;
+  last_triggered_at?: string;
+  total_alerts_count: number;
+  created_at: string;
+  updated_at: string;
+  change_history?: ChangeHistoryEntry[];
+}
+
+interface NotificationRuleCreate {
+  name: string;
+  description?: string;
+  target_index: string;
+  condition_config: Record<string, unknown>;
+  message_template: string;
+  severity: string;
+  interval_min: number;
+  trigger_condition?: string;
+  receiver: NotificationReceiver;
+  is_active: boolean;
+}
+
+interface NotificationRuleUpdate {
+  /* 모든 필드 Optional + changed_fields: string[] */
+}
+
+interface NotificationHistory {
+  id: string;
+  rule_id: string;
+  rule_name: string;
+  rule_description?: string;
+  rule_severity: string;
+  rule_target_index: string;
+  message: string;
+  message_template: string;
+  event_index: string;
+  dedup_key: string;
+  receiver: NotificationReceiver | null;
+  status: string;
+}
+```
+
+### 로컬 인터페이스
+
+```typescript
+// SeverityChip.tsx
+interface SeverityChipProps {
+  severity: string | null;
+  size?: 'small' | 'medium';
+  variant?: 'filled' | 'outlined';
+}
+
+// AlertsControlBar.tsx
+interface ControlBarProps {
+  t: (key: string, params?: Record<string, string>) => string;
+  fromValue: number | null; fromUnit: string;
+  toValue: number | null; toUnit: string;
+  fromDate: string | null; toDate: string | null;
+  onTimeChange: (fv, fu, tv, tu, fd, td) => void;
+  searchQuery: string;
+  onSearchQueryChange: (query: string) => void;
+  onRefresh: () => void;
+  lastUpdated?: string;
+}
+
+// NotificationRuleList.tsx
+interface NotificationRuleListProps {
+  rules: NotificationRule[];
+  selectedRuleId: string | null;
+  selectedRuleIds: Set<string>;
+  onSelect: (rule: NotificationRule) => void;
+  onToggleSelect: (ruleId: string) => void;
+  onSelectAll: (checked: boolean) => void;
+  onAdd: () => void;
+  onToggleActive: (rule: NotificationRule) => void;
+  loading: boolean;
+  t: (key: string, params?: Record<string, string>) => string;
+  width?: number;
+}
+
+// NotificationRuleDetail.tsx (27개 props)
+interface NotificationRuleDetailProps { /* 섹션 4 참조 */ }
+
+// WebhookHeadersEditor.tsx
+export interface HeaderEntry { key: string; value: string; }
+interface WebhookHeadersEditorProps {
+  headers: HeaderEntry[];
+  onChange: (headers: HeaderEntry[]) => void;
+  t: (key: string) => string;
+}
+
+// AlertTableFilterMenu.tsx
+interface FilterOption { value: string | boolean | null; label: string; }
+interface AlertTableFilterMenuProps {
+  anchorEl: MenuProps['anchorEl'];
+  open: boolean; onClose: () => void;
+  options: FilterOption[];
+  selectedValues: (string | boolean | null)[];
+  onToggle: (value: string | boolean | null) => void;
+  multiSelect?: boolean;
 }
 ```
 
 ---
 
-## 7. 사용 가능한 변수 목록
+## 13. 외부 의존성
 
-### 메시지 템플릿 변수
+### MUI Components
 
-| 변수 | 소스 | 예시 값 | 프론트 미리보기 |
-|------|------|--------|:---:|
-| `{{total}}` | `hits.total.value` | `42` | O |
-| `{{rule_name}}` | 규칙명 | `"High Threat Detection"` | O (formData) |
-| `{{rule_id}}` | 규칙 ID | `"rule-001"` | X |
-| `{{rule_severity}}` | 심각도 | `"critical"` | O (formData) |
-| `{{target_index}}` | 대상 인덱스 | `"logs-sentinel_one.edr"` | X |
-| `{{rule_target_index}}` | 대상 인덱스 (alias) | `"logs-sentinel_one.edr"` | O (formData) |
-| `{{hits.total.value}}` | OpenSearch 전체 응답 중첩 접근 | `5` | X |
-| `{{aggregations.*.buckets}}` | 집계 결과 | JSON array | X |
-| `{{endpoint.name}}` | _hit_sources 중첩 필드 | `"web-01"` | O |
-| `{{threatInfo.threatName}}` | _hit_sources 중첩 필드 (중복 제거, 줄바꿈 구분) | `"Malware.Gen\nTrojan"` | O |
+`Alert`, `Autocomplete`, `Box`, `Button`, `Checkbox`, `Chip`, `Collapse`, `Dialog`, `DialogActions`, `DialogContent`, `DialogTitle`, `Divider`, `FormControl`, `FormControlLabel`, `Grid`, `IconButton`, `LinearProgress`, `List`, `ListItemButton`, `ListItemIcon`, `ListItemText`, `Menu`, `MenuItem`, `Paper`, `Popover`, `Select`, `Snackbar`, `Stack`, `Switch`, `Tab`, `Tabs`, `TextField`, `Tooltip`, `Typography`
 
-### Webhook Body 변수
+### MUI Icons
 
-| 변수 | 소스 | 예시 값 |
-|------|------|--------|
-| `{{id}}` | 알림 ID | `"alert-abc123"` |
-| `{{rule_name}}` | 규칙명 | `"High Threat Detection"` |
-| `{{rule_severity}}` | 심각도 | `"critical"` |
-| `{{message}}` | 렌더링된 메시지 (위 메시지 템플릿 결과) | 전체 메시지 문자열 |
-| `{{created_at}}` | 알림 생성 시각 | `"2026-03-12T10:00:00"` |
-| `{{rule_target_index}}` | 대상 인덱스 | `"logs-sentinel_one.edr"` |
+`Add`, `ArrowForward`, `CalendarMonth`, `CheckBox`, `CheckBoxOutlineBlank`, `ChevronLeft`, `ChevronRight`, `Close`, `Delete`, `FileDownload`, `FileUpload`, `FilterList`, `History`, `KeyboardArrowDown`, `KeyboardArrowRight`, `NotificationsActive`, `PlayArrow`, `Refresh`, `RemoveCircleOutline`, `Search`, `Stop`
 
----
+### 기타
 
-## 8. 변수 해석 우선순위
+| 패키지 | 용도 |
+|--------|------|
+| `@monaco-editor/react` | DSL 쿼리 에디터, 웹훅 본문 에디터 |
+| `@mui/x-date-pickers` | `AdapterDayjs`, `DateCalendar`, `LocalizationProvider` |
+| `dayjs` + plugins | 시간 계산 (utc, locale) |
 
-### 백엔드 (단순 키, 예: `{{total}}`)
+### 커스텀 Hook/Store/유틸
 
-```
-1. context["total"] 직접 조회
-2. _hit_sources[0]["total"] fallback
-3. 못 찾으면 → "{{total}}" 유지
-```
-
-### 백엔드 (중첩 키, 예: `{{endpoint.name}}`)
-
-```
-1. context["endpoint"]["name"] 중첩 탐색
-2. context["endpoint.name"] flattened key
-3. _hit_sources 전체 순회:
-   3a. hit["endpoint"]["name"] 중첩 탐색
-   3b. hit["endpoint.name"] flattened key
-   → 유니크 값 추출, \n 구분
-4. 못 찾으면 → "{{endpoint.name}}" 유지
-```
-
-### 프론트엔드
-
-```
-1. 하드코딩 매칭: total, rule_name, rule_severity, rule_target_index
-2. hitSources 전체 순회:
-   2a. getNestedValue(source, path) → 중첩 탐색 + flattened fallback
-   → 유니크 값 추출, \n 구분
-3. 못 찾으면 → "{{변수명}}" 유지
-```
+| Import | 출처 |
+|--------|------|
+| `useAuth` | `@/hooks/useAuth` |
+| `useTranslation` | `@/hooks/useTranslation` |
+| `useWebSocket` | `@/hooks/useWebSocket` |
+| `useLanguageStore` | `@/stores/useLanguageStore` |
+| `useRoleCodesStore` | `@/stores/useRoleCodesStore` |
+| `useSettingsStore` | `@/stores/useSettingsStore` |
+| `notificationService` | `@/services/notificationService` |
+| `getRoleName` | `@/utils/roleUtils` |
+| `getAlertWsUrl` | `@/utils/wsUtils` |
 
 ---
 
-## 9. 알려진 이슈 & 불일치
+## 14. 알려진 이슈 & 개선점
 
-### 1. 단순 키 _hit_sources fallback 불일치
+### 14.1 `createdAt` prop 미사용
 
-**백엔드 코드** (line 204-207)에서는 단순 키도 `_hit_sources[0]`에서 탐색한다:
+`NotificationRuleDetail`에 `createdAt` prop이 전달되지만 컴포넌트 내에서 사용되지 않음.
 
-```python
-# 단순 키 접근 (total, rule_name 등)
-if '.' not in key:
-    value = context.get(key)
-    if value is None:
-        hit_sources = context.get("_hit_sources", [])
-        if hit_sources and isinstance(hit_sources, list):
-            value = hit_sources[0].get(key)  # ← fallback
-```
+### 14.2 `WebhookHeadersEditor`의 `t` prop 미사용
 
-그러나 **테스트 파일** (`test_hit_sources_simple_key_not_resolved`)은 단순 키가 `_hit_sources`를 탐색하지 **않는다**고 단언한다:
+`t` prop이 인터페이스에 정의되고 전달되지만 컴포넌트 본문에서 사용하지 않음 (placeholder를 하드코딩 "Key"/"Value"로 변경했기 때문).
 
-```python
-def test_hit_sources_simple_key_not_resolved(self, service):
-    template = "호스트: {{host}}"
-    ctx = {"_hit_sources": [{"host": "web-01"}]}
-    result = service._render_message_template(template, ctx)
-    assert result == "호스트: {{host}}"  # ← 실제 코드와 불일치
-```
+### 14.3 `GlobalAlertSnackbar` 외부 사용
 
-**현재 상태**: 이 테스트는 실패하고 있음 (코드가 실제로 `"web-01"`을 반환).
+이 디렉토리 내에서는 사용되지 않음. 상위 레이아웃/페이지에서 import하여 사용 중.
 
-### 2. 프론트엔드에서 접근 불가한 변수
+### 14.4 백엔드 테스트 불일치
 
-프론트엔드 미리보기에서는 다음 변수들이 해석되지 않는다:
-- `{{rule_id}}` — 아직 저장 전이므로 ID 없음
-- `{{target_index}}` — `rule_target_index`만 지원
-- `{{hits.total.value}}` — OpenSearch 응답의 전체 구조 탐색 미지원
-- `{{aggregations.*}}` — 집계 결과 접근 미지원
+`test_hit_sources_simple_key_not_resolved` 테스트는 단순 키가 `_hit_sources`를 탐색하지 않는다고 단언하지만, 실제 백엔드 코드는 `_hit_sources[0]`을 탐색함 → 테스트 FAIL.
 
-### 3. 정규식 차이
+### 14.5 Webhook Body의 제한적 변수
 
-- 백엔드: `[\w\.@]+` → `{{a[0]}}` 매칭 안 됨
-- 프론트엔드: `[^}]+` → `{{a[0]}}` 매칭됨 (하지만 해석은 안 됨)
-- 사용자가 잘못된 변수를 입력하면 양쪽에서 다르게 처리될 수 있음
-
-### 4. Webhook Body의 제한적 변수 세트
-
-Webhook Body 템플릿은 6개 변수만 사용 가능하며, `_hit_sources` 필드에 접근할 수 없다. 메시지 템플릿에서 `{{endpoint.name}}`을 쓸 수 있지만 Webhook Body에서는 불가능하다.
-
----
-
-## 10. 테스트 커버리지
-
-**파일**: `backend/tests/test_services/test_notification.py` (`TestMessageTemplateRendering` 클래스)
-
-| 테스트 | 검증 내용 | 상태 |
-|--------|----------|------|
-| `test_simple_variable` | `{{total}}` → `"42"` | PASS |
-| `test_nested_variable` | `{{hits.total.value}}` → `"100"` | PASS |
-| `test_multiple_variables` | 여러 변수 동시 치환 | PASS |
-| `test_missing_variable_preserved` | 미해석 변수 원문 유지 | PASS |
-| `test_hit_sources_extraction_with_nested_key` | 중첩 키로 _hit_sources 탐색 + 중복 제거 | PASS |
-| `test_hit_sources_simple_key_not_resolved` | 단순 키 _hit_sources 미탐색 (코드와 불일치) | **FAIL** |
-| `test_empty_template` | 빈 템플릿 → 빈 문자열 | PASS |
-
-**프론트엔드 테스트**: `renderMessagePreview`에 대한 단위 테스트는 현재 없음.
+Webhook Body는 6개 flat 변수만 지원. `_hit_sources` 필드나 중첩 키 접근 불가.
