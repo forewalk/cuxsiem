@@ -64,3 +64,6 @@ Thumbs.db
 
 # Mockup 데이터
 scripts/mockup/
+
+# 개인 연구 문서
+docs/research.md
