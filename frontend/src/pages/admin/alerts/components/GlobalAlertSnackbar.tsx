@@ -2,6 +2,7 @@ import React from 'react';
 import { Snackbar, Alert, Box, Typography } from '@mui/material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import type { AlertSnackbar } from '../../../../hooks/useGlobalAlertNotification';
+import { mapSeverityToMui } from './AlertTableStyles';
 
 interface GlobalAlertSnackbarProps {
   snackbars: AlertSnackbar[];
@@ -16,35 +17,6 @@ interface GlobalAlertSnackbarProps {
  * - useGlobalAlertNotification 훅과 함께 사용
  */
 export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackbars, onClose }) => {
-  // severity를 MUI Alert severity로 매핑
-  const getMuiSeverity = (severity: string): 'error' | 'warning' | 'info' | 'success' => {
-    if (!severity) {
-      return 'info';
-    }
-    
-    const severityLower = severity.toLowerCase().trim();
-    
-    // 이미 MUI severity 값인 경우 그대로 사용
-    if (severityLower === 'error' || severityLower === 'warning' || 
-        severityLower === 'info' || severityLower === 'success') {
-      return severityLower as 'error' | 'warning' | 'info' | 'success';
-    }
-    
-    // 커스텀 severity → MUI severity 매핑
-    if (severityLower === 'critical' || severityLower === 'high') {
-      return 'error';
-    }
-    if (severityLower === 'medium') {
-      return 'warning';
-    }
-    if (severityLower === 'low') {
-      return 'info';
-    }
-    
-    // 기본값
-    return 'info';
-  };
-
   // 최대 5개까지만 표시
   const visibleSnackbars = snackbars.slice(-5);
 
@@ -62,7 +34,7 @@ export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackb
         >
           <Alert
             onClose={() => onClose(snackbar.id)}
-            severity={getMuiSeverity(snackbar.severity)}
+            severity={mapSeverityToMui(snackbar.severity)}
             variant="filled"
             icon={<NotificationsActiveIcon />}
             sx={{ 

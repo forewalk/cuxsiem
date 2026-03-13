@@ -1,5 +1,6 @@
-import React from 'react';
 import { Chip } from '@mui/material';
+import React from 'react';
+import { mapSeverityToMui } from './AlertTableStyles';
 
 interface SeverityChipProps {
   severity: string | null;
@@ -14,25 +15,10 @@ export const SeverityChip: React.FC<SeverityChipProps> = ({
 }) => {
   if (!severity) return <>-</>;
 
-  const getMuiColor = (s: string): 'error' | 'warning' | 'info' | 'default' => {
-    switch (s.toLowerCase()) {
-      case 'critical':
-      case 'high':
-        return 'error';
-      case 'medium':
-        return 'warning';
-      case 'low':
-      case 'info':
-        return 'info';
-      default:
-        return 'default';
-    }
-  };
-
   return (
     <Chip
       label={severity.toUpperCase()}
-      color={getMuiColor(severity)}
+      color={mapSeverityToMui(severity)}
       size={size}
       variant={variant}
       sx={{
@@ -43,4 +29,3 @@ export const SeverityChip: React.FC<SeverityChipProps> = ({
     />
   );
 };
-

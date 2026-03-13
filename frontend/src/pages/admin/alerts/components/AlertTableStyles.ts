@@ -95,6 +95,21 @@ export const formatDateTimeWithTz = (dateString: string | null | undefined): str
 export const SEVERITY_OPTIONS = ['info', 'low', 'medium', 'high', 'critical'] as const;
 
 /**
+ * severity 문자열을 MUI 색상으로 매핑 (Chip color, Alert severity 공용)
+ * critical/high/error → error, medium/warning → warning, success → success, 나머지 → info
+ */
+export type MuiSeverityColor = 'error' | 'warning' | 'info' | 'success';
+
+export const mapSeverityToMui = (severity: string | null | undefined): MuiSeverityColor => {
+  if (!severity) return 'info';
+  const s = severity.toLowerCase().trim();
+  if (s === 'critical' || s === 'high' || s === 'error') return 'error';
+  if (s === 'medium' || s === 'warning') return 'warning';
+  if (s === 'success') return 'success';
+  return 'info';
+};
+
+/**
  * 활성 상태 필터 옵션
  */
 export const ACTIVE_STATUS_OPTIONS = [

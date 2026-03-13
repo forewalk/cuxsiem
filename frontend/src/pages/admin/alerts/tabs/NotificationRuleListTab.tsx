@@ -5,7 +5,6 @@ import { notificationService } from '@/services/notificationService.ts';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
-import { getRoleName } from '@/utils/roleUtils';
 import { getAlertWsUrl } from '@/utils/wsUtils';
 import {
   Delete as DeleteIcon,
@@ -65,13 +64,12 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
 const NotificationRuleListTab: React.FC = () => {
   const { user } = useAuth();
   const [rules, setRules] = useState<NotificationRule[]>([]);
-  const [setTotal] = useState(0);
   const [page] = useState(0);
   const { settings, fetchSettings } = useSettingsStore();
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const { t, language } = useTranslation();
-  const { roleCodes, roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
+  const { roleCodes, fetch: fetchRoleCodes } = useRoleCodesStore();
 
   const token = localStorage.getItem('access_token');
   const wsUrl = getAlertWsUrl();
@@ -222,7 +220,6 @@ const NotificationRuleListTab: React.FC = () => {
       };
       const data = await notificationService.getRules(params);
       setRules(data.items);
-      setTotal(data.total);
     } catch (error) {
       console.error('Failed to load rules:', error);
     } finally {
@@ -595,9 +592,7 @@ const NotificationRuleListTab: React.FC = () => {
           onWebhookBodyChange={handleWebhookBodyChange}
           onTestWebhook={handleTestWebhook}
           roleCodes={roleCodes}
-          roleNames={roleNames}
           language={language}
-          getRoleName={getRoleName}
           saveDisabled={!!jsonError || !formData.name}
           changeHistory={selectedRule?.change_history}
           createdAt={selectedRule?.created_at}
