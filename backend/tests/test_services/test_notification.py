@@ -738,3 +738,36 @@ class TestErrorHandling:
 
             await service._deliver_alert(alert, receiver)
             mock_webhook.assert_called_once()
+
+
+# ──────────────────────────────────────────────
+# 알림 내역 정렬 테스트
+# ──────────────────────────────────────────────
+
+class TestListNotificationsSorting:
+    """list_notifications에 sort_by/order 파라미터 전달 테스트"""
+
+    @pytest.fixture
+    def service(self):
+        svc = NotificationService()
+        svc.repository = MagicMock()
+        return svc
+
+    @pytest.mark.asyncio
+    async def test_default_sort_desc(self, service):
+        """기본 정렬은 created_at desc"""
+        service.repository.list_alerts = AsyncMock(return_value=(0, []))
+        await service.list_notifications(skip=0, limit=10)
+        service.repository.list_alerts.assert_called_once()
+        call_kwargs = service.repository.list_alerts.call_args
+        assert call_kwargs.kwargs.get('sort_by', 'created_at') == 'created_at'
+        assert call_kwargs.kwargs.get('order', 'desc') == 'desc'
+
+    @pytest.mark.asyncio
+    async def test_sort_asc(self, service):
+        """order=asc 전달 시 repository에 asc 전달"""
+        service.repository.list_alerts = AsyncMock(return_value=(0, []))
+        await service.list_notifications(skip=0, limit=10, sort_by='created_at', order='asc')
+        call_kwargs = service.repository.list_alerts.call_args
+        assert call_kwargs.kwargs['sort_by'] == 'created_at'
+        assert call_kwargs.kwargs['order'] == 'asc'

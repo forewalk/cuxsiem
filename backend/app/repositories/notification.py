@@ -317,7 +317,9 @@ class NotificationRepository:
         severities: Optional[List[str]] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
-        user_role: Optional[str] = None
+        user_role: Optional[str] = None,
+        sort_by: str = "created_at",
+        order: str = "desc"
     ) -> Tuple[int, List[Dict[str, Any]]]:
         """cs_alerts 인덱스에서 알림 내역 조회 with 검색, 시간 범위 및 role 기반 필터"""
         loop = asyncio.get_event_loop()
@@ -396,7 +398,7 @@ class NotificationRepository:
                     "from": skip,
                     "size": limit,
                     "query": search_query,
-                    "sort": [{"created_at": {"order": "desc"}}]
+                    "sort": [{sort_by: {"order": order}}]
                 }
             )
             total = result.get("hits", {}).get("total", {}).get("value", 0)

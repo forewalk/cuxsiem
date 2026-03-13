@@ -13,6 +13,8 @@ import {
   FilterList as FilterListIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -58,6 +60,7 @@ const NotificationHistoryTab: React.FC = () => {
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
 
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [severityAnchor, setSeverityAnchor] = useState<null | HTMLElement>(null);
 
   const toggleRow = (idx: number) => {
@@ -115,7 +118,9 @@ const NotificationHistoryTab: React.FC = () => {
         limit: rowsPerPage,
         query: searchQuery || undefined,
         from_date,
-        to_date
+        to_date,
+        sort_by: 'created_at',
+        order: sortOrder
       };
 
       if (selectedSeverities.length > 0) {
@@ -130,7 +135,7 @@ const NotificationHistoryTab: React.FC = () => {
     } finally {
       if (!isPolling) setLoading(false);
     }
-  }, [page, rowsPerPage, searchQuery, selectedSeverities, calculateTimeRange]);
+  }, [page, rowsPerPage, searchQuery, selectedSeverities, sortOrder, calculateTimeRange]);
 
   useEffect(() => { loadNotifications(); }, [loadNotifications]);
 
@@ -198,7 +203,15 @@ const NotificationHistoryTab: React.FC = () => {
             {/* 헤더 */}
             <Box sx={{ display: 'flex', bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider', py: 1, px: 2, alignItems: 'center' }}>
               <Box sx={{ width: 40, flexShrink: 0 }} />
-              <Typography variant="caption" sx={{ width: 200, minWidth: 200, flexShrink: 0, fontWeight: 'bold', fontSize: '0.75rem', px: 1 }}>{t('occurrenceDate')}</Typography>
+              <Box
+                sx={{ width: 200, minWidth: 200, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1, cursor: 'pointer' }}
+                onClick={() => { setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); setPage(0); }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('occurrenceDate')}</Typography>
+                {sortOrder === 'asc'
+                  ? <ArrowUpwardIcon sx={{ fontSize: 14, ml: 0.5 }} />
+                  : <ArrowDownwardIcon sx={{ fontSize: 14, ml: 0.5 }} />}
+              </Box>
               <Box sx={{ width: 120, minWidth: 120, flexShrink: 0, display: 'flex', alignItems: 'center', px: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('severity')}</Typography>
                 <IconButton size="small" onClick={(e) => setSeverityAnchor(e.currentTarget)} sx={{ p: 0.25, ml: 0.5 }}>

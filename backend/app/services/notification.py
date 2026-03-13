@@ -139,7 +139,9 @@ class NotificationService:
         severities: Optional[List[str]] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
-        user_role: Optional[str] = None
+        user_role: Optional[str] = None,
+        sort_by: str = "created_at",
+        order: str = "desc"
     ):
         """알림 내역 조회 (cs_alerts 인덱스에서 조회) - role 기반 필터링"""
         return await self.repository.list_alerts(
@@ -149,7 +151,9 @@ class NotificationService:
             severities=severities,
             from_date=from_date,
             to_date=to_date,
-            user_role=user_role
+            user_role=user_role,
+            sort_by=sort_by,
+            order=order
         )
 
     def _render_message_template(self, template: str, context: Dict[str, Any]) -> str:

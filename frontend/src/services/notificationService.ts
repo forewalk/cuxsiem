@@ -8,6 +8,8 @@ interface GetNotificationsParams {
   severities?: string;
   from_date?: string;
   to_date?: string;
+  sort_by?: string;
+  order?: string;
 }
 
 interface GetRulesParams {
