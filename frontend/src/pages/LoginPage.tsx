@@ -440,7 +440,7 @@ export const LoginPage: React.FC = () => {
               }}
             >
               <img 
-                src="/cruxsiem_symbol.svg" 
+                src="/cruxsiem_vertical.svg" 
                 alt="Logo" 
                 style={{ width: "100%", height: "100%", objectFit: "contain" }} 
               />
