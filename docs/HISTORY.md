@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-13 | 김장훈 | 배포 | origin/develop push (ROADMAP 업데이트 — 보안 침입테스트, 라이선스, Heartbeat, 다중화, Rules 엔진 등 신규 항목 추가) |
 | 2026-03-12 14:25 | 박지은 | 배포 | origin/develop push (Monaco 에디터 CDN 의존 제거, 폐쇄망 로컬 번들링 전환) |
 | 2026-03-11 17:17 | 최지호 | 수정 | origin/feature/dashboard push (리스트 필드 순서 변경을 위한 수정모드 추가) |
 | 2026-03-11 | 박지은 | 수정 | develop에 feature/dashboard 머지 (EDR-리스트 요구사항 적용, 충돌 마커 제거) |
