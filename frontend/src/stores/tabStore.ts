@@ -17,6 +17,7 @@ interface TabState {
   setActiveTab: (id: string) => void;
   setMaxTabs: (count: number) => void;
   reorderTabs: (startIndex: number, endIndex: number) => void;
+  clearAndGoHome: (homeTab: Omit<TabInfo, 'id'>) => void;
 }
 
 const useTabStore = create<TabState>((set, get) => ({
@@ -89,6 +90,18 @@ const useTabStore = create<TabState>((set, get) => ({
 
   setActiveTab: (id) => set({ activeTabId: id }),
   setMaxTabs: (count) => set({ maxTabs: count }),
+
+  clearAndGoHome: (homeTab) => {
+    // 모든 탭 스토어 리셋
+    import('./useDashboardStore').then(m => m.default.getState().reset());
+    import('./useThreatStore').then(m => m.default.getState().reset());
+    import('./useEdrStore').then(m => m.default.getState().reset());
+    import('./useAgentStore').then(m => m.default.getState().reset());
+
+    const id = homeTab.component;
+    const newTab: TabInfo = { ...homeTab, id };
+    set({ tabs: [newTab], activeTabId: id });
+  },
 }));
 
 export default useTabStore;

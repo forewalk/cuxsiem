@@ -21,6 +21,16 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useTabStore from '../stores/tabStore';
 
+import koMessages from '../locales/ko.json';
+import enMessages from '../locales/en.json';
+import jaMessages from '../locales/ja.json';
+import cnMessages from '../locales/cn.json';
+const _allLocales: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
+function _t(key: string): string {
+  const lang = localStorage.getItem('appLanguage') || 'ko';
+  return _allLocales[lang]?.[key] ?? _allLocales['ko']?.[key] ?? key;
+}
+
 interface AdminSidemenuProps {
   t: (key: string, params?: Record<string, string>) => string;
   userRole: string | undefined;
@@ -45,7 +55,14 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
   const theme = useTheme();
   const navigate = useNavigate();
-  const { addTab, activeTabId } = useTabStore();
+  const { addTab, activeTabId, clearAndGoHome } = useTabStore();
+
+  const handleGoHome = () => {
+    clearAndGoHome({ label: _t('threatDashboardTitle'), component: 'DashboardTab', labelKey: 'threatDashboardTitle' });
+    if (!drawerOpen && !isMobile) handleDrawerToggle();
+    if (isMobile) handleDrawerToggle();
+    if (window.location.pathname !== '/main') navigate('/main');
+  };
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // 상태 변경 시 localStorage 저장
@@ -137,17 +154,28 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
         },
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between', px: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Toolbar sx={{ justifyContent: 'space-between', px: 1, minHeight: 56 }}>
+        <Box
+          onClick={handleGoHome}
+          sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 1, flexGrow: 1, overflow: 'hidden' }}
+        >
+          <img src="/favicon.svg" alt="logo" style={{ width: 28, height: 28, flexShrink: 0 }} />
           {(drawerOpen || isMobile) && (
-            <Typography variant="h6" noWrap sx={{ ml: 1, fontWeight: 'bold' }}>
+            <Typography variant="h6" noWrap sx={{ fontWeight: 'bold' }}>
               CruxSIEM
             </Typography>
           )}
         </Box>
-        <IconButton onClick={handleDrawerToggle}>
-          {isMobile ? <CloseIcon /> : (drawerOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />)}
-        </IconButton>
+        {!isMobile && (
+          <IconButton size="small" onClick={handleDrawerToggle}>
+            {drawerOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+        )}
+        {isMobile && (
+          <IconButton size="small" onClick={handleDrawerToggle}>
+            <CloseIcon />
+          </IconButton>
+        )}
       </Toolbar>
 
       <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
