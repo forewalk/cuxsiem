@@ -36,28 +36,48 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   description: '',
   target_index: 'logs-sentinel_one.edr',
   condition_config: {
-    query: {
-      bool: {
-        must: [{ match_all: {} }],
-        filter: [{ range: { "@timestamp": { gte: "now-1m" } } }]
+    "query": {
+      "bool": {
+        "filter": [
+          {
+            "range": {
+              "@timestamp": {
+                "gte": "now-1d"
+              }
+            }
+          },
+          {
+            "term": {
+              "event.type": "File Modification"
+            }
+          }
+        ]
       }
     },
-    size: 100
+    "aggs": {
+      "processName": {
+        "terms": {
+          "field": "src.process.name"
+        }
+      },
+      "agentOS": {
+        "terms": {
+          "field": "endpoint.os"
+        }
+      }
+    }
   },
-  message_template: `총 {{hits.total.value}}건의 이벤트가 탐지되었습니다.
-
-호스트: {{hits.hits[0]._source.endpoint.name}} ({{hits.hits[0]._source.endpoint.os}})
-이벤트: {{hits.hits[0]._source.event.type}} / {{hits.hits[0]._source.event.category}}
-
-프로세스: {{hits.hits[0]._source.src.process.name}} (PID: {{hits.hits[0]._source.src.process.pid}})
-실행 경로: {{hits.hits[0]._source.src.process.image.path}}
-실행 사용자: {{hits.hits[0]._source.src.process.user}}
-명령어: {{hits.hits[0]._source.src.process.cmdline}}
+  message_template: `
+============AgentOS 집계===================
+{{aggregations.agentOS.buckets}}
+============ProcessName 집계===============
+{{aggregations.processName.buckets}}
+==========================================
 
 `,
   severity: 'info',
   interval_min: 1,
-  trigger_condition: '',
+  trigger_condition: 'hits.total.value > 0',
   receiver: { type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: { 'Content-Type': 'application/json' }, webhook_body: '{\n  "rule_name": "{{rule_name}}",\n  "severity": "{{rule_severity}}",\n  "message": "{{message}}",\n  "created_at": "{{created_at}}"\n}' },
   is_active: true
 };
