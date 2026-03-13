@@ -168,6 +168,24 @@ const AdvancedSettingsTab: React.FC = () => {
       return;
     }
 
+    const idleTimeout = settings.session_idle_timeout ?? 0;
+    if (idleTimeout < 0 || idleTimeout > 1440) {
+      setSnackbar({ open: true, message: t('sessionIdleTimeoutError'), severity: 'error' });
+      return;
+    }
+
+    const paginationSz = settings.pagination_size ?? 10;
+    if (paginationSz < 10 || paginationSz > 500) {
+      setSnackbar({ open: true, message: t('paginationSizeError'), severity: 'error' });
+      return;
+    }
+
+    const timeFilterVal = settings.time_filter_duration ?? 15;
+    if (timeFilterVal < 1 || timeFilterVal > 100) {
+      setSnackbar({ open: true, message: t('timeFilterDurationError'), severity: 'error' });
+      return;
+    }
+
     const tabCnt = settings.tab_count;
     if (tabCnt === undefined || isNaN(Number(tabCnt)) || Number(tabCnt) < 1 || Number(tabCnt) > 10) {
       setSnackbar({ open: true, message: t('tabCountError'), severity: 'error' });
@@ -255,7 +273,11 @@ const AdvancedSettingsTab: React.FC = () => {
                 />
                 <Box>
                   <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('sessionDuration')}</Typography>
-                  <TextField fullWidth size="small" type="number" value={settings.session_duration ?? 30} onChange={(e) => handleChange('session_duration', Number(e.target.value))} helperText={t('sessionDurationDesc')} />
+                  <TextField fullWidth size="small" type="number" value={settings.session_duration ?? 30} onChange={(e) => handleChange('session_duration', Number(e.target.value))} helperText={t('sessionDurationDesc')} inputProps={{ min: 1, max: 1440 }} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('sessionIdleTimeout')}</Typography>
+                  <TextField fullWidth size="small" type="number" value={settings.session_idle_timeout ?? 0} onChange={(e) => handleChange('session_idle_timeout', Number(e.target.value))} helperText={t('sessionIdleTimeoutDesc')} inputProps={{ min: 0, max: 1440 }} />
                 </Box>
                 <Box>
                   <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 500 }}>{t('userRoleNames')}</Typography>
@@ -295,12 +317,12 @@ const AdvancedSettingsTab: React.FC = () => {
                 <Stack spacing={3}>
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('paginationValue')}</Typography>
-                    <TextField fullWidth size="small" type="number" value={settings.pagination_size || ''} onChange={(e) => handleChange('pagination_size', Number(e.target.value))} />
+                    <TextField fullWidth size="small" type="number" value={settings.pagination_size || ''} onChange={(e) => handleChange('pagination_size', Number(e.target.value))} helperText={t('paginationValueDesc')} inputProps={{ min: 10, max: 500 }} />
                   </Box>
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 500 }}>{t('timeFilterValue')}</Typography>
                     <Stack direction="row" spacing={1}>
-                      <TextField fullWidth size="small" type="number" value={settings.time_filter_duration || ''} onChange={(e) => handleChange('time_filter_duration', Number(e.target.value))} sx={{ flex: 1 }} />
+                      <TextField fullWidth size="small" type="number" value={settings.time_filter_duration || ''} onChange={(e) => handleChange('time_filter_duration', Number(e.target.value))} helperText={t('timeFilterDurationDesc')} inputProps={{ min: 1, max: 100 }} sx={{ flex: 1 }} />
                       <FormControl size="small" sx={{ flex: 1 }}>
                         <Select value={settings.time_filter_unit || 'm'} onChange={(e) => handleChange('time_filter_unit', e.target.value)}>
                           <MenuItem value="m">{t('minute')}</MenuItem>

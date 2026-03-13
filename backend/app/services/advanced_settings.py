@@ -37,6 +37,7 @@ class AdvancedSettingsService:
                 log_stream_size=1000,
                 log_stream_refresh=10,
                 session_duration=30,
+                session_idle_timeout=0,
                 otp_required=False,
             )
             # 글로벌 설정이 아예 없는 경우에만 저장 (최초 초기화용)
@@ -60,6 +61,7 @@ class AdvancedSettingsService:
             log_stream_size=update_data.log_stream_size,
             log_stream_refresh=update_data.log_stream_refresh,
             session_duration=update_data.session_duration,
+            session_idle_timeout=update_data.session_idle_timeout,
             otp_required=update_data.otp_required,
         )
         return await self.repository.update_settings(settings)

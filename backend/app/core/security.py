@@ -1,6 +1,7 @@
 """보안 관련 유틸리티 (비밀번호 해싱, JWT 토큰 관리)"""
 from datetime import datetime, timedelta
 from typing import Optional
+
 import hashlib
 import hmac
 import bcrypt
@@ -138,5 +139,25 @@ async def get_current_user(credentials = Depends(security)) -> str:
             detail="세션이 만료되었거나 다른 기기에서 접속하여 로그아웃되었습니다.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # 슬라이딩 세션: 무활동 만료 체크 및 last_active_at 갱신
+    from app.services.advanced_settings import advanced_settings_service
+    settings = await advanced_settings_service.get_settings()
+    idle_timeout = getattr(settings, 'session_idle_timeout', 0) or 0
+
+    if idle_timeout > 0:
+        from datetime import timedelta
+        now = datetime.utcnow()
+        last_active = session.last_active_at or session.created_at
+        if last_active and (now - last_active) > timedelta(minutes=idle_timeout):
+            await session_repo.invalidate(session.id)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="무활동으로 인해 세션이 만료되었습니다.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        # 1분 이상 지났을 때만 갱신 (OpenSearch 쓰기 빈도 제한)
+        if not last_active or (now - last_active) > timedelta(minutes=1):
+            await session_repo.update_last_active(session.id)
 
     return user_id

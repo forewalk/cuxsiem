@@ -49,6 +49,7 @@ class Session:
     user_agent: Optional[str] = None
     created_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
+    last_active_at: Optional[datetime] = None
     is_active: bool = True
 
     def to_dict(self) -> dict:
@@ -60,6 +61,7 @@ class Session:
             "user_agent": self.user_agent,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "last_active_at": self.last_active_at.isoformat() if self.last_active_at else None,
             "is_active": self.is_active,
         }
 

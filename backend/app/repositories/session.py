@@ -150,6 +150,58 @@ class SessionRepository:
 
         return await loop.run_in_executor(None, bulk_update)
 
+    async def update_last_active(self, session_id: str) -> None:
+        """마지막 활동 시간 갱신 (슬라이딩 세션용)"""
+        loop = asyncio.get_event_loop()
+        now_iso = datetime.utcnow().isoformat()
+
+        def update():
+            try:
+                self.client.update(
+                    index=self.index,
+                    id=session_id,
+                    body={"doc": {"last_active_at": now_iso}},
+                    refresh=False  # 성능: 즉시 반영 불필요
+                )
+            except Exception:
+                pass  # 갱신 실패는 무시 (세션 무효화 아님)
+
+        await loop.run_in_executor(None, update)
+
+    async def expire_idle_sessions(self, idle_minutes: int) -> int:
+        """무활동 세션 만료 처리 (슬라이딩 방식 스케줄러용)"""
+        loop = asyncio.get_event_loop()
+        from datetime import timedelta
+        cutoff = (datetime.utcnow() - timedelta(minutes=idle_minutes)).isoformat()
+
+        def bulk_expire():
+            try:
+                # last_active_at이 cutoff보다 오래됐거나, last_active_at 없이 created_at 기준 초과된 세션
+                query = {
+                    "query": {
+                        "bool": {
+                            "filter": [{"term": {"is_active": True}}],
+                            "should": [
+                                {"range": {"last_active_at": {"lt": cutoff}}},
+                                {"bool": {
+                                    "must_not": {"exists": {"field": "last_active_at"}},
+                                    "filter": [{"range": {"created_at": {"lt": cutoff}}}]
+                                }}
+                            ],
+                            "minimum_should_match": 1
+                        }
+                    },
+                    "script": {"source": "ctx._source.is_active = false", "lang": "painless"}
+                }
+                result = self.client.update_by_query(index=self.index, body=query, refresh=True)
+                return result.get("updated", 0)
+            except Exception as e:
+                import logging
+                logging.error(f"Error expiring idle sessions: {e}")
+                return 0
+
+        return await loop.run_in_executor(None, bulk_expire)
+
     async def invalidate(self, session_id: str) -> None:
         """세션 무효화 (로그아웃)"""
         loop = asyncio.get_event_loop()
@@ -176,5 +228,6 @@ class SessionRepository:
             user_agent=data.get("user_agent"),
             created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
             expires_at=datetime.fromisoformat(data["expires_at"]) if data.get("expires_at") else None,
+            last_active_at=datetime.fromisoformat(data["last_active_at"]) if data.get("last_active_at") else None,
             is_active=data.get("is_active", True),
         )
