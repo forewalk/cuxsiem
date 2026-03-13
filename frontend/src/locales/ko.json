@@ -352,6 +352,7 @@
   "noRulesRegistered": "등록된 규칙이 없습니다.",
   "recentAlerts": "최근 알림",
   "noAlerts": "알림 내역이 없습니다",
+  "allNotificationsConfirmed": "모든 알림을 확인했습니다.",
   "viewAll": "전체 보기",
   "roleDefault1": "관리자",
   "roleDefault2": "모니터링",

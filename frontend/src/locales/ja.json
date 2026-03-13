@@ -339,6 +339,7 @@
   "noRulesRegistered": "登録されたルールがありません。",
   "recentAlerts": "最近のアラート",
   "noAlerts": "アラート履歴がありません",
+  "allNotificationsConfirmed": "すべての通知を確認しました。",
   "viewAll": "すべて見る",
   "roleDefault1": "管理者",
   "roleDefault2": "モニタリング",

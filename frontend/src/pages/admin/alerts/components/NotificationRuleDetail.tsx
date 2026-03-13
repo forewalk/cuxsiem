@@ -108,14 +108,14 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
 
   if (!showForm) {
     return (
-      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.paper', borderRadius: 1.5 }}>
+      <Paper elevation={1} sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5 }}>
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{t('selectRulePrompt')}</Typography>
-      </Box>
+      </Paper>
     );
   }
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'background.paper', borderRadius: 1.5, overflow: 'hidden' }}>
+    <Paper elevation={1} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRadius: 1.5, overflow: 'hidden' }}>
       {/* 헤더 */}
       <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
@@ -420,6 +420,6 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
           )}
         </Grid>
       </Box>
-    </Box>
+    </Paper>
   );
 };

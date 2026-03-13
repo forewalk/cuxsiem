@@ -88,6 +88,7 @@ export const WebhookHeadersEditor: React.FC<WebhookHeadersEditorProps> = ({ head
               />
             )}
             ListboxProps={{ sx: { fontSize: '0.75rem' } }}
+            slotProps={{ paper: { elevation: 8 } }}
           />
           <TextField
             size="small"

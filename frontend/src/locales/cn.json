@@ -328,6 +328,7 @@
   "noRulesRegistered": "暂无已注册的规则。",
   "recentAlerts": "最近通知",
   "noAlerts": "暂无通知记录",
+  "allNotificationsConfirmed": "已确认所有通知。",
   "viewAll": "查看全部",
   "roleDefault1": "管理员",
   "roleDefault2": "监控",

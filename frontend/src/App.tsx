@@ -131,6 +131,7 @@ function App() {
       },
       background: {
         default: darkMode ? "#121212" : "#F4F5F7",
+        paper: darkMode ? "#1E1E1E" : "#FFFFFF",
       },
     },
     components: {

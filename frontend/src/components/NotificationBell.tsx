@@ -26,7 +26,7 @@ import 'dayjs/locale/ko';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import utc from 'dayjs/plugin/utc';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
@@ -38,6 +38,8 @@ const DAYJS_LOCALE_MAP: Record<string, string> = {
   cn: 'zh-cn',
 };
 
+const LAST_CONFIRMED_KEY = 'notificationBellLastConfirmedAt';
+
 interface NotificationBellProps {
   unreadCount: number;
   onOpen: () => void;
@@ -47,27 +49,55 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [notifications, setNotifications] = useState<NotificationHistory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const isFirstOpenSinceMount = useRef(true);
   const { addTab } = useTabStore();
   const { language } = useLanguageStore();
   const { t } = useTranslation();
   const dayjsLocale = DAYJS_LOCALE_MAP[language] || 'en';
 
+  useEffect(() => {
+    const lastConfirmed = localStorage.getItem(LAST_CONFIRMED_KEY);
+    if (lastConfirmed) {
+      notificationService.getNotifications({ skip: 0, limit: 1, from_date: lastConfirmed })
+        .then(data => setPendingCount(data.total))
+        .catch(() => {});
+    }
+  }, []);
+
+  const totalUnread = unreadCount + pendingCount;
+
   const handleOpen = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(e.currentTarget);
+    const currentUnread = unreadCount;
+    const isFirstOpen = isFirstOpenSinceMount.current;
+    isFirstOpenSinceMount.current = false;
     onOpen();
-    setLoading(true);
-    try {
-      const data = await notificationService.getNotifications({ limit: 5, skip: 0 });
-      setNotifications(data.items);
-    } catch {
+
+    if (currentUnread > 0 || (isFirstOpen && pendingCount > 0)) {
+      setLoading(true);
+      try {
+        const params: Record<string, any> = { skip: 0 };
+        const lastConfirmed = localStorage.getItem(LAST_CONFIRMED_KEY);
+        if (lastConfirmed) {
+          params.from_date = lastConfirmed;
+        }
+        const data = await notificationService.getNotifications(params);
+        setNotifications(data.items);
+      } catch {
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+      }
+    } else {
       setNotifications([]);
-    } finally {
-      setLoading(false);
     }
-  }, [onOpen]);
+    setPendingCount(0);
+  }, [onOpen, unreadCount, pendingCount]);
 
   const handleClose = useCallback(() => {
     setAnchorEl(null);
+    localStorage.setItem(LAST_CONFIRMED_KEY, new Date().toISOString());
   }, []);
 
   const handleViewAll = useCallback(() => {
@@ -80,8 +110,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
   return (
     <>
       <IconButton onClick={handleOpen} sx={{ color: 'text.primary', p: { xs: 0.5, sm: 1 } }}>
-        <Badge badgeContent={unreadCount} color="error" max={99}>
-          {unreadCount > 0
+        <Badge badgeContent={totalUnread} color="error" max={99}>
+          {totalUnread > 0
             ? <NotificationsIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
             : <NotificationsNoneIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
           }
@@ -94,15 +124,15 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
         onClose={handleClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { mt: 1.5, width: 360, maxHeight: 480, display: 'flex', flexDirection: 'column', boxShadow: 0, border: '1px solid', borderColor: 'divider' } } }}
+        slotProps={{ paper: { elevation: 8, sx: { mt: 1.5, width: 360, maxHeight: 480, display: 'flex', flexDirection: 'column', border: '1px solid', borderColor: 'divider' } } }}
       >
         {/* 헤더 */}
         <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <NotificationsIcon fontSize="small" color="primary" />
-            <Typography variant="subtitle2" fontWeight={700}>{t('recentAlerts')}</Typography>
-            {unreadCount > 0 && (
-              <Chip label={`+${unreadCount}`} size="small" color="error" sx={{ height: 18, fontSize: '0.65rem' }} />
+            <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.75rem' }}>{t('recentAlerts')}</Typography>
+            {totalUnread > 0 && (
+              <Chip label={`+${totalUnread}`} size="small" color="error" sx={{ height: 18, fontSize: '0.65rem' }} />
             )}
           </Box>
         </Box>
@@ -115,7 +145,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
             </Box>
           ) : notifications.length === 0 ? (
             <Box sx={{ py: 4, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.disabled">{t('noAlerts')}</Typography>
+              <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
+                {localStorage.getItem(LAST_CONFIRMED_KEY) ? t('allNotificationsConfirmed') : t('noAlerts')}
+              </Typography>
             </Box>
           ) : (
             <List disablePadding>
@@ -130,11 +162,11 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
                       <Typography
                         variant="body2"
                         fontWeight={600}
-                        sx={{ flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        sx={{ flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem' }}
                       >
                         {n.rule_name}
                       </Typography>
-                      <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>
+                      <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0, fontSize: '0.65rem' }}>
                         {dayjs.utc(n.created_at).local().locale(dayjsLocale).fromNow()}
                       </Typography>
                     </Box>
@@ -153,7 +185,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onOpen
             size="small"
             endIcon={<OpenInNewIcon fontSize="small" />}
             onClick={handleViewAll}
-            sx={{ textTransform: 'none', fontWeight: 500 }}
+            sx={{ textTransform: 'none', fontWeight: 500, fontSize: '0.75rem' }}
           >
             {t('viewAll')}
           </Button>

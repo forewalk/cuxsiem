@@ -336,6 +336,7 @@
   "noRulesRegistered": "No rules registered.",
   "recentAlerts": "Recent Alerts",
   "noAlerts": "No alerts",
+  "allNotificationsConfirmed": "All notifications confirmed.",
   "viewAll": "View All",
   "roleDefault1": "Admin",
   "roleDefault2": "Monitoring",
