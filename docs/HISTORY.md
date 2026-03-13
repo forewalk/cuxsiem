@@ -25,6 +25,8 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-13 14:29 | 박지은 | 배포 | origin/feature/dashboard push (왼쪽 필드 패널 드래그 리사이즈, origin/develop 머지) |
+| 2026-03-13 | 김장훈 | 배포 | origin/develop push (버전 자동 주입 — Dockerfile build-arg, 사이드바/로그인 버전 표시) |
 | 2026-03-13 | 김장훈 | 배포 | origin/main push (develop 머지 — 대시보드, Rules 엔진, Monaco 에디터, ROADMAP 등) |
 | 2026-03-13 | 김장훈 | 배포 | origin/develop push (ROADMAP 업데이트 — 보안 침입테스트, 라이선스, Heartbeat, 다중화, Rules 엔진 등 신규 항목 추가) |
 | 2026-03-12 14:25 | 박지은 | 배포 | origin/develop push (Monaco 에디터 CDN 의존 제거, 폐쇄망 로컬 번들링 전환) |

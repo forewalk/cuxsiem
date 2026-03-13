@@ -440,7 +440,7 @@ export const LoginPage: React.FC = () => {
               }}
             >
               <img 
-                src="/cruxsiem_symbol.svg" 
+                src="/cruxsiem_vertical.svg" 
                 alt="Logo" 
                 style={{ width: "100%", height: "100%", objectFit: "contain" }} 
               />
@@ -624,6 +624,14 @@ export const LoginPage: React.FC = () => {
                 sx={{ color: darkMode ? "#888888" : "#999999" }}
               >
                 {t("copyright")}
+              </Typography>
+              <Typography
+                variant="caption"
+                display="block"
+                textAlign="center"
+                sx={{ color: darkMode ? "#555555" : "#cccccc", mt: 0.5 }}
+              >
+                version: {import.meta.env.VITE_APP_VERSION || 'dev'}
               </Typography>
             </Box>
           </Box>

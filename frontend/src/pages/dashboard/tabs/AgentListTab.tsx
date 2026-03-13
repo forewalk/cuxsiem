@@ -62,6 +62,19 @@ const AgentListTab: React.FC = () => {
 
   const resizingRef = useRef<{ field: string; startX: number; startWidth: number } | null>(null);
 
+  const [panelWidth, setPanelWidth] = useState(280);
+  const panelResizing = useRef(false);
+  const handlePanelMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    panelResizing.current = true;
+    const startX = e.clientX;
+    const startW = panelWidth;
+    const onMove = (ev: MouseEvent) => { if (panelResizing.current) setPanelWidth(Math.max(160, Math.min(500, startW + ev.clientX - startX))); };
+    const onUp = () => { panelResizing.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [panelWidth]);
+
   const handleResizeStart = (e: React.MouseEvent, field: string) => {
     e.stopPropagation();
     e.preventDefault();
@@ -403,10 +416,11 @@ const AgentListTab: React.FC = () => {
       />
       {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
       <Box sx={{ display: 'flex', flex: '1 1 0', overflow: 'hidden', gap: { xs: 1, md: 3 }, mt: { xs: 1, md: 2 }, minHeight: 0 }}>
-        <Paper elevation={1} sx={{ width: { xs: 0, md: 280 }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
+        <Paper elevation={1} sx={{ width: { xs: 0, md: panelWidth }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
           <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields')} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover' } }} /></Box>
           <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
           <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1, minHeight: 0 }}><List disablePadding sx={{ mb: 2 }}>{selectedList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} selected onAction={handleToggleField} />)}</List><Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, px: 0.5, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('availableFields')}</Typography><List disablePadding sx={{ pb: 4 }}>{availableList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} onAction={handleToggleField} />)}</List></Box>
+          <Box onMouseDown={handlePanelMouseDown} sx={{ position: 'absolute', top: 0, right: 0, width: 4, height: '100%', cursor: 'col-resize', '&:hover': { bgcolor: 'primary.main' }, zIndex: 1 }} />
         </Paper>
         <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Box sx={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1.5, pr: 0 }}>

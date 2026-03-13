@@ -37,7 +37,7 @@ if [ ! -f "./frontend/package-lock.json" ]; then
 fi
 
 echo "Building Frontend Image (cruxsiem/frontend:$VERSION)..."
-docker build --platform linux/amd64 -t cruxsiem/frontend:"$VERSION" ./frontend
+docker build --platform linux/amd64 --build-arg APP_VERSION="$VERSION" -t cruxsiem/frontend:"$VERSION" ./frontend
 
 # 3. Save Images to Tarball
 ARCHIVE_NAME="cruxsiem-images-$VERSION.tar.gz"
