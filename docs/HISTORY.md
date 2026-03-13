@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-13 | 김장훈 | 배포 | origin/develop push (슬라이딩 세션, 고급설정 가이드, 사이드바 로고/홈 이동) |
 | 2026-03-13 14:54 | 박지은 | 배포 | origin/develop push (feature/alerts 머지 — 웹훅 헤더 K-V UI, 메시지 템플릿 통일, 패널 리사이즈 개선) |
 | 2026-03-13 14:38 | 박지은 | 수정 | feature/alerts에 origin/feature/dashboard 머지 |
 | 2026-03-13 14:29 | 박지은 | 배포 | origin/feature/dashboard push (왼쪽 필드 패널 드래그 리사이즈, origin/develop 머지) |
