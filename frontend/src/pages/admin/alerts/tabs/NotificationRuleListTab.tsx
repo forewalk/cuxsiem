@@ -155,39 +155,62 @@ const NotificationRuleListTab: React.FC = () => {
       const total = queryTestResult.hits?.total?.value || 0;
       const hits = queryTestResult.hits?.hits || [];
       const hitSources = hits.map((h: any) => h._source);
-      const getNestedValue = (obj: any, path: string): any => {
-        const keys = path.split('.');
+
+      const getNestedValue = (obj: any, keys: string[]): any => {
         if (!obj) return null;
         let value = obj;
-        let foundNested = true;
-        for (const key of keys) {
-          if (value && typeof value === 'object' && key in value) { value = value[key]; } else { foundNested = false; break; }
+        for (const k of keys) {
+          if (value && typeof value === 'object' && k in value) { value = value[k]; } else { return null; }
         }
-        if (foundNested) return value;
-        if (obj[path] !== undefined) return obj[path];
-        return null;
+        return value;
       };
-      preview = preview.replace(/\{\{([^}]+)\}\}/g, (match: string, varName: string) => {
-        const trimmed = varName.trim();
-        if (trimmed === 'total') return String(total);
-        if (trimmed === 'rule_name') return formData.name || trimmed;
-        if (trimmed === 'rule_severity') return formData.severity || trimmed;
-        if (trimmed === 'rule_target_index') return formData.target_index || trimmed;
+
+      const toStr = (value: any): string => {
+        if (typeof value === 'object' && value !== null) return JSON.stringify(value, null, 2);
+        return String(value);
+      };
+
+      const context: Record<string, any> = {
+        ...queryTestResult,
+        total,
+        rule_name: formData.name || '',
+        rule_id: selectedRule?.id || '',
+        rule_severity: formData.severity || '',
+        target_index: formData.target_index || '',
+        rule_target_index: formData.target_index || '',
+        _hit_sources: hitSources,
+      };
+
+      preview = preview.replace(/\{\{\s*([\w.@]+)\s*\}\}/g, (_match: string, key: string) => {
+        if (!key.includes('.')) {
+          let value = context[key];
+          if (value === undefined || value === null) {
+            if (hitSources.length > 0) value = hitSources[0]?.[key];
+          }
+          if (value !== undefined && value !== null) return toStr(value);
+          return `{{${key}}}`;
+        }
+
+        const keys = key.split('.');
+        const ctxValue = getNestedValue(context, keys) ?? (context[key] !== undefined ? context[key] : null);
+        if (ctxValue !== null && ctxValue !== undefined) return toStr(ctxValue);
+
         if (hitSources.length > 0) {
-          const values = hitSources.map((source: any) => {
-            const val = getNestedValue(source, trimmed);
-            return val !== null && val !== undefined ? String(val) : null;
-          }).filter((v: string | null) => v !== null);
+          const values: string[] = [];
+          for (const hit of hitSources) {
+            const v = getNestedValue(hit, keys) ?? (hit[key] !== undefined ? hit[key] : null);
+            if (v !== null && v !== undefined) values.push(toStr(v));
+          }
           if (values.length > 0) {
-            const uniqueValues = Array.from(new Set(values));
-            return uniqueValues.join('\n');
+            const unique = [...new Set(values)];
+            return unique.join('\n');
           }
         }
-        return match;
+        return `{{${key}}}`;
       });
     }
     return preview;
-  }, [formData.message_template, formData.name, formData.severity, formData.target_index, queryTestResult]);
+  }, [formData.message_template, formData.name, formData.severity, formData.target_index, queryTestResult, selectedRule]);
 
   const loadRules = useCallback(async () => {
     if (!user || user.role !== 'role-1') { setLoading(false); return; }
