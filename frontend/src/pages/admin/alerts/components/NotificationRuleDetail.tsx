@@ -1,4 +1,6 @@
+import type { ChangeHistoryEntry, NotificationRuleCreate } from '@/types';
 import MonacoEditor from '@monaco-editor/react';
+import HistoryIcon from '@mui/icons-material/History';
 import {
   Alert,
   Box,
@@ -14,9 +16,6 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import React, { useMemo, useState } from 'react';
-import HistoryIcon from '@mui/icons-material/History';
-import type { NotificationRuleCreate, ChangeHistoryEntry } from '@/types';
 import { WebhookHeadersEditor, type HeaderEntry } from './WebhookHeadersEditor';
 
 interface RoleCode {
@@ -61,9 +60,9 @@ interface NotificationRuleDetailProps {
 
   // Roles
   roleCodes?: RoleCode[];
-  roleNames?: Record<string, Record<string, string>>;
+  roleNames?: Record<string, string>;
   language?: string;
-  getRoleName?: (code: string, names: Record<string, Record<string, string>>, lang: string) => string;
+  getRoleName?: (code: string, names: Record<string, string>, lang: string) => string;
 
   // Save disabled
   saveDisabled?: boolean;
@@ -79,7 +78,6 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
   formData,
   onFormDataChange,
   onSave,
-  onDelete,
   t,
   dslString = '',
   onDslChange,
@@ -104,7 +102,6 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
   getRoleName: getRoleNameFn,
   saveDisabled,
   changeHistory = [],
-  createdAt,
 }) => {
   const theme = useTheme();
   const monacoTheme = theme.palette.mode === 'dark' ? 'vs-dark' : 'light';

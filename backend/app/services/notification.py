@@ -154,39 +154,54 @@ class NotificationService:
 
     def _render_message_template(self, template: str, context: Dict[str, Any]) -> str:
         """
-        메시지 템플릿 렌더링
-        - {{변수}} 형식 지원 (공백 허용)
-        - {{nested.field}} 중첩 필드 접근 지원
-        - 중첩 필드가 context에 없으면 모든 hits에서 자동 추출
+        메시지 템플릿 렌더링 — 순수 context 경로 탐색
+        - {{key}} 단순 키, {{a.b.c}} 중첩 경로, {{a[0].b}} 배열 인덱스 지원
+        - flattened key (예: {"endpoint.name": "host1"}) 자동 탐색
         """
 
-        def get_nested_value(obj: Any, keys: list) -> Any:
-            """중첩 필드 값 추출 (점 표기법 및 flattened key 지원)"""
+        def parse_key_segments(key: str) -> list:
+            """'hits.hits[0]._source.host' → ['hits', 'hits', 0, '_source', 'host']"""
+            import re as _re
+            segments = []
+            for part in key.split('.'):
+                m = _re.match(r'^(\w+)\[(\d+)\]$', part)
+                if m:
+                    segments.append(m.group(1))
+                    segments.append(int(m.group(2)))
+                else:
+                    segments.append(part)
+            return segments
+
+        def get_nested_value(obj: Any, segments: list) -> Any:
+            """중첩 필드 값 추출 (배열 인덱스, flattened key 지원)"""
             if not obj:
                 return None
-            
-            # 1. 일반적인 중첩 구조 탐색
-            value = obj
-            found_nested = True
-            for k in keys:
-                if isinstance(value, dict):
-                    value = value.get(k)
-                    if value is None:
-                        found_nested = False
-                        break
-                else:
-                    found_nested = False
-                    break
-            
-            if found_nested:
-                return value
 
-            # 2. Flattened key 탐색 (예: {"endpoint.name": "host1"})
-            full_key = ".".join(keys)
-            if isinstance(obj, dict):
-                return obj.get(full_key)
-            
-            return None
+            value = obj
+            for i, k in enumerate(segments):
+                if isinstance(k, int):
+                    if isinstance(value, list) and 0 <= k < len(value):
+                        value = value[k]
+                    else:
+                        return None
+                elif isinstance(value, dict):
+                    if k in value:
+                        value = value[k]
+                    else:
+                        # flattened key 탐색: 남은 문자열 세그먼트를 '.'으로 합쳐서 시도
+                        remaining_str = []
+                        for s in segments[i:]:
+                            if isinstance(s, int):
+                                break
+                            remaining_str.append(s)
+                        flat_key = ".".join(remaining_str)
+                        if flat_key in value:
+                            return value[flat_key]
+                        return None
+                else:
+                    return None
+
+            return value
 
         def to_str(value: Any) -> str:
             if isinstance(value, (dict, list)):
@@ -194,48 +209,14 @@ class NotificationService:
             return str(value)
 
         def replace_var(match):
-            # 공백 제거 후 키 추출
             key = match.group(1).strip()
-
-            # 단순 키 접근 (total, rule_name 등)
-            if '.' not in key:
-                value = context.get(key)
-                if value is None:
-                    # hits._source에서도 찾아보기 (첫 번째 hit 기준)
-                    hit_sources = context.get("_hit_sources", [])
-                    if hit_sources and isinstance(hit_sources, list):
-                        value = hit_sources[0].get(key)
-                
-                if value is not None:
-                    return to_str(value)
-                return f"{{{{{key}}}}}"
-
-            # 중첩 필드 접근
-            keys = key.split('.')
-
-            # 1차: context 전체에서 직접 탐색 (예: hits.total.value, aggregations.threats.buckets)
-            ctx_value = get_nested_value(context, keys)
-            if ctx_value is not None:
-                return to_str(ctx_value)
-
-            # 2차: hits._source 배열에서 추출 (예: threatInfo.threatName)
-            hit_sources = context.get("_hit_sources", [])
-            if hit_sources and isinstance(hit_sources, list):
-                values = []
-                for hit in hit_sources:
-                    hit_value = get_nested_value(hit, keys)
-                    if hit_value is not None:
-                        values.append(to_str(hit_value))
-
-                if values:
-                    # 유니크한 값만 추출하여 병합
-                    unique_values = list(dict.fromkeys(values))
-                    return "\n".join(unique_values)
-
+            segments = parse_key_segments(key)
+            value = get_nested_value(context, segments)
+            if value is not None:
+                return to_str(value)
             return f"{{{{{key}}}}}"
 
-        # 정규식: {{ 변수명 }} 형식 (앞뒤 공백 허용)
-        return re.sub(r"\{\{\s*([\w\.@]+)\s*\}\}", replace_var, template)
+        return re.sub(r"\{\{\s*([\w\.@\[\]]+)\s*\}\}", replace_var, template)
 
     def _evaluate_trigger_condition(self, condition: str, context: Dict[str, Any], raise_errors: bool = False) -> bool:
         """
@@ -451,22 +432,10 @@ class NotificationService:
         if existing_alert:
             return None
 
-        # 쿼리 결과 문서들 추출
-        hits = result.get("hits", {}).get("hits", [])
-        hit_sources = [hit.get("_source", {}) for hit in hits]
+        # 메시지 템플릿 렌더링 context = OpenSearch 응답 원본
+        template_context = {**result}
 
-        # 메시지 템플릿 렌더링을 위한 context 구성 (OpenSearch 응답 전체 + 메타 정보)
-        template_context = {
-            **result,
-            "total": total,
-            "rule_name": rule.get("name"),
-            "rule_id": rule_id,
-            "rule_severity": rule.get("severity"),
-            "target_index": target_index,
-            "_hit_sources": hit_sources,
-        }
-
-        message_template = rule.get("message_template", "[WARNING] 총 {{total}}건의 이벤트가 탐지되었습니다.")
+        message_template = rule.get("message_template", "총 {{hits.total.value}}건의 이벤트가 탐지되었습니다.")
         rendered_message = self._render_message_template(message_template, template_context)
 
         # cs_alerts 인덱스에 저장할 알림 데이터

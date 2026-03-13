@@ -205,56 +205,94 @@ class TestTriggerConditionSecurity:
 # ──────────────────────────────────────────────
 
 class TestMessageTemplateRendering:
-    """메시지 템플릿 렌더링 시나리오"""
+    """메시지 템플릿 렌더링 — 순수 context 경로 탐색만 지원"""
 
-    def test_simple_variable(self, service):
-        template = "총 {{total}}건 탐지"
-        result = service._render_message_template(template, {"total": 42})
-        assert result == "총 42건 탐지"
-
-    def test_nested_variable(self, service):
+    def test_nested_path(self, service):
+        """중첩 경로 탐색"""
         template = "조회 건수: {{hits.total.value}}"
         ctx = {"hits": {"total": {"value": 100}}}
         result = service._render_message_template(template, ctx)
         assert result == "조회 건수: 100"
 
-    def test_multiple_variables(self, service):
-        template = "[{{rule_severity}}] {{rule_name}}: 총 {{total}}건"
-        ctx = {"rule_severity": "warning", "rule_name": "Test Rule", "total": 5}
+    def test_array_index_access(self, service):
+        """배열 인덱스 [N] 접근"""
+        template = "첫 번째 호스트: {{hits.hits[0]._source.host}}"
+        ctx = {
+            "hits": {
+                "hits": [
+                    {"_source": {"host": "web-01"}},
+                    {"_source": {"host": "web-02"}},
+                ]
+            }
+        }
         result = service._render_message_template(template, ctx)
-        assert result == "[warning] Test Rule: 총 5건"
+        assert result == "첫 번째 호스트: web-01"
+
+    def test_array_index_second_element(self, service):
+        """두 번째 요소 접근"""
+        template = "두 번째: {{hits.hits[1]._source.host}}"
+        ctx = {
+            "hits": {
+                "hits": [
+                    {"_source": {"host": "web-01"}},
+                    {"_source": {"host": "web-02"}},
+                ]
+            }
+        }
+        result = service._render_message_template(template, ctx)
+        assert result == "두 번째: web-02"
+
+    def test_array_index_out_of_range(self, service):
+        """범위 초과 인덱스는 원문 유지"""
+        template = "{{hits.hits[99]._source.host}}"
+        ctx = {"hits": {"hits": [{"_source": {"host": "web-01"}}]}}
+        result = service._render_message_template(template, ctx)
+        assert result == "{{hits.hits[99]._source.host}}"
+
+    def test_mixed_paths(self, service):
+        """여러 경로 혼합"""
+        template = "총 {{hits.total.value}}건, 첫 호스트: {{hits.hits[0]._source.host}}"
+        ctx = {
+            "hits": {
+                "total": {"value": 2},
+                "hits": [{"_source": {"host": "web-01"}}],
+            }
+        }
+        result = service._render_message_template(template, ctx)
+        assert result == "총 2건, 첫 호스트: web-01"
+
+    def test_flattened_key(self, service):
+        """flattened key 탐색 (예: {"endpoint.name": "host1"})"""
+        template = "호스트: {{hits.hits[0]._source.endpoint.name}}"
+        ctx = {
+            "hits": {"hits": [{"_source": {"endpoint.name": "host1"}}]}
+        }
+        result = service._render_message_template(template, ctx)
+        assert result == "호스트: host1"
 
     def test_missing_variable_preserved(self, service):
+        """없는 변수는 원문 유지"""
         template = "host: {{hostname}}"
         result = service._render_message_template(template, {})
         assert result == "host: {{hostname}}"
 
-    def test_hit_sources_extraction_with_nested_key(self, service):
-        """_hit_sources 추출은 중첩(dotted) 키에서만 동작"""
-        template = "위협: {{threatInfo.threatName}}"
-        ctx = {
-            "_hit_sources": [
-                {"threatInfo": {"threatName": "Malware.Gen"}},
-                {"threatInfo": {"threatName": "Trojan.Agent"}},
-                {"threatInfo": {"threatName": "Malware.Gen"}},
-            ]
-        }
+    def test_object_value_json_serialized(self, service):
+        """객체/배열 값은 JSON으로 직렬화"""
+        template = "결과: {{hits.hits[0]._source.tags}}"
+        ctx = {"hits": {"hits": [{"_source": {"tags": ["a", "b"]}}]}}
         result = service._render_message_template(template, ctx)
-        assert "Malware.Gen" in result
-        assert "Trojan.Agent" in result
-
-    def test_hit_sources_simple_key_not_resolved(self, service):
-        """단순 키는 _hit_sources를 탐색하지 않음 (현재 코드 동작)"""
-        template = "호스트: {{host}}"
-        ctx = {
-            "_hit_sources": [{"host": "web-01"}]
-        }
-        result = service._render_message_template(template, ctx)
-        assert result == "호스트: {{host}}"
+        assert '"a"' in result and '"b"' in result
 
     def test_empty_template(self, service):
-        result = service._render_message_template("", {"total": 5})
+        result = service._render_message_template("", {"hits": {"total": {"value": 5}}})
         assert result == ""
+
+    def test_no_shortcut_access(self, service):
+        """메타 변수/shortcut 없음 — {{host}}는 context 최상위에 없으면 미치환"""
+        template = "{{host}}"
+        ctx = {"hits": {"hits": [{"_source": {"host": "web-01"}}]}}
+        result = service._render_message_template(template, ctx)
+        assert result == "{{host}}"
 
 
 # ──────────────────────────────────────────────

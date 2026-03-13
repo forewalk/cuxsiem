@@ -764,3 +764,112 @@ interface AlertTableFilterMenuProps {
 ### 14.5 Webhook Body의 제한적 변수
 
 Webhook Body는 6개 flat 변수만 지원. `_hit_sources` 필드나 중첩 키 접근 불가.
+
+---
+
+## 15. 메시지 렌더링 로직 구조적 문제 분석
+
+> 현재 메시지 템플릿 렌더링 시스템이 "조잡하다"고 느껴지는 구체적 근거를 코드 레벨에서 분석.
+
+### 15.1 동일 알고리즘의 이중 구현 (DRY 위반)
+
+백엔드 `_render_message_template` (notification.py L155-238, 84줄)과 프론트엔드 `renderMessagePreview` (NotificationRuleListTab.tsx L151-211, 61줄)이 같은 치환 알고리즘을 Python/TypeScript로 각각 구현하고 있다.
+
+| 비교 항목 | 백엔드 (Python) | 프론트엔드 (TypeScript) |
+|-----------|----------------|----------------------|
+| 정규식 | `r"\{\{\s*([\w\.@]+)\s*\}\}"` | `/\{\{\s*([\w.@]+)\s*\}\}/g` |
+| Flattened key 탐색 | `obj.get(full_key)` 지원 | **미지원** — 순수 중첩 탐색만 수행 |
+| null 체크 | `value is None` | `value === undefined \|\| value === null` |
+| 유니크 처리 | `dict.fromkeys(values)` (순서 보존) | `[...new Set(values)]` (순서 보존) |
+| JSON 직렬화 | `json.dumps(ensure_ascii=False)` | `JSON.stringify(value, null, 2)` |
+
+**문제**: flattened key(`"endpoint.name"`)가 포함된 OpenSearch 문서에서 백엔드는 값을 찾지만 프론트엔드 미리보기는 `{{endpoint.name}}`을 그대로 남김. 사용자가 미리보기에서 동작 확인 후 저장해도 실제 알림과 결과가 다를 수 있음.
+
+### 15.2 자체 구현 미니 템플릿 엔진의 한계
+
+Jinja2, Mustache, Handlebars 등 검증된 템플릿 엔진 대신 정규식 기반 자체 구현을 사용 중. 지원하지 못하는 기능들:
+
+- **조건 분기**: `{{#if severity == "critical"}}긴급{{/if}}` 불가
+- **반복**: `{{#each _hit_sources}}{{host}}{{/each}}` 불가 → 현재는 모든 hit를 `\n`으로 합침 (제어 불가)
+- **기본값/필터**: `{{host | default:"unknown"}}`, `{{created_at | date}}` 불가
+- **이스케이프**: `\{\{리터럴\}\}` 출력 불가
+
+결과적으로 사용자가 "첫 번째 hit만 보여줘" 또는 "상위 3개만" 같은 요구를 템플릿 문법으로 표현할 방법이 없음.
+
+### 15.3 변수 탐색 우선순위의 암묵적 체이닝
+
+하나의 `{{key}}`를 치환하기 위해 최대 5단계 탐색이 순차 실행된다:
+
+```
+{{some.field}} 치환 시:
+  1단계: context["some"]["field"]          ← 중첩 구조 탐색
+  2단계: context["some.field"]             ← flattened key (백엔드만)
+  3단계: _hit_sources[0]["some"]["field"]  ← 첫 번째 hit 중첩
+  4단계: _hit_sources[0]["some.field"]     ← 첫 번째 hit flattened (백엔드만)
+  5단계: _hit_sources[*] 전체 순회         ← 모든 hit에서 유니크 값 추출
+```
+
+이 우선순위가 코드 흐름에 암묵적으로 내재되어 있어:
+- 디버깅 시 "이 값이 어디서 resolve 됐는지" 추적이 어려움
+- context에 동일 키가 여러 레벨에 존재하면 어떤 값이 선택되는지 예측 불가
+- 문서화되어 있지 않아 유지보수자가 코드를 읽어야만 이해 가능
+
+### 15.4 단순 키 vs 중첩 키의 비대칭 동작
+
+`'.' in key` 여부로 완전히 다른 코드 경로를 타며, 동작이 비대칭적:
+
+| 동작 | 단순 키 `{{host}}` | 중첩 키 `{{source.ip}}` |
+|------|-------------------|----------------------|
+| _hit_sources 탐색 범위 | `[0]`만 (첫 번째 hit) | 전체 순회 |
+| 결과 형태 | 단일 값 | `\n`으로 합쳐진 유니크 값들 |
+| Flattened key 탐색 | 불필요 (`.` 없음) | 백엔드만 지원 |
+
+**구체적 문제 시나리오**: OpenSearch에서 3개 hit가 반환되고 각 hit의 `host` 값이 다를 때:
+- `{{host}}` → `"web-01"` (첫 번째 hit만 사용, 나머지 무시)
+- `{{source.host}}` → `"web-01\nweb-02\nweb-03"` (전체 순회, 유니크)
+
+사용자 입장에서 `.`이 있는지 없는지에 따라 결과가 완전히 달라지는 것은 직관적이지 않음.
+
+### 15.5 context 조립의 불투명성
+
+**프론트엔드** (NotificationRuleListTab.tsx L172-181):
+```typescript
+const context = {
+  ...queryTestResult,   // OpenSearch 응답 전체를 스프레드
+  total,                // hits.total.value 덮어쓰기
+  rule_name, rule_id, rule_severity, target_index, rule_target_index,
+  _hit_sources: hitSources,
+};
+```
+
+`...queryTestResult` 스프레드로 인해 context에 `hits`, `took`, `timed_out`, `_shards` 등 OpenSearch 내부 필드가 모두 포함됨. 즉:
+- `{{took}}` → 쿼리 소요 시간 (ms)이 치환됨 (의도하지 않은 변수 노출)
+- `{{_shards}}` → `[object Object]`가 치환됨
+- OpenSearch 버전 업데이트로 응답 구조가 변경되면 기존 템플릿이 깨질 수 있음
+
+**백엔드** (notification.py의 `_execute_rule` 내 context 조립):
+- 명시적으로 필요한 필드만 꺼내서 context를 구성하지 않고, 마찬가지로 쿼리 결과 전체를 context로 전달
+
+### 15.6 에러 핸들링 및 사용자 피드백 부재
+
+| 상황 | 현재 동작 | 바람직한 동작 |
+|------|----------|-------------|
+| 오타: `{{rle_name}}` | 조용히 `{{rle_name}}` 그대로 출력 | "알 수 없는 변수" 경고 표시 |
+| 잘못된 중첩: `{{a.b.c.d.e}}` | null 반환 → 원문 유지 | 탐색 경로별 실패 원인 제공 |
+| 타입 불일치: 객체를 문자열로 | `JSON.stringify` 강제 변환 | 타입 힌트 또는 포맷 옵션 제공 |
+| 빈 결과 (hits 0건) | 메타 변수만 치환, 나머지 원문 | "쿼리 결과 없음" 안내 |
+
+미리보기에서 `{{key}}`가 그대로 남아있을 때, 그것이 "아직 쿼리를 안 돌려서"인지 "변수명 오타"인지 "해당 필드가 데이터에 없어서"인지 구분할 수 없음.
+
+### 15.7 개선 방향 제안
+
+**단기 (현 아키텍처 유지)**:
+1. 프론트엔드 미리보기에 flattened key 탐색 추가 (백엔드와 동일하게)
+2. 단순 키도 전체 hit 순회하도록 통일 (또는 중첩 키도 첫 번째 hit만 사용하도록 통일)
+3. context 스프레드 대신 허용된 변수만 명시적으로 주입
+4. 미해결 변수에 시각적 경고 (빨간 하이라이트 등)
+
+**중장기 (아키텍처 변경)**:
+1. 프론트엔드에서 렌더링하지 않고, 백엔드 preview API 호출 → 단일 구현으로 통합
+2. Mustache/Handlebars 등 경량 템플릿 엔진 도입으로 조건/반복/필터 지원
+3. 사용 가능한 변수 목록을 쿼리 결과 기반으로 동적 생성하여 자동완성 제공

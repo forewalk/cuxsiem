@@ -5,6 +5,7 @@ import { notificationService } from '@/services/notificationService.ts';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import type { NotificationRule, NotificationRuleCreate } from '@/types';
+import { getRoleName } from '@/utils/roleUtils';
 import { getAlertWsUrl } from '@/utils/wsUtils';
 import {
   Delete as DeleteIcon,
@@ -43,15 +44,15 @@ const DEFAULT_FORM_DATA: NotificationRuleCreate = {
     },
     size: 100
   },
-  message_template: `[{{rule_name}}]총 {{hits.total.value}}건의 이벤트가 탐지되었습니다.
+  message_template: `총 {{hits.total.value}}건의 이벤트가 탐지되었습니다.
 
-호스트: {{endpoint.name}} ({{endpoint.os}})
-이벤트: {{event.type}} / {{event.category}}
+호스트: {{hits.hits[0]._source.endpoint.name}} ({{hits.hits[0]._source.endpoint.os}})
+이벤트: {{hits.hits[0]._source.event.type}} / {{hits.hits[0]._source.event.category}}
 
-프로세스: {{src.process.name}} (PID: {{src.process.pid}})
-실행 경로: {{src.process.image.path}}
-실행 사용자: {{src.process.user}}
-명령어: {{src.process.cmdline}}
+프로세스: {{hits.hits[0]._source.src.process.name}} (PID: {{hits.hits[0]._source.src.process.pid}})
+실행 경로: {{hits.hits[0]._source.src.process.image.path}}
+실행 사용자: {{hits.hits[0]._source.src.process.user}}
+명령어: {{hits.hits[0]._source.src.process.cmdline}}
 
 `,
   severity: 'info',
@@ -69,7 +70,7 @@ const NotificationRuleListTab: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const { t, language } = useTranslation();
-  const { roleCodes, fetch: fetchRoleCodes } = useRoleCodesStore();
+  const { roleCodes, roleNames, fetch: fetchRoleCodes } = useRoleCodesStore();
 
   const token = localStorage.getItem('access_token');
   const wsUrl = getAlertWsUrl();
@@ -146,19 +147,45 @@ const NotificationRuleListTab: React.FC = () => {
   const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // 메시지 템플릿 프리뷰
+  // 메시지 템플릿 프리뷰 — 순수 context 경로 탐색
   const renderMessagePreview = useMemo(() => {
     let preview = formData.message_template;
     if (queryTestResult) {
-      const total = queryTestResult.hits?.total?.value || 0;
-      const hits = queryTestResult.hits?.hits || [];
-      const hitSources = hits.map((h: any) => h._source);
+      const parseKeySegments = (key: string): (string | number)[] => {
+        const segments: (string | number)[] = [];
+        for (const part of key.split('.')) {
+          const m = part.match(/^(\w+)\[(\d+)\]$/);
+          if (m) {
+            segments.push(m[1]);
+            segments.push(parseInt(m[2], 10));
+          } else {
+            segments.push(part);
+          }
+        }
+        return segments;
+      };
 
-      const getNestedValue = (obj: any, keys: string[]): any => {
+      const getNestedValue = (obj: any, segments: (string | number)[]): any => {
         if (!obj) return null;
         let value = obj;
-        for (const k of keys) {
-          if (value && typeof value === 'object' && k in value) { value = value[k]; } else { return null; }
+        for (let i = 0; i < segments.length; i++) {
+          const k = segments[i];
+          if (typeof k === 'number') {
+            if (Array.isArray(value) && k >= 0 && k < value.length) { value = value[k]; }
+            else { return null; }
+          } else if (value && typeof value === 'object' && k in value) {
+            value = value[k];
+          } else {
+            // flattened key 탐색: 남은 문자열 세그먼트를 '.'으로 합침
+            const remaining: string[] = [];
+            for (const s of segments.slice(i)) {
+              if (typeof s === 'number') break;
+              remaining.push(s);
+            }
+            const flatKey = remaining.join('.');
+            if (value && typeof value === 'object' && flatKey in value) return value[flatKey];
+            return null;
+          }
         }
         return value;
       };
@@ -168,47 +195,17 @@ const NotificationRuleListTab: React.FC = () => {
         return String(value);
       };
 
-      const context: Record<string, any> = {
-        ...queryTestResult,
-        total,
-        rule_name: formData.name || '',
-        rule_id: selectedRule?.id || '',
-        rule_severity: formData.severity || '',
-        target_index: formData.target_index || '',
-        rule_target_index: formData.target_index || '',
-        _hit_sources: hitSources,
-      };
+      const context: Record<string, any> = { ...queryTestResult };
 
-      preview = preview.replace(/\{\{\s*([\w.@]+)\s*\}\}/g, (_match: string, key: string) => {
-        if (!key.includes('.')) {
-          let value = context[key];
-          if (value === undefined || value === null) {
-            if (hitSources.length > 0) value = hitSources[0]?.[key];
-          }
-          if (value !== undefined && value !== null) return toStr(value);
-          return `{{${key}}}`;
-        }
-
-        const keys = key.split('.');
-        const ctxValue = getNestedValue(context, keys) ?? (context[key] !== undefined ? context[key] : null);
-        if (ctxValue !== null && ctxValue !== undefined) return toStr(ctxValue);
-
-        if (hitSources.length > 0) {
-          const values: string[] = [];
-          for (const hit of hitSources) {
-            const v = getNestedValue(hit, keys) ?? (hit[key] !== undefined ? hit[key] : null);
-            if (v !== null && v !== undefined) values.push(toStr(v));
-          }
-          if (values.length > 0) {
-            const unique = [...new Set(values)];
-            return unique.join('\n');
-          }
-        }
+      preview = preview.replace(/\{\{\s*([\w.@[\]]+)\s*\}\}/g, (_match: string, key: string) => {
+        const segments = parseKeySegments(key);
+        const value = getNestedValue(context, segments);
+        if (value !== null && value !== undefined) return toStr(value);
         return `{{${key}}}`;
       });
     }
     return preview;
-  }, [formData.message_template, formData.name, formData.severity, formData.target_index, queryTestResult, selectedRule]);
+  }, [formData.message_template, queryTestResult]);
 
   const loadRules = useCallback(async () => {
     if (!user || user.role !== 'role-1') { setLoading(false); return; }
@@ -592,7 +589,9 @@ const NotificationRuleListTab: React.FC = () => {
           onWebhookBodyChange={handleWebhookBodyChange}
           onTestWebhook={handleTestWebhook}
           roleCodes={roleCodes}
+          roleNames={roleNames}
           language={language}
+          getRoleName={getRoleName}
           saveDisabled={!!jsonError || !formData.name}
           changeHistory={selectedRule?.change_history}
           createdAt={selectedRule?.created_at}
