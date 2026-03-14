@@ -17,6 +17,7 @@ class User:
     updated_at: datetime
     deleted_at: Optional[datetime] = None
     last_login_at: Optional[datetime] = None
+    locked_until: Optional[datetime] = None
     otp_pending_secret_enc: Optional[str] = None
     otp_secret_enc: Optional[str] = None
     otp_enabled: bool = False

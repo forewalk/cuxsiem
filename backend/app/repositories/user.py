@@ -435,6 +435,111 @@ class UserRepository:
 
         return await loop.run_in_executor(None, count)
 
+    async def lock_account(self, user_id: str, until: Optional[datetime]) -> bool:
+        """
+        계정 잠금
+
+        Args:
+            user_id: 사용자 ID
+            until: 잠금 해제 시각 (None이면 영구 잠금)
+
+        Returns:
+            성공 여부
+        """
+        loop = asyncio.get_event_loop()
+
+        def lock():
+            try:
+                update_doc = {
+                    "is_active": False,
+                    "locked_until": until.isoformat() if until else None,
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={"doc": update_doc},
+                    refresh=True
+                )
+                logger.info(f"계정 잠금 성공: user_id={user_id}, until={until}")
+                return True
+            except Exception as e:
+                logger.error(f"계정 잠금 실패: user_id={user_id}, error={str(e)}", exc_info=True)
+                return False
+
+        return await loop.run_in_executor(None, lock)
+
+    async def unlock_account(self, user_id: str) -> bool:
+        """
+        계정 잠금 해제
+
+        Args:
+            user_id: 사용자 ID
+
+        Returns:
+            성공 여부
+        """
+        loop = asyncio.get_event_loop()
+
+        def unlock():
+            try:
+                self.client.update(
+                    index=self.index,
+                    id=user_id,
+                    body={
+                        "script": {
+                            "source": "ctx._source.is_active = true; ctx._source.remove('locked_until'); ctx._source.updated_at = params.now",
+                            "params": {"now": datetime.utcnow().isoformat()}
+                        }
+                    },
+                    refresh=True
+                )
+                logger.info(f"계정 잠금 해제 성공: user_id={user_id}")
+                return True
+            except Exception as e:
+                logger.error(f"계정 잠금 해제 실패: user_id={user_id}, error={str(e)}", exc_info=True)
+                return False
+
+        return await loop.run_in_executor(None, unlock)
+
+    async def get_locked_accounts(self) -> list[User]:
+        """
+        잠긴 계정 목록 조회 (locked_until이 설정된 계정)
+
+        Returns:
+            잠긴 계정 리스트
+        """
+        loop = asyncio.get_event_loop()
+
+        def search():
+            try:
+                result = self.client.search(
+                    index=self.index,
+                    body={
+                        "query": {
+                            "bool": {
+                                "must": [
+                                    {"term": {"is_active": False}},
+                                    {"exists": {"field": "locked_until"}}
+                                ],
+                                "must_not": [
+                                    {"exists": {"field": "deleted_at"}}
+                                ]
+                            }
+                        },
+                        "size": 1000
+                    }
+                )
+                hits = result.get("hits", {}).get("hits", [])
+                users = [self._dict_to_user(hit["_source"], hit["_id"]) for hit in hits]
+                return users
+            except Exception as e:
+                logger.error(f"잠긴 계정 조회 실패: {str(e)}", exc_info=True)
+                return []
+
+        return await loop.run_in_executor(None, search)
+
     def _dict_to_user(self, data: dict, doc_id: str = None) -> User:
         """딕셔너리를 User 객체로 변환"""
         return User(
@@ -448,6 +553,7 @@ class UserRepository:
             updated_at=datetime.fromisoformat(data["updated_at"]),
             deleted_at=datetime.fromisoformat(data["deleted_at"]) if data.get("deleted_at") else None,
             last_login_at=datetime.fromisoformat(data["last_login_at"]) if data.get("last_login_at") else None,
+            locked_until=datetime.fromisoformat(data["locked_until"]) if data.get("locked_until") else None,
             otp_pending_secret_enc=data.get("otp_pending_secret_enc"),
             otp_secret_enc=data.get("otp_secret_enc"),
             otp_enabled=data.get("otp_enabled", False),

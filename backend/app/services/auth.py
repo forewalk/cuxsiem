@@ -13,6 +13,7 @@ from app.repositories.session import SessionRepository
 from app.repositories.login_attempt import LoginAttemptRepository
 from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
 from app.services.advanced_settings import advanced_settings_service
+from app.services.password_policy import PasswordPolicyService
 
 
 class AuthService:
@@ -22,22 +23,19 @@ class AuthService:
         self.user_repo = UserRepository()
         self.session_repo = SessionRepository()
         self.login_attempt_repo = LoginAttemptRepository()
+        self.password_policy_service = PasswordPolicyService()
 
     async def login(self, request: LoginRequest, ip_address: str = None, force: bool = False) -> LoginResponse:
         """로그인"""
+        from datetime import timedelta
+
         # 사용자 ID로 로그인
         username = request.username
 
-        # 로그인 실패 제한 확인 (5회/10분)
-        failed_count = await self.login_attempt_repo.count_failed_attempts(username, minutes=10)
-        if failed_count >= 5:
-            await self.login_attempt_repo.record(
-                username, False, ip_address, "로그인 시도 횟수 초과"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="로그인 시도 횟수 초과"
-            )
+        # 비밀번호 정책 조회
+        policy = await self.password_policy_service.get_current_policy()
+        lockout_threshold = policy.lockout_threshold
+        lockout_duration = policy.lockout_duration_minutes
 
         # 사용자 조회 (ID로 조회)
         user = await self.user_repo.get_by_id(username)
@@ -50,7 +48,31 @@ class AuthService:
                 detail="아이디 또는 비밀번호가 올바르지 않습니다"
             )
 
-        # 비활성 계정 확인
+        # 계정 잠금 확인
+        if not user.is_active and user.locked_until:
+            # 잠금 해제 시간 확인
+            if user.locked_until and datetime.utcnow() >= user.locked_until:
+                # 자동 잠금 해제
+                await self.user_repo.unlock_account(user.id)
+                user.is_active = True
+                user.locked_until = None
+            else:
+                # 아직 잠금 중
+                await self.login_attempt_repo.record(
+                    username, False, ip_address, "계정 잠금"
+                )
+                if user.locked_until:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"계정이 잠겼습니다. {user.locked_until.strftime('%Y-%m-%d %H:%M:%S')}까지 로그인할 수 없습니다."
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="계정이 영구 잠겼습니다. 관리자에게 문의하세요."
+                    )
+
+        # 비활성 계정 확인 (일반 비활성화)
         if not user.is_active:
             await self.login_attempt_repo.record(
                 username, False, ip_address, "비활성 계정"
@@ -65,6 +87,28 @@ class AuthService:
             await self.login_attempt_repo.record(
                 username, False, ip_address, "비밀번호 불일치"
             )
+
+            # 로그인 실패 횟수 확인
+            failed_count = await self.login_attempt_repo.count_failed_attempts(username, minutes=lockout_duration)
+
+            if failed_count >= lockout_threshold:
+                # 계정 잠금
+                if lockout_duration == 0:
+                    # 영구 잠금
+                    await self.user_repo.lock_account(user.id, None)
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="로그인 실패 횟수 초과로 계정이 영구 잠겼습니다. 관리자에게 문의하세요."
+                    )
+                else:
+                    # 일시 잠금
+                    lock_until = datetime.utcnow() + timedelta(minutes=lockout_duration)
+                    await self.user_repo.lock_account(user.id, lock_until)
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"로그인 실패 횟수 초과로 계정이 잠겼습니다. {lock_until.strftime('%Y-%m-%d %H:%M:%S')}까지 로그인할 수 없습니다."
+                    )
+
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="아이디 또는 비밀번호가 올바르지 않습니다"

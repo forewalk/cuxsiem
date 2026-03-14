@@ -8,14 +8,17 @@ load_dotenv()
 from app.api.v1.endpoints import router as v1_router
 from app.core.config import settings
 from app.core.scheduler import detection_scheduler
+from app.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: 스케줄러 시작
     detection_scheduler.start()
+    start_scheduler()  # 계정 잠금 해제 스케줄러
     yield
     # Shutdown: 스케줄러 종료
     detection_scheduler.stop()
+    stop_scheduler()  # 계정 잠금 해제 스케줄러
 
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 
