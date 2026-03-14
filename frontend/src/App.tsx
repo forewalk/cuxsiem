@@ -407,6 +407,7 @@ function App() {
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: "3px",
                     padding: { xs: "4px 8px", sm: "6px 12px" },
+                    height: { xs: 32, sm: 40 },
                     "&:hover": { bgcolor: theme.palette.action.hover },
                   }}
                 >
