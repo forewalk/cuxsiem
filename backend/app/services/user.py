@@ -24,7 +24,7 @@ class UserService:
         """신규 사용자 생성"""
         # 동적 비밀번호 정책 검증
         try:
-            await self.policy_service.validate_password(request.password)
+            await self.policy_service.validate_password(request.password, request.username)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -113,7 +113,7 @@ class UserService:
         if "password" in update_data:
             # 동적 비밀번호 정책 검증
             try:
-                await self.policy_service.validate_password(update_data["password"])
+                await self.policy_service.validate_password(update_data["password"], user_id)
             except ValueError as e:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
