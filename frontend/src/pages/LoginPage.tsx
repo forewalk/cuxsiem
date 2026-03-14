@@ -69,7 +69,6 @@ export const LoginPage: React.FC = () => {
   const [otpRequired, setOtpRequired] = useState(false);
   const [otpLoginModalOpen, setOtpLoginModalOpen] = useState(false);
   const [otpEnrollAfterSignupOpen, setOtpEnrollAfterSignupOpen] = useState(false);
-  const [otpEnrollForResetOpen, setOtpEnrollForResetOpen] = useState(false);
   const [signupSuccessMsg, setSignupSuccessMsg] = useState('');
 
   useEffect(() => {
@@ -309,10 +308,11 @@ export const LoginPage: React.FC = () => {
     } catch (err: any) {
       const detail = err.response?.data?.detail;
 
-      // OTP 등록 필요 → 바로 등록 모달 띄우기
+      // OTP 등록 필요 → 안내 메시지 표시
       if (detail === "OTP_ENROLLMENT_REQUIRED") {
+        setError("OTP가 등록되지 않았습니다. 관리자에게 비밀번호 변경을 요청한 후 로그인하여 OTP를 등록하세요.");
+        setOpenSnackbar(true);
         setResetDialogOpen(false);
-        setOtpEnrollForResetOpen(true);
         return;
       }
 
@@ -376,12 +376,6 @@ export const LoginPage: React.FC = () => {
     navigate("/main");
   };
 
-  const handleEnrollForResetSuccess = async () => {
-    setOtpEnrollForResetOpen(false);
-    // OTP 등록 완료 후 OTP 검증 모달 띄우기
-    setOtpResetModalOpen(true);
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -399,14 +393,6 @@ export const LoginPage: React.FC = () => {
         open={otpEnrollAfterSignupOpen}
         onClose={() => { setOtpEnrollAfterSignupOpen(false); navigate("/main"); }}
         onSuccess={handleEnrollAfterSignupSuccess}
-        apiClient={api}
-      />
-
-      {/* 비밀번호 초기화를 위한 OTP 등록 모달 */}
-      <OTPEnrollModal
-        open={otpEnrollForResetOpen}
-        onClose={() => { setOtpEnrollForResetOpen(false); setResetId(""); }}
-        onSuccess={handleEnrollForResetSuccess}
         apiClient={api}
       />
       <AppBar
