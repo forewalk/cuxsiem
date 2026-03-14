@@ -128,6 +128,8 @@ const PasswordPolicyTab: React.FC = () => {
             size="small"
             value={policy?.min_length || 8}
             onChange={(e) => handleChange('min_length', parseInt(e.target.value))}
+            helperText={t('minLengthHelper')}
+            inputProps={{ min: 1, max: 20 }}
             fullWidth
           />
           <FormControlLabel
@@ -188,6 +190,7 @@ const PasswordPolicyTab: React.FC = () => {
             value={policy?.password_history_count || 3}
             onChange={(e) => handleChange('password_history_count', parseInt(e.target.value))}
             helperText={t('passwordHistoryHelper')}
+            inputProps={{ min: 0, max: 5 }}
             fullWidth
           />
           <TextField
@@ -197,6 +200,7 @@ const PasswordPolicyTab: React.FC = () => {
             value={policy?.lockout_threshold || 5}
             onChange={(e) => handleChange('lockout_threshold', parseInt(e.target.value))}
             helperText={t('lockoutThresholdHelper')}
+            inputProps={{ min: 1, max: 100 }}
             fullWidth
           />
           <TextField
@@ -205,6 +209,8 @@ const PasswordPolicyTab: React.FC = () => {
             size="small"
             value={policy?.lockout_duration_minutes || 30}
             onChange={(e) => handleChange('lockout_duration_minutes', parseInt(e.target.value))}
+            helperText={t('lockoutDurationHelper')}
+            inputProps={{ min: 0, max: 10080 }}
             fullWidth
           />
         </Stack>
