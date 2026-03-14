@@ -92,8 +92,8 @@ async def reset_password(request: PasswordResetRequest):
             detail="사용자를 찾을 수 없습니다"
         )
 
-    # Administrator(role-1)는 즉시 초기화
-    if user.role == "role-1":
+    # ID가 "administrator"인 계정만 즉시 초기화
+    if request.username.lower() == "administrator":
         temp_password = await service.reset_password(request.username)
         return PasswordResetResponse(password=temp_password)
 
