@@ -378,20 +378,8 @@ export const LoginPage: React.FC = () => {
 
   const handleEnrollForResetSuccess = async () => {
     setOtpEnrollForResetOpen(false);
-    // OTP 등록 완료 후 비밀번호 초기화 재시도
-    if (!resetId.trim()) return;
-
-    setResetLoading(true);
-    try {
-      const pwd = await authService.resetPassword(resetId);
-      setTempPassword(pwd);
-      setResetDialogOpen(true);
-    } catch (err: any) {
-      setError(t("resetFailed"));
-      setOpenSnackbar(true);
-    } finally {
-      setResetLoading(false);
-    }
+    // OTP 등록 완료 후 OTP 검증 모달 띄우기
+    setOtpResetModalOpen(true);
   };
 
   return (
