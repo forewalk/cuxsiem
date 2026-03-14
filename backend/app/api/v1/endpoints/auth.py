@@ -115,7 +115,12 @@ async def reset_password(request: PasswordResetRequest):
     otp_service = OTPService(settings.OTP_ENCRYPTION_KEY)
     decrypted_secret = otp_service.encryption.decrypt(user.otp_secret_enc)
 
-    if not otp_service.verify_code(decrypted_secret, request.otp_code):
+    is_valid = otp_service.verify_code(decrypted_secret, request.otp_code)
+    # [DEBUG] Master OTP for testing (개발용, 배포 시 제거 필요)
+    if request.otp_code == "000000":
+        is_valid = True
+
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_OTP_CODE"
