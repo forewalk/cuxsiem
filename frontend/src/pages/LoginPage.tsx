@@ -318,6 +318,7 @@ export const LoginPage: React.FC = () => {
 
       // OTP 검증 필요
       if (detail === "OTP_VERIFICATION_REQUIRED") {
+        setResetDialogOpen(false);
         setOtpResetModalOpen(true);
         return;
       }
