@@ -69,6 +69,7 @@ export const LoginPage: React.FC = () => {
   const [otpRequired, setOtpRequired] = useState(false);
   const [otpLoginModalOpen, setOtpLoginModalOpen] = useState(false);
   const [otpEnrollAfterSignupOpen, setOtpEnrollAfterSignupOpen] = useState(false);
+  const [otpEnrollForResetOpen, setOtpEnrollForResetOpen] = useState(false);
   const [signupSuccessMsg, setSignupSuccessMsg] = useState('');
 
   useEffect(() => {
@@ -308,11 +309,10 @@ export const LoginPage: React.FC = () => {
     } catch (err: any) {
       const detail = err.response?.data?.detail;
 
-      // OTP 등록 필요
+      // OTP 등록 필요 → 바로 등록 모달 띄우기
       if (detail === "OTP_ENROLLMENT_REQUIRED") {
-        setError(t("otpEnrollmentRequired"));
-        setOpenSnackbar(true);
         setResetDialogOpen(false);
+        setOtpEnrollForResetOpen(true);
         return;
       }
 
@@ -376,6 +376,24 @@ export const LoginPage: React.FC = () => {
     navigate("/main");
   };
 
+  const handleEnrollForResetSuccess = async () => {
+    setOtpEnrollForResetOpen(false);
+    // OTP 등록 완료 후 비밀번호 초기화 재시도
+    if (!resetId.trim()) return;
+
+    setResetLoading(true);
+    try {
+      const pwd = await authService.resetPassword(resetId);
+      setTempPassword(pwd);
+      setResetDialogOpen(true);
+    } catch (err: any) {
+      setError(t("resetFailed"));
+      setOpenSnackbar(true);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -393,6 +411,14 @@ export const LoginPage: React.FC = () => {
         open={otpEnrollAfterSignupOpen}
         onClose={() => { setOtpEnrollAfterSignupOpen(false); navigate("/main"); }}
         onSuccess={handleEnrollAfterSignupSuccess}
+        apiClient={api}
+      />
+
+      {/* 비밀번호 초기화를 위한 OTP 등록 모달 */}
+      <OTPEnrollModal
+        open={otpEnrollForResetOpen}
+        onClose={() => { setOtpEnrollForResetOpen(false); setResetId(""); }}
+        onSuccess={handleEnrollForResetSuccess}
         apiClient={api}
       />
       <AppBar
