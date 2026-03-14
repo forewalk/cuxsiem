@@ -283,6 +283,8 @@ export const LoginPage: React.FC = () => {
   const [resetId, setResetId] = useState("");
   const [tempPassword, setTempPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [otpResetModalOpen, setOtpResetModalOpen] = useState(false);
+  const [otpResetCode, setOtpResetCode] = useState("");
 
   const handleForgotPassword = () => {
     setResetId("");
@@ -291,14 +293,59 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleResetPassword = async () => {
-    if (!resetId) return;
+    if (!resetId.trim()) {
+      setError(t("enterUserId"));
+      setOpenSnackbar(true);
+      return;
+    }
+
     setResetLoading(true);
     try {
+      // 1차 시도 (OTP 없이)
       const pwd = await authService.resetPassword(resetId);
       setTempPassword(pwd);
+      setResetId("");
     } catch (err: any) {
-      console.error(err);
-      setError(t("resetFailed", { fallback: "비밀번호 초기화에 실패했습니다. 아이디를 확인해주세요." })); 
+      const detail = err.response?.data?.detail;
+
+      // OTP 등록 필요
+      if (detail === "OTP_ENROLLMENT_REQUIRED") {
+        setError(t("otpEnrollmentRequired"));
+        setOpenSnackbar(true);
+        setResetDialogOpen(false);
+        return;
+      }
+
+      // OTP 검증 필요
+      if (detail === "OTP_VERIFICATION_REQUIRED") {
+        setOtpResetModalOpen(true);
+        return;
+      }
+
+      // 기타 에러
+      setError(detail || t("resetFailed"));
+      setOpenSnackbar(true);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleOtpResetSubmit = async () => {
+    if (!otpResetCode.trim() || otpResetCode.length !== 6) {
+      setError(t("enterOtp6Digit"));
+      setOpenSnackbar(true);
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const pwd = await authService.resetPassword(resetId, otpResetCode);
+      setTempPassword(pwd);
+      setOtpResetModalOpen(false);
+      setOtpResetCode("");
+      setResetDialogOpen(true);
+    } catch (err: any) {
+      setError(t("otpVerifyFailed"));
       setOpenSnackbar(true);
     } finally {
       setResetLoading(false);
@@ -746,6 +793,61 @@ export const LoginPage: React.FC = () => {
         onClose={() => setApplyModalOpen(false)}
         onSuccess={handleApplySuccess}
       />
+
+      {/* OTP 검증 모달 (비밀번호 초기화용) */}
+      <Dialog
+        open={otpResetModalOpen}
+        onClose={() => {
+          setOtpResetModalOpen(false);
+          setOtpResetCode("");
+        }}
+      >
+        <DialogTitle>{t("otpVerificationRequired")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            {t("enterOtp6Digit")}
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            label={t("otpCode")}
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={otpResetCode}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+              setOtpResetCode(value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && otpResetCode.length === 6 && !resetLoading) {
+                e.preventDefault();
+                handleOtpResetSubmit();
+              }
+            }}
+            inputProps={{ maxLength: 6, inputMode: "numeric", pattern: "[0-9]*" }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOtpResetModalOpen(false);
+              setOtpResetCode("");
+              setResetDialogOpen(true);
+            }}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            onClick={handleOtpResetSubmit}
+            disabled={resetLoading || otpResetCode.length !== 6}
+            variant="contained"
+            color="primary"
+          >
+            {resetLoading ? <CircularProgress size={20} color="inherit" /> : t("confirm")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
     </ThemeProvider>
   );

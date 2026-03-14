@@ -459,5 +459,10 @@
   "importCreated": "created",
   "importErrors": "errors",
   "importInvalidFormat": "Invalid JSON format",
-  "selectRulesToExport": "Select rules to export"
+  "selectRulesToExport": "Select rules to export",
+  "otpEnrollmentRequired": "You must enroll OTP before resetting your password.",
+  "otpVerificationRequired": "OTP verification is required to reset your password.",
+  "adminMinimumError": "At least one administrator is required",
+  "lastAdminRoleChangeError": "Cannot change the role of the last administrator",
+  "enterUserId": "Please enter user ID"
 }

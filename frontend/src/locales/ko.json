@@ -483,5 +483,10 @@
   "importCreated": "건 생성",
   "importErrors": "건 오류",
   "importInvalidFormat": "올바른 JSON 형식이 아닙니다",
-  "selectRulesToExport": "내보낼 규칙을 선택하세요"
+  "selectRulesToExport": "내보낼 규칙을 선택하세요",
+  "otpEnrollmentRequired": "비밀번호 초기화를 위해서는 먼저 OTP를 등록해야 합니다.",
+  "otpVerificationRequired": "비밀번호 초기화를 위해 OTP 인증이 필요합니다.",
+  "adminMinimumError": "관리자가 최소 1명은 있어야 합니다",
+  "lastAdminRoleChangeError": "마지막 관리자의 역할을 변경할 수 없습니다",
+  "enterUserId": "사용자 아이디를 입력하세요"
 }

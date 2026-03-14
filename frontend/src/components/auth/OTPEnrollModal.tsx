@@ -23,6 +23,7 @@ import {
   IconButton,
   Tooltip,
   Grid,
+  useTheme,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -46,6 +47,7 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
   onSuccess,
   apiClient,
 }) => {
+  const theme = useTheme();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -201,7 +203,16 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
               ) : (
                 <>
                   {/* QR 코드 이미지 */}
-                  <Paper sx={{ p: 2, display: 'inline-block', mb: 2 }}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      display: 'inline-block',
+                      mb: 2,
+                      bgcolor: 'background.paper',
+                      border: 1,
+                      borderColor: 'divider',
+                    }}
+                  >
                     <img
                       src={qrCode}
                       alt="OTP QR Code"
@@ -289,7 +300,9 @@ export const OTPEnrollModal: React.FC<OTPEnrollModalProps> = ({
                 sx={{
                   p: 2,
                   mb: 3,
-                  backgroundColor: '#f5f5f5',
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
                   fontFamily: 'monospace',
                   fontSize: '14px',
                   lineHeight: 1.8,

@@ -400,6 +400,41 @@ class UserRepository:
 
         return await loop.run_in_executor(None, get)
 
+    async def count_active_admins(self) -> int:
+        """활성 관리자(role-1) 수 조회
+
+        Returns:
+            활성 관리자 수
+        """
+        loop = asyncio.get_event_loop()
+
+        def count():
+            try:
+                result = self.client.count(
+                    index=self.index,
+                    body={
+                        "query": {
+                            "bool": {
+                                "must": [
+                                    {"term": {"role": "role-1"}},
+                                    {"term": {"is_active": True}}
+                                ],
+                                "must_not": [
+                                    {"exists": {"field": "deleted_at"}}
+                                ]
+                            }
+                        }
+                    }
+                )
+                admin_count = result["count"]
+                logger.debug(f"활성 관리자 수: {admin_count}")
+                return admin_count
+            except Exception as e:
+                logger.error(f"관리자 수 조회 실패: {str(e)}", exc_info=True)
+                return 0
+
+        return await loop.run_in_executor(None, count)
+
     def _dict_to_user(self, data: dict, doc_id: str = None) -> User:
         """딕셔너리를 User 객체로 변환"""
         return User(

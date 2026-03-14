@@ -99,6 +99,16 @@ class UserService:
 
         update_data = request.model_dump(exclude_unset=True)
 
+        # 역할 변경 시 관리자 보호 검증
+        if "role" in update_data:
+            if user.role == "role-1" and update_data["role"] != "role-1":
+                admin_count = await self.user_repo.count_active_admins()
+                if admin_count <= 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="마지막 관리자의 역할을 변경할 수 없습니다"
+                    )
+
         # 비밀번호 변경 시
         if "password" in update_data:
             # 동적 비밀번호 정책 검증
@@ -109,7 +119,7 @@ class UserService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=str(e)
                 )
-            
+
             update_data["password_hash"] = get_password_hash(
                 update_data.pop("password")
             )
@@ -185,6 +195,15 @@ class UserService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="사용자를 찾을 수 없습니다"
             )
+
+        # 관리자 보호 검증
+        if user.role == "role-1":
+            admin_count = await self.user_repo.count_active_admins()
+            if admin_count <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="관리자가 최소 1명은 있어야 합니다"
+                )
 
         success = await self.user_repo.delete(user_id)
         if not success:

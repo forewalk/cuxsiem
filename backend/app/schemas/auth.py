@@ -44,6 +44,7 @@ class TokenPayload(BaseModel):
 class PasswordResetRequest(BaseModel):
     """비밀번호 초기화 요청"""
     username: str
+    otp_code: Optional[str] = None
 
 
 class PasswordResetResponse(BaseModel):

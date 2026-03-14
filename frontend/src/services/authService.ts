@@ -72,9 +72,10 @@ export const authService = {
   /**
    * 비밀번호 초기화 (임시 비밀번호 발급)
    */
-  async resetPassword(username: string): Promise<string> {
+  async resetPassword(username: string, otpCode?: string): Promise<string> {
     const response = await api.post<{ password: string }>("/api/v1/auth/reset-password", {
       username,
+      otp_code: otpCode,
     });
     return response.data.password;
   },

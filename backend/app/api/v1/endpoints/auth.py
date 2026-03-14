@@ -70,15 +70,58 @@ async def apply_account(request: UserApply):
 async def reset_password(request: PasswordResetRequest):
     """
     비밀번호 초기화 (임시 비밀번호 발급)
-    
+
     사용자 ID를 입력받아 비밀번호를 초기화하고 임시 비밀번호를 반환합니다.
-    (관리자용 기능이 아니며, 본인 인증이 어려운 폐쇄망 환경에서 제한적으로 사용)
+    - Administrator(role-1): OTP 없이 즉시 초기화
+    - 일반 사용자: OTP 등록 및 검증 필수
     """
     import logging
+    from app.core.config import settings
+
     logger = logging.getLogger(__name__)
     logger.info(f"Received reset-password request for: {request.username}")
-    
+
     service = AuthService()
+    user_repo = UserRepository()
+
+    # 사용자 조회
+    user = await user_repo.get_by_id(request.username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="사용자를 찾을 수 없습니다"
+        )
+
+    # Administrator(role-1)는 즉시 초기화
+    if user.role == "role-1":
+        temp_password = await service.reset_password(request.username)
+        return PasswordResetResponse(password=temp_password)
+
+    # 일반 사용자: OTP 등록 확인
+    if not user.otp_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="OTP_ENROLLMENT_REQUIRED"
+        )
+
+    # OTP 코드 검증
+    if not request.otp_code:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="OTP_VERIFICATION_REQUIRED"
+        )
+
+    # OTP 검증
+    otp_service = OTPService(settings.OTP_ENCRYPTION_KEY)
+    decrypted_secret = otp_service.encryption.decrypt(user.otp_secret_enc)
+
+    if not otp_service.verify_code(decrypted_secret, request.otp_code):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="INVALID_OTP_CODE"
+        )
+
+    # 검증 성공 시 비밀번호 초기화
     temp_password = await service.reset_password(request.username)
     return PasswordResetResponse(password=temp_password)
 

@@ -455,5 +455,10 @@
   "importCreated": "条创建",
   "importErrors": "条错误",
   "importInvalidFormat": "JSON格式不正确",
-  "selectRulesToExport": "请选择要导出的规则"
+  "selectRulesToExport": "请选择要导出的规则",
+  "otpEnrollmentRequired": "重置密码前必须先注册OTP。",
+  "otpVerificationRequired": "重置密码需要OTP验证。",
+  "adminMinimumError": "至少需要一名管理员",
+  "lastAdminRoleChangeError": "无法更改最后一位管理员的角色",
+  "enterUserId": "请输入用户ID"
 }

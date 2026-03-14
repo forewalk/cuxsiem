@@ -467,5 +467,10 @@
   "importCreated": "件作成",
   "importErrors": "件エラー",
   "importInvalidFormat": "正しいJSON形式ではありません",
-  "selectRulesToExport": "エクスポートするルールを選択してください"
+  "selectRulesToExport": "エクスポートするルールを選択してください",
+  "otpEnrollmentRequired": "パスワードをリセットするには、まずOTPを登録する必要があります。",
+  "otpVerificationRequired": "パスワードをリセットするにはOTP認証が必要です。",
+  "adminMinimumError": "管理者は最低1名必要です",
+  "lastAdminRoleChangeError": "最後の管理者の役割は変更できません",
+  "enterUserId": "ユーザーIDを入力してください"
 }
