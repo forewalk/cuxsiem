@@ -14,6 +14,7 @@ import LogStreamingTab from '../../pages/admin/tabs/LogStreamingTab';
 import NotificationRuleListTab from '../../pages/admin/alerts/tabs/NotificationRuleListTab';
 import NotificationHistoryTab from '../../pages/admin/alerts/tabs/NotificationHistoryTab';
 import AdvancedSettingsTab from '../../pages/admin/tabs/AdvancedSettingsTab';
+import LicenseManagementTab from '../../pages/admin/tabs/LicenseManagementTab';
 import HeartbeatTab from '../../pages/monitoring/tabs/HeartbeatTab';
 
 // i18n: JSON 파일에서 번역 로드
@@ -33,6 +34,7 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   NotificationRuleListTab: NotificationRuleListTab,
   NotificationHistoryTab: NotificationHistoryTab,
   AdvancedSettingsTab: AdvancedSettingsTab,
+  LicenseManagementTab: LicenseManagementTab,
   HeartbeatHttpTab: (props: any) => <HeartbeatTab {...props} monitorType="http" />,
   HeartbeatTcpTab: (props: any) => <HeartbeatTab {...props} monitorType="tcp" />,
   HeartbeatCertTab: (props: any) => <HeartbeatTab {...props} monitorType="cert" />,

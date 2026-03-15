@@ -24,6 +24,7 @@ import {
   VerifiedUser as CertIcon,
   ListAlt as ListAltIcon,
   BarChart as BarChartIcon,
+  WorkspacePremium as LicenseIcon,
 } from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -405,6 +406,16 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                     <ListItemText primary={t('passwordPolicy')} sx={listItemTextStyle} />
                   </ListItemButton>
                 </>
+              )}
+
+              {userRole === 'role-1' && (
+                <ListItemButton
+                  sx={{ pl: 4, minHeight: listItemHeight }}
+                  onClick={() => handleMenuTabClick(t('licenseManagement'), 'LicenseManagementTab', 'licenseManagement')}
+                >
+                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><LicenseIcon /></ListItemIcon>
+                  <ListItemText primary={t('licenseManagement')} sx={listItemTextStyle} />
+                </ListItemButton>
               )}
 
               <ListItemButton
