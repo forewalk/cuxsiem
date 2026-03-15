@@ -28,6 +28,9 @@ import {
   ReceiptLong as BomIcon,
   Code as SbomIcon,
   SmartToy as AibomIcon,
+  Schema as ScenarioIcon,
+  AccountTree as ProcessTreeIcon,
+  Rule as RuleIcon,
 } from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -68,6 +71,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const [openMonitorMenu, setOpenMonitorMenu] = useState(false);
   const [openHeartbeatSubMenu, setOpenHeartbeatSubMenu] = useState(false);
   const [openBomMenu, setOpenBomMenu] = useState(false);
+  const [openScenarioMenu, setOpenScenarioMenu] = useState(false);
 
   const theme = useTheme();
   const navigate = useNavigate();
@@ -86,6 +90,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
     setOpenMonitorMenu(false);
     setOpenHeartbeatSubMenu(false);
     setOpenBomMenu(false);
+    setOpenScenarioMenu(false);
   };
 
   const handleGoHome = () => {
@@ -140,6 +145,15 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const handleHeartbeatMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenHeartbeatSubMenu(!openHeartbeatSubMenu);
+  };
+
+  const handleScenarioMenuClick = () => {
+    if (!drawerOpen && !isMobile) {
+      handleDrawerToggle();
+      setOpenScenarioMenu(true);
+    } else {
+      setOpenScenarioMenu(!openScenarioMenu);
+    }
   };
 
   const handleBomMenuClick = () => {
@@ -307,10 +321,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
             <ListItemButton
               onClick={() => handleMenuTabClick(t('logStreaming'), 'LogStreamingTab', 'logStreaming')}
               selected={isLogStreamingActive}
-              sx={{
-                minHeight: listItemHeight,
-                px: 2.5,
-              }}
+              sx={{ minHeight: listItemHeight, px: 2.5 }}
             >
               <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
                 <TerminalIcon />
@@ -318,6 +329,30 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <ListItemText primary={t('logStreaming')} sx={listItemTextStyle} />
             </ListItemButton>
           </ListItem>
+
+          {/* Scenario Menu Group */}
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton onClick={handleScenarioMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
+              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
+                <ScenarioIcon />
+              </ListItemIcon>
+              <ListItemText primary={t('scenarioMenu')} sx={listItemTextStyle} />
+              {(drawerOpen || isMobile) && (openScenarioMenu ? <ExpandLess /> : <ExpandMore />)}
+            </ListItemButton>
+          </ListItem>
+
+          <Collapse in={openScenarioMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('processTree'), 'ScenarioProcessTreeTab', 'processTree')}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><ProcessTreeIcon /></ListItemIcon>
+                <ListItemText primary={t('processTree')} sx={listItemTextStyle} />
+              </ListItemButton>
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('detectionRules'), 'DetectionRuleTab', 'detectionRules')}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><RuleIcon /></ListItemIcon>
+                <ListItemText primary={t('detectionRules')} sx={listItemTextStyle} />
+              </ListItemButton>
+            </List>
+          </Collapse>
 
           {/* Monitoring Menu Group */}
           <ListItem disablePadding sx={{ display: 'block' }}>
