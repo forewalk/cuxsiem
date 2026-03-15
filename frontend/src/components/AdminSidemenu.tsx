@@ -17,6 +17,13 @@ import {
   ShowChart as ThreatsIcon,
   Shield as EdrIcon,
   FlashOn as ActionIcon,
+  MonitorHeart as MonitoringIcon,
+  Favorite as HeartbeatIcon,
+  Language as HttpIcon,
+  Router as TcpIcon,
+  VerifiedUser as CertIcon,
+  ListAlt as ListAltIcon,
+  BarChart as BarChartIcon,
 } from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +61,8 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const [openThreatMenu, setOpenThreatMenu] = useState(() => localStorage.getItem('sidemenu_threat') === 'true');
   const [openAgentMenu, setOpenAgentMenu] = useState(() => localStorage.getItem('sidemenu_agent') === 'true');
   const [openEdrMenu, setOpenEdrMenu] = useState(() => localStorage.getItem('sidemenu_edr') === 'true');
+  const [openMonitorMenu, setOpenMonitorMenu] = useState(() => localStorage.getItem('sidemenu_monitor') === 'true');
+  const [openHeartbeatSubMenu, setOpenHeartbeatSubMenu] = useState(() => localStorage.getItem('sidemenu_heartbeat') === 'true');
 
   const theme = useTheme();
   const navigate = useNavigate();
@@ -75,6 +84,8 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   useEffect(() => { localStorage.setItem('sidemenu_threat', openThreatMenu.toString()); }, [openThreatMenu]);
   useEffect(() => { localStorage.setItem('sidemenu_agent', openAgentMenu.toString()); }, [openAgentMenu]);
   useEffect(() => { localStorage.setItem('sidemenu_edr', openEdrMenu.toString()); }, [openEdrMenu]);
+  useEffect(() => { localStorage.setItem('sidemenu_monitor', openMonitorMenu.toString()); }, [openMonitorMenu]);
+  useEffect(() => { localStorage.setItem('sidemenu_heartbeat', openHeartbeatSubMenu.toString()); }, [openHeartbeatSubMenu]);
 
   const handleAdminMenuClick = () => {
     if (!drawerOpen && !isMobile) {
@@ -106,6 +117,20 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const handleNotifMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenNotifSubMenu(!openNotifSubMenu);
+  };
+
+  const handleMonitorMenuClick = () => {
+    if (!drawerOpen && !isMobile) {
+      handleDrawerToggle();
+      setOpenMonitorMenu(true);
+    } else {
+      setOpenMonitorMenu(!openMonitorMenu);
+    }
+  };
+
+  const handleHeartbeatMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenHeartbeatSubMenu(!openHeartbeatSubMenu);
   };
 
   const handleThreatMenuClick = (e: React.MouseEvent) => {
@@ -217,9 +242,11 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <Collapse in={openThreatMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
                   <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('threatListTitle'), 'ThreatListTab', 'threatListTitle')}>
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><ListAltIcon fontSize="small" /></ListItemIcon>
                     <ListItemText primary={t('threatList')} sx={subListItemTextStyle} />
                   </ListItemButton>
                   <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('threatDashboardTitle'), 'DashboardTab', 'threatDashboardTitle')}>
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><BarChartIcon fontSize="small" /></ListItemIcon>
                     <ListItemText primary={t('threatDashboard')} sx={subListItemTextStyle} />
                   </ListItemButton>
                 </List>
@@ -234,6 +261,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <Collapse in={openAgentMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
                   <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('agentListTitle'), 'AgentListTab', 'agentListTitle')}>
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><ListAltIcon fontSize="small" /></ListItemIcon>
                     <ListItemText primary={t('agentList')} sx={subListItemTextStyle} />
                   </ListItemButton>
                 </List>
@@ -248,6 +276,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <Collapse in={openEdrMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
                   <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('edrListTitle'), 'EdrListTab', 'edrListTitle')}>
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><ListAltIcon fontSize="small" /></ListItemIcon>
                     <ListItemText primary={t('edrList')} sx={subListItemTextStyle} />
                   </ListItemButton>
                 </List>
@@ -271,6 +300,44 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <ListItemText primary={t('logStreaming')} sx={listItemTextStyle} />
             </ListItemButton>
           </ListItem>
+
+          {/* Monitoring Menu Group */}
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton onClick={handleMonitorMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
+              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
+                <MonitoringIcon />
+              </ListItemIcon>
+              <ListItemText primary={t('monitoringMenu')} sx={listItemTextStyle} />
+              {(drawerOpen || isMobile) && (openMonitorMenu ? <ExpandLess /> : <ExpandMore />)}
+            </ListItemButton>
+          </ListItem>
+
+          <Collapse in={openMonitorMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {/* Heartbeat Sub-Group */}
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={handleHeartbeatMenuClick}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><HeartbeatIcon /></ListItemIcon>
+                <ListItemText primary={t('heartbeatMenu')} sx={listItemTextStyle} />
+                {(drawerOpen || isMobile) && (openHeartbeatSubMenu ? <ExpandLess /> : <ExpandMore />)}
+              </ListItemButton>
+              <Collapse in={openHeartbeatSubMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('heartbeatHttp'), 'HeartbeatHttpTab', 'heartbeatHttp')}>
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><HttpIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText primary={t('heartbeatHttp')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('heartbeatTcp'), 'HeartbeatTcpTab', 'heartbeatTcp')}>
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><TcpIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText primary={t('heartbeatTcp')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('heartbeatCert'), 'HeartbeatCertTab', 'heartbeatCert')}>
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><CertIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText primary={t('heartbeatCert')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                </List>
+              </Collapse>
+            </List>
+          </Collapse>
 
           {/* Action Menu Group */}
           <ListItem disablePadding sx={{ display: 'block' }}>
