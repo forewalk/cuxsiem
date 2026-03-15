@@ -52,7 +52,7 @@ const LicenseManagementTab: React.FC = () => {
       </Typography>
       <Divider sx={{ mb: 3 }} />
 
-      <Stack spacing={3} maxWidth={640}>
+      <Stack spacing={3}>
         {/* 현재 라이선스 정보 */}
         <Paper sx={{ p: 3 }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
