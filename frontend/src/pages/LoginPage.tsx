@@ -284,7 +284,6 @@ export const LoginPage: React.FC = () => {
   const [tempPassword, setTempPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [otpResetModalOpen, setOtpResetModalOpen] = useState(false);
-  const [otpResetCode, setOtpResetCode] = useState("");
 
   const handleForgotPassword = () => {
     setResetId("");
@@ -331,26 +330,11 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleOtpResetSubmit = async () => {
-    if (!otpResetCode.trim() || otpResetCode.length !== 6) {
-      setError(t("enterOtp6Digit"));
-      setOpenSnackbar(true);
-      return;
-    }
-
-    setResetLoading(true);
-    try {
-      const pwd = await authService.resetPassword(resetId, otpResetCode);
-      setTempPassword(pwd);
-      setOtpResetModalOpen(false);
-      setOtpResetCode("");
-      setResetDialogOpen(true);
-    } catch (err: any) {
-      setError(t("otpVerifyFailed"));
-      setOpenSnackbar(true);
-    } finally {
-      setResetLoading(false);
-    }
+  const handleOtpResetSubmit = async (code: string) => {
+    const pwd = await authService.resetPassword(resetId, code);
+    setTempPassword(pwd);
+    setOtpResetModalOpen(false);
+    setResetDialogOpen(true);
   };
 
   const handleOTPSuccess = (_accessToken: string) => {
@@ -796,59 +780,16 @@ export const LoginPage: React.FC = () => {
       />
 
       {/* OTP 검증 모달 (비밀번호 초기화용) */}
-      <Dialog
+      <OTPLoginModal
         open={otpResetModalOpen}
         onClose={() => {
           setOtpResetModalOpen(false);
-          setOtpResetCode("");
+          setResetDialogOpen(true);
         }}
-      >
-        <DialogTitle>{t("otpVerificationRequired")}</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            {t("enterOtp6Digit")}
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            label={t("otpCode")}
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={otpResetCode}
-            onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, "").slice(0, 6);
-              setOtpResetCode(value);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && otpResetCode.length === 6 && !resetLoading) {
-                e.preventDefault();
-                handleOtpResetSubmit();
-              }
-            }}
-            inputProps={{ maxLength: 6, inputMode: "numeric", pattern: "[0-9]*" }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOtpResetModalOpen(false);
-              setOtpResetCode("");
-              setResetDialogOpen(true);
-            }}
-          >
-            {t("cancel")}
-          </Button>
-          <Button
-            onClick={handleOtpResetSubmit}
-            disabled={resetLoading || otpResetCode.length !== 6}
-            variant="contained"
-            color="primary"
-          >
-            {resetLoading ? <CircularProgress size={20} color="inherit" /> : t("confirm")}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        title={t("otpVerificationRequired")}
+        showBackupCode={false}
+        onSubmit={handleOtpResetSubmit}
+      />
     </Container>
     </ThemeProvider>
   );

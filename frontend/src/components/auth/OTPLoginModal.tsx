@@ -28,8 +28,14 @@ import cnMessages from "../../locales/cn.json";
 interface OTPLoginModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (accessToken: string) => void;
-  apiClient: any;
+  onSuccess?: (accessToken: string) => void;
+  apiClient?: any;
+  /** 모달 제목 커스터마이징 (없으면 기본 otpLoginTitle 사용) */
+  title?: string;
+  /** 백업코드 탭 표시 여부 (기본 true) */
+  showBackupCode?: boolean;
+  /** 커스텀 submit 핸들러 (제공 시 내부 로그인 로직 대신 사용) */
+  onSubmit?: (code: string) => Promise<void>;
 }
 
 export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
@@ -37,6 +43,9 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
   onClose,
   onSuccess,
   apiClient,
+  title,
+  showBackupCode = true,
+  onSubmit,
 }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [otpCode, setOtpCode] = useState('');
@@ -72,8 +81,12 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
     setError(null);
 
     try {
-      const response = await otpService.loginWithOTP(otpCode);
-      onSuccess(response.access_token);
+      if (onSubmit) {
+        await onSubmit(otpCode);
+      } else {
+        const response = await otpService.loginWithOTP(otpCode);
+        onSuccess?.(response.access_token);
+      }
     } catch (err: any) {
       setError(err.message || t('otpAuthFailed'));
     } finally {
@@ -121,7 +134,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{t('otpLoginTitle')}</DialogTitle>
+      <DialogTitle>{title ?? t('otpLoginTitle')}</DialogTitle>
 
       <DialogContent>
         <Box sx={{ py: 2 }}>
@@ -131,10 +144,12 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
             </Alert>
           )}
 
-          <Tabs value={activeTab} onChange={handleTabChange}>
-            <Tab label={t('otpCode')} />
-            <Tab label={t('backupCode')} />
-          </Tabs>
+          {showBackupCode && (
+            <Tabs value={activeTab} onChange={handleTabChange}>
+              <Tab label={t('otpCode')} />
+              <Tab label={t('backupCode')} />
+            </Tabs>
+          )}
 
           {/* OTP 코드 탭 */}
           {activeTab === 0 && (
