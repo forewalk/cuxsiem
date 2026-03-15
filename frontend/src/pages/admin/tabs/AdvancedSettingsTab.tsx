@@ -3,15 +3,17 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Box, Typography, Button, Paper, Stack, Switch,
   FormControlLabel, Divider, Alert, Snackbar, CircularProgress,
-  Select, MenuItem, FormControl, TextField
+  Select, MenuItem, FormControl, TextField, Chip
 } from '@mui/material';
-import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import { Save as SaveIcon, Refresh as RefreshIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { advancedSettingsService, type AdvancedSettings } from '../../../services/advancedSettingsService';
 import { codeService } from '../../../services/codeService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useRoleCodesStore } from '../../../stores/useRoleCodesStore';
 import useTabStore from '../../../stores/tabStore';
 import { useAuth } from '../../../hooks/useAuth';
+import api from '../../../services/api';
+import OTPEnrollModal from '../../../components/auth/OTPEnrollModal';
 
 // i18n — useState 초기값 전용 동기 함수 (훅 호출 이전에 사용)
 import koMessages from "../../../locales/ko.json";
@@ -50,6 +52,8 @@ const AdvancedSettingsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [nerdUnlocked, setNerdUnlocked] = useState(false);
+  const [myOtpEnabled, setMyOtpEnabled] = useState<boolean | null>(null);
+  const [otpEnrollOpen, setOtpEnrollOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -111,6 +115,14 @@ const AdvancedSettingsTab: React.FC = () => {
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
+
+  // 현재 사용자 OTP 상태 로드
+  useEffect(() => {
+    if (!user) return;
+    api.get('/api/v1/auth/me').then(res => {
+      setMyOtpEnabled(res.data.otp_enabled ?? false);
+    }).catch(() => setMyOtpEnabled(null));
+  }, [user]);
 
   // App.tsx에서 픽셀 모드 해제 시 스위치 UI 동기화
   useEffect(() => {
@@ -248,6 +260,36 @@ const AdvancedSettingsTab: React.FC = () => {
       </Stack>
 
       <Stack spacing={3}>
+
+        {/* OTP 2단계 인증 상태 (모든 사용자) */}
+        <Box>
+          <Paper sx={{ p: 3 }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>{t('otpTwoFactor')}</Typography>
+                <Typography variant="caption" color="text.secondary">{t('otpEnableDesc')}</Typography>
+              </Box>
+              {myOtpEnabled === true ? (
+                <Chip
+                  icon={<CheckCircleIcon />}
+                  label={t('otpEnabledMsg')}
+                  color="success"
+                  variant="outlined"
+                />
+              ) : myOtpEnabled === false ? (
+                <Button variant="contained" color="warning" size="small" onClick={() => setOtpEnrollOpen(true)}>
+                  {t('otpEnrollTitle')}
+                </Button>
+              ) : null}
+            </Stack>
+            {myOtpEnabled === false && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                {t('otpAdminEnrollRecommend')}
+              </Alert>
+            )}
+          </Paper>
+        </Box>
+
         {isAdmin && (
           <Box>
             <Paper sx={{ p: 3 }}>
@@ -361,6 +403,13 @@ const AdvancedSettingsTab: React.FC = () => {
           </Paper>
         </Box>
       </Stack>
+
+      <OTPEnrollModal
+        open={otpEnrollOpen}
+        onClose={() => setOtpEnrollOpen(false)}
+        onSuccess={() => { setOtpEnrollOpen(false); setMyOtpEnabled(true); }}
+        apiClient={api}
+      />
 
       <Snackbar
         open={snackbar.open}
