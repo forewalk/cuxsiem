@@ -3,7 +3,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Box, Typography, Button, Paper, Stack, Switch,
   FormControlLabel, Divider, Alert, Snackbar, CircularProgress,
-  Select, MenuItem, FormControl, TextField, Tooltip
+  Select, MenuItem, FormControl, TextField
 } from '@mui/material';
 import { Save as SaveIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { advancedSettingsService, type AdvancedSettings } from '../../../services/advancedSettingsService';
@@ -282,18 +282,10 @@ const AdvancedSettingsTab: React.FC = () => {
                 <Box>
                   <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 500 }}>{t('userRoleNames')}</Typography>
                   <Stack spacing={2}>
-                    <Tooltip title={t('userRoleAdmin')} placement="top-start" arrow>
-                      <TextField fullWidth size="small" label="role-1" value={settings.role_names?.admin || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, admin: e.target.value } })} />
-                    </Tooltip>
-                    <Tooltip title={t('userRoleMonitoring')} placement="top-start" arrow>
-                      <TextField fullWidth size="small" label="role-2" value={settings.role_names?.monitoring || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, monitoring: e.target.value } })} />
-                    </Tooltip>
-                    <Tooltip title={t('userRoleApprover')} placement="top-start" arrow>
-                      <TextField fullWidth size="small" label="role-3" value={settings.role_names?.approver || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, approver: e.target.value } })} />
-                    </Tooltip>
-                    <Tooltip title={t('userRoleUser')} placement="top-start" arrow>
-                      <TextField fullWidth size="small" label="role-4" value={settings.role_names?.user || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, user: e.target.value } })} />
-                    </Tooltip>
+                    <TextField fullWidth size="small" label="role-1" value={settings.role_names?.admin || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, admin: e.target.value } })} helperText={t('roleNameDesc1')} />
+                    <TextField fullWidth size="small" label="role-2" value={settings.role_names?.monitoring || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, monitoring: e.target.value } })} helperText={t('roleNameDesc2')} />
+                    <TextField fullWidth size="small" label="role-3" value={settings.role_names?.approver || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, approver: e.target.value } })} helperText={t('roleNameDesc3')} />
+                    <TextField fullWidth size="small" label="role-4" value={settings.role_names?.user || ''} onChange={(e) => setSettings({ ...settings, role_names: { ...settings.role_names!, user: e.target.value } })} helperText={t('roleNameDesc4')} />
                   </Stack>
                 </Box>
               </Stack>

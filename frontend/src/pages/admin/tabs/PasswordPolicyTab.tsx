@@ -197,10 +197,10 @@ const PasswordPolicyTab: React.FC = () => {
             label={t('lockoutThreshold')}
             type="number"
             size="small"
-            value={policy?.lockout_threshold || 5}
+            value={policy?.lockout_threshold ?? 5}
             onChange={(e) => handleChange('lockout_threshold', parseInt(e.target.value))}
             helperText={t('lockoutThresholdHelper')}
-            inputProps={{ min: 1, max: 100 }}
+            inputProps={{ min: 0, max: 10 }}
             fullWidth
           />
           <TextField

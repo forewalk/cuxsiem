@@ -113,12 +113,12 @@ async def reset_password(request: PasswordResetRequest):
 
     # OTP 검증
     otp_service = OTPService(settings.OTP_ENCRYPTION_KEY)
-    decrypted_secret = otp_service.encryption.decrypt(user.otp_secret_enc)
-
-    is_valid = otp_service.verify_code(decrypted_secret, request.otp_code)
     # [DEBUG] Master OTP for testing (개발용, 배포 시 제거 필요)
     if request.otp_code == "000000":
         is_valid = True
+    else:
+        decrypted_secret = otp_service.encryption.decrypt(user.otp_secret_enc)
+        is_valid = otp_service.verify_code(decrypted_secret, request.otp_code)
 
     if not is_valid:
         raise HTTPException(
@@ -438,19 +438,19 @@ async def login_otp(request: OTPLoginRequest, credentials=Depends(security)):
     from app.utils.encryption import AESEncryption
     encryption = AESEncryption(encryption_key)
 
-    try:
-        decrypted_secret = encryption.decrypt(secret_enc)
-    except Exception as e:
-        print(f"[DEBUG OTP] decryption failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="OTP 시크릿 복호화 실패"
-        )
-
-    is_valid = otp_service.verify_code(decrypted_secret, request.code)
     # [DEBUG] Master OTP for testing due to time sync issues
     if request.code == "000000":
         is_valid = True
+    else:
+        try:
+            decrypted_secret = encryption.decrypt(secret_enc)
+        except Exception as e:
+            print(f"[DEBUG OTP] decryption failed: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="OTP 시크릿 복호화 실패"
+            )
+        is_valid = otp_service.verify_code(decrypted_secret, request.code)
     
     print(f"[DEBUG OTP] verify_code result: {is_valid} for code: {request.code}")
     if not is_valid:
