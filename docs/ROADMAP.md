@@ -104,6 +104,30 @@
 - [ ] 자체 프로세스 헬스 체크 (백엔드, OpenSearch, Kafka, Vector)
 - [ ] 모니터링 결과 대시보드 위젯 연동
 
+### BOM (Bill of Materials)
+> 소프트웨어·AI 구성 요소를 CycloneDX 1.6 / SPDX 2.3 표준으로 문서화.
+> 공급망 보안(SBOM) 및 AI 투명성(AIBOM) 규제 대응.
+
+- [ ] **SBOM** (Software Bill of Materials)
+  - [x] SBOM 메뉴 신설 (BOM > SBOM)
+  - [x] CycloneDX 1.6 필수 필드 UI 플레이스홀더 (bomFormat·specVersion·metadata·components·dependencies)
+  - [x] SPDX 2.3 출력 형식 토글 플레이스홀더
+  - [x] 파일 업로드 영역 (requirements.txt · package.json · pom.xml · go.mod)
+  - [x] 컴포넌트 목록 테이블 (name·version·type·license·PURL·CVE)
+  - [ ] 실제 파일 파싱 및 CycloneDX JSON 생성 로직
+  - [ ] MD5/SHA-256 체크섬 자동 계산
+  - [ ] OSV/NVD 취약점 DB 연동 (PURL 기반 CVE 스캔)
+  - [ ] SBOM 이력 저장 및 비교 (버전별 변경사항)
+- [ ] **AIBOM** (AI Bill of Materials)
+  - [x] AIBOM 메뉴 신설 (BOM > AIBOM)
+  - [x] AI 모델 정보 테이블 (모델명·제공사·버전·프레임워크·라이선스·용도)
+  - [x] 참조 데이터셋 테이블 (출처·라이선스·규모)
+  - [x] CycloneDX ml-model 타입 + modelCard 확장 필드 미리보기
+  - [x] 향후 기획 아이디어 명세 (EU AI Act·NIST AI RMF·OpenSSF 연동)
+  - [ ] AI 모델 카드 자동 생성 (편향·공정성·한계)
+  - [ ] EU AI Act 위험 등급 자동 분류
+  - [ ] NIST AI RMF 컴플라이언스 체크리스트
+
 ### 배포 및 자동화 (데모 및 운영 준비)
 - [ ] 인프라 구성 자동화 (.ini 설정 기반)
   - [ ] Kafka Topic 구조 생성 자동화

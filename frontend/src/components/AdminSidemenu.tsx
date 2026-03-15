@@ -25,6 +25,9 @@ import {
   ListAlt as ListAltIcon,
   BarChart as BarChartIcon,
   WorkspacePremium as LicenseIcon,
+  ReceiptLong as BomIcon,
+  Code as SbomIcon,
+  SmartToy as AibomIcon,
 } from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -54,39 +57,44 @@ const iconMinWidth = 48;
 const listItemHeight = 48;
 
 const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
-  // localStorage에서 상태 로드 (저장된 값이 없으면 기본 false)
-  const [openAdminMenu, setOpenAdminMenu] = useState(() => localStorage.getItem('sidemenu_admin') === 'true');
-  const [openActionMenu, setOpenActionMenu] = useState(() => localStorage.getItem('sidemenu_action') === 'true');
-  const [openNotifSubMenu, setOpenNotifSubMenu] = useState(() => localStorage.getItem('sidemenu_notif') === 'true');
-  const [openDashboardMenu, setOpenDashboardMenu] = useState(() => localStorage.getItem('sidemenu_dash') === 'true');
-  const [openThreatMenu, setOpenThreatMenu] = useState(() => localStorage.getItem('sidemenu_threat') === 'true');
-  const [openAgentMenu, setOpenAgentMenu] = useState(() => localStorage.getItem('sidemenu_agent') === 'true');
-  const [openEdrMenu, setOpenEdrMenu] = useState(() => localStorage.getItem('sidemenu_edr') === 'true');
-  const [openMonitorMenu, setOpenMonitorMenu] = useState(() => localStorage.getItem('sidemenu_monitor') === 'true');
-  const [openHeartbeatSubMenu, setOpenHeartbeatSubMenu] = useState(() => localStorage.getItem('sidemenu_heartbeat') === 'true');
+  // 초기값 항상 false: 로그인·로고 클릭·새로고침 시 모두 접힌 상태로 시작
+  const [openAdminMenu, setOpenAdminMenu] = useState(false);
+  const [openActionMenu, setOpenActionMenu] = useState(false);
+  const [openNotifSubMenu, setOpenNotifSubMenu] = useState(false);
+  const [openDashboardMenu, setOpenDashboardMenu] = useState(false);
+  const [openThreatMenu, setOpenThreatMenu] = useState(false);
+  const [openAgentMenu, setOpenAgentMenu] = useState(false);
+  const [openEdrMenu, setOpenEdrMenu] = useState(false);
+  const [openMonitorMenu, setOpenMonitorMenu] = useState(false);
+  const [openHeartbeatSubMenu, setOpenHeartbeatSubMenu] = useState(false);
+  const [openBomMenu, setOpenBomMenu] = useState(false);
 
   const theme = useTheme();
   const navigate = useNavigate();
   const { addTab, activeTabId, clearAndGoHome } = useTabStore();
 
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const collapseAllMenus = () => {
+    setOpenAdminMenu(false);
+    setOpenActionMenu(false);
+    setOpenNotifSubMenu(false);
+    setOpenDashboardMenu(false);
+    setOpenThreatMenu(false);
+    setOpenAgentMenu(false);
+    setOpenEdrMenu(false);
+    setOpenMonitorMenu(false);
+    setOpenHeartbeatSubMenu(false);
+    setOpenBomMenu(false);
+  };
+
   const handleGoHome = () => {
+    collapseAllMenus();
     clearAndGoHome({ label: _t('threatDashboardTitle'), component: 'DashboardTab', labelKey: 'threatDashboardTitle' });
     if (!drawerOpen && !isMobile) handleDrawerToggle();
     if (isMobile) handleDrawerToggle();
     if (window.location.pathname !== '/main') navigate('/main');
   };
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-  // 상태 변경 시 localStorage 저장
-  useEffect(() => { localStorage.setItem('sidemenu_admin', openAdminMenu.toString()); }, [openAdminMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_action', openActionMenu.toString()); }, [openActionMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_notif', openNotifSubMenu.toString()); }, [openNotifSubMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_dash', openDashboardMenu.toString()); }, [openDashboardMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_threat', openThreatMenu.toString()); }, [openThreatMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_agent', openAgentMenu.toString()); }, [openAgentMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_edr', openEdrMenu.toString()); }, [openEdrMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_monitor', openMonitorMenu.toString()); }, [openMonitorMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_heartbeat', openHeartbeatSubMenu.toString()); }, [openHeartbeatSubMenu]);
 
   const handleAdminMenuClick = () => {
     if (!drawerOpen && !isMobile) {
@@ -132,6 +140,15 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const handleHeartbeatMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenHeartbeatSubMenu(!openHeartbeatSubMenu);
+  };
+
+  const handleBomMenuClick = () => {
+    if (!drawerOpen && !isMobile) {
+      handleDrawerToggle();
+      setOpenBomMenu(true);
+    } else {
+      setOpenBomMenu(!openBomMenu);
+    }
   };
 
   const handleThreatMenuClick = (e: React.MouseEvent) => {
@@ -373,6 +390,30 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
                   )}
                 </List>
               </Collapse>
+            </List>
+          </Collapse>
+
+          {/* BOM Menu Group */}
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton onClick={handleBomMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
+              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
+                <BomIcon />
+              </ListItemIcon>
+              <ListItemText primary={t('bomMenu')} sx={listItemTextStyle} />
+              {(drawerOpen || isMobile) && (openBomMenu ? <ExpandLess /> : <ExpandMore />)}
+            </ListItemButton>
+          </ListItem>
+
+          <Collapse in={openBomMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('sbomMenu'), 'SbomTab', 'sbomMenu')}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><SbomIcon /></ListItemIcon>
+                <ListItemText primary={t('sbomMenu')} sx={listItemTextStyle} />
+              </ListItemButton>
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('aibomMenu'), 'AibomTab', 'aibomMenu')}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><AibomIcon /></ListItemIcon>
+                <ListItemText primary={t('aibomMenu')} sx={listItemTextStyle} />
+              </ListItemButton>
             </List>
           </Collapse>
         </List>

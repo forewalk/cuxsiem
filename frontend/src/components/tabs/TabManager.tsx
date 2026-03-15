@@ -16,6 +16,8 @@ import NotificationHistoryTab from '../../pages/admin/alerts/tabs/NotificationHi
 import AdvancedSettingsTab from '../../pages/admin/tabs/AdvancedSettingsTab';
 import LicenseManagementTab from '../../pages/admin/tabs/LicenseManagementTab';
 import HeartbeatTab from '../../pages/monitoring/tabs/HeartbeatTab';
+import SbomTab from '../../pages/bom/tabs/SbomTab';
+import AibomTab from '../../pages/bom/tabs/AibomTab';
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../locales/ko.json";
@@ -35,6 +37,8 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   NotificationHistoryTab: NotificationHistoryTab,
   AdvancedSettingsTab: AdvancedSettingsTab,
   LicenseManagementTab: LicenseManagementTab,
+  SbomTab: SbomTab,
+  AibomTab: AibomTab,
   HeartbeatHttpTab: (props: any) => <HeartbeatTab {...props} monitorType="http" />,
   HeartbeatTcpTab: (props: any) => <HeartbeatTab {...props} monitorType="tcp" />,
   HeartbeatCertTab: (props: any) => <HeartbeatTab {...props} monitorType="cert" />,
