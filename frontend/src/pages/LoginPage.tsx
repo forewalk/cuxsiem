@@ -45,7 +45,7 @@ import cnMessages from "../locales/cn.json";
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, logout } = useAuth();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -372,10 +372,10 @@ export const LoginPage: React.FC = () => {
         apiClient={api}
       />
 
-      {/* 회원가입 후 OTP 등록 모달 */}
+      {/* 회원가입 후 OTP 등록 모달 (취소 시 로그아웃) */}
       <OTPEnrollModal
         open={otpEnrollAfterSignupOpen}
-        onClose={() => { setOtpEnrollAfterSignupOpen(false); navigate("/main"); }}
+        onClose={() => { setOtpEnrollAfterSignupOpen(false); logout(); }}
         onSuccess={handleEnrollAfterSignupSuccess}
         apiClient={api}
       />

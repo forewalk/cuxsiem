@@ -14,7 +14,10 @@ import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
   LockReset as LockResetIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
+import InputAdornment from '@mui/material/InputAdornment';
 import { getOTPService } from '../../../services/otpService';
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
@@ -208,6 +211,7 @@ const UserManagementTab: React.FC = () => {
 
   // 다이얼로그 상태
   const [open, setOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserCreate>({
     id: '',
@@ -581,11 +585,20 @@ const UserManagementTab: React.FC = () => {
             </TextField>
             <TextField
               label={t('password')}
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               fullWidth
-              placeholder={editingUser ? '변경 시에만 입력' : t('passwordPlaceholder')}
+              placeholder={editingUser ? t('passwordChangeOnly') : t('passwordPlaceholder')}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setShowPassword(p => !p)} edge="end">
+                      {showPassword ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <FormControlLabel
               control={

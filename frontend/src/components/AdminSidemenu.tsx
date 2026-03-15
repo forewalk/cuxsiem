@@ -16,6 +16,7 @@ import {
   Terminal as TerminalIcon,
   ShowChart as ThreatsIcon,
   Shield as EdrIcon,
+  FlashOn as ActionIcon,
 } from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -47,7 +48,8 @@ const listItemHeight = 48;
 const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, handleDrawerToggle }) => {
   // localStorage에서 상태 로드 (저장된 값이 없으면 기본 false)
   const [openAdminMenu, setOpenAdminMenu] = useState(() => localStorage.getItem('sidemenu_admin') === 'true');
-  const [openNotificationMenu] = useState(() => localStorage.getItem('sidemenu_notif') === 'true');
+  const [openActionMenu, setOpenActionMenu] = useState(() => localStorage.getItem('sidemenu_action') === 'true');
+  const [openNotifSubMenu, setOpenNotifSubMenu] = useState(() => localStorage.getItem('sidemenu_notif') === 'true');
   const [openDashboardMenu, setOpenDashboardMenu] = useState(() => localStorage.getItem('sidemenu_dash') === 'true');
   const [openThreatMenu, setOpenThreatMenu] = useState(() => localStorage.getItem('sidemenu_threat') === 'true');
   const [openAgentMenu, setOpenAgentMenu] = useState(() => localStorage.getItem('sidemenu_agent') === 'true');
@@ -67,7 +69,8 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
   // 상태 변경 시 localStorage 저장
   useEffect(() => { localStorage.setItem('sidemenu_admin', openAdminMenu.toString()); }, [openAdminMenu]);
-  useEffect(() => { localStorage.setItem('sidemenu_notif', openNotificationMenu.toString()); }, [openNotificationMenu]);
+  useEffect(() => { localStorage.setItem('sidemenu_action', openActionMenu.toString()); }, [openActionMenu]);
+  useEffect(() => { localStorage.setItem('sidemenu_notif', openNotifSubMenu.toString()); }, [openNotifSubMenu]);
   useEffect(() => { localStorage.setItem('sidemenu_dash', openDashboardMenu.toString()); }, [openDashboardMenu]);
   useEffect(() => { localStorage.setItem('sidemenu_threat', openThreatMenu.toString()); }, [openThreatMenu]);
   useEffect(() => { localStorage.setItem('sidemenu_agent', openAgentMenu.toString()); }, [openAgentMenu]);
@@ -89,6 +92,20 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
     } else {
       setOpenDashboardMenu(!openDashboardMenu);
     }
+  };
+
+  const handleActionMenuClick = () => {
+    if (!drawerOpen && !isMobile) {
+      handleDrawerToggle();
+      setOpenActionMenu(true);
+    } else {
+      setOpenActionMenu(!openActionMenu);
+    }
+  };
+
+  const handleNotifMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenNotifSubMenu(!openNotifSubMenu);
   };
 
   const handleThreatMenuClick = (e: React.MouseEvent) => {
@@ -255,31 +272,41 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
             </ListItemButton>
           </ListItem>
 
+          {/* Action Menu Group */}
           <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              onClick={() => handleMenuTabClick(t('notificationHistory'), 'NotificationHistoryTab', 'notificationHistory')}
-              sx={{ minHeight: listItemHeight, px: 2.5 }}
-            >
+            <ListItemButton onClick={handleActionMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
               <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
-                <HistoryIcon />
+                <ActionIcon />
               </ListItemIcon>
-              <ListItemText primary={t('notificationHistory')} sx={listItemTextStyle} />
+              <ListItemText primary={t('actionMenu')} sx={listItemTextStyle} />
+              {(drawerOpen || isMobile) && (openActionMenu ? <ExpandLess /> : <ExpandMore />)}
             </ListItemButton>
           </ListItem>
 
-          {userRole === 'role-1' && (
-            <ListItem disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}
-                sx={{ minHeight: listItemHeight, px: 2.5 }}
-              >
-                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
-                  <NotificationsIcon />
-                </ListItemIcon>
-                <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
+          <Collapse in={openActionMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {/* Notification Sub-Group */}
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={handleNotifMenuClick}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><NotificationsIcon /></ListItemIcon>
+                <ListItemText primary={t('notificationMenu')} sx={listItemTextStyle} />
+                {(drawerOpen || isMobile) && (openNotifSubMenu ? <ExpandLess /> : <ExpandMore />)}
               </ListItemButton>
-            </ListItem>
-          )}
+              <Collapse in={openNotifSubMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('notificationHistory'), 'NotificationHistoryTab', 'notificationHistory')}>
+                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><HistoryIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText primary={t('notificationHistory')} sx={subListItemTextStyle} />
+                  </ListItemButton>
+                  {userRole === 'role-1' && (
+                    <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}>
+                      <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><SettingsIcon fontSize="small" /></ListItemIcon>
+                      <ListItemText primary={t('notificationCenter')} sx={subListItemTextStyle} />
+                    </ListItemButton>
+                  )}
+                </List>
+              </Collapse>
+            </List>
+          </Collapse>
         </List>
       </Box>
 
