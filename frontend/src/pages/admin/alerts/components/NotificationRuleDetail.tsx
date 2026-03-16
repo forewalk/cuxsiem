@@ -5,7 +5,6 @@ import {
   Alert,
   Box,
   Button,
-  Divider,
   FormControlLabel,
   Grid,
   MenuItem,
@@ -16,8 +15,22 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
+import React from 'react';
 import { SeverityChip } from './SeverityChip';
 import { WebhookHeadersEditor, type HeaderEntry } from './WebhookHeadersEditor';
+
+const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Box sx={{
+    px: 1.5, py: 0.75,
+    bgcolor: 'action.hover',
+    borderRadius: 0.5,
+    mb: 1.5,
+  }}>
+    <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.7rem', letterSpacing: '0.03em', textTransform: 'uppercase', color: 'text.secondary' }}>
+      {children}
+    </Typography>
+  </Box>
+);
 
 interface RoleCode {
   code: string;
@@ -142,7 +155,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
 
           {/* 1. 기본 정보 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('basicInfo')}</Typography>
+            <SectionHeader>{t('basicInfo')}</SectionHeader>
             <Stack spacing={2}>
               <Stack direction="row" spacing={2}>
                 <TextField label={t('ruleName')} fullWidth required value={formData.name}
@@ -165,11 +178,9 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
             </Stack>
           </Grid>
 
-          <Grid size={12}><Divider /></Grid>
-
           {/* 2. 탐지 로직 및 주기 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('detectionCondition')}</Typography>
+            <SectionHeader>{t('detectionCondition')}</SectionHeader>
             <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
               <TextField
                 label={t('targetIndex')} fullWidth value={formData.target_index}
@@ -274,11 +285,9 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
             </Box>
           </Grid>
 
-          <Grid size={12}><Divider /></Grid>
-
           {/* 3. 알림 메시지 템플릿 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('notificationMessageTemplate')}</Typography>
+            <SectionHeader>{t('notificationMessageTemplate')}</SectionHeader>
             <Stack direction="row" spacing={2} sx={{ height: 400 }}>
               <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, color: 'text.secondary' }}>{t('messageTemplate')}</Typography>
@@ -310,11 +319,9 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
             </Stack>
           </Grid>
 
-          <Grid size={12}><Divider /></Grid>
-
           {/* 4. 알림 수신 대상 역할 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('notificationReceiverRoles')}</Typography>
+            <SectionHeader>{t('notificationReceiverRoles')}</SectionHeader>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{t('selectReceiverRoles')}</Typography>
             <Stack direction="row" spacing={2} flexWrap="wrap">
               {roleCodes.map((rc) => (
@@ -339,11 +346,9 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
             </Stack>
           </Grid>
 
-          <Grid size={12}><Divider /></Grid>
-
           {/* 5. Webhook 설정 */}
           <Grid size={12}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '0.8rem' }}>{t('webhookSettings')}</Typography>
+            <SectionHeader>{t('webhookSettings')}</SectionHeader>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>{t('webhookDescription')}</Typography>
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
@@ -386,13 +391,13 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
 
           {/* 6. 변경 이력 (편집 모드에서만 표시) */}
           {isEditing && changeHistory.length > 0 && (
-            <>
-              <Grid size={12}><Divider /></Grid>
-              <Grid size={12}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                  <HistoryIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}>{t('changeHistory')}</Typography>
+            <Grid size={12}>
+              <SectionHeader>
+                <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                  <HistoryIcon sx={{ fontSize: 14 }} />
+                  {t('changeHistory')}
                 </Box>
+              </SectionHeader>
                 <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', '& td, & th': { px: 1.5, py: 0.75, fontSize: '0.75rem' } }}>
                   <thead>
                     <tr>
@@ -417,8 +422,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                     ))}
                   </tbody>
                 </Box>
-              </Grid>
-            </>
+            </Grid>
           )}
         </Grid>
       </Box>
