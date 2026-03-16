@@ -17,7 +17,7 @@ export const SeverityChip: React.FC<SeverityChipProps> = ({
 
   return (
     <Chip
-      label={severity.toUpperCase()}
+      label={severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase()}
       color={mapSeverityToMui(severity)}
       size={size}
       variant={variant}

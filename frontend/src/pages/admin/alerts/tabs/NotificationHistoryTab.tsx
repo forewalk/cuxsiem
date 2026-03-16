@@ -349,7 +349,7 @@ const NotificationHistoryTab: React.FC = () => {
         anchorEl={severityAnchor}
         open={Boolean(severityAnchor)}
         onClose={() => setSeverityAnchor(null)}
-        options={SEVERITY_OPTIONS.map(s => ({ value: s, label: s.toUpperCase() }))}
+        options={SEVERITY_OPTIONS.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() }))}
         selectedValues={selectedSeverities}
         onToggle={(value) => {
           const severity = value as string;

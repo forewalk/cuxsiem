@@ -16,6 +16,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
+import { SeverityChip } from './SeverityChip';
 import { WebhookHeadersEditor, type HeaderEntry } from './WebhookHeadersEditor';
 
 interface RoleCode {
@@ -149,12 +150,13 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
                   InputProps={{ sx: { fontSize: '0.75rem' } }} InputLabelProps={{ sx: { fontSize: '0.75rem' } }} />
                 <TextField select label={t('severity')} sx={{ minWidth: 130 }} value={formData.severity}
                   onChange={(e) => onFormDataChange({ ...formData, severity: e.target.value })} size="small"
-                  InputProps={{ sx: { fontSize: '0.75rem' } }} InputLabelProps={{ sx: { fontSize: '0.75rem' } }}>
-                  <MenuItem value="info" sx={{ fontSize: '0.75rem' }}>INFO</MenuItem>
-                  <MenuItem value="low" sx={{ fontSize: '0.75rem' }}>LOW</MenuItem>
-                  <MenuItem value="medium" sx={{ fontSize: '0.75rem' }}>MEDIUM</MenuItem>
-                  <MenuItem value="high" sx={{ fontSize: '0.75rem' }}>HIGH</MenuItem>
-                  <MenuItem value="critical" sx={{ fontSize: '0.75rem' }}>CRITICAL</MenuItem>
+                  InputProps={{ sx: { fontSize: '0.75rem' } }} InputLabelProps={{ sx: { fontSize: '0.75rem' } }}
+                  SelectProps={{ renderValue: (v) => <SeverityChip severity={v as string} /> }}>
+                  {['info', 'low', 'medium', 'high', 'critical'].map((s) => (
+                    <MenuItem key={s} value={s} sx={{ fontSize: '0.75rem' }}>
+                      <SeverityChip severity={s} />
+                    </MenuItem>
+                  ))}
                 </TextField>
               </Stack>
               <TextField label={t('ruleDescriptionLabel')} fullWidth multiline rows={2} value={formData.description}
