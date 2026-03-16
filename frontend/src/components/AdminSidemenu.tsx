@@ -19,9 +19,6 @@ import {
   FlashOn as ActionIcon,
   MonitorHeart as MonitoringIcon,
   Favorite as HeartbeatIcon,
-  Language as HttpIcon,
-  Router as TcpIcon,
-  VerifiedUser as CertIcon,
   ListAlt as ListAltIcon,
   BarChart as BarChartIcon,
   WorkspacePremium as LicenseIcon,
@@ -69,7 +66,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const [openAgentMenu, setOpenAgentMenu] = useState(false);
   const [openEdrMenu, setOpenEdrMenu] = useState(false);
   const [openMonitorMenu, setOpenMonitorMenu] = useState(false);
-  const [openHeartbeatSubMenu, setOpenHeartbeatSubMenu] = useState(false);
   const [openBomMenu, setOpenBomMenu] = useState(false);
   const [openScenarioMenu, setOpenScenarioMenu] = useState(false);
 
@@ -88,7 +84,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
     setOpenAgentMenu(false);
     setOpenEdrMenu(false);
     setOpenMonitorMenu(false);
-    setOpenHeartbeatSubMenu(false);
     setOpenBomMenu(false);
     setOpenScenarioMenu(false);
   };
@@ -140,11 +135,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
     } else {
       setOpenMonitorMenu(!openMonitorMenu);
     }
-  };
-
-  const handleHeartbeatMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpenHeartbeatSubMenu(!openHeartbeatSubMenu);
   };
 
   const handleScenarioMenuClick = () => {
@@ -367,28 +357,10 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
 
           <Collapse in={openMonitorMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              {/* Heartbeat Sub-Group */}
-              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={handleHeartbeatMenuClick}>
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('heartbeatMenu'), 'HeartbeatTab', 'heartbeatMenu')}>
                 <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><HeartbeatIcon /></ListItemIcon>
                 <ListItemText primary={t('heartbeatMenu')} sx={listItemTextStyle} />
-                {(drawerOpen || isMobile) && (openHeartbeatSubMenu ? <ExpandLess /> : <ExpandMore />)}
               </ListItemButton>
-              <Collapse in={openHeartbeatSubMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding>
-                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('heartbeatHttp'), 'HeartbeatHttpTab', 'heartbeatHttp')}>
-                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><HttpIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText primary={t('heartbeatHttp')} sx={subListItemTextStyle} />
-                  </ListItemButton>
-                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('heartbeatTcp'), 'HeartbeatTcpTab', 'heartbeatTcp')}>
-                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><TcpIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText primary={t('heartbeatTcp')} sx={subListItemTextStyle} />
-                  </ListItemButton>
-                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('heartbeatCert'), 'HeartbeatCertTab', 'heartbeatCert')}>
-                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><CertIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText primary={t('heartbeatCert')} sx={subListItemTextStyle} />
-                  </ListItemButton>
-                </List>
-              </Collapse>
             </List>
           </Collapse>
 

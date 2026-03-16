@@ -43,9 +43,7 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   AibomTab: AibomTab,
   ScenarioProcessTreeTab: ScenarioProcessTreeTab,
   DetectionRuleTab: DetectionRuleTab,
-  HeartbeatHttpTab: (props: any) => <HeartbeatTab {...props} monitorType="http" />,
-  HeartbeatTcpTab: (props: any) => <HeartbeatTab {...props} monitorType="tcp" />,
-  HeartbeatCertTab: (props: any) => <HeartbeatTab {...props} monitorType="cert" />,
+  HeartbeatTab: HeartbeatTab,
 };
 
 const TabItem = styled(Box, {
