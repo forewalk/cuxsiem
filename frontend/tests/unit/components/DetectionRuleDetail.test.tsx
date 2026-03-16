@@ -9,18 +9,18 @@ const theme = createTheme();
 
 const mockRule: DetectionRuleData = {
   id: 'rule-8f1a9c',
-  name: 'Linux Reverse Shell Indicator',
+  name: 'Linux Reverse Shell 탐지',
   logType: 'Linux System Logs',
-  description: 'Detects a bash connecting to a remote IP address',
-  lastUpdated: '2021-10-15T15:00:00.000Z',
-  author: 'Florian Roth (Nextron Systems)',
+  description: 'bash가 외부 IP로 연결을 시도하는 행위를 탐지합니다.',
+  lastUpdated: '2026-02-18T09:30:00.000Z',
+  author: '김장훈 (CRUX SIEM)',
   source: 'Standard',
   license: 'Detection Rule License (DRL)',
   severity: 'critical',
   tags: ['attack.execution', 'attack.t1059.004'],
   references: ['https://example.com/reference'],
-  falsePositives: ['Unknown'],
-  ruleStatus: 'test',
+  falsePositives: ['알려진 오탐 사례 없음'],
+  ruleStatus: 'stable',
   enabled: true,
   detection: `selection:\n  Image|endswith: /bin/bash\ncondition: selection`,
 };
@@ -49,7 +49,7 @@ describe('DetectionRuleDetail', () => {
   // Rule Summary 섹션
   it('룰 이름이 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('Linux Reverse Shell Indicator')).toBeInTheDocument();
+    expect(screen.getByText('Linux Reverse Shell 탐지')).toBeInTheDocument();
   });
 
   it('로그 소스가 칩으로 표시된다', () => {
@@ -59,7 +59,7 @@ describe('DetectionRuleDetail', () => {
 
   it('설명이 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('Detects a bash connecting to a remote IP address')).toBeInTheDocument();
+    expect(screen.getByText('bash가 외부 IP로 연결을 시도하는 행위를 탐지합니다.')).toBeInTheDocument();
   });
 
   // Detection Logic 섹션
@@ -83,7 +83,7 @@ describe('DetectionRuleDetail', () => {
   // Documentation 섹션
   it('작성자가 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('Florian Roth (Nextron Systems)')).toBeInTheDocument();
+    expect(screen.getByText('김장훈 (CRUX SIEM)')).toBeInTheDocument();
   });
 
   it('참조 링크가 표시된다', () => {
@@ -96,7 +96,7 @@ describe('DetectionRuleDetail', () => {
 
   it('오탐 사례가 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('알려진 오탐 사례 없음')).toBeInTheDocument();
   });
 
   // Metadata 섹션
@@ -112,11 +112,11 @@ describe('DetectionRuleDetail', () => {
 
   it('룰 상태가 칩으로 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('test')).toBeInTheDocument();
+    expect(screen.getByText('stable')).toBeInTheDocument();
   });
 
   it('최종 수정일이 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('2021-10-15T15:00:00.000Z')).toBeInTheDocument();
+    expect(screen.getByText('2026-02-18T09:30:00.000Z')).toBeInTheDocument();
   });
 });

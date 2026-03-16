@@ -8,9 +8,9 @@ import { DetectionRuleList, type DetectionRuleListItem } from '@/pages/scenario/
 const theme = createTheme();
 
 const mockRules: DetectionRuleListItem[] = [
-  { id: '1', name: 'Linux Reverse Shell Indicator', severity: 'critical', logType: 'Linux System Logs', tags: ['attack.execution', 'attack.t1059.004'], enabled: true },
-  { id: '2', name: 'PowerShell Encoded Command', severity: 'high', logType: 'Windows Process Events', tags: ['attack.execution', 'attack.t1059.001'], enabled: true },
-  { id: '3', name: 'Suspicious Outbound DNS over HTTPS', severity: 'medium', logType: 'Network Firewall Logs', tags: ['attack.command_and_control', 'attack.t1071.001'], enabled: false },
+  { id: '1', name: 'Linux Reverse Shell 탐지', severity: 'critical', logType: 'Linux System Logs', tags: ['attack.execution', 'attack.t1059.004'], enabled: true },
+  { id: '2', name: 'PowerShell 인코딩 명령 실행', severity: 'high', logType: 'Windows Process Events', tags: ['attack.execution', 'attack.t1059.001'], enabled: true },
+  { id: '3', name: 'DNS over HTTPS 우회 통신 탐지', severity: 'medium', logType: 'Network Firewall Logs', tags: ['attack.command_and_control', 'attack.t1071.001'], enabled: false },
 ];
 
 function renderList(props: Partial<React.ComponentProps<typeof DetectionRuleList>> = {}) {
@@ -37,8 +37,8 @@ function renderList(props: Partial<React.ComponentProps<typeof DetectionRuleList
 describe('DetectionRuleList', () => {
   it('룰 이름을 렌더링한다', () => {
     renderList();
-    expect(screen.getByText('Linux Reverse Shell Indicator')).toBeInTheDocument();
-    expect(screen.getByText('PowerShell Encoded Command')).toBeInTheDocument();
+    expect(screen.getByText('Linux Reverse Shell 탐지')).toBeInTheDocument();
+    expect(screen.getByText('PowerShell 인코딩 명령 실행')).toBeInTheDocument();
   });
 
   it('플랫폼 칩이 표시된다', () => {
@@ -92,13 +92,13 @@ describe('DetectionRuleList', () => {
     const user = userEvent.setup();
     const { onSelect } = renderList();
 
-    await user.click(screen.getByText('Linux Reverse Shell Indicator'));
+    await user.click(screen.getByText('Linux Reverse Shell 탐지'));
     expect(onSelect).toHaveBeenCalledWith('1');
   });
 
   it('선택된 룰이 하이라이트된다', () => {
     renderList({ selectedRuleId: '1' });
-    const listItem = screen.getByText('Linux Reverse Shell Indicator').closest('[role="button"]');
+    const listItem = screen.getByText('Linux Reverse Shell 탐지').closest('[role="button"]');
     expect(listItem).toHaveClass('Mui-selected');
   });
 
