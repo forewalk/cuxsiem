@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import {
   Box, Typography, Stack, Chip, Divider, Button, TextField,
   InputAdornment, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, Select, MenuItem, Switch,
-  FormControlLabel, IconButton, Tooltip, TablePagination,
+  TableHead, TableRow, Select, MenuItem, Switch,
+  IconButton, Tooltip, TablePagination,
 } from '@mui/material';
 import {
   Rule as RuleIcon,

@@ -108,7 +108,7 @@ export const OTPLoginModal: React.FC<OTPLoginModalProps> = ({
 
     try {
       const response = await otpService.loginWithBackupCode(backupCode);
-      onSuccess(response.access_token);
+      onSuccess?.(response.access_token);
     } catch (err: any) {
       setError(err.message || t('backupCodeAuthFailed'));
     } finally {

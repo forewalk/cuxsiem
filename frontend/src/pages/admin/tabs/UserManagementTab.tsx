@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import InputAdornment from '@mui/material/InputAdornment';
 import { getOTPService } from '../../../services/otpService';
+import api from '../../../services/api';
 import dayjs from 'dayjs';
 import { userService } from '../../../services/userService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';

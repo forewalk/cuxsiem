@@ -6,7 +6,6 @@ import {
 } from '@mui/material';
 import {
   SmartToy as AibomIcon,
-  UploadFile as UploadIcon,
   Download as DownloadIcon,
   Tag as ChecksumIcon,
   ConstructionOutlined as ConstructionIcon,
