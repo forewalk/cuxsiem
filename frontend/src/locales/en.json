@@ -233,6 +233,8 @@
   "type": "Type",
   "total": "Total",
   "noData": "No data",
+  "uptime": "Uptime",
+  "heartbeatSearchPlaceholder": "Search by monitor name or URL",
   "licenseManagement": "License Management",
   "licenseManagementDesc": "View and renew your solution license",
   "licenseType": "License Type",

@@ -249,6 +249,8 @@
   "type": "타입",
   "total": "전체",
   "noData": "데이터 없음",
+  "uptime": "가용성",
+  "heartbeatSearchPlaceholder": "모니터 이름 또는 URL 검색",
   "licenseManagement": "라이선스 관리",
   "licenseManagementDesc": "솔루션 라이선스 정보 조회 및 갱신",
   "licenseType": "라이선스 종류",

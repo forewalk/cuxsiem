@@ -15,12 +15,19 @@ class HeartbeatMonitor(BaseModel):
     id: str
     name: str
     type: str                       # 'http' | 'tcp'
+    scheme: Optional[str] = None   # 'http' | 'https' | 'tcp'
     status: str                     # 'up' | 'down'
     url: str
     domain: Optional[str] = None
     port: Optional[int] = None
-    duration_us: Optional[int] = None
+    duration_us: Optional[int] = None   # monitor.duration.us (전체 소요)
+    tcp_rtt_us: Optional[int] = None    # tcp.rtt.connect.us (TCP connect RTT)
+    http_rtt_us: Optional[int] = None   # http.rtt.total.us (HTTP 전체 RTT)
     timestamp: str
+    # 단기 가용성 (현재 레코드의 state 기반)
+    state_checks: Optional[int] = None  # state.checks
+    state_up: Optional[int] = None      # state.up
+    state_down: Optional[int] = None    # state.down
     # HTTP
     http_status_code: Optional[int] = None
     # TLS / SSL 인증서
@@ -36,10 +43,14 @@ def _parse_hit(src: dict) -> HeartbeatMonitor:
     monitor = src.get("monitor", {})
     url = src.get("url", {})
     http = src.get("http", {})
+    tcp = src.get("tcp", {})
     tls = src.get("tls", {})
+    state = src.get("state", {})
     x509 = tls.get("server", {}).get("x509", {})
 
     http_status = http.get("response", {}).get("status_code")
+    http_rtt = http.get("rtt", {}).get("total", {}).get("us")
+    tcp_rtt = tcp.get("rtt", {}).get("connect", {}).get("us")
     subject = x509.get("subject")
     cert_subject = subject.get("common_name") if isinstance(subject, dict) else None
 
@@ -47,12 +58,18 @@ def _parse_hit(src: dict) -> HeartbeatMonitor:
         id=monitor.get("id", ""),
         name=monitor.get("name", ""),
         type=monitor.get("type", ""),
+        scheme=url.get("scheme"),
         status=monitor.get("status", ""),
         url=url.get("full", ""),
         domain=url.get("domain"),
         port=url.get("port"),
         duration_us=monitor.get("duration", {}).get("us"),
+        tcp_rtt_us=tcp_rtt,
+        http_rtt_us=http_rtt,
         timestamp=src.get("@timestamp", ""),
+        state_checks=state.get("checks"),
+        state_up=state.get("up"),
+        state_down=state.get("down"),
         http_status_code=http_status if http_status is not None else None,
         tls_established=tls.get("established"),
         cert_not_after=tls.get("certificate_not_valid_after"),
@@ -81,8 +98,12 @@ async def get_heartbeat(
             "@timestamp",
             "monitor",
             "url",
+            "state.checks",
+            "state.up",
+            "state.down",
             "http.response.status_code",
-            "tcp.rtt",
+            "http.rtt.total",
+            "tcp.rtt.connect",
             "tls.established",
             "tls.certificate_not_valid_after",
             "tls.certificate_not_valid_before",

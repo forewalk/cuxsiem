@@ -2,13 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Paper, Stack, Chip, Divider, IconButton, Tooltip,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  ToggleButtonGroup, ToggleButton, CircularProgress, Alert,
+  ToggleButtonGroup, ToggleButton, CircularProgress, Alert, TextField,
+  InputAdornment,
 } from '@mui/material';
 import {
   Favorite as HeartbeatIcon,
   Refresh as RefreshIcon,
   CheckCircleOutline as UpIcon,
   ErrorOutline as DownIcon,
+  Search as SearchIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useTranslation } from '../../../hooks/useTranslation';
 import api from '../../../services/api';
@@ -20,12 +23,18 @@ interface HeartbeatMonitor {
   id: string;
   name: string;
   type: string;
+  scheme: string | null;
   status: string;
   url: string;
   domain: string | null;
   port: number | null;
   duration_us: number | null;
+  tcp_rtt_us: number | null;
+  http_rtt_us: number | null;
   timestamp: string;
+  state_checks: number | null;
+  state_up: number | null;
+  state_down: number | null;
   http_status_code: number | null;
   tls_established: boolean | null;
   cert_not_after: string | null;
@@ -50,10 +59,12 @@ const CertStatusChip: React.FC<{ daysLeft: number }> = ({ daysLeft }) => {
   return <Chip label="정상" color="success" size="small" />;
 };
 
-const fmtMs = (us: number | null): string => {
-  if (us === null) return '-';
+/** 마이크로초 → 사람이 읽기 쉬운 시간 */
+const fmtUs = (us: number | null): string => {
+  if (us === null || us === undefined) return '-';
   if (us < 1000) return `${us}µs`;
-  return `${(us / 1000).toFixed(1)}ms`;
+  if (us < 1_000_000) return `${(us / 1000).toFixed(1)}ms`;
+  return `${(us / 1_000_000).toFixed(2)}s`;
 };
 
 const fmtDate = (iso: string | null): string => {
@@ -61,9 +72,23 @@ const fmtDate = (iso: string | null): string => {
   return dayjs(iso).format('YYYY-MM-DD HH:mm');
 };
 
-const daysLeft = (iso: string | null): number => {
+const calcDaysLeft = (iso: string | null): number => {
   if (!iso) return 0;
   return dayjs(iso).diff(dayjs(), 'day');
+};
+
+/** 가용성 % 계산 (state.up / state.checks) */
+const uptimePct = (up: number | null, checks: number | null): string => {
+  if (up === null || checks === null || checks === 0) return '-';
+  return `${((up / checks) * 100).toFixed(0)}%`;
+};
+
+const uptimeColor = (up: number | null, checks: number | null): string => {
+  if (up === null || checks === null || checks === 0) return 'text.primary';
+  const pct = (up / checks) * 100;
+  if (pct >= 99) return 'success.main';
+  if (pct >= 90) return 'warning.main';
+  return 'error.main';
 };
 
 const HeartbeatTab: React.FC = () => {
@@ -73,6 +98,7 @@ const HeartbeatTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -90,12 +116,25 @@ const HeartbeatTab: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // 탭 필터링
+  // 탭 + 검색어 필터링
   const filtered = monitors.filter((m) => {
-    if (tab === 'all') return true;
-    if (tab === 'http') return m.type === 'http';
-    if (tab === 'tcp') return m.type === 'tcp';
-    if (tab === 'cert') return !!m.cert_not_after;
+    const byTab =
+      tab === 'all' ? true :
+      tab === 'http' ? m.type === 'http' :
+      tab === 'tcp' ? m.type === 'tcp' :
+      tab === 'cert' ? !!m.cert_not_after :
+      true;
+
+    if (!byTab) return false;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (
+        m.name.toLowerCase().includes(q) ||
+        m.url.toLowerCase().includes(q) ||
+        (m.domain ?? '').toLowerCase().includes(q)
+      );
+    }
     return true;
   });
 
@@ -110,9 +149,11 @@ const HeartbeatTab: React.FC = () => {
         <Typography variant="h5" fontWeight={600}>{t('heartbeatMenu')}</Typography>
         <Box sx={{ flexGrow: 1 }} />
         {lastRefresh && (
-          <Typography variant="caption" color="text.secondary">{lastRefresh} {t('lastChecked')}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {lastRefresh} {t('lastChecked')}
+          </Typography>
         )}
-        <Tooltip title={t('refresh') || '새로고침'}>
+        <Tooltip title={t('refresh')}>
           <span>
             <IconButton size="small" onClick={fetchData} disabled={loading}>
               {loading ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
@@ -127,7 +168,7 @@ const HeartbeatTab: React.FC = () => {
       {/* 요약 통계 */}
       <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
         <Paper variant="outlined" sx={{ px: 2.5, py: 1.5, minWidth: 110, textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary">{t('total') || '전체'}</Typography>
+          <Typography variant="caption" color="text.secondary">{t('total')}</Typography>
           <Typography variant="h5" fontWeight={700}>{monitors.length}</Typography>
         </Paper>
         <Paper variant="outlined" sx={{ px: 2.5, py: 1.5, minWidth: 110, textAlign: 'center' }}>
@@ -146,26 +187,50 @@ const HeartbeatTab: React.FC = () => {
         </Paper>
       </Stack>
 
-      {/* 타입 탭 */}
-      <ToggleButtonGroup
-        value={tab}
-        exclusive
-        onChange={(_, v) => v && setTab(v)}
-        size="small"
-        sx={{ mb: 2 }}
-      >
-        <ToggleButton value="all">{t('all') || '전체'}</ToggleButton>
-        <ToggleButton value="http">HTTP</ToggleButton>
-        <ToggleButton value="tcp">TCP</ToggleButton>
-        <ToggleButton value="cert">SSL {t('certExpires') ? t('heartbeatCert') : '인증서'}</ToggleButton>
-      </ToggleButtonGroup>
+      {/* 타입 탭 + 검색바 */}
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+        <ToggleButtonGroup
+          value={tab}
+          exclusive
+          onChange={(_, v) => v && setTab(v)}
+          size="small"
+        >
+          <ToggleButton value="all">{t('all')}</ToggleButton>
+          <ToggleButton value="http">HTTP</ToggleButton>
+          <ToggleButton value="tcp">TCP</ToggleButton>
+          <ToggleButton value="cert">{t('heartbeatCert')}</ToggleButton>
+        </ToggleButtonGroup>
+
+        {/* 검색바 — 클라이언트 인메모리 필터 */}
+        <TextField
+          size="small"
+          placeholder={t('heartbeatSearchPlaceholder')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ flexGrow: 1, maxWidth: 380 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery ? (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setSearchQuery('')} edge="end">
+                  <CloseIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+        />
+      </Stack>
 
       <Divider sx={{ mb: 2 }} />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {/* 테이블 */}
-      {tab !== 'cert' ? (
+      {/* HTTP / TCP / 전체 테이블 */}
+      {tab !== 'cert' && (
         <Paper variant="outlined">
           <TableContainer>
             <Table size="small">
@@ -173,53 +238,80 @@ const HeartbeatTab: React.FC = () => {
                 <TableRow>
                   <TableCell>{t('monitorName')}</TableCell>
                   <TableCell>URL / Host</TableCell>
-                  <TableCell align="center">{t('type') || '타입'}</TableCell>
+                  <TableCell align="center">{t('type')}</TableCell>
                   <TableCell align="center">{t('status')}</TableCell>
                   {tab !== 'tcp' && <TableCell align="center">HTTP Status</TableCell>}
                   <TableCell align="center">{t('latency')}</TableCell>
+                  <TableCell align="center">{t('uptime')}</TableCell>
                   <TableCell align="center">{t('lastChecked')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filtered.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      {t('noData') || '데이터 없음'}
+                    <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      {t('noData')}
                     </TableCell>
                   </TableRow>
                 )}
-                {filtered.map((m) => (
-                  <TableRow key={m.id} hover>
-                    <TableCell sx={{ fontWeight: 500 }}>{m.name}</TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'text.secondary' }}>
-                      {m.url || `${m.domain}:${m.port}`}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip label={m.type.toUpperCase()} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell align="center"><StatusChip status={m.status} /></TableCell>
-                    {tab !== 'tcp' && (
-                      <TableCell align="center">
-                        {m.http_status_code ? (
-                          <Chip
-                            label={m.http_status_code}
-                            size="small"
-                            color={m.http_status_code < 400 ? 'success' : 'error'}
-                            variant="outlined"
-                          />
-                        ) : '-'}
+                {filtered.map((m) => {
+                  // RTT 우선순위: HTTP는 http_rtt_us, TCP는 tcp_rtt_us, 없으면 duration_us
+                  const rtt = m.type === 'http' ? (m.http_rtt_us ?? m.duration_us)
+                            : m.type === 'tcp'  ? (m.tcp_rtt_us ?? m.duration_us)
+                            : m.duration_us;
+                  return (
+                    <TableRow key={m.id} hover>
+                      <TableCell sx={{ fontWeight: 500 }}>{m.name}</TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'text.secondary' }}>
+                        {m.url || `${m.domain}:${m.port}`}
                       </TableCell>
-                    )}
-                    <TableCell align="center">{fmtMs(m.duration_us)}</TableCell>
-                    <TableCell align="center" sx={{ fontSize: '0.78rem' }}>{fmtDate(m.timestamp)}</TableCell>
-                  </TableRow>
-                ))}
+                      <TableCell align="center">
+                        <Chip
+                          label={m.scheme ? m.scheme.toUpperCase() : m.type.toUpperCase()}
+                          size="small"
+                          variant="outlined"
+                          color={m.scheme === 'https' ? 'success' : 'default'}
+                        />
+                      </TableCell>
+                      <TableCell align="center"><StatusChip status={m.status} /></TableCell>
+                      {tab !== 'tcp' && (
+                        <TableCell align="center">
+                          {m.http_status_code ? (
+                            <Chip
+                              label={m.http_status_code}
+                              size="small"
+                              color={m.http_status_code < 400 ? 'success' : 'error'}
+                              variant="outlined"
+                            />
+                          ) : '-'}
+                        </TableCell>
+                      )}
+                      <TableCell align="center">{fmtUs(rtt)}</TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{ fontWeight: 600, color: uptimeColor(m.state_up, m.state_checks) }}
+                      >
+                        {uptimePct(m.state_up, m.state_checks)}
+                        {m.state_checks !== null && (
+                          <Typography variant="caption" color="text.disabled" display="block">
+                            {m.state_up}/{m.state_checks}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="center" sx={{ fontSize: '0.78rem' }}>
+                        {fmtDate(m.timestamp)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
         </Paper>
-      ) : (
-        /* SSL 인증서 탭 */
+      )}
+
+      {/* SSL 인증서 탭 */}
+      {tab === 'cert' && (
         <Paper variant="outlined">
           <TableContainer>
             <Table size="small">
@@ -227,23 +319,24 @@ const HeartbeatTab: React.FC = () => {
                 <TableRow>
                   <TableCell>{t('monitorName')}</TableCell>
                   <TableCell>Host</TableCell>
-                  <TableCell>{t('certSubject') || '인증서 CN'}</TableCell>
+                  <TableCell>{t('certSubject')}</TableCell>
                   <TableCell align="center">TLS</TableCell>
                   <TableCell align="center">{t('certExpires')}</TableCell>
                   <TableCell align="center">{t('certDaysLeft')}</TableCell>
+                  <TableCell align="center">{t('uptime')}</TableCell>
                   <TableCell align="center">{t('status')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filtered.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                      {t('noData') || '데이터 없음'}
+                    <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      {t('noData')}
                     </TableCell>
                   </TableRow>
                 )}
                 {filtered.map((m) => {
-                  const dl = daysLeft(m.cert_not_after);
+                  const dl = calcDaysLeft(m.cert_not_after);
                   return (
                     <TableRow key={m.id} hover>
                       <TableCell sx={{ fontWeight: 500 }}>{m.name}</TableCell>
@@ -253,7 +346,7 @@ const HeartbeatTab: React.FC = () => {
                       <TableCell sx={{ fontSize: '0.8rem' }}>{m.cert_subject ?? '-'}</TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={`${m.cert_tls_version ?? 'TLS'}`}
+                          label={m.cert_tls_version ?? 'TLS'}
                           size="small"
                           variant="outlined"
                           color="info"
@@ -270,6 +363,12 @@ const HeartbeatTab: React.FC = () => {
                         }}
                       >
                         {dl < 0 ? `${Math.abs(dl)}일 초과` : `D-${dl}`}
+                      </TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{ fontWeight: 600, color: uptimeColor(m.state_up, m.state_checks) }}
+                      >
+                        {uptimePct(m.state_up, m.state_checks)}
                       </TableCell>
                       <TableCell align="center"><CertStatusChip daysLeft={dl} /></TableCell>
                     </TableRow>

@@ -233,6 +233,8 @@
   "type": "类型",
   "total": "总计",
   "noData": "无数据",
+  "uptime": "可用率",
+  "heartbeatSearchPlaceholder": "按监控名称或URL搜索",
   "licenseManagement": "许可证管理",
   "licenseManagementDesc": "查看和更新解决方案许可证",
   "licenseType": "许可证类型",

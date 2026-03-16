@@ -244,6 +244,8 @@
   "type": "タイプ",
   "total": "合計",
   "noData": "データなし",
+  "uptime": "稼働率",
+  "heartbeatSearchPlaceholder": "モニター名またはURLで検索",
   "licenseManagement": "ライセンス管理",
   "licenseManagementDesc": "ソリューションライセンスの確認と更新",
   "licenseType": "ライセンス種別",
