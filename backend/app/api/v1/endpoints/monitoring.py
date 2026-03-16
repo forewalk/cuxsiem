@@ -1,5 +1,5 @@
 """모니터링 API 엔드포인트 — Heartbeat 데이터 스트림 조회"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from typing import List, Optional
 from pydantic import BaseModel
 from app.core.opensearch import get_opensearch
@@ -20,17 +20,14 @@ class HeartbeatMonitor(BaseModel):
     url: str
     domain: Optional[str] = None
     port: Optional[int] = None
-    duration_us: Optional[int] = None   # monitor.duration.us (전체 소요)
-    tcp_rtt_us: Optional[int] = None    # tcp.rtt.connect.us (TCP connect RTT)
-    http_rtt_us: Optional[int] = None   # http.rtt.total.us (HTTP 전체 RTT)
+    duration_us: Optional[int] = None   # monitor.duration.us
+    tcp_rtt_us: Optional[int] = None    # tcp.rtt.connect.us
+    http_rtt_us: Optional[int] = None   # http.rtt.total.us
     timestamp: str
-    # 단기 가용성 (현재 레코드의 state 기반)
-    state_checks: Optional[int] = None  # state.checks
-    state_up: Optional[int] = None      # state.up
-    state_down: Optional[int] = None    # state.down
-    # HTTP
+    state_checks: Optional[int] = None
+    state_up: Optional[int] = None
+    state_down: Optional[int] = None
     http_status_code: Optional[int] = None
-    # TLS / SSL 인증서
     tls_established: Optional[bool] = None
     cert_not_after: Optional[str] = None
     cert_not_before: Optional[str] = None
@@ -84,13 +81,42 @@ def _parse_hit(src: dict) -> HeartbeatMonitor:
 async def get_heartbeat(
     current_user: UserResponse = Depends(get_current_active_user),
     os_client=Depends(get_opensearch),
+    query: Optional[str] = Query(None, description="모니터 이름/URL 검색어"),
+    from_date: Optional[str] = Query(None, description="시작 시각 ISO8601"),
+    to_date: Optional[str] = Query(None, description="종료 시각 ISO8601"),
 ):
     """
     Heartbeat 데이터 스트림에서 monitor.id별 최신 상태를 반환합니다.
     collapse + sort로 각 모니터의 가장 최근 레코드만 가져옵니다.
     """
+    must_clauses = []
+
+    # 시간 범위 필터
+    time_range: dict = {}
+    if from_date:
+        time_range["gte"] = from_date
+    if to_date:
+        time_range["lte"] = to_date
+    if time_range:
+        must_clauses.append({"range": {"@timestamp": time_range}})
+
+    # 이름/URL 검색
+    if query:
+        must_clauses.append({
+            "bool": {
+                "should": [
+                    {"wildcard": {"monitor.name": {"value": f"*{query}*", "case_insensitive": True}}},
+                    {"wildcard": {"url.full": {"value": f"*{query}*", "case_insensitive": True}}},
+                    {"wildcard": {"url.domain": {"value": f"*{query}*", "case_insensitive": True}}},
+                ],
+                "minimum_should_match": 1,
+            }
+        })
+
+    os_query = {"bool": {"must": must_clauses}} if must_clauses else {"match_all": {}}
+
     body = {
-        "query": {"match_all": {}},
+        "query": os_query,
         "collapse": {"field": "monitor.id"},
         "sort": [{"@timestamp": {"order": "desc"}}],
         "size": 200,
