@@ -5,7 +5,6 @@ import {
   ToggleButtonGroup, ToggleButton, Alert,
 } from '@mui/material';
 import {
-  Favorite as HeartbeatIcon,
   CheckCircleOutline as UpIcon,
   ErrorOutline as DownIcon,
 } from '@mui/icons-material';
@@ -190,13 +189,6 @@ const HeartbeatTab: React.FC = () => {
       />
 
       <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: 1.5, mt: 1 }}>
-        {/* 헤더 */}
-        <Stack direction="row" alignItems="center" spacing={1.5}>
-          <HeartbeatIcon color="primary" fontSize="small" />
-          <Typography variant="subtitle1" fontWeight={600}>{t('heartbeatMenu')}</Typography>
-          <Typography variant="body2" color="text.secondary">{t('heartbeatDesc')}</Typography>
-        </Stack>
-
         {error && <Alert severity="error" sx={{ flexShrink: 0 }}>{error}</Alert>}
 
         {/* 요약 카드 */}
