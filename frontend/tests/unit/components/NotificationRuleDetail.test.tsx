@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { NotificationRuleDetail } from '@/pages/admin/alerts/components/NotificationRuleDetail';
+import { NotificationRuleDetail } from '../../../src/pages/admin/alerts/components/NotificationRuleDetail';
 
 vi.mock('@monaco-editor/react', () => ({
   default: (props: any) => <textarea data-testid="monaco-editor" value={props.value} onChange={(e: any) => props.onChange?.(e.target.value)} />,
@@ -60,5 +61,23 @@ describe('NotificationRuleDetail', () => {
   it('생성 모드에서는 변경 이력을 표시하지 않는다', () => {
     renderDetail({ showForm: true, isEditing: false });
     expect(screen.queryByText('changeHistory')).not.toBeInTheDocument();
+  });
+
+  it('onCancel이 제공되면 취소 버튼을 표시한다', () => {
+    renderDetail({ showForm: true, onCancel: vi.fn() });
+    expect(screen.getByText('cancelEdit')).toBeInTheDocument();
+  });
+
+  it('취소 버튼 클릭 시 onCancel이 호출된다', async () => {
+    const onCancel = vi.fn();
+    renderDetail({ showForm: true, onCancel });
+    const user = userEvent.setup();
+    await user.click(screen.getByText('cancelEdit'));
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('onCancel이 없으면 취소 버튼을 표시하지 않는다', () => {
+    renderDetail({ showForm: true });
+    expect(screen.queryByText('cancelEdit')).not.toBeInTheDocument();
   });
 });

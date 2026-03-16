@@ -25,6 +25,8 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     bgcolor: 'action.hover',
     borderRadius: 0.5,
     mb: 1.5,
+    mt: 2,
+    '&:first-of-type': { mt: 0 },
   }}>
     <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.7rem', letterSpacing: '0.03em', textTransform: 'uppercase', color: 'text.secondary' }}>
       {children}
@@ -43,6 +45,7 @@ interface NotificationRuleDetailProps {
   onFormDataChange: (data: NotificationRuleCreate) => void;
   onSave: () => void;
   onDelete: () => void;
+  onCancel?: () => void;
   t: (key: string, params?: Record<string, string>) => string;
 
   // DSL editor
@@ -92,6 +95,7 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
   formData,
   onFormDataChange,
   onSave,
+  onCancel,
   t,
   dslString = '',
   onDslChange,
@@ -136,6 +140,16 @@ export const NotificationRuleDetail: React.FC<NotificationRuleDetailProps> = ({
           {isEditing ? t('editRule') : t('addRule')}
         </Typography>
         <Stack direction="row" spacing={1}>
+          {onCancel && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onCancel}
+              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+            >
+              {t('cancelEdit')}
+            </Button>
+          )}
           <Button
             variant="contained"
             color="primary"

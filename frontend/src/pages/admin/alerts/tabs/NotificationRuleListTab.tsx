@@ -29,7 +29,10 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NotificationRuleDetail } from '../components/NotificationRuleDetail';
 import { NotificationRuleList } from '../components/NotificationRuleList';
+import { NotificationRuleReadonly } from '../components/NotificationRuleReadonly';
 import type { HeaderEntry } from '../components/WebhookHeadersEditor';
+
+type ViewMode = 'empty' | 'readonly' | 'edit';
 
 const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   name: '',
@@ -140,8 +143,8 @@ const NotificationRuleListTab: React.FC = () => {
   }, []);
 
   // 마스터-디테일 상태
+  const [viewMode, setViewMode] = useState<ViewMode>('empty');
   const [selectedRule, setSelectedRule] = useState<NotificationRule | null>(null);
-  const [showForm, setShowForm] = useState(false);
   const [deleteIds, setDeleteIds] = useState<string[]>([]);
   const [formData, setFormData] = useState<NotificationRuleCreate>(DEFAULT_FORM_DATA);
   const [dslString, setDslString] = useState(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
@@ -248,7 +251,10 @@ const NotificationRuleListTab: React.FC = () => {
 
   const handleSelectRule = (rule: NotificationRule) => {
     setSelectedRule(rule);
-    setShowForm(true);
+    setViewMode('readonly');
+  };
+
+  const populateFormFromRule = (rule: NotificationRule) => {
     setFormData({
       name: rule.name,
       description: rule.description,
@@ -301,9 +307,24 @@ const NotificationRuleListTab: React.FC = () => {
     });
   };
 
+  const handleEdit = () => {
+    if (selectedRule) {
+      populateFormFromRule(selectedRule);
+      setViewMode('edit');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (selectedRule) {
+      setViewMode('readonly');
+    } else {
+      setViewMode('empty');
+    }
+  };
+
   const handleAddNew = () => {
     setSelectedRule(null);
-    setShowForm(true);
+    setViewMode('edit');
     setFormData(DEFAULT_FORM_DATA);
     setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
     setWebhookHeaders([{ key: 'Content-Type', value: 'application/json' }]);
@@ -390,9 +411,9 @@ const NotificationRuleListTab: React.FC = () => {
       } else {
         saved = await notificationService.createRule(formData);
         setSelectedRule(saved);
-        setShowForm(true);
         originalFormRef.current = JSON.stringify(formData);
       }
+      setViewMode('readonly');
       setSnackbar({ open: true, message: t('ruleSaveSuccess'), severity: 'success' });
       await loadRules();
     } catch (error) {
@@ -407,7 +428,7 @@ const NotificationRuleListTab: React.FC = () => {
       await Promise.all(deleteIds.map(id => notificationService.deleteRule(id)));
       setSnackbar({ open: true, message: t('ruleDeleteSuccess'), severity: 'success' });
       if (selectedRule && deleteIds.includes(selectedRule.id)) {
-        setShowForm(false);
+        setViewMode('empty');
         setSelectedRule(null);
       }
       setSelectedRuleIds(prev => {
@@ -583,39 +604,51 @@ const NotificationRuleListTab: React.FC = () => {
         >
           <Box sx={{ width: 2, height: 40, borderRadius: 1, bgcolor: 'divider', transition: 'background-color 0.2s' }} />
         </Box>
-        <NotificationRuleDetail
-          showForm={showForm}
-          isEditing={!!selectedRule}
-          formData={formData}
-          onFormDataChange={setFormData}
-          onSave={handleSave}
-          onDelete={() => { if (selectedRule) setDeleteIds([selectedRule.id]); }}
-          t={t}
-          dslString={dslString}
-          onDslChange={handleDslChange}
-          jsonError={jsonError}
-          onTestQuery={handleTestQuery}
-          queryTestLoading={queryTestLoading}
-          queryTestResult={queryTestResult}
-          queryTestError={queryTestError}
-          onTestTrigger={handleTestTrigger}
-          triggerTestLoading={triggerTestLoading}
-          triggerTestResult={triggerTestResult}
-          triggerTestError={triggerTestError}
-          renderMessagePreview={renderMessagePreview}
-          webhookHeaders={webhookHeaders}
-          onWebhookHeadersChange={handleWebhookHeadersChange}
-          webhookBodyStr={webhookBodyStr}
-          onWebhookBodyChange={handleWebhookBodyChange}
-          onTestWebhook={handleTestWebhook}
-          roleCodes={roleCodes}
-          roleNames={roleNames}
-          language={language}
-          getRoleName={getRoleName}
-          saveDisabled={!!jsonError || !formData.name}
-          changeHistory={selectedRule?.change_history}
-          createdAt={selectedRule?.created_at}
-        />
+        {viewMode === 'readonly' && selectedRule ? (
+          <NotificationRuleReadonly
+            rule={selectedRule}
+            onEdit={handleEdit}
+            t={t}
+            language={language}
+            roleNames={roleNames}
+            getRoleName={getRoleName}
+          />
+        ) : (
+          <NotificationRuleDetail
+            showForm={viewMode === 'edit'}
+            isEditing={!!selectedRule}
+            formData={formData}
+            onFormDataChange={setFormData}
+            onSave={handleSave}
+            onDelete={() => { if (selectedRule) setDeleteIds([selectedRule.id]); }}
+            onCancel={handleCancelEdit}
+            t={t}
+            dslString={dslString}
+            onDslChange={handleDslChange}
+            jsonError={jsonError}
+            onTestQuery={handleTestQuery}
+            queryTestLoading={queryTestLoading}
+            queryTestResult={queryTestResult}
+            queryTestError={queryTestError}
+            onTestTrigger={handleTestTrigger}
+            triggerTestLoading={triggerTestLoading}
+            triggerTestResult={triggerTestResult}
+            triggerTestError={triggerTestError}
+            renderMessagePreview={renderMessagePreview}
+            webhookHeaders={webhookHeaders}
+            onWebhookHeadersChange={handleWebhookHeadersChange}
+            webhookBodyStr={webhookBodyStr}
+            onWebhookBodyChange={handleWebhookBodyChange}
+            onTestWebhook={handleTestWebhook}
+            roleCodes={roleCodes}
+            roleNames={roleNames}
+            language={language}
+            getRoleName={getRoleName}
+            saveDisabled={!!jsonError || !formData.name}
+            changeHistory={selectedRule?.change_history}
+            createdAt={selectedRule?.created_at}
+          />
+        )}
       </Box>
 
       {/* 삭제 확인 다이얼로그 */}

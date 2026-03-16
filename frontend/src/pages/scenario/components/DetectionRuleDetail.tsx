@@ -56,8 +56,9 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     px: 1.5, py: 0.75,
     bgcolor: 'action.hover',
     borderRadius: 0.5,
-    mb: 1,
-    mt: 0.5,
+    mb: 1.5,
+    mt: 2,
+    '&:first-of-type': { mt: 0 },
   }}>
     <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.7rem', letterSpacing: '0.03em', textTransform: 'uppercase', color: 'text.secondary' }}>
       {children}
@@ -115,34 +116,35 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
 
         {/* ── 2. Detection Logic ── */}
         <SectionHeader>{t('drSectionDetection')}</SectionHeader>
-        <Paper
-          elevation={0}
-          sx={{
-            mx: 0.5,
-            p: 2,
-            bgcolor: 'background.default',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            overflow: 'auto',
-            maxHeight: 320,
-          }}
-        >
-          <Typography
-            component="pre"
+        <Box sx={{ px: 0.5 }}>
+          <Paper
+            elevation={0}
             sx={{
-              fontFamily: 'monospace',
-              fontSize: '0.72rem',
-              lineHeight: 1.7,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              color: 'text.primary',
-              m: 0,
+              p: 2,
+              bgcolor: 'background.default',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              overflow: 'auto',
+              maxHeight: 320,
             }}
           >
-            {rule.detection}
-          </Typography>
-        </Paper>
+            <Typography
+              component="pre"
+              sx={{
+                fontFamily: 'monospace',
+                fontSize: '0.72rem',
+                lineHeight: 1.7,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                color: 'text.primary',
+                m: 0,
+              }}
+            >
+              {rule.detection}
+            </Typography>
+          </Paper>
+        </Box>
 
         {/* ── 3. Classification ── */}
         <SectionHeader>{t('drSectionClassification')}</SectionHeader>
