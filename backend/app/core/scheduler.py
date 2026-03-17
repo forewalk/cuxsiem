@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from opensearchpy.exceptions import NotFoundError
 
 from app.services.notification import NotificationService
 from app.services.detection_policy import DetectionPolicyService
@@ -97,6 +98,8 @@ class DetectionScheduler:
             if tasks:
                 await asyncio.gather(*tasks)
 
+        except NotFoundError:
+            logger.debug("[스케줄러] cs_detection_policies 인덱스 미존재 — 탐지 정책 스킵")
         except Exception as e:
             logger.error(f"[스케줄러] 탐지 정책 오류: {e}", exc_info=True)
 

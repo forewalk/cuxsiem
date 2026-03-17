@@ -49,7 +49,7 @@ export const DetectionPolicyForm: React.FC<DetectionPolicyFormProps> = ({
   onSave,
   onCancel,
   onTestQuery,
-  queryTestResult,
+  queryTestResult: _queryTestResult,
   queryTestError,
   t,
 }) => {

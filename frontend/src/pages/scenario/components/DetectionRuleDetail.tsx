@@ -69,15 +69,6 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
     );
   }
 
-  const detectionYaml = rule.raw_yaml
-    ? rule.raw_yaml
-        .split('\n')
-        .filter((line) => {
-          const trimmed = line.trimStart();
-          return trimmed.startsWith('detection:') || (rule.raw_yaml!.indexOf('detection:') !== -1 && false);
-        })
-    : null;
-
   const detectionText = rule.detection_config
     ? JSON.stringify(rule.detection_config, null, 2)
     : '-';

@@ -8,7 +8,7 @@ import TextField from "@mui/material/TextField";
 import Popover from "@mui/material/Popover";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import SearchIcon from "@mui/icons-material/Search";
+
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import EditIcon from "@mui/icons-material/Edit";
@@ -87,14 +87,12 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const { language } = useLanguageStore();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [downloading, setDownloading] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [indexAnchorEl, setIndexAnchorEl] = useState<HTMLDivElement | null>(null);
 
   const KIBANA_TEAL = "#005a5e";
   const BORDER_COLOR = theme.palette.divider;
   const BG_COLOR = theme.palette.mode === 'dark' ? theme.palette.background.paper : "#f5f7fa";
   const TEXT_COLOR = theme.palette.text.primary;
-  const open = Boolean(anchorEl);
   const indexOpen = Boolean(indexAnchorEl);
 
   const handleRemoveFilter = (indexToRemove: number) => {
