@@ -186,3 +186,130 @@ export interface NotificationHistory {
   title?: string;
   description?: string;
 }
+
+// ── Sigma Rule Types ────────────────────────────────────────────────────────
+
+export interface SigmaRuleListItem {
+  id: string;
+  sigma_id: string;
+  name: string;
+  level_normalized: string;
+  status: string;
+  log_source_category: string | null;
+  log_source_product: string | null;
+  tags: string[];
+  mitre_technique_ids: string[];
+  mitre_tactic_ids: string[];
+  revision: number;
+  updated_at: string | null;
+}
+
+export interface SigmaRuleDetail {
+  id: string;
+  sigma_id: string;
+  name: string;
+  description: string | null;
+  level_original: string | null;
+  level_normalized: string;
+  sigma_status: string | null;
+  author: string | null;
+  sigma_date: string | null;
+  references: string[];
+  license: string | null;
+  log_source_category: string | null;
+  log_source_product: string | null;
+  log_source_service: string | null;
+  detection_config: Record<string, unknown>;
+  tags: string[];
+  mitre_technique_ids: string[];
+  mitre_tactic_ids: string[];
+  false_positives: string[];
+  status: string;
+  is_deleted: boolean;
+  raw_yaml: string | null;
+  file_path: string | null;
+  content_hash: string | null;
+  revision: number;
+  deleted_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  deleted_at: string | null;
+}
+
+export interface SigmaRuleStats {
+  total: number;
+  by_severity: Record<string, number>;
+  by_status: Record<string, number>;
+  mitre_coverage: Record<string, number>;
+}
+
+// ── Detection Policy Types ──────────────────────────────────────────────────
+
+export interface DetectionPolicy {
+  id: string;
+  name: string;
+  description?: string;
+  target_index: string;
+  condition_config: Record<string, unknown>;
+  trigger_condition?: string;
+  message_template?: string;
+  severity: string;
+  interval_min: number;
+  linked_rule_ids: string[];
+  mitre_technique_ids: string[];
+  mitre_tactic_ids: string[];
+  is_active: boolean;
+  last_run_at?: string | null;
+  last_triggered_at?: string | null;
+  total_events_count: number;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface DetectionPolicyCreate {
+  name: string;
+  description?: string;
+  target_index: string;
+  condition_config: Record<string, unknown>;
+  trigger_condition?: string;
+  message_template?: string;
+  severity: string;
+  interval_min: number;
+  linked_rule_ids?: string[];
+  mitre_technique_ids?: string[];
+  mitre_tactic_ids?: string[];
+  is_active: boolean;
+}
+
+export interface DetectionPolicyUpdate {
+  name?: string;
+  description?: string;
+  target_index?: string;
+  condition_config?: Record<string, unknown>;
+  trigger_condition?: string;
+  message_template?: string;
+  severity?: string;
+  interval_min?: number;
+  linked_rule_ids?: string[];
+  mitre_technique_ids?: string[];
+  mitre_tactic_ids?: string[];
+  is_active?: boolean;
+}
+
+export interface DetectionEvent {
+  id: string;
+  policy_id: string;
+  policy_name: string;
+  severity: string;
+  target_index: string;
+  matched_count: number;
+  sample_events: Record<string, unknown>[];
+  mitre_technique_ids: string[];
+  mitre_tactic_ids: string[];
+  trigger_value?: string;
+  message?: string;
+  status: string;
+  created_at?: string;
+}

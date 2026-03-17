@@ -1,35 +1,25 @@
 import {
   Box,
   Chip,
+  Collapse,
+  IconButton,
   Link,
   Paper,
   Stack,
   Typography,
 } from '@mui/material';
-import React from 'react';
+import {
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+} from '@mui/icons-material';
+import React, { useState } from 'react';
 import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
-
-export interface DetectionRuleData {
-  id: string;
-  name: string;
-  logType: string;
-  description: string;
-  lastUpdated: string;
-  author: string;
-  source: string;
-  license: string;
-  severity: string;
-  tags: string[];
-  references: string[];
-  falsePositives: string[];
-  ruleStatus: string;
-  detection: string;
-  enabled: boolean;
-}
+import type { SigmaRuleDetail as SigmaRuleDetailType } from '@/types';
 
 interface DetectionRuleDetailProps {
-  rule: DetectionRuleData | null;
+  rule: SigmaRuleDetailType | null;
   t: (key: string, params?: Record<string, string>) => string;
+  loading?: boolean;
 }
 
 const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -66,92 +56,118 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </Box>
 );
 
-const extractMitreTechniques = (tags: string[]): string[] =>
-  tags.filter((tag) => /^attack\.t\d+/i.test(tag)).map((t) => t.replace(/^attack\./i, '').toUpperCase());
+export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading }) => {
+  const [detectionExpanded, setDetectionExpanded] = useState(false);
 
-const extractMitreTactics = (tags: string[]): string[] =>
-  tags.filter((tag) => /^attack\./.test(tag) && !/^attack\.t\d+/i.test(tag));
-
-export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t }) => {
   if (!rule) {
     return (
       <Paper elevation={1} sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{t('drSelectRulePrompt')}</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+          {loading ? '' : t('drSelectRulePrompt')}
+        </Typography>
       </Paper>
     );
   }
 
-  const techniques = extractMitreTechniques(rule.tags);
-  const tactics = extractMitreTactics(rule.tags);
+  const detectionYaml = rule.raw_yaml
+    ? rule.raw_yaml
+        .split('\n')
+        .filter((line) => {
+          const trimmed = line.trimStart();
+          return trimmed.startsWith('detection:') || (rule.raw_yaml!.indexOf('detection:') !== -1 && false);
+        })
+    : null;
+
+  const detectionText = rule.detection_config
+    ? JSON.stringify(rule.detection_config, null, 2)
+    : '-';
+
+  const isActive = rule.status === 'active';
 
   return (
     <Paper elevation={1} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRadius: 1.5, overflow: 'hidden' }}>
-      {/* 헤더 */}
       <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
           {t('drRuleDetail')}
         </Typography>
       </Box>
 
-      {/* 스크롤 가능한 디테일 영역 */}
       <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 1.5 }}>
 
-        {/* ── 1. Rule Summary ── */}
         <SectionHeader>{t('drSectionSummary')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
           <FieldRow label={t('drRuleName')}>
             <FieldValue>{rule.name}</FieldValue>
           </FieldRow>
           <FieldRow label={t('severity')}>
-            <SeverityChip severity={rule.severity} size="small" />
+            <SeverityChip severity={rule.level_normalized} size="small" />
           </FieldRow>
           <FieldRow label={t('drLogSource')}>
-            <Chip label={rule.logType} size="small" variant="outlined"
-              sx={{ fontWeight: 500, fontSize: '0.65rem', height: 20 }} />
+            <Stack direction="row" gap={0.5} flexWrap="wrap">
+              {rule.log_source_product && (
+                <Chip label={rule.log_source_product} size="small" variant="outlined"
+                  sx={{ fontWeight: 500, fontSize: '0.65rem', height: 20 }} />
+              )}
+              {rule.log_source_category && (
+                <Chip label={rule.log_source_category} size="small" variant="outlined"
+                  sx={{ fontWeight: 500, fontSize: '0.65rem', height: 20 }} />
+              )}
+              {rule.log_source_service && (
+                <Chip label={rule.log_source_service} size="small" variant="outlined"
+                  sx={{ fontWeight: 500, fontSize: '0.65rem', height: 20 }} />
+              )}
+            </Stack>
           </FieldRow>
           <FieldRow label={t('drDescription')}>
-            <FieldValue>{rule.description}</FieldValue>
+            <FieldValue>{rule.description || '-'}</FieldValue>
           </FieldRow>
         </Box>
 
-        {/* ── 2. Detection Logic ── */}
-        <SectionHeader>{t('drSectionDetection')}</SectionHeader>
-        <Box sx={{ px: 0.5 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              bgcolor: 'background.default',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              overflow: 'auto',
-              maxHeight: 320,
-            }}
-          >
-            <Typography
-              component="pre"
+        <SectionHeader>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {t('drSectionDetection')}
+            <IconButton size="small" onClick={() => setDetectionExpanded(!detectionExpanded)}>
+              {detectionExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </IconButton>
+          </Box>
+        </SectionHeader>
+        <Collapse in={detectionExpanded}>
+          <Box sx={{ px: 0.5 }}>
+            <Paper
+              elevation={0}
               sx={{
-                fontFamily: 'monospace',
-                fontSize: '0.72rem',
-                lineHeight: 1.7,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                color: 'text.primary',
-                m: 0,
+                p: 2,
+                bgcolor: 'background.default',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                overflow: 'auto',
+                maxHeight: 320,
               }}
             >
-              {rule.detection}
-            </Typography>
-          </Paper>
-        </Box>
+              <Typography
+                component="pre"
+                sx={{
+                  fontFamily: 'monospace',
+                  fontSize: '0.72rem',
+                  lineHeight: 1.7,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  color: 'text.primary',
+                  m: 0,
+                }}
+              >
+                {detectionText}
+              </Typography>
+            </Paper>
+          </Box>
+        </Collapse>
 
-        {/* ── 3. Classification ── */}
         <SectionHeader>{t('drSectionClassification')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
           <FieldRow label={t('drMitreTags')}>
             <Stack direction="row" flexWrap="wrap" gap={0.5}>
-              {tactics.map((tactic) => (
+              {rule.mitre_tactic_ids.map((tactic) => (
                 <Chip key={tactic} label={tactic} size="small" variant="outlined"
                   sx={{ fontSize: '0.6rem', height: 20, fontFamily: 'monospace' }} />
               ))}
@@ -159,22 +175,21 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
           </FieldRow>
           <FieldRow label={t('drTechnique')}>
             <Stack direction="row" flexWrap="wrap" gap={0.5}>
-              {techniques.map((tech) => (
+              {rule.mitre_technique_ids.map((tech) => (
                 <Chip key={tech} label={tech} size="small" color="primary" variant="outlined"
                   sx={{ fontSize: '0.6rem', height: 20, fontWeight: 'bold', fontFamily: 'monospace' }} />
               ))}
             </Stack>
           </FieldRow>
           <FieldRow label={t('severity')}>
-            <SeverityChip severity={rule.severity} size="small" />
+            <SeverityChip severity={rule.level_normalized} size="small" />
           </FieldRow>
         </Box>
 
-        {/* ── 4. Documentation ── */}
         <SectionHeader>{t('drSectionDocumentation')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
           <FieldRow label={t('drAuthor')}>
-            <FieldValue>{rule.author}</FieldValue>
+            <FieldValue>{rule.author || '-'}</FieldValue>
           </FieldRow>
           <FieldRow label={t('drReferences')}>
             <Stack spacing={0.5}>
@@ -190,22 +205,28 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
           </FieldRow>
           <FieldRow label={t('drFalsePositives')}>
             <Stack spacing={0.25}>
-              {rule.falsePositives.map((fp, i) => (
+              {rule.false_positives.length > 0 ? rule.false_positives.map((fp, i) => (
                 <FieldValue key={i}>{fp}</FieldValue>
-              ))}
+              )) : (
+                <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.7rem' }}>-</Typography>
+              )}
             </Stack>
           </FieldRow>
+          {rule.license && (
+            <FieldRow label={t('drLicense')}>
+              <FieldValue>{rule.license}</FieldValue>
+            </FieldRow>
+          )}
         </Box>
 
-        {/* ── 5. Metadata ── */}
         <SectionHeader>{t('drSectionMetadata')}</SectionHeader>
         <Box sx={{ px: 0.5, pb: 2 }}>
           <FieldRow label={t('drRuleId')}>
-            <FieldValue mono>{rule.id}</FieldValue>
+            <FieldValue mono>{rule.sigma_id}</FieldValue>
           </FieldRow>
           <FieldRow label={t('drRuleStatus')}>
             <Chip
-              label={rule.ruleStatus}
+              label={rule.sigma_status || '-'}
               size="small"
               variant="outlined"
               sx={{ fontWeight: 600, fontSize: '0.6rem', height: 20, textTransform: 'capitalize' }}
@@ -213,15 +234,18 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
           </FieldRow>
           <FieldRow label={t('drEnabled')}>
             <Chip
-              label={rule.enabled ? t('drEnabled') : t('drDisabled')}
+              label={isActive ? t('drEnabled') : t('drDisabled')}
               size="small"
-              color={rule.enabled ? 'success' : 'default'}
-              variant={rule.enabled ? 'filled' : 'outlined'}
+              color={isActive ? 'success' : 'default'}
+              variant={isActive ? 'filled' : 'outlined'}
               sx={{ fontWeight: 500, fontSize: '0.6rem', height: 20 }}
             />
           </FieldRow>
+          <FieldRow label={t('drRevision')}>
+            <FieldValue mono>{rule.revision}</FieldValue>
+          </FieldRow>
           <FieldRow label={t('drLastUpdated')}>
-            <FieldValue mono>{rule.lastUpdated}</FieldValue>
+            <FieldValue mono>{rule.updated_at ? new Date(rule.updated_at).toLocaleString() : '-'}</FieldValue>
           </FieldRow>
         </Box>
       </Box>

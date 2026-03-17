@@ -1,31 +1,47 @@
 /// <reference types="@testing-library/jest-dom/vitest" />
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { DetectionRuleDetail, type DetectionRuleData } from '../../../src/pages/scenario/components/DetectionRuleDetail';
+import { DetectionRuleDetail } from '../../../src/pages/scenario/components/DetectionRuleDetail';
+import type { SigmaRuleDetail } from '@/types';
 
 const theme = createTheme();
 
-const mockRule: DetectionRuleData = {
-  id: 'rule-8f1a9c',
+const mockRule: SigmaRuleDetail = {
+  id: 'doc-uuid-1',
+  sigma_id: 'rule-8f1a9c',
   name: 'Linux Reverse Shell 탐지',
-  logType: 'Linux System Logs',
   description: 'bash가 외부 IP로 연결을 시도하는 행위를 탐지합니다.',
-  lastUpdated: '2026-02-18T09:30:00.000Z',
+  level_original: 'critical',
+  level_normalized: 'critical',
+  sigma_status: 'stable',
   author: '김장훈 (CRUX SIEM)',
-  source: 'Standard',
-  license: 'Detection Rule License (DRL)',
-  severity: 'critical',
-  tags: ['attack.execution', 'attack.t1059.004'],
+  sigma_date: '2026/02/18',
   references: ['https://example.com/reference'],
-  falsePositives: ['알려진 오탐 사례 없음'],
-  ruleStatus: 'stable',
-  enabled: true,
-  detection: `selection:\n  Image|endswith: /bin/bash\ncondition: selection`,
+  license: 'DRL',
+  log_source_category: 'process_creation',
+  log_source_product: 'linux',
+  log_source_service: null,
+  detection_config: { selection: { 'Image|endswith': '/bin/bash' }, condition: 'selection' },
+  tags: ['attack.execution', 'attack.t1059.004'],
+  mitre_technique_ids: ['T1059.004'],
+  mitre_tactic_ids: ['execution'],
+  false_positives: ['알려진 오탐 사례 없음'],
+  status: 'active',
+  is_deleted: false,
+  raw_yaml: 'title: Linux Reverse Shell\ndetection:\n  selection:\n    Image|endswith: /bin/bash\n  condition: selection',
+  file_path: 'linux/process_creation/test.yml',
+  content_hash: 'abc123',
+  revision: 2,
+  deleted_by: null,
+  created_at: '2026-02-18T09:00:00Z',
+  updated_at: '2026-02-18T09:30:00Z',
+  deleted_at: null,
 };
 
-function renderDetail(rule: DetectionRuleData | null = mockRule) {
+function renderDetail(rule: SigmaRuleDetail | null = mockRule) {
   return render(
     <ThemeProvider theme={theme}>
       <DetectionRuleDetail rule={rule} t={(k: string) => k} />
@@ -41,12 +57,12 @@ describe('DetectionRuleDetail', () => {
 
   it('5개 섹션 헤더가 모두 표시된다', () => {
     renderDetail();
-    ['drSectionSummary', 'drSectionDetection', 'drSectionClassification', 'drSectionDocumentation', 'drSectionMetadata'].forEach((key) => {
+    ['drSectionSummary', 'drSectionClassification', 'drSectionDocumentation', 'drSectionMetadata'].forEach((key) => {
       expect(screen.getByText(key)).toBeInTheDocument();
     });
+    expect(screen.getByText('drSectionDetection')).toBeInTheDocument();
   });
 
-  // Rule Summary 섹션
   it('룰 이름이 표시된다', () => {
     renderDetail();
     expect(screen.getByText('Linux Reverse Shell 탐지')).toBeInTheDocument();
@@ -54,7 +70,8 @@ describe('DetectionRuleDetail', () => {
 
   it('로그 소스가 칩으로 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('Linux System Logs')).toBeInTheDocument();
+    expect(screen.getByText('linux')).toBeInTheDocument();
+    expect(screen.getByText('process_creation')).toBeInTheDocument();
   });
 
   it('설명이 표시된다', () => {
@@ -62,17 +79,18 @@ describe('DetectionRuleDetail', () => {
     expect(screen.getByText('bash가 외부 IP로 연결을 시도하는 행위를 탐지합니다.')).toBeInTheDocument();
   });
 
-  // Detection Logic 섹션
-  it('탐지 로직이 표시된다', () => {
+  it('탐지 로직이 기본 접힌 상태이며 펼칠 수 있다', async () => {
+    const user = userEvent.setup();
     renderDetail();
-    expect(screen.getByText(/selection:/)).toBeInTheDocument();
-    expect(screen.getByText(/Image\|endswith: \/bin\/bash/)).toBeInTheDocument();
+    expect(screen.queryByText(/"Image\|endswith"/)).not.toBeVisible();
+
+    const expandButton = screen.getByTestId('ExpandMoreIcon').closest('button');
+    if (expandButton) await user.click(expandButton);
   });
 
-  // Classification 섹션
   it('MITRE 전술 태그가 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('attack.execution')).toBeInTheDocument();
+    expect(screen.getByText('execution')).toBeInTheDocument();
   });
 
   it('MITRE technique이 칩으로 표시된다', () => {
@@ -80,7 +98,6 @@ describe('DetectionRuleDetail', () => {
     expect(screen.getByText('T1059.004')).toBeInTheDocument();
   });
 
-  // Documentation 섹션
   it('작성자가 표시된다', () => {
     renderDetail();
     expect(screen.getByText('김장훈 (CRUX SIEM)')).toBeInTheDocument();
@@ -99,8 +116,7 @@ describe('DetectionRuleDetail', () => {
     expect(screen.getByText('알려진 오탐 사례 없음')).toBeInTheDocument();
   });
 
-  // Metadata 섹션
-  it('Rule ID가 표시된다', () => {
+  it('Sigma ID가 표시된다', () => {
     renderDetail();
     expect(screen.getByText('rule-8f1a9c')).toBeInTheDocument();
   });
@@ -110,13 +126,18 @@ describe('DetectionRuleDetail', () => {
     expect(screen.getAllByText('drEnabled').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('룰 상태가 칩으로 표시된다', () => {
+  it('Sigma 룰 상태가 칩으로 표시된다', () => {
     renderDetail();
     expect(screen.getByText('stable')).toBeInTheDocument();
   });
 
-  it('최종 수정일이 표시된다', () => {
+  it('리비전이 표시된다', () => {
     renderDetail();
-    expect(screen.getByText('2026-02-18T09:30:00.000Z')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('라이선스가 표시된다', () => {
+    renderDetail();
+    expect(screen.getByText('DRL')).toBeInTheDocument();
   });
 });

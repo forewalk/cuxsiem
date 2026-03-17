@@ -2446,6 +2446,156 @@
       }
     }
   },
+  "cs_detection_rules": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "id":                    { "type": "keyword" },
+        "sigma_id":              { "type": "keyword" },
+        "name":                  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "description":           { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "level_original":        { "type": "keyword" },
+        "level_normalized":      { "type": "keyword" },
+        "sigma_status":          { "type": "keyword" },
+        "author":                { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "sigma_date":            { "type": "keyword" },
+        "references":            { "type": "keyword" },
+        "license":               { "type": "keyword" },
+        "log_source_category":   { "type": "keyword" },
+        "log_source_product":    { "type": "keyword" },
+        "log_source_service":    { "type": "keyword" },
+        "detection_config":      { "type": "object", "enabled": false },
+        "tags":                  { "type": "keyword" },
+        "mitre_technique_ids":   { "type": "keyword" },
+        "mitre_tactic_ids":      { "type": "keyword" },
+        "false_positives":       { "type": "text" },
+        "status":                { "type": "keyword" },
+        "is_deleted":            { "type": "boolean" },
+        "raw_yaml":              { "type": "object", "enabled": false },
+        "file_path":             { "type": "keyword" },
+        "content_hash":          { "type": "keyword" },
+        "revision":              { "type": "integer" },
+        "deleted_by":            { "type": "keyword" },
+        "created_at":            { "type": "date" },
+        "updated_at":            { "type": "date" },
+        "deleted_at":            { "type": "date" }
+      }
+    },
+    "settings": {
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "refresh_interval": "5s"
+      }
+    }
+  },
+  "cs_detection_policies": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "id":                    { "type": "keyword" },
+        "name":                  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "description":           { "type": "text" },
+        "target_index":          { "type": "keyword" },
+        "condition_config":      { "type": "object" },
+        "trigger_condition":     { "type": "keyword" },
+        "message_template":      { "type": "text" },
+        "severity":              { "type": "keyword" },
+        "interval_min":          { "type": "integer" },
+        "linked_rule_ids":       { "type": "keyword" },
+        "mitre_technique_ids":   { "type": "keyword" },
+        "mitre_tactic_ids":      { "type": "keyword" },
+        "is_active":             { "type": "boolean" },
+        "last_run_at":           { "type": "date" },
+        "last_triggered_at":     { "type": "date" },
+        "total_events_count":    { "type": "integer" },
+        "created_by":            { "type": "keyword" },
+        "created_at":            { "type": "date" },
+        "updated_at":            { "type": "date" },
+        "deleted_at":            { "type": "date" }
+      }
+    },
+    "settings": {
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "refresh_interval": "5s"
+      }
+    }
+  },
+  "cs_detection_events": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "id":                    { "type": "keyword" },
+        "policy_id":             { "type": "keyword" },
+        "policy_name":           { "type": "keyword" },
+        "severity":              { "type": "keyword" },
+        "target_index":          { "type": "keyword" },
+        "matched_count":         { "type": "integer" },
+        "sample_events":         { "type": "object", "enabled": false },
+        "mitre_technique_ids":   { "type": "keyword" },
+        "mitre_tactic_ids":      { "type": "keyword" },
+        "trigger_value":         { "type": "keyword" },
+        "message":               { "type": "text" },
+        "status":                { "type": "keyword" },
+        "created_at":            { "type": "date" }
+      }
+    },
+    "settings": {
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "refresh_interval": "5s"
+      }
+    }
+  },
+  "cs_detection_rule_history": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "id":            { "type": "keyword" },
+        "rule_id":       { "type": "keyword" },
+        "sigma_id":      { "type": "keyword" },
+        "revision":      { "type": "integer" },
+        "raw_yaml":      { "type": "object", "enabled": false },
+        "content_hash":  { "type": "keyword" },
+        "changed_at":    { "type": "date" }
+      }
+    },
+    "settings": {
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0"
+      }
+    }
+  },
+  "cs_rule_import_jobs": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "job_id":           { "type": "keyword" },
+        "status":           { "type": "keyword" },
+        "total_files":      { "type": "integer" },
+        "processed_files":  { "type": "integer" },
+        "inserted_count":   { "type": "integer" },
+        "updated_count":    { "type": "integer" },
+        "skipped_count":    { "type": "integer" },
+        "failed_count":     { "type": "integer" },
+        "conflict_count":   { "type": "integer" },
+        "error_message":    { "type": "text" },
+        "errors":           { "type": "object", "enabled": false },
+        "started_at":       { "type": "date" },
+        "completed_at":     { "type": "date" }
+      }
+    },
+    "settings": {
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0"
+      }
+    }
+  },
   "cs_users": {
     "aliases": {},
     "mappings": {

@@ -11,55 +11,51 @@ import {
   Tabs,
   Typography,
 } from '@mui/material';
-import React, { useState } from 'react';
+import React from 'react';
 import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
-
-export interface DetectionRuleListItem {
-  id: string;
-  name: string;
-  severity: string;
-  logType: string;
-  tags: string[];
-  enabled: boolean;
-}
+import type { SigmaRuleListItem, DetectionPolicy } from '@/types';
 
 interface DetectionRuleListProps {
-  rules: DetectionRuleListItem[];
+  rules: SigmaRuleListItem[];
+  policies: DetectionPolicy[];
   selectedRuleId: string | null;
+  selectedPolicyId: string | null;
   onSelect: (ruleId: string) => void;
+  onSelectPolicy: (policyId: string) => void;
   onToggleEnabled: (ruleId: string) => void;
   loading: boolean;
   t: (key: string, params?: Record<string, string>) => string;
   width?: number;
+  activeTab: number;
+  onTabChange: (tab: number) => void;
 }
 
-const extractMitreTechnique = (tags: string[]): string | null => {
-  for (const tag of tags) {
-    const match = tag.match(/^attack\.t(\d+(?:\.\d+)?)$/i);
-    if (match) return `T${match[1].toUpperCase()}`;
-  }
-  return null;
-};
+const extractFirstTechnique = (ids: string[]): string | null => ids.length > 0 ? ids[0] : null;
 
-const extractLogPlatform = (logType: string): string => {
-  const lower = logType.toLowerCase();
+const platformLabel = (product: string | null): string => {
+  if (!product) return '-';
+  const lower = product.toLowerCase();
   if (lower.includes('linux')) return 'Linux';
   if (lower.includes('windows')) return 'Windows';
   if (lower.includes('network')) return 'Network';
-  if (lower.includes('macos') || lower.includes('mac os')) return 'macOS';
-  return logType.split(' ')[0];
+  if (lower.includes('macos') || lower.includes('mac')) return 'macOS';
+  return product.charAt(0).toUpperCase() + product.slice(1);
 };
 
 export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   rules,
+  policies,
   selectedRuleId,
+  selectedPolicyId,
   onSelect,
+  onSelectPolicy,
   onToggleEnabled,
   loading,
   t,
   width = 320,
+  activeTab,
+  onTabChange,
 }) => {
-  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <Paper
@@ -79,7 +75,7 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
 
       <Tabs
         value={activeTab}
-        onChange={(_e, v) => setActiveTab(v)}
+        onChange={(_e, v) => onTabChange(v)}
         variant="fullWidth"
         sx={{
           flexShrink: 0,
@@ -94,16 +90,53 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
       </Tabs>
 
       {activeTab === 0 && (
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Typography variant="body2" color="text.disabled">{t('drDetectorEmpty')}</Typography>
-        </Box>
+        <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {policies.length > 0 ? policies.map((policy) => (
+            <ListItemButton
+              key={policy.id}
+              selected={policy.id === selectedPolicyId}
+              onClick={() => onSelectPolicy(policy.id)}
+              sx={{ py: 1, px: 1.5, borderBottom: 1, borderColor: 'divider', gap: 0.5, alignItems: 'flex-start' }}
+            >
+              <ListItemText
+                primary={policy.name}
+                secondary={
+                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                    <Chip label={policy.target_index} size="small" variant="outlined"
+                      sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5, maxWidth: 120 }} />
+                    <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                      {policy.interval_min}min
+                    </Typography>
+                  </Box>
+                }
+                primaryTypographyProps={{ variant: 'caption', fontWeight: 600, noWrap: true, sx: { fontSize: '0.75rem' } }}
+                secondaryTypographyProps={{ component: 'div' }}
+              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
+                <SeverityChip severity={policy.severity} size="small" />
+                <Chip
+                  label={policy.is_active ? '●' : '○'}
+                  size="small"
+                  color={policy.is_active ? 'success' : 'default'}
+                  variant={policy.is_active ? 'filled' : 'outlined'}
+                  sx={{ fontSize: '0.55rem', height: 18, minWidth: 18, p: 0 }}
+                />
+              </Box>
+            </ListItemButton>
+          )) : !loading && (
+            <Box sx={{ py: 6, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.disabled">{t('drDetectorEmpty')}</Typography>
+            </Box>
+          )}
+        </List>
       )}
 
       {activeTab === 1 && (
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {rules.length > 0 ? rules.map((rule) => {
-            const technique = extractMitreTechnique(rule.tags);
-            const platform = extractLogPlatform(rule.logType);
+            const technique = extractFirstTechnique(rule.mitre_technique_ids);
+            const platform = platformLabel(rule.log_source_product);
+            const isActive = rule.status === 'active';
 
             return (
               <ListItemButton
@@ -142,10 +175,10 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                 />
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
-                  <SeverityChip severity={rule.severity} size="small" />
+                  <SeverityChip severity={rule.level_normalized} size="small" />
                   <Switch
                     size="small"
-                    checked={rule.enabled}
+                    checked={isActive}
                     onClick={(e) => e.stopPropagation()}
                     onChange={() => onToggleEnabled(rule.id)}
                   />
@@ -154,7 +187,10 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
             );
           }) : !loading && (
             <Box sx={{ py: 6, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.disabled">{t('drNoRules')}</Typography>
+              <Typography variant="body2" color="text.disabled">{t('drRuleEmpty')}</Typography>
+              <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                {t('drRuleEmptySubtext')}
+              </Typography>
             </Box>
           )}
         </List>
