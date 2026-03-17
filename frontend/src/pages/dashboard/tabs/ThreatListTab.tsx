@@ -443,6 +443,24 @@ const ThreatListTab: React.FC = () => {
     );
   };
 
+  const getFieldDisplayName = useMemo(() => {
+    const leafCount: Record<string, number> = {};
+    selectedFieldNames.forEach(fn => {
+      const leaf = fn.includes('.') ? fn.split('.').pop()! : fn;
+      leafCount[leaf] = (leafCount[leaf] || 0) + 1;
+    });
+    return (fn: string): string => {
+      if (!fn.includes('.')) return fn;
+      const parts = fn.split('.');
+      const leaf = parts[parts.length - 1];
+      if (leafCount[leaf] > 1) {
+        const parent = parts[parts.length - 2];
+        return `${parent}.${leaf}`;
+      }
+      return leaf;
+    };
+  }, [selectedFieldNames]);
+
   const sortedDisplayFields = useMemo(() => [...selectedFieldNames], [selectedFieldNames]);
 
   return (
@@ -531,7 +549,7 @@ const ThreatListTab: React.FC = () => {
                             gap: 0.5
                           }}
                         >
-                          {fn.includes('.') ? fn.split('.').pop() : fn}
+                          {getFieldDisplayName(fn)}
                           {sortField === fn && isSorted && (
                             sortOrder === "asc" ? <NorthIcon sx={{ fontSize: 12 }} /> : <SouthIcon sx={{ fontSize: 12 }} />
                           )}
