@@ -7,9 +7,11 @@ import {
   ListItemText,
   Paper,
   Switch,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material';
-import React from 'react';
+import React, { useState } from 'react';
 import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
 
 export interface DetectionRuleListItem {
@@ -57,6 +59,8 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   t,
   width = 320,
 }) => {
+  const [activeTab, setActiveTab] = useState(0);
+
   return (
     <Paper
       elevation={1}
@@ -73,72 +77,88 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
     >
       {loading && <LinearProgress sx={{ flexShrink: 0 }} />}
 
-      <Box sx={{ p: 1.5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-          {t('drRuleLibrary')} ({rules.length})
-        </Typography>
-      </Box>
+      <Tabs
+        value={activeTab}
+        onChange={(_e, v) => setActiveTab(v)}
+        variant="fullWidth"
+        sx={{
+          flexShrink: 0,
+          minHeight: 36,
+          borderBottom: 1,
+          borderColor: 'divider',
+          '& .MuiTab-root': { minHeight: 36, py: 0.75, fontSize: '0.72rem', fontWeight: 'bold', textTransform: 'none' },
+        }}
+      >
+        <Tab label={t('drTabDetector')} />
+        <Tab label={`${t('drTabRule')} (${rules.length})`} />
+      </Tabs>
 
-      <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-        {rules.length > 0 ? rules.map((rule) => {
-          const technique = extractMitreTechnique(rule.tags);
-          const platform = extractLogPlatform(rule.logType);
+      {activeTab === 0 && (
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Typography variant="body2" color="text.disabled">{t('drDetectorEmpty')}</Typography>
+        </Box>
+      )}
 
-          return (
-            <ListItemButton
-              key={rule.id}
-              selected={rule.id === selectedRuleId}
-              onClick={() => onSelect(rule.id)}
-              sx={{
-                py: 1,
-                px: 1.5,
-                borderBottom: 1,
-                borderColor: 'divider',
-                gap: 0.5,
-                alignItems: 'flex-start',
-              }}
-            >
-              {/* 왼쪽: 이름 + 보조 정보 */}
-              <ListItemText
-                primary={rule.name}
-                secondary={
-                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                    <Chip label={platform} size="small" variant="outlined"
-                      sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
-                    {technique && (
-                      <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-                        MITRE: {technique}
-                      </Typography>
-                    )}
-                  </Box>
-                }
-                primaryTypographyProps={{
-                  variant: 'caption',
-                  fontWeight: 600,
-                  noWrap: true,
-                  sx: { fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+      {activeTab === 1 && (
+        <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {rules.length > 0 ? rules.map((rule) => {
+            const technique = extractMitreTechnique(rule.tags);
+            const platform = extractLogPlatform(rule.logType);
+
+            return (
+              <ListItemButton
+                key={rule.id}
+                selected={rule.id === selectedRuleId}
+                onClick={() => onSelect(rule.id)}
+                sx={{
+                  py: 1,
+                  px: 1.5,
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                  gap: 0.5,
+                  alignItems: 'flex-start',
                 }}
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-
-              {/* 오른쪽: 심각도 + 토글 */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
-                <SeverityChip severity={rule.severity} size="small" />
-                <Switch
-                  size="small"
-                  checked={rule.enabled}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={() => onToggleEnabled(rule.id)}
+              >
+                <ListItemText
+                  primary={rule.name}
+                  secondary={
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                      <Chip label={platform} size="small" variant="outlined"
+                        sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
+                      {technique && (
+                        <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', fontFamily: 'monospace' }}>
+                          MITRE: {technique}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                  primaryTypographyProps={{
+                    variant: 'caption',
+                    fontWeight: 600,
+                    noWrap: true,
+                    sx: { fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+                  }}
+                  secondaryTypographyProps={{ component: 'div' }}
                 />
-              </Box>
-            </ListItemButton>
-          );
-        }) : !loading && (
-          <Box sx={{ py: 6, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.disabled">{t('drNoRules')}</Typography>
-          </Box>
-        )}
-      </List>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
+                  <SeverityChip severity={rule.severity} size="small" />
+                  <Switch
+                    size="small"
+                    checked={rule.enabled}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => onToggleEnabled(rule.id)}
+                  />
+                </Box>
+              </ListItemButton>
+            );
+          }) : !loading && (
+            <Box sx={{ py: 6, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.disabled">{t('drNoRules')}</Typography>
+            </Box>
+          )}
+        </List>
+      )}
     </Paper>
   );
 };
