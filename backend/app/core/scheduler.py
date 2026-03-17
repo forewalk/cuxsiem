@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.services.notification import NotificationService
+from app.services.detection_policy import DetectionPolicyService
 from app.repositories.session import SessionRepository
 from app.services.advanced_settings import advanced_settings_service
 
@@ -15,6 +16,7 @@ class DetectionScheduler:
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
         self.service = NotificationService()
+        self.detection_policy_service = DetectionPolicyService()
         self.session_repo = SessionRepository()
 
     async def run_active_detections(self):
@@ -58,6 +60,46 @@ class DetectionScheduler:
         except Exception as e:
             logger.error(f"[스케줄러] 오류: {e}", exc_info=True)
 
+    async def run_active_detection_policies(self):
+        """활성화된 모든 탐지 정책을 조회하여 탐지 로직을 실행함"""
+        try:
+            total, policies = await self.detection_policy_service.list_policies(limit=1000, is_active=True)
+
+            now = datetime.now(timezone.utc)
+            tasks = []
+
+            for policy in policies:
+                if not policy.get("is_active"):
+                    continue
+
+                interval_min = policy.get("interval_min")
+                if interval_min is None:
+                    continue
+
+                last_run_at = policy.get("last_run_at")
+                should_run = False
+                if not last_run_at:
+                    should_run = True
+                else:
+                    try:
+                        last_run_dt = datetime.fromisoformat(last_run_at.replace('Z', '+00:00'))
+                        if last_run_dt.tzinfo is None:
+                            last_run_dt = last_run_dt.replace(tzinfo=timezone.utc)
+                        elapsed_minutes = (now - last_run_dt).total_seconds() / 60
+                        if elapsed_minutes >= interval_min:
+                            should_run = True
+                    except Exception:
+                        should_run = True
+
+                if should_run:
+                    tasks.append(self.detection_policy_service.run_detection_for_policy(policy))
+
+            if tasks:
+                await asyncio.gather(*tasks)
+
+        except Exception as e:
+            logger.error(f"[스케줄러] 탐지 정책 오류: {e}", exc_info=True)
+
     async def expire_idle_sessions(self):
         """무활동 세션 만료 처리 (슬라이딩 세션)"""
         try:
@@ -77,6 +119,15 @@ class DetectionScheduler:
                 "interval",
                 minutes=1,
                 id="detection_job",
+                max_instances=1,
+                coalesce=True,
+                misfire_grace_time=30
+            )
+            self.scheduler.add_job(
+                self.run_active_detection_policies,
+                "interval",
+                minutes=1,
+                id="detection_policy_job",
                 max_instances=1,
                 coalesce=True,
                 misfire_grace_time=30

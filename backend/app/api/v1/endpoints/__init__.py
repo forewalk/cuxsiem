@@ -9,6 +9,9 @@ from .advanced_settings import router as advanced_settings_router
 from .ws_alerts import router as ws_alerts_router
 from .code import router as code_router
 from .monitoring import router as monitoring_router
+from .sigma_rule import router as sigma_rule_router
+from .detection_policy import router as detection_policy_router
+from .detection_policy import event_router as detection_event_router
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(auth_router)
@@ -21,3 +24,6 @@ router.include_router(advanced_settings_router, prefix="/advanced-settings", tag
 router.include_router(ws_alerts_router, prefix="/ws", tags=["websocket"])
 router.include_router(code_router, prefix="/codes", tags=["codes"])
 router.include_router(monitoring_router)
+router.include_router(sigma_rule_router, prefix="/sigma-rules", tags=["sigma-rules"])
+router.include_router(detection_policy_router, prefix="/detection-policies", tags=["detection-policies"])
+router.include_router(detection_event_router, prefix="/detection-events", tags=["detection-events"])

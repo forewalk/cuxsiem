@@ -1,0 +1,28 @@
+title: PowerShell Encoded Command Execution
+id: fb843269-508c-4b76-8b8d-88a4b7e93c24
+status: stable
+description: Detects the execution of PowerShell with encoded command line arguments
+references:
+    - https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe
+author: Florian Roth
+date: 2022/01/15
+tags:
+    - attack.execution
+    - attack.t1059.001
+    - attack.defense_evasion
+    - attack.t1027
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine|contains:
+            - '-enc '
+            - '-EncodedCommand '
+            - '-ec '
+        Image|endswith: '\powershell.exe'
+    condition: selection
+falsepositives:
+    - Legitimate admin scripts using encoded commands
+level: critical
+license: MIT
