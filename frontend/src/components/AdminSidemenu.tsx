@@ -344,26 +344,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
             </List>
           </Collapse>
 
-          {/* Monitoring Menu Group */}
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton onClick={handleMonitorMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
-              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
-                <MonitoringIcon />
-              </ListItemIcon>
-              <ListItemText primary={t('monitoringMenu')} sx={listItemTextStyle} />
-              {(drawerOpen || isMobile) && (openMonitorMenu ? <ExpandLess /> : <ExpandMore />)}
-            </ListItemButton>
-          </ListItem>
-
-          <Collapse in={openMonitorMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('heartbeatMenu'), 'HeartbeatTab', 'heartbeatMenu')}>
-                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><HeartbeatIcon /></ListItemIcon>
-                <ListItemText primary={t('heartbeatMenu')} sx={listItemTextStyle} />
-              </ListItemButton>
-            </List>
-          </Collapse>
-
           {/* Action Menu Group */}
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton onClick={handleActionMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
@@ -420,6 +400,26 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('aibomMenu'), 'AibomTab', 'aibomMenu')}>
                 <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><AibomIcon /></ListItemIcon>
                 <ListItemText primary={t('aibomMenu')} sx={listItemTextStyle} />
+              </ListItemButton>
+            </List>
+          </Collapse>
+
+          {/* Monitoring Menu Group */}
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton onClick={handleMonitorMenuClick} sx={{ minHeight: listItemHeight, px: 2.5 }}>
+              <ListItemIcon sx={{ minWidth: iconMinWidth, mr: (drawerOpen || isMobile) ? 3 : 'auto' }}>
+                <MonitoringIcon />
+              </ListItemIcon>
+              <ListItemText primary={t('monitoringMenu')} sx={listItemTextStyle} />
+              {(drawerOpen || isMobile) && (openMonitorMenu ? <ExpandLess /> : <ExpandMore />)}
+            </ListItemButton>
+          </ListItem>
+
+          <Collapse in={openMonitorMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('heartbeatMenu'), 'HeartbeatTab', 'heartbeatMenu')}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><HeartbeatIcon /></ListItemIcon>
+                <ListItemText primary={t('heartbeatMenu')} sx={listItemTextStyle} />
               </ListItemButton>
             </List>
           </Collapse>
