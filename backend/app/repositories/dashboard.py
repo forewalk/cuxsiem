@@ -37,13 +37,16 @@ class DashboardRepository:
         q = re.sub(r'"([^"]*)"', escape_backslashes, q)
 
         # 2. isActive: "1" -> isActive: true 등 불리언 변환
-        # : "1" -> : true
-        q = re.sub(r':\s*["\']?1["\']?', ': true', q)
-        # : "0" -> : false
-        q = re.sub(r':\s*["\']?0["\']?', ': false', q)
-        # : "true" -> : true
+        # 따옴표로 감싸진 경우: "1", '1'
+        q = re.sub(r':\s*"1"', ': true', q)
+        q = re.sub(r":\s*'1'", ': true', q)
+        q = re.sub(r':\s*"0"', ': false', q)
+        q = re.sub(r":\s*'0'", ': false', q)
+        # 따옴표 없이 단독 값인 경우: :1, :0 (뒤에 공백/문자열끝/닫는괄호)
+        q = re.sub(r':\s*1(?=\s|$|\))', ': true', q)
+        q = re.sub(r':\s*0(?=\s|$|\))', ': false', q)
+        # : "true" -> : true, : "false" -> : false
         q = re.sub(r':\s*["\']true["\']', ': true', q, flags=re.IGNORECASE)
-        # : "false" -> : false
         q = re.sub(r':\s*["\']false["\']', ': false', q, flags=re.IGNORECASE)
         return q
 
