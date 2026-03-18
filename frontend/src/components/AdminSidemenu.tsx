@@ -50,8 +50,8 @@ interface AdminSidemenuProps {
   handleDrawerToggle: () => void;
 }
 
-const drawerWidth = 273;
-const collapsedWidth = 72;
+const drawerWidth = 246;
+const collapsedWidth = 65;
 const mobileDrawerWidth = 240;
 const iconMinWidth = 48;
 const listItemHeight = 48;
