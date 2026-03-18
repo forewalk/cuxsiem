@@ -1,5 +1,5 @@
 import api from './api';
-import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats, CustomRuleCreate, CustomRuleUpdate } from '@/types';
+import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats, SigmaRuleFilterOptions, CustomRuleCreate, CustomRuleUpdate } from '@/types';
 
 interface ListRulesParams {
   skip?: number;
@@ -10,6 +10,8 @@ interface ListRulesParams {
   severity?: string;
   status?: string;
   log_source_product?: string;
+  log_source_category?: string;
+  log_type_keywords?: string;
   mitre_technique_id?: string;
   rule_type?: 'sigma' | 'custom';
 }
@@ -51,6 +53,13 @@ export const detectionRuleService = {
 
   getStats: async () => {
     const response = await api.get<SigmaRuleStats>('/api/v1/sigma-rules/stats');
+    return response.data;
+  },
+
+  getFilterOptions: async (logSourceProduct?: string) => {
+    const params: Record<string, string> = {};
+    if (logSourceProduct) params.log_source_product = logSourceProduct;
+    const response = await api.get<SigmaRuleFilterOptions>('/api/v1/sigma-rules/filter-options', { params });
     return response.data;
   },
 };

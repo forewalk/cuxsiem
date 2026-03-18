@@ -8,6 +8,7 @@ from app.schemas.sigma_rule import (
     SigmaRuleResponse,
     SigmaRuleStatsResponse,
     SigmaRuleToggleResponse,
+    FilterOptionsResponse,
     CustomRuleCreate,
     CustomRuleUpdate,
 )
@@ -25,11 +26,13 @@ async def list_sigma_rules(
     sort_by: str = Query("updated_at", pattern="^(updated_at|created_at|name|level_normalized)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     search: Optional[str] = Query(None, description="이름/설명 텍스트 검색"),
-    severity: Optional[str] = Query(None, description="critical/high/medium/low/info"),
+    severity: Optional[str] = Query(None, description="콤마 구분 복수값 가능: critical,high,medium,low,info"),
     status: Optional[str] = Query(None, description="active/inactive/deleted"),
-    log_source_product: Optional[str] = Query(None, description="로그 소스 제품"),
+    log_source_product: Optional[str] = Query(None, description="콤마 구분 복수값 가능"),
+    log_source_category: Optional[str] = Query(None, description="콤마 구분 복수값 가능"),
+    log_type_keywords: Optional[str] = Query(None, description="로그타입 keywords (product/category/service 매칭)"),
     mitre_technique_id: Optional[str] = Query(None, description="MITRE 기술 ID"),
-    rule_type: Optional[str] = Query(None, description="sigma/custom", pattern="^(sigma|custom)$"),
+    rule_type: Optional[str] = Query(None, description="콤마 구분 복수값 가능: sigma,custom"),
 ):
     total, items = await service.list_rules(
         skip=skip,
@@ -40,6 +43,8 @@ async def list_sigma_rules(
         severity=severity,
         status=status,
         log_source_product=log_source_product,
+        log_source_category=log_source_category,
+        log_type_keywords=log_type_keywords,
         mitre_technique_id=mitre_technique_id,
         rule_type=rule_type,
     )
@@ -57,6 +62,13 @@ async def create_custom_rule(
 @router.get("/stats", response_model=SigmaRuleStatsResponse)
 async def get_sigma_rule_stats():
     return await service.get_stats()
+
+
+@router.get("/filter-options", response_model=FilterOptionsResponse)
+async def get_filter_options(
+    log_source_product: Optional[str] = Query(None, description="로그 타입 선택 시 카테고리 필터링"),
+):
+    return await service.get_filter_options(log_source_product=log_source_product)
 
 
 @router.get("/{rule_id}", response_model=SigmaRuleResponse)

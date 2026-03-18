@@ -37,6 +37,8 @@ class SigmaRuleRepository:
         severity: Optional[str] = None,
         status: Optional[str] = None,
         log_source_product: Optional[str] = None,
+        log_source_category: Optional[str] = None,
+        log_type_keywords: Optional[str] = None,
         mitre_technique_id: Optional[str] = None,
         rule_type: Optional[str] = None,
     ) -> Tuple[int, List[Dict[str, Any]]]:
@@ -46,8 +48,18 @@ class SigmaRuleRepository:
             must = []
             must_not = [{"term": {"is_deleted": True}}]
 
-            if rule_type:
-                must.append({"term": {"type": rule_type}})
+            def _add_filter(field: str, value: Optional[str], use_keyword: bool = False):
+                """콤마 구분 문자열을 term/terms 쿼리로 변환"""
+                if not value:
+                    return
+                f = f"{field}.keyword" if use_keyword else field
+                vals = [v.strip() for v in value.split(",") if v.strip()]
+                if len(vals) == 1:
+                    must.append({"term": {f: vals[0]}})
+                elif len(vals) > 1:
+                    must.append({"terms": {f: vals}})
+
+            _add_filter("type", rule_type)
             if search:
                 must.append({
                     "bool": {
@@ -58,12 +70,23 @@ class SigmaRuleRepository:
                         "minimum_should_match": 1,
                     }
                 })
-            if severity:
-                must.append({"term": {"level_normalized": severity}})
-            if status:
-                must.append({"term": {"status": status}})
-            if log_source_product:
-                must.append({"term": {"log_source_product": log_source_product}})
+            _add_filter("level_normalized", severity)
+            _add_filter("status", status)
+            _add_filter("log_source_product", log_source_product, use_keyword=True)
+            _add_filter("log_source_category", log_source_category, use_keyword=True)
+            if log_type_keywords:
+                kws = [v.strip() for v in log_type_keywords.split(",") if v.strip()]
+                if kws:
+                    must.append({
+                        "bool": {
+                            "should": [
+                                {"terms": {"log_source_product.keyword": kws}},
+                                {"terms": {"log_source_category.keyword": kws}},
+                                {"terms": {"log_source_service.keyword": kws}},
+                            ],
+                            "minimum_should_match": 1,
+                        }
+                    })
             if mitre_technique_id:
                 must.append({"term": {"mitre_technique_ids": mitre_technique_id}})
 
@@ -247,6 +270,55 @@ class SigmaRuleRepository:
             except Exception as e:
                 logger.error(f"통계 조회 실패: {e}")
                 return {"total": 0, "by_severity": {}, "by_status": {}, "mitre_coverage": {}}
+
+        return await loop.run_in_executor(None, agg)
+
+    # --- 필터 옵션 (Aggregation) ---
+
+    KNOWN_SEVERITIES = ["critical", "high", "medium", "low", "info"]
+    KNOWN_SOURCES = ["sigma", "custom"]
+
+    async def get_filter_options(self, log_source_product: Optional[str] = None) -> Dict[str, Any]:
+        loop = asyncio.get_event_loop()
+
+        def agg():
+            try:
+                must_not = [{"term": {"is_deleted": True}}]
+                must = []
+                if log_source_product:
+                    must.append({"term": {"log_source_product.keyword": log_source_product}})
+
+                query = {"bool": {"must": must, "must_not": must_not}} if must else {"bool": {"must_not": must_not}}
+
+                agg_body: Dict[str, Any] = {
+                    "categories": {"terms": {"field": "log_source_category.keyword", "size": 200}},
+                }
+                if not log_source_product:
+                    agg_body["log_types"] = {"terms": {"field": "log_source_product.keyword", "size": 100}}
+
+                result = self.client.search(
+                    index=self.rules_index,
+                    body={"size": 0, "query": query, "aggs": agg_body},
+                )
+                aggs = result.get("aggregations", {})
+
+                def extract_keys(agg_name: str) -> List[str]:
+                    return sorted([b["key"] for b in aggs.get(agg_name, {}).get("buckets", []) if b["key"]])
+
+                return {
+                    "log_types": extract_keys("log_types") if not log_source_product else [],
+                    "categories": extract_keys("categories"),
+                    "severities": self.KNOWN_SEVERITIES,
+                    "sources": self.KNOWN_SOURCES,
+                }
+            except Exception as e:
+                logger.error(f"필터 옵션 조회 실패: {e}")
+                return {
+                    "log_types": [],
+                    "categories": [],
+                    "severities": self.KNOWN_SEVERITIES,
+                    "sources": self.KNOWN_SOURCES,
+                }
 
         return await loop.run_in_executor(None, agg)
 

@@ -110,6 +110,15 @@ class SigmaRuleStatsResponse(BaseModel):
     mitre_coverage: Dict[str, int] = {}
 
 
+# --- 필터 옵션 ---
+
+class FilterOptionsResponse(BaseModel):
+    log_types: List[str] = []
+    categories: List[str] = []
+    severities: List[str] = []
+    sources: List[str] = []
+
+
 # --- Import Job ---
 
 class ImportJobResponse(BaseModel):

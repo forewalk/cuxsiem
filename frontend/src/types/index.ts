@@ -245,6 +245,13 @@ export interface SigmaRuleStats {
   mitre_coverage: Record<string, number>;
 }
 
+export interface SigmaRuleFilterOptions {
+  log_types: string[];
+  categories: string[];
+  severities: string[];
+  sources: string[];
+}
+
 export interface CustomRuleCreate {
   name: string;
   description?: string;

@@ -72,6 +72,8 @@ class SigmaRuleService:
         severity: Optional[str] = None,
         status: Optional[str] = None,
         log_source_product: Optional[str] = None,
+        log_source_category: Optional[str] = None,
+        log_type_keywords: Optional[str] = None,
         mitre_technique_id: Optional[str] = None,
         rule_type: Optional[str] = None,
     ):
@@ -84,9 +86,14 @@ class SigmaRuleService:
             severity=severity,
             status=status,
             log_source_product=log_source_product,
+            log_source_category=log_source_category,
+            log_type_keywords=log_type_keywords,
             mitre_technique_id=mitre_technique_id,
             rule_type=rule_type,
         )
+
+    async def get_filter_options(self, log_source_product: Optional[str] = None):
+        return await self.repository.get_filter_options(log_source_product=log_source_product)
 
     async def get_rule(self, rule_id: str):
         return await self.repository.get_rule_by_id(rule_id)

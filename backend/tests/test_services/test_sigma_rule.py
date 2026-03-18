@@ -291,3 +291,92 @@ class TestSigmaRuleServiceCRUD:
         })
         stats = await self.service.get_stats()
         assert stats["total"] == 100
+
+
+class TestFilterOptions:
+    def setup_method(self):
+        self.service = SigmaRuleService()
+        self.service.repository = MagicMock()
+
+    @pytest.mark.asyncio
+    async def test_get_filter_options(self):
+        self.service.repository.get_filter_options = AsyncMock(return_value={
+            "log_types": ["linux", "windows"],
+            "categories": ["network_connection", "process_creation"],
+            "severities": ["critical", "high", "medium", "low", "info"],
+            "sources": ["sigma", "custom"],
+        })
+        result = await self.service.get_filter_options()
+        assert "windows" in result["log_types"]
+        assert "process_creation" in result["categories"]
+        assert result["severities"] == ["critical", "high", "medium", "low", "info"]
+        assert result["sources"] == ["sigma", "custom"]
+
+    @pytest.mark.asyncio
+    async def test_get_filter_options_with_product(self):
+        self.service.repository.get_filter_options = AsyncMock(return_value={
+            "log_types": [],
+            "categories": ["image_load", "process_creation"],
+            "severities": ["critical", "high", "medium", "low", "info"],
+            "sources": ["sigma", "custom"],
+        })
+        result = await self.service.get_filter_options(log_source_product="windows")
+        self.service.repository.get_filter_options.assert_called_once_with(log_source_product="windows")
+        assert result["log_types"] == []
+        assert result["categories"] == ["image_load", "process_creation"]
+
+    @pytest.mark.asyncio
+    async def test_list_rules_with_category_filter(self):
+        self.service.repository.list_rules = AsyncMock(return_value=(1, [
+            {"id": "r-1", "type": "sigma", "log_source_category": "process_creation"},
+        ]))
+        total, items = await self.service.list_rules(log_source_category="process_creation")
+        call_kwargs = self.service.repository.list_rules.call_args[1]
+        assert call_kwargs["log_source_category"] == "process_creation"
+
+    @pytest.mark.asyncio
+    async def test_list_rules_with_multi_severity_filter(self):
+        self.service.repository.list_rules = AsyncMock(return_value=(3, [
+            {"id": "r-1", "level_normalized": "critical"},
+            {"id": "r-2", "level_normalized": "high"},
+            {"id": "r-3", "level_normalized": "medium"},
+        ]))
+        total, items = await self.service.list_rules(severity="critical,high,medium")
+        call_kwargs = self.service.repository.list_rules.call_args[1]
+        assert call_kwargs["severity"] == "critical,high,medium"
+
+    @pytest.mark.asyncio
+    async def test_list_rules_with_multi_source_filter(self):
+        self.service.repository.list_rules = AsyncMock(return_value=(2, [
+            {"id": "r-1", "type": "sigma"},
+            {"id": "r-2", "type": "custom"},
+        ]))
+        total, items = await self.service.list_rules(rule_type="sigma,custom")
+        call_kwargs = self.service.repository.list_rules.call_args[1]
+        assert call_kwargs["rule_type"] == "sigma,custom"
+
+    @pytest.mark.asyncio
+    async def test_list_rules_with_log_type_keywords(self):
+        self.service.repository.list_rules = AsyncMock(return_value=(2, [
+            {"id": "r-1", "log_source_product": "windows"},
+            {"id": "r-2", "log_source_category": "process_creation"},
+        ]))
+        total, items = await self.service.list_rules(
+            log_type_keywords="windows,sysmon,powershell,windefend"
+        )
+        call_kwargs = self.service.repository.list_rules.call_args[1]
+        assert call_kwargs["log_type_keywords"] == "windows,sysmon,powershell,windefend"
+        assert total == 2
+
+    @pytest.mark.asyncio
+    async def test_list_rules_with_keywords_and_severity(self):
+        self.service.repository.list_rules = AsyncMock(return_value=(1, [
+            {"id": "r-1", "log_source_product": "windows", "level_normalized": "critical"},
+        ]))
+        total, items = await self.service.list_rules(
+            log_type_keywords="windows,sysmon",
+            severity="critical",
+        )
+        call_kwargs = self.service.repository.list_rules.call_args[1]
+        assert call_kwargs["log_type_keywords"] == "windows,sysmon"
+        assert call_kwargs["severity"] == "critical"

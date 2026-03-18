@@ -146,11 +146,61 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
           '& .MuiTab-root': { minHeight: 36, py: 0.75, fontSize: '0.72rem', fontWeight: 'bold', textTransform: 'none' },
         }}
       >
-        <Tab label={`${t('drTabRule')} (${ruleTotal})`} />
         <Tab label={`${t('drTabDetector')} (${detectorTotal})`} />
+        <Tab label={`${t('drTabRule')} (${ruleTotal})`} />
       </Tabs>
 
       {activeTab === 0 && (<>
+        <Box sx={{ px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+          <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
+            onClick={onCreateDetector}
+            sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
+            {t('dpCreate')}
+          </Button>
+        </Box>
+        <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {detectors.length > 0 ? detectors.map((detector) => (
+            <ListItemButton
+              key={detector.id}
+              selected={detector.id === selectedDetectorId}
+              onClick={() => onSelectDetector(detector.id)}
+              sx={{ py: 1, px: 1.5, borderBottom: 1, borderColor: 'divider', gap: 0.5, alignItems: 'flex-start' }}
+            >
+              <ListItemText
+                primary={detector.name}
+                secondary={
+                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                    <Chip label={detector.detector_type || '-'} size="small" variant="outlined"
+                      sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
+                    <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                      {detector.schedule_interval_min}min · {detector.linked_rule_ids?.length ?? 0} rules
+                    </Typography>
+                  </Box>
+                }
+                primaryTypographyProps={{ variant: 'caption', fontWeight: 600, noWrap: true, sx: { fontSize: '0.75rem' } }}
+                secondaryTypographyProps={{ component: 'div' }}
+              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
+                <SeverityChip severity={detector.severity} size="small" />
+                <Chip
+                  label={detector.is_active ? '●' : '○'}
+                  size="small"
+                  color={detector.is_active ? 'success' : 'default'}
+                  variant={detector.is_active ? 'filled' : 'outlined'}
+                  sx={{ fontSize: '0.55rem', height: 18, minWidth: 18, p: 0 }}
+                />
+              </Box>
+            </ListItemButton>
+          )) : !loading && (
+            <Box sx={{ py: 6, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.disabled">{t('drDetectorEmpty')}</Typography>
+            </Box>
+          )}
+        </List>
+        <PaginationBar page={detectorPage} total={detectorTotal} pageSize={pageSize} onPageChange={onDetectorPageChange} />
+      </>)}
+
+      {activeTab === 1 && (<>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
           <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
             onClick={onCreateCustomRule}
@@ -237,56 +287,6 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
           )}
         </List>
         <PaginationBar page={rulePage} total={ruleTotal} pageSize={pageSize} onPageChange={onRulePageChange} />
-      </>)}
-
-      {activeTab === 1 && (<>
-        <Box sx={{ px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
-          <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
-            onClick={onCreateDetector}
-            sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
-            {t('dpCreate')}
-          </Button>
-        </Box>
-        <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-          {detectors.length > 0 ? detectors.map((detector) => (
-            <ListItemButton
-              key={detector.id}
-              selected={detector.id === selectedDetectorId}
-              onClick={() => onSelectDetector(detector.id)}
-              sx={{ py: 1, px: 1.5, borderBottom: 1, borderColor: 'divider', gap: 0.5, alignItems: 'flex-start' }}
-            >
-              <ListItemText
-                primary={detector.name}
-                secondary={
-                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                    <Chip label={detector.detector_type || '-'} size="small" variant="outlined"
-                      sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
-                    <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                      {detector.schedule_interval_min}min · {detector.linked_rule_ids?.length ?? 0} rules
-                    </Typography>
-                  </Box>
-                }
-                primaryTypographyProps={{ variant: 'caption', fontWeight: 600, noWrap: true, sx: { fontSize: '0.75rem' } }}
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
-                <SeverityChip severity={detector.severity} size="small" />
-                <Chip
-                  label={detector.is_active ? '●' : '○'}
-                  size="small"
-                  color={detector.is_active ? 'success' : 'default'}
-                  variant={detector.is_active ? 'filled' : 'outlined'}
-                  sx={{ fontSize: '0.55rem', height: 18, minWidth: 18, p: 0 }}
-                />
-              </Box>
-            </ListItemButton>
-          )) : !loading && (
-            <Box sx={{ py: 6, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.disabled">{t('drDetectorEmpty')}</Typography>
-            </Box>
-          )}
-        </List>
-        <PaginationBar page={detectorPage} total={detectorTotal} pageSize={pageSize} onPageChange={onDetectorPageChange} />
       </>)}
     </Paper>
   );

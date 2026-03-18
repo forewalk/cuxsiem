@@ -1,6 +1,6 @@
 import { Refresh as RefreshIcon } from '@mui/icons-material';
-import { Box, Button } from '@mui/material';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Box, Button, Checkbox, Divider, FormControl, ListItemText, MenuItem, Select, Typography } from '@mui/material';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ControlSearchBar from '../../../components/shared/ControlSearchBar';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
@@ -11,6 +11,7 @@ import { DetectorForm } from '../components/DetectorForm';
 import { CustomRuleForm } from '../components/CustomRuleForm';
 import { detectionRuleService } from '../../../services/sigmaRuleService';
 import { detectorService } from '../../../services/detectionPolicyService';
+import { LOG_TYPE_GROUPS, ALL_LOG_TYPES } from '../constants/logTypes';
 import type {
   SigmaRuleListItem,
   SigmaRuleDetail as SigmaRuleDetailType,
@@ -20,6 +21,65 @@ import type {
   CustomRuleCreate,
 } from '@/types';
 
+const FILTER_SX = {
+  width: 130,
+  '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.75rem' },
+  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+};
+
+const TOGGLE_ALL = '__TOGGLE_ALL__';
+
+const FilterSelect: React.FC<{
+  label: string;
+  value: string[];
+  options: string[];
+  onChange: (value: string[]) => void;
+  labelMap?: Record<string, string>;
+  selectAllLabel?: string;
+}> = ({ label, value, options, onChange, labelMap, selectAllLabel }) => {
+  const allSelected = options.length > 0 && value.length === options.length;
+  const someSelected = value.length > 0 && value.length < options.length;
+
+  const handleChange = (raw: string | string[]) => {
+    const next = typeof raw === 'string' ? raw.split(',') : raw;
+    if (next.includes(TOGGLE_ALL)) {
+      onChange(allSelected || someSelected ? [] : [...options]);
+    } else {
+      onChange(next);
+    }
+  };
+
+  return (
+    <FormControl size="small" sx={FILTER_SX}>
+      <Select
+        multiple
+        displayEmpty
+        value={value}
+        onChange={(e) => handleChange(e.target.value as string[])}
+        renderValue={(selected) => (
+          <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
+            {label}{selected.length > 0 && selected.length < options.length && ` (${selected.length})`}
+          </Typography>
+        )}
+        MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+        sx={{ minHeight: 32 }}
+      >
+        <MenuItem value={TOGGLE_ALL} dense sx={{ px: 0.5, py: 0 }}>
+          <Checkbox size="small" checked={allSelected} indeterminate={someSelected} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+          <ListItemText primary={selectAllLabel ?? label} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+        </MenuItem>
+        <Divider sx={{ my: 0.25 }} />
+        {options.map((opt) => (
+          <MenuItem key={opt} value={opt} dense sx={{ px: 0.5, py: 0 }}>
+            <Checkbox size="small" checked={value.includes(opt)} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+            <ListItemText primary={labelMap?.[opt] ?? opt} primaryTypographyProps={{ fontSize: '0.75rem' }} />
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+};
+
 const DetectionRuleTab: React.FC = () => {
   const { t } = useTranslation();
   const { settings } = useSettingsStore();
@@ -27,6 +87,27 @@ const DetectionRuleTab: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Filters (복수선택)
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
+  const [filterLogType, setFilterLogType] = useState<string[]>([]);
+  const [filterSeverity, setFilterSeverity] = useState<string[]>([]);
+  const [filterSource, setFilterSource] = useState<string[]>([]);
+
+  const categoryOptions = useMemo(() => LOG_TYPE_GROUPS.map(g => g.group), []);
+  const logTypeOptions = useMemo(() => {
+    if (filterCategory.length === 0) return ALL_LOG_TYPES.map(lt => lt.value);
+    return LOG_TYPE_GROUPS
+      .filter(g => filterCategory.includes(g.group))
+      .flatMap(g => g.items.map(i => i.value));
+  }, [filterCategory]);
+  const logTypeLabelMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const lt of ALL_LOG_TYPES) map[lt.value] = lt.label;
+    return map;
+  }, []);
+  const severityOptions = useMemo(() => ['critical', 'high', 'medium', 'low', 'info'], []);
+  const sourceOptions = useMemo(() => ['sigma', 'custom'], []);
 
   // Detection rules state (Sigma + Custom)
   const [rules, setRules] = useState<SigmaRuleListItem[]>([]);
@@ -60,6 +141,12 @@ const DetectionRuleTab: React.FC = () => {
       try {
         const params: Record<string, unknown> = { skip: rulePage * rulePageSize, limit: rulePageSize };
         if (searchQuery) params.search = searchQuery;
+        if (filterLogType.length) {
+          const kws = filterLogType.flatMap(v => ALL_LOG_TYPES.find(lt => lt.value === v)?.keywords ?? []);
+          if (kws.length) params.log_type_keywords = kws.join(',');
+        }
+        if (filterSeverity.length) params.severity = filterSeverity.join(',');
+        if (filterSource.length) params.rule_type = filterSource.join(',');
         const data = await detectionRuleService.list(params);
         if (!cancelled) {
           setRules(data.items);
@@ -73,7 +160,7 @@ const DetectionRuleTab: React.FC = () => {
     };
     fetchRules();
     return () => { cancelled = true; };
-  }, [rulePage, rulePageSize, searchQuery, refreshKey]);
+  }, [rulePage, rulePageSize, searchQuery, refreshKey, filterLogType, filterSeverity, filterSource]);
 
   useEffect(() => {
     let cancelled = false;
@@ -287,52 +374,52 @@ const DetectionRuleTab: React.FC = () => {
   }, []);
 
   const renderDetailPanel = () => {
-    // Tab 0: Detection Rules
+    // Tab 0: Detectors
     if (activeTab === 0) {
-      if (showCustomRuleForm) {
+      if (showDetectorForm) {
         return (
-          <CustomRuleForm
-            initialData={editingRule ?? undefined}
-            isEditing={!!editingRule}
-            onSave={editingRule ? handleUpdateCustomRule : handleCreateCustomRule}
-            onCancel={() => { setShowCustomRuleForm(false); setEditingRule(null); }}
+          <DetectorForm
+            initialData={editingDetector ?? (checkedRuleIds.size > 0 ? { linked_rule_ids: Array.from(checkedRuleIds) } : undefined)}
+            isEditing={!!editingDetector}
+            onSave={editingDetector ? handleUpdateDetector : handleCreateDetector}
+            onCancel={() => { setShowDetectorForm(false); setEditingDetector(null); }}
+            rules={rules}
             t={t}
           />
         );
       }
       return (
-        <DetectionRuleDetail
-          rule={selectedRule}
-          t={t}
+        <DetectionPolicyDetail
+          detector={selectedDetector}
+          findings={detectorFindings}
           loading={detailLoading}
-          onEdit={selectedRule?.type === 'custom' ? handleEditCustomRule : undefined}
-          onDelete={selectedRule ? handleDeleteRule : undefined}
-          onClone={selectedRule?.type === 'sigma' ? handleCloneSigmaRule : undefined}
+          onEdit={handleEditDetector}
+          onDelete={handleDeleteDetector}
+          t={t}
         />
       );
     }
 
-    // Tab 1: Detectors
-    if (showDetectorForm) {
+    // Tab 1: Detection Rules
+    if (showCustomRuleForm) {
       return (
-        <DetectorForm
-          initialData={editingDetector ?? (checkedRuleIds.size > 0 ? { linked_rule_ids: Array.from(checkedRuleIds) } : undefined)}
-          isEditing={!!editingDetector}
-          onSave={editingDetector ? handleUpdateDetector : handleCreateDetector}
-          onCancel={() => { setShowDetectorForm(false); setEditingDetector(null); }}
-          rules={rules}
+        <CustomRuleForm
+          initialData={editingRule ?? undefined}
+          isEditing={!!editingRule}
+          onSave={editingRule ? handleUpdateCustomRule : handleCreateCustomRule}
+          onCancel={() => { setShowCustomRuleForm(false); setEditingRule(null); }}
           t={t}
         />
       );
     }
     return (
-      <DetectionPolicyDetail
-        detector={selectedDetector}
-        findings={detectorFindings}
-        loading={detailLoading}
-        onEdit={handleEditDetector}
-        onDelete={handleDeleteDetector}
+      <DetectionRuleDetail
+        rule={selectedRule}
         t={t}
+        loading={detailLoading}
+        onEdit={selectedRule?.type === 'custom' ? handleEditCustomRule : undefined}
+        onDelete={selectedRule ? handleDeleteRule : undefined}
+        onClone={selectedRule?.type === 'sigma' ? handleCloneSigmaRule : undefined}
       />
     );
   };
@@ -343,12 +430,31 @@ const DetectionRuleTab: React.FC = () => {
     setDetectorPage(0);
   }, []);
 
+  const handleFilterChange = useCallback((key: 'logType' | 'category' | 'severity' | 'source', value: string[]) => {
+    setRulePage(0);
+    if (key === 'category') {
+      setFilterCategory(value);
+      if (value.length > 0) {
+        const validLogTypes = LOG_TYPE_GROUPS
+          .filter(g => value.includes(g.group))
+          .flatMap(g => g.items.map(i => i.value));
+        setFilterLogType(prev => prev.filter(v => validLogTypes.includes(v)));
+      }
+    } else if (key === 'logType') {
+      setFilterLogType(value);
+    } else if (key === 'severity') {
+      setFilterSeverity(value);
+    } else if (key === 'source') {
+      setFilterSource(value);
+    }
+  }, []);
+
   const handleRefresh = useCallback(() => {
     setRefreshKey(k => k + 1);
   }, []);
 
   const handleCreateDetectorWithCheckedRules = useCallback(() => {
-    setActiveTab(1);
+    setActiveTab(0);
     setEditingDetector(null);
     setShowDetectorForm(true);
   }, []);
@@ -366,7 +472,11 @@ const DetectionRuleTab: React.FC = () => {
   return (
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5, flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mb: 0.75, flexShrink: 0, flexWrap: 'wrap' }}>
+        <FilterSelect label={t('filterCategory')} value={filterCategory} options={categoryOptions} onChange={(v) => handleFilterChange('category', v)} selectAllLabel={t('filterSelectAll')} />
+        <FilterSelect label={t('filterLogType')} value={filterLogType} options={logTypeOptions} onChange={(v) => handleFilterChange('logType', v)} labelMap={logTypeLabelMap} selectAllLabel={t('filterSelectAll')} />
+        <FilterSelect label={t('filterSeverity')} value={filterSeverity} options={severityOptions} onChange={(v) => handleFilterChange('severity', v)} labelMap={{ critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', info: 'Info' }} selectAllLabel={t('filterSelectAll')} />
+        <FilterSelect label={t('filterSource')} value={filterSource} options={sourceOptions} onChange={(v) => handleFilterChange('source', v)} labelMap={{ sigma: 'Standard', custom: 'Custom' }} selectAllLabel={t('filterSelectAll')} />
         <ControlSearchBar
           t={t}
           placeholder={t('drSearchPlaceholder')}
