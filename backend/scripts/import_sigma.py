@@ -30,12 +30,25 @@ from app.services.sigma_rule import SigmaRuleService
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-DEFAULT_SIGMA_PATH = os.path.join(os.path.dirname(__file__), "..", "resources", "sigma")
+DEFAULT_SIGMA_PATH = os.path.join(os.path.dirname(__file__), "..", "resources")
 MAX_FILE_SIZE = 1 * 1024 * 1024  # 1MB
 
 RULES_INDEX = "cs_detection_rules"
 HISTORY_INDEX = "cs_detection_rule_history"
 JOBS_INDEX = "cs_rule_import_jobs"
+
+
+INDEX_MAPPINGS = {
+    RULES_INDEX: {
+        "mappings": {
+            "properties": {
+                "detection_config": {"type": "object", "enabled": False},
+            }
+        }
+    },
+    HISTORY_INDEX: {},
+    JOBS_INDEX: {},
+}
 
 
 def preflight_check(client) -> bool:
@@ -46,11 +59,12 @@ def preflight_check(client) -> bool:
         logger.error(f"OpenSearch 연결 실패: {e}")
         return False
 
-    for idx in [RULES_INDEX, HISTORY_INDEX, JOBS_INDEX]:
+    for idx, body in INDEX_MAPPINGS.items():
         if not client.indices.exists(index=idx):
             logger.warning(f"인덱스 '{idx}' 없음 — 자동 생성합니다")
             try:
-                client.indices.create(index=idx)
+                client.indices.create(index=idx, body=body if body else None)
+                logger.info(f"인덱스 '{idx}' 생성 완료")
             except Exception as e:
                 logger.error(f"인덱스 '{idx}' 생성 실패: {e}")
                 return False

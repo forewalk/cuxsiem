@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { DetectionRuleDetail } from '../components/DetectionRuleDetail';
 import { DetectionRuleList } from '../components/DetectionRuleList';
 import { DetectionPolicyDetail } from '../components/DetectionPolicyDetail';
@@ -30,10 +31,14 @@ import type {
 
 const DetectionRuleTab: React.FC = () => {
   const { t } = useTranslation();
+  const { settings } = useSettingsStore();
   const [activeTab, setActiveTab] = useState(0);
 
   // Detection rules state (Sigma + Custom)
   const [rules, setRules] = useState<SigmaRuleListItem[]>([]);
+  const [rulePage, setRulePage] = useState(0);
+  const [ruleTotal, setRuleTotal] = useState(0);
+  const rulePageSize = settings?.pagination_size ?? 20;
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
   const [selectedRule, setSelectedRule] = useState<SigmaRuleDetailType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +51,8 @@ const DetectionRuleTab: React.FC = () => {
 
   // Detector state
   const [detectors, setDetectors] = useState<Detector[]>([]);
+  const [detectorPage, setDetectorPage] = useState(0);
+  const [detectorTotal, setDetectorTotal] = useState(0);
   const [selectedDetectorId, setSelectedDetectorId] = useState<string | null>(null);
   const [selectedDetector, setSelectedDetector] = useState<Detector | null>(null);
   const [detectorFindings, setDetectorFindings] = useState<Finding[]>([]);
@@ -57,8 +64,11 @@ const DetectionRuleTab: React.FC = () => {
     const fetchRules = async () => {
       setLoading(true);
       try {
-        const data = await detectionRuleService.list({ limit: 200 });
-        if (!cancelled) setRules(data.items);
+        const data = await detectionRuleService.list({ skip: rulePage * rulePageSize, limit: rulePageSize });
+        if (!cancelled) {
+          setRules(data.items);
+          setRuleTotal(data.total);
+        }
       } catch {
         if (!cancelled) setRules([]);
       } finally {
@@ -67,21 +77,24 @@ const DetectionRuleTab: React.FC = () => {
     };
     fetchRules();
     return () => { cancelled = true; };
-  }, []);
+  }, [rulePage, rulePageSize]);
 
   useEffect(() => {
     let cancelled = false;
     const fetchDetectors = async () => {
       try {
-        const data = await detectorService.list({ limit: 200 });
-        if (!cancelled) setDetectors(data.items);
+        const data = await detectorService.list({ skip: detectorPage * rulePageSize, limit: rulePageSize });
+        if (!cancelled) {
+          setDetectors(data.items);
+          setDetectorTotal(data.total);
+        }
       } catch {
         if (!cancelled) setDetectors([]);
       }
     };
     fetchDetectors();
     return () => { cancelled = true; };
-  }, []);
+  }, [detectorPage, rulePageSize]);
 
   useEffect(() => {
     if (!selectedRuleId) { setSelectedRule(null); return; }
@@ -248,7 +261,7 @@ const DetectionRuleTab: React.FC = () => {
     }
   }, [selectedDetector]);
 
-  const [listWidth, setListWidth] = useState(320);
+  const [listWidth, setListWidth] = useState(600);
   const isResizing = React.useRef(false);
 
   const handleMouseDown = useCallback(() => {
@@ -402,6 +415,13 @@ const DetectionRuleTab: React.FC = () => {
           t={t}
           activeTab={activeTab}
           onTabChange={handleTabChange}
+          rulePage={rulePage}
+          ruleTotal={ruleTotal}
+          detectorPage={detectorPage}
+          detectorTotal={detectorTotal}
+          pageSize={rulePageSize}
+          onRulePageChange={setRulePage}
+          onDetectorPageChange={setDetectorPage}
         />
 
         <Box

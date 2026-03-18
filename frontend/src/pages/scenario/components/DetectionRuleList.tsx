@@ -1,7 +1,14 @@
+import { SeverityChip } from '@/components/shared/SeverityChip';
+import type { Detector, SigmaRuleListItem } from '@/types';
+import {
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Checkbox,
   Chip,
+  IconButton,
   LinearProgress,
   List,
   ListItemButton,
@@ -13,8 +20,6 @@ import {
   Typography,
 } from '@mui/material';
 import React from 'react';
-import { SeverityChip } from '@/components/shared/SeverityChip';
-import type { SigmaRuleListItem, Detector } from '@/types';
 
 interface DetectionRuleListProps {
   rules: SigmaRuleListItem[];
@@ -31,6 +36,13 @@ interface DetectionRuleListProps {
   width?: number;
   activeTab: number;
   onTabChange: (tab: number) => void;
+  rulePage: number;
+  ruleTotal: number;
+  detectorPage: number;
+  detectorTotal: number;
+  pageSize: number;
+  onRulePageChange: (page: number) => void;
+  onDetectorPageChange: (page: number) => void;
 }
 
 const extractFirstTechnique = (ids: string[]): string | null => ids.length > 0 ? ids[0] : null;
@@ -43,6 +55,36 @@ const platformLabel = (product: string | null): string => {
   if (lower.includes('network')) return 'Network';
   if (lower.includes('macos') || lower.includes('mac')) return 'macOS';
   return product.charAt(0).toUpperCase() + product.slice(1);
+};
+
+const PaginationBar: React.FC<{
+  page: number;
+  total: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}> = ({ page, total, pageSize, onPageChange }) => {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const from = total === 0 ? 0 : page * pageSize + 1;
+  const to = Math.min((page + 1) * pageSize, total);
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 0.5, borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
+      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>
+        {from}–{to} / {total}
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+        <IconButton size="small" disabled={page === 0} onClick={() => onPageChange(page - 1)} sx={{ p: 0.25 }}>
+          <ChevronLeftIcon sx={{ fontSize: 16 }} />
+        </IconButton>
+        <Typography variant="caption" sx={{ fontSize: '0.65rem', mx: 0.5 }}>
+          {page + 1}/{totalPages}
+        </Typography>
+        <IconButton size="small" disabled={page >= totalPages - 1} onClick={() => onPageChange(page + 1)} sx={{ p: 0.25 }}>
+          <ChevronRightIcon sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Box>
+    </Box>
+  );
 };
 
 export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
@@ -60,6 +102,13 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   width = 320,
   activeTab,
   onTabChange,
+  rulePage,
+  ruleTotal,
+  detectorPage,
+  detectorTotal,
+  pageSize,
+  onRulePageChange,
+  onDetectorPageChange,
 }) => {
 
   return (
@@ -90,11 +139,11 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
           '& .MuiTab-root': { minHeight: 36, py: 0.75, fontSize: '0.72rem', fontWeight: 'bold', textTransform: 'none' },
         }}
       >
-        <Tab label={`${t('drTabRule')} (${rules.length})`} />
-        <Tab label={`${t('drTabDetector')} (${detectors.length})`} />
+        <Tab label={`${t('drTabRule')} (${ruleTotal})`} />
+        <Tab label={`${t('drTabDetector')} (${detectorTotal})`} />
       </Tabs>
 
-      {activeTab === 0 && (
+      {activeTab === 0 && (<>
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {rules.length > 0 ? rules.map((rule) => {
             const technique = extractFirstTechnique(rule.mitre_technique_ids);
@@ -141,7 +190,7 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                 {/* Row 2: tags */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3.5 }}>
                   <Chip
-                    label={rule.type === 'custom' ? 'Custom' : 'Sigma'}
+                    label={rule.type === 'custom' ? 'Custom' : 'Standard'}
                     size="small"
                     color={rule.type === 'custom' ? 'secondary' : 'default'}
                     variant="outlined"
@@ -166,9 +215,10 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
             </Box>
           )}
         </List>
-      )}
+        <PaginationBar page={rulePage} total={ruleTotal} pageSize={pageSize} onPageChange={onRulePageChange} />
+      </>)}
 
-      {activeTab === 1 && (
+      {activeTab === 1 && (<>
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {detectors.length > 0 ? detectors.map((detector) => (
             <ListItemButton
@@ -208,7 +258,8 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
             </Box>
           )}
         </List>
-      )}
+        <PaginationBar page={detectorPage} total={detectorTotal} pageSize={pageSize} onPageChange={onDetectorPageChange} />
+      </>)}
     </Paper>
   );
 };

@@ -1,21 +1,34 @@
 import {
   Box,
   Button,
+  Checkbox,
   Chip,
-  FormControlLabel,
-  Grid,
-  IconButton,
+  ListItemText,
+  ListSubheader,
   MenuItem,
   Paper,
+  Select,
   Stack,
   Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Typography,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import React, { useCallback, useState } from 'react';
-import { SeverityChip, capitalize } from '@/components/shared/SeverityChip';
-import type { DetectorCreate, SigmaRuleListItem, FieldMapping } from '@/types';
+import { Search as SearchIcon } from '@mui/icons-material';
+import React, { useCallback, useMemo, useState } from 'react';
+import { SeverityChip } from '@/components/shared/SeverityChip';
+import {
+  LOG_TYPE_GROUPS,
+  ALL_LOG_TYPES,
+  matchLogTypes,
+  getLogTypeLabel,
+} from '../constants/logTypes';
+import type { DetectorCreate, SigmaRuleListItem } from '@/types';
 
 const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Box sx={{
@@ -32,14 +45,16 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </Box>
 );
 
-const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
-const DETECTOR_TYPES = ['windows', 'linux', 'network', 'application', 'cloud', 'custom'];
-
 const inputSx = { fontSize: '0.75rem' } as const;
 const labelSx = { fontSize: '0.75rem' } as const;
+const cellSx = { fontSize: '0.72rem', py: 0.75, px: 1 } as const;
+const headCellSx = { ...cellSx, fontWeight: 'bold', color: 'text.secondary', borderBottom: 2, borderColor: 'divider' } as const;
+
+const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
+const SOURCE_OPTIONS = ['all', 'standard', 'custom'] as const;
 
 interface DetectorFormProps {
-  initialData?: Partial<DetectorCreate> & { id?: string; field_mappings?: FieldMapping[]; linked_rule_ids?: string[] };
+  initialData?: Partial<DetectorCreate> & { id?: string; linked_rule_ids?: string[] };
   isEditing?: boolean;
   onSave: (data: DetectorCreate) => void;
   onCancel: () => void;
@@ -57,190 +72,275 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
 }) => {
   const [name, setName] = useState(initialData?.name ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
-  const [detectorType, setDetectorType] = useState(initialData?.detector_type ?? 'windows');
-  const [targetIndices, setTargetIndices] = useState((initialData?.target_indices ?? ['logs-*']).join(', '));
-  const [severity, setSeverity] = useState(initialData?.severity ?? 'medium');
   const [intervalMin, setIntervalMin] = useState(initialData?.schedule_interval_min ?? 5);
-  const [triggerCondition, setTriggerCondition] = useState(initialData?.trigger_condition ?? 'total > 0');
-  const [messageTemplate, setMessageTemplate] = useState(initialData?.message_template ?? '[{{severity}}] {{name}}: {{total}}건 탐지');
-  const [isActive, setIsActive] = useState(initialData?.is_active ?? true);
-  const [linkedRuleIds, setLinkedRuleIds] = useState<string[]>(initialData?.linked_rule_ids ?? []);
-  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>(initialData?.field_mappings ?? []);
+  const [selectedLogTypes, setSelectedLogTypes] = useState<string[]>([]);
+  const [linkedRuleIds, setLinkedRuleIds] = useState<Set<string>>(
+    new Set(initialData?.linked_rule_ids ?? [])
+  );
 
-  const handleAddMapping = useCallback(() => {
-    setFieldMappings(prev => [...prev, { rule_field: '', log_field: '' }]);
-  }, []);
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterSeverity, setFilterSeverity] = useState('all');
+  const [filterSource, setFilterSource] = useState<'all' | 'standard' | 'custom'>('all');
 
-  const handleRemoveMapping = useCallback((index: number) => {
-    setFieldMappings(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  // Precompute rule → log type mapping
+  const ruleLogTypeMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const rule of rules) {
+      map.set(rule.id, matchLogTypes(rule.log_source_product, rule.log_source_category, null));
+    }
+    return map;
+  }, [rules]);
 
-  const handleMappingChange = useCallback((index: number, field: 'rule_field' | 'log_field', value: string) => {
-    setFieldMappings(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
-  }, []);
+  // Filtered rules
+  const filteredRules = useMemo(() => {
+    return rules.filter(rule => {
+      if (selectedLogTypes.length > 0) {
+        const ruleTypes = ruleLogTypeMap.get(rule.id) ?? [];
+        if (!selectedLogTypes.some(lt => ruleTypes.includes(lt))) return false;
+      }
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!rule.name.toLowerCase().includes(q) && !(rule.description ?? '').toLowerCase().includes(q)) return false;
+      }
+      if (filterSeverity !== 'all' && rule.level_normalized !== filterSeverity) return false;
+      if (filterSource === 'standard' && rule.type !== 'sigma') return false;
+      if (filterSource === 'custom' && rule.type !== 'custom') return false;
+      return true;
+    });
+  }, [rules, selectedLogTypes, searchQuery, filterSeverity, filterSource, ruleLogTypeMap]);
 
   const handleToggleRule = useCallback((ruleId: string) => {
-    setLinkedRuleIds(prev =>
-      prev.includes(ruleId) ? prev.filter(id => id !== ruleId) : [...prev, ruleId]
-    );
+    setLinkedRuleIds(prev => {
+      const next = new Set(prev);
+      if (next.has(ruleId)) next.delete(ruleId); else next.add(ruleId);
+      return next;
+    });
   }, []);
 
   const handleSubmit = () => {
+    const linked = Array.from(linkedRuleIds);
+    const linkedRules = rules.filter(r => linkedRuleIds.has(r.id));
+    const severityOrder = ['critical', 'high', 'medium', 'low', 'info'];
+    const highestSeverity = linkedRules.reduce((best, r) => {
+      const idx = severityOrder.indexOf(r.level_normalized);
+      return idx < severityOrder.indexOf(best) && idx >= 0 ? r.level_normalized : best;
+    }, 'medium');
+
     const data: DetectorCreate = {
       name,
       description: description || undefined,
-      detector_type: detectorType,
-      target_indices: targetIndices.split(',').map(s => s.trim()).filter(Boolean),
-      linked_rule_ids: linkedRuleIds,
-      field_mappings: fieldMappings.filter(m => m.rule_field && m.log_field),
+      detector_type: selectedLogTypes.length === 1
+        ? (ALL_LOG_TYPES.find(lt => lt.value === selectedLogTypes[0])?.label ?? selectedLogTypes[0])
+        : selectedLogTypes.length > 1 ? 'multi' : 'custom',
+      target_indices: ['logs-*'],
+      linked_rule_ids: linked,
       schedule_interval_min: intervalMin,
-      trigger_condition: triggerCondition || undefined,
-      message_template: messageTemplate || undefined,
-      severity,
-      is_active: isActive,
+      severity: highestSeverity,
+      is_active: true,
     };
     onSave(data);
   };
 
+  const getRuleLogTypeLabel = (rule: SigmaRuleListItem): string => {
+    const types = ruleLogTypeMap.get(rule.id) ?? [];
+    if (types.length === 0) return rule.log_source_product || rule.log_source_category || '-';
+    return getLogTypeLabel(types[0]);
+  };
+
   return (
     <Paper elevation={1} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRadius: 1.5, overflow: 'hidden' }}>
+      {/* Header */}
       <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
-          {isEditing ? t('dpEdit') : t('dpCreate')}
-        </Typography>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
+            {isEditing ? t('dpEdit') : t('dpCreate')}
+          </Typography>
+          {linkedRuleIds.size > 0 && (
+            <Chip label={`${linkedRuleIds.size} ${t('dpRulesSelected')}`} size="small" color="primary" variant="outlined"
+              sx={{ fontSize: '0.6rem', height: 20 }} />
+          )}
+        </Stack>
         <Stack direction="row" spacing={1}>
           <Button variant="outlined" size="small" onClick={onCancel}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}>
             {t('dpCancel')}
           </Button>
-          <Button variant="contained" color="primary" size="small" onClick={handleSubmit} disabled={!name}
+          <Button variant="contained" color="primary" size="small" onClick={handleSubmit}
+            disabled={!name || linkedRuleIds.size === 0}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}>
             {t('dpSave')}
           </Button>
         </Stack>
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
-        <Grid container spacing={3}>
-          {/* 1. 기본 정보 */}
-          <Grid size={12}>
-            <SectionHeader>{t('dpSectionBasic')}</SectionHeader>
-            <Stack spacing={2}>
-              <TextField fullWidth size="small" label={t('dpDetectorName')} value={name}
-                onChange={e => setName(e.target.value)} required
-                InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
-              <TextField fullWidth size="small" label={t('dpDescription')} value={description}
-                onChange={e => setDescription(e.target.value)} multiline rows={2}
-                InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
-              <Stack direction="row" spacing={2}>
-                <TextField fullWidth size="small" select label={t('dpDetectorType')} value={detectorType}
-                  onChange={e => setDetectorType(e.target.value)}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}>
-                  {DETECTOR_TYPES.map(dt => (
-                    <MenuItem key={dt} value={dt} sx={{ fontSize: '0.75rem' }}>{capitalize(dt)}</MenuItem>
-                  ))}
-                </TextField>
-                <TextField fullWidth size="small" select label={t('dpSeverity')} value={severity}
-                  onChange={e => setSeverity(e.target.value)}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
-                  SelectProps={{ renderValue: (v) => <SeverityChip severity={v as string} /> }}>
-                  {SEVERITIES.map(s => (
-                    <MenuItem key={s} value={s} sx={{ fontSize: '0.75rem' }}>
-                      <SeverityChip severity={s} />
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField fullWidth size="small" type="number" label={t('dpInterval')} value={intervalMin}
-                  onChange={e => setIntervalMin(Math.max(1, Number(e.target.value)))}
-                  slotProps={{ htmlInput: { min: 1, max: 1440 } }}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
-              </Stack>
-              <TextField fullWidth size="small" label={t('dpTargetIndices')} value={targetIndices}
-                onChange={e => setTargetIndices(e.target.value)}
-                helperText={t('dpTargetIndicesHelper')}
-                inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.75rem' } }}
-                InputLabelProps={{ sx: labelSx }}
-                FormHelperTextProps={{ sx: { fontSize: '0.65rem' } }} />
-              <Stack direction="row" spacing={2}>
-                <TextField fullWidth size="small" label={t('dpTriggerCondition')} value={triggerCondition}
-                  onChange={e => setTriggerCondition(e.target.value)} placeholder="total > 0"
-                  inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.75rem' } }}
-                  InputLabelProps={{ sx: labelSx }} />
-                <TextField fullWidth size="small" label={t('dpMessageTemplate')} value={messageTemplate}
-                  onChange={e => setMessageTemplate(e.target.value)}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
-              </Stack>
-              <FormControlLabel
-                control={<Switch checked={isActive} onChange={e => setIsActive(e.target.checked)} size="small" />}
-                label={<Typography variant="caption" sx={{ fontSize: '0.75rem' }}>{isActive ? t('dpActive') : t('dpInactive')}</Typography>}
-              />
-            </Stack>
-          </Grid>
+      {/* Form body */}
+      <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2 }}>
 
-          {/* 2. 연결된 규칙 및 필드 매핑 */}
-          <Grid size={12}>
-            <SectionHeader>{t('dpSectionRules')}</SectionHeader>
-            <Typography variant="caption" sx={{ mb: 1, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>
-              {t('dpLinkedRules')}
-            </Typography>
-            <Box sx={{ maxHeight: 200, overflowY: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 2 }}>
-              {rules.map(rule => (
-                <Box
-                  key={rule.id}
-                  onClick={() => handleToggleRule(rule.id)}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: 1,
-                    px: 1.5, py: 0.75,
-                    cursor: 'pointer',
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: linkedRuleIds.includes(rule.id) ? 'action.selected' : 'transparent',
-                    '&:hover': { bgcolor: 'action.hover' },
-                    '&:last-child': { borderBottom: 0 },
-                  }}
-                >
-                  <Chip
-                    label={linkedRuleIds.includes(rule.id) ? '✓' : ''}
-                    size="small"
-                    color={linkedRuleIds.includes(rule.id) ? 'primary' : 'default'}
-                    variant={linkedRuleIds.includes(rule.id) ? 'filled' : 'outlined'}
-                    sx={{ width: 22, height: 22, fontSize: '0.6rem' }}
-                  />
-                  <Typography variant="caption" sx={{ fontSize: '0.72rem', flex: 1 }} noWrap>{rule.name}</Typography>
-                  <Chip label={rule.type === 'custom' ? 'Custom' : 'Sigma'} size="small" variant="outlined"
-                    sx={{ fontSize: '0.55rem', height: 18 }} />
+        {/* Section 1: Basic Info */}
+        <SectionHeader>{t('dpSectionBasic')}</SectionHeader>
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={2}>
+            <TextField fullWidth size="small" label={t('dpDetectorName')} value={name}
+              onChange={e => setName(e.target.value)} required
+              InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+            <TextField size="small" type="number" label={t('dpInterval')} value={intervalMin}
+              onChange={e => setIntervalMin(Math.max(1, Number(e.target.value)))}
+              slotProps={{ htmlInput: { min: 1, max: 1440 } }}
+              InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
+              sx={{ minWidth: 140 }} />
+          </Stack>
+          <TextField fullWidth size="small" label={t('dpDescription')} value={description}
+            onChange={e => setDescription(e.target.value)} multiline rows={2}
+            InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+        </Stack>
+
+        {/* Section 2: Log Type */}
+        <SectionHeader>{t('dpSectionLogType')}</SectionHeader>
+        <Select
+          multiple
+          size="small"
+          value={selectedLogTypes}
+          onChange={e => {
+            const val = e.target.value;
+            setSelectedLogTypes(typeof val === 'string' ? val.split(',') : val);
+          }}
+          displayEmpty
+          renderValue={(selected) =>
+            selected.length === 0
+              ? <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>{t('dpSelectLogType')}</Typography>
+              : <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selected.map(v => (
+                    <Chip key={v} label={getLogTypeLabel(v)} size="small"
+                      sx={{ height: 20, fontSize: '0.6rem' }}
+                      onDelete={() => setSelectedLogTypes(prev => prev.filter(p => p !== v))}
+                      onMouseDown={e => e.stopPropagation()} />
+                  ))}
                 </Box>
-              ))}
-              {rules.length === 0 && (
-                <Typography variant="caption" color="text.disabled" sx={{ p: 2, display: 'block', textAlign: 'center', fontSize: '0.75rem' }}>
-                  {t('drRuleEmpty')}
-                </Typography>
-              )}
-            </Box>
+          }
+          sx={{ width: '100%', fontSize: '0.75rem', '& .MuiSelect-select': { minHeight: 32 } }}
+          MenuProps={{ PaperProps: { sx: { maxHeight: 400 } } }}
+        >
+          {LOG_TYPE_GROUPS.flatMap(group => [
+            <ListSubheader key={`header-${group.group}`} sx={{ fontSize: '0.68rem', fontWeight: 'bold', lineHeight: '28px', bgcolor: 'action.hover', color: 'text.secondary' }}>
+              {group.group}
+            </ListSubheader>,
+            ...group.items.map(item => (
+              <MenuItem key={item.value} value={item.value} sx={{ fontSize: '0.75rem', py: 0.5, pl: 3 }}>
+                <Checkbox size="small" checked={selectedLogTypes.includes(item.value)}
+                  sx={{ p: 0, mr: 1, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+                <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.75rem' }} />
+              </MenuItem>
+            )),
+          ])}
+        </Select>
 
-            <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>
-              {t('dpFieldMappings')}
-            </Typography>
-            {fieldMappings.map((mapping, idx) => (
-              <Stack key={idx} direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
-                <TextField size="small" label="Rule Field" value={mapping.rule_field}
-                  onChange={e => handleMappingChange(idx, 'rule_field', e.target.value)} sx={{ flex: 1 }}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
-                <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>→</Typography>
-                <TextField size="small" label="Log Field" value={mapping.log_field}
-                  onChange={e => handleMappingChange(idx, 'log_field', e.target.value)} sx={{ flex: 1 }}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
-                <IconButton size="small" onClick={() => handleRemoveMapping(idx)} color="error">
-                  <DeleteIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Stack>
+        {/* Section 3: Rules selection */}
+        <SectionHeader>{t('dpSectionRules')}</SectionHeader>
+
+        {/* Filters row */}
+        <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} alignItems="center">
+          <TextField
+            size="small"
+            placeholder={t('dpSearchRules')}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.disabled' }} />,
+              sx: { fontSize: '0.75rem' },
+            }}
+            sx={{ flex: 1 }}
+          />
+          <TextField select size="small" value={filterSeverity}
+            onChange={e => setFilterSeverity(e.target.value)}
+            InputProps={{ sx: inputSx }} sx={{ minWidth: 110 }}>
+            <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>{t('dpFilterAll')}</MenuItem>
+            {SEVERITIES.map(s => (
+              <MenuItem key={s} value={s} sx={{ fontSize: '0.75rem' }}>
+                <SeverityChip severity={s} />
+              </MenuItem>
             ))}
-            <Button size="small" startIcon={<AddIcon sx={{ fontSize: 14 }} />} onClick={handleAddMapping}
-              sx={{ fontSize: '0.7rem', textTransform: 'none' }}>
-              {t('dpAddMapping')}
-            </Button>
-          </Grid>
-        </Grid>
+          </TextField>
+          <TextField select size="small" value={filterSource}
+            onChange={e => setFilterSource(e.target.value as typeof filterSource)}
+            InputProps={{ sx: inputSx }} sx={{ minWidth: 110 }}>
+            {SOURCE_OPTIONS.map(s => (
+              <MenuItem key={s} value={s} sx={{ fontSize: '0.75rem' }}>
+                {s === 'all' ? t('dpFilterAll') : s === 'standard' ? 'Standard' : 'Custom'}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+
+        {/* Rules table */}
+        <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, maxHeight: 360 }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell padding="checkbox" sx={headCellSx} />
+                <TableCell sx={headCellSx}>{t('dpColRuleName')}</TableCell>
+                <TableCell sx={{ ...headCellSx, width: 80 }}>{t('dpColSeverity')}</TableCell>
+                <TableCell sx={{ ...headCellSx, width: 110 }}>{t('dpColLogType')}</TableCell>
+                <TableCell sx={{ ...headCellSx, width: 75 }}>Source</TableCell>
+                <TableCell sx={headCellSx}>{t('dpColDescription')}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredRules.length > 0 ? filteredRules.map(rule => (
+                <TableRow
+                  key={rule.id}
+                  hover
+                  onClick={() => handleToggleRule(rule.id)}
+                  sx={{ cursor: 'pointer', '&:last-child td': { borderBottom: 0 } }}
+                >
+                  <TableCell padding="checkbox" sx={cellSx}>
+                    <Switch
+                      size="small"
+                      checked={linkedRuleIds.has(rule.id)}
+                      onClick={e => e.stopPropagation()}
+                      onChange={() => handleToggleRule(rule.id)}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ ...cellSx, fontWeight: 600, maxWidth: 200 }}>
+                    <Typography variant="caption" noWrap sx={{ fontSize: '0.72rem', fontWeight: 600, display: 'block' }}>
+                      {rule.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={cellSx}>
+                    <SeverityChip severity={rule.level_normalized} />
+                  </TableCell>
+                  <TableCell sx={cellSx}>
+                    <Typography variant="caption" noWrap sx={{ fontSize: '0.68rem' }}>
+                      {getRuleLogTypeLabel(rule)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={cellSx}>
+                    <Chip
+                      label={rule.type === 'custom' ? 'Custom' : 'Standard'}
+                      size="small"
+                      variant="outlined"
+                      color={rule.type === 'custom' ? 'secondary' : 'default'}
+                      sx={{ fontSize: '0.55rem', height: 18, fontWeight: 600 }}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ ...cellSx, maxWidth: 180 }}>
+                    <Typography variant="caption" noWrap sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>
+                      {rule.description || '-'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
+                      {selectedLogTypes.length === 0 ? t('dpSelectLogTypeFirst') : t('dpNoMatchingRules')}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
     </Paper>
   );

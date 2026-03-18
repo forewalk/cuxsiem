@@ -21,7 +21,7 @@ service = SigmaRuleService()
 @router.get("", response_model=SigmaRuleListResponse)
 async def list_sigma_rules(
     skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=200),
+    limit: int = Query(20, ge=1, le=500),
     sort_by: str = Query("updated_at", pattern="^(updated_at|created_at|name|level_normalized)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     search: Optional[str] = Query(None, description="이름/설명 텍스트 검색"),
