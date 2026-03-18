@@ -27,6 +27,7 @@ import {
   Typography,
 } from '@mui/material';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ResizablePanel from '@/components/shared/ResizablePanel';
 import { NotificationRuleDetail } from '../components/NotificationRuleDetail';
 import { NotificationRuleList } from '../components/NotificationRuleList';
 import { NotificationRuleReadonly } from '../components/NotificationRuleReadonly';
@@ -114,33 +115,6 @@ const NotificationRuleListTab: React.FC = () => {
     if (settings && settings.pagination_size) setRowsPerPage(settings.pagination_size);
   }, [settings]);
 
-  // 왼쪽 패널 리사이즈
-  const [listWidth, setListWidth] = useState(320);
-  const isResizing = React.useRef(false);
-
-  const handleMouseDown = useCallback(() => {
-    isResizing.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return;
-      const containerLeft = document.getElementById('master-detail-container')?.getBoundingClientRect().left ?? 0;
-      const newWidth = e.clientX - containerLeft;
-      setListWidth(Math.max(200, Math.min(600, newWidth)));
-    };
-
-    const handleMouseUp = () => {
-      isResizing.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, []);
 
   // 마스터-디테일 상태
   const [viewMode, setViewMode] = useState<ViewMode>('empty');
@@ -567,43 +541,32 @@ const NotificationRuleListTab: React.FC = () => {
 
       {/* 마스터-디테일 레이아웃 */}
       <Box id="master-detail-container" sx={{ flex: '1 1 0', display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-        <NotificationRuleList
-          width={listWidth}
-          rules={rules}
-          selectedRuleId={selectedRule?.id ?? null}
-          selectedRuleIds={selectedRuleIds}
-          onSelect={handleSelectRule}
-          onToggleSelect={(ruleId) => {
-            setSelectedRuleIds(prev => {
-              const next = new Set(prev);
-              if (next.has(ruleId)) next.delete(ruleId); else next.add(ruleId);
-              return next;
-            });
-          }}
-          onSelectAll={(checked) => {
-            if (checked) setSelectedRuleIds(new Set(rules.map(r => r.id)));
-            else setSelectedRuleIds(new Set());
-          }}
-          onAdd={handleAddNew}
-          onToggleActive={handleToggleActive}
-          loading={loading}
-          t={t}
-        />
-        {/* 리사이즈 핸들 */}
-        <Box
-          onMouseDown={handleMouseDown}
-          sx={{
-            width: 10,
-            flexShrink: 0,
-            cursor: 'col-resize',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            '&:hover > div, &:active > div': { bgcolor: 'primary.main' },
-          }}
-        >
-          <Box sx={{ width: 2, height: 40, borderRadius: 1, bgcolor: 'divider', transition: 'background-color 0.2s' }} />
-        </Box>
+        <ResizablePanel containerId="master-detail-container" initialWidth={320} minWidth={200} maxWidth={600}>
+          {(width) => (
+            <NotificationRuleList
+              width={width}
+              rules={rules}
+              selectedRuleId={selectedRule?.id ?? null}
+              selectedRuleIds={selectedRuleIds}
+              onSelect={handleSelectRule}
+              onToggleSelect={(ruleId) => {
+                setSelectedRuleIds(prev => {
+                  const next = new Set(prev);
+                  if (next.has(ruleId)) next.delete(ruleId); else next.add(ruleId);
+                  return next;
+                });
+              }}
+              onSelectAll={(checked) => {
+                if (checked) setSelectedRuleIds(new Set(rules.map(r => r.id)));
+                else setSelectedRuleIds(new Set());
+              }}
+              onAdd={handleAddNew}
+              onToggleActive={handleToggleActive}
+              loading={loading}
+              t={t}
+            />
+          )}
+        </ResizablePanel>
         {viewMode === 'readonly' && selectedRule ? (
           <NotificationRuleReadonly
             rule={selectedRule}
