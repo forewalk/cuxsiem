@@ -15,37 +15,46 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { DetectionRuleDetail } from '../components/DetectionRuleDetail';
 import { DetectionRuleList } from '../components/DetectionRuleList';
 import { DetectionPolicyDetail } from '../components/DetectionPolicyDetail';
-import { DetectionPolicyForm } from '../components/DetectionPolicyForm';
-import { sigmaRuleService } from '../../../services/sigmaRuleService';
-import { detectionPolicyService } from '../../../services/detectionPolicyService';
-import type { SigmaRuleListItem, SigmaRuleDetail as SigmaRuleDetailType, DetectionPolicy, DetectionEvent, DetectionPolicyCreate } from '@/types';
+import { DetectorForm } from '../components/DetectorForm';
+import { CustomRuleForm } from '../components/CustomRuleForm';
+import { detectionRuleService } from '../../../services/sigmaRuleService';
+import { detectorService } from '../../../services/detectionPolicyService';
+import type {
+  SigmaRuleListItem,
+  SigmaRuleDetail as SigmaRuleDetailType,
+  Detector,
+  Finding,
+  DetectorCreate,
+  CustomRuleCreate,
+} from '@/types';
 
 const DetectionRuleTab: React.FC = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(0);
 
-  // Sigma rules state
+  // Detection rules state (Sigma + Custom)
   const [rules, setRules] = useState<SigmaRuleListItem[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
   const [selectedRule, setSelectedRule] = useState<SigmaRuleDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [showCustomRuleForm, setShowCustomRuleForm] = useState(false);
+  const [editingRule, setEditingRule] = useState<SigmaRuleDetailType | null>(null);
 
-  // Detection policies state
-  const [policies, setPolicies] = useState<DetectionPolicy[]>([]);
-  const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
-  const [selectedPolicy, setSelectedPolicy] = useState<DetectionPolicy | null>(null);
-  const [policyEvents, setPolicyEvents] = useState<DetectionEvent[]>([]);
-  const [showPolicyForm, setShowPolicyForm] = useState(false);
-  const [editingPolicy, setEditingPolicy] = useState<DetectionPolicy | null>(null);
+  // Detector state
+  const [detectors, setDetectors] = useState<Detector[]>([]);
+  const [selectedDetectorId, setSelectedDetectorId] = useState<string | null>(null);
+  const [selectedDetector, setSelectedDetector] = useState<Detector | null>(null);
+  const [detectorFindings, setDetectorFindings] = useState<Finding[]>([]);
+  const [showDetectorForm, setShowDetectorForm] = useState(false);
+  const [editingDetector, setEditingDetector] = useState<Detector | null>(null);
 
-  // Fetch sigma rules
   useEffect(() => {
     let cancelled = false;
     const fetchRules = async () => {
       setLoading(true);
       try {
-        const data = await sigmaRuleService.list({ limit: 200 });
+        const data = await detectionRuleService.list({ limit: 200 });
         if (!cancelled) setRules(data.items);
       } catch {
         if (!cancelled) setRules([]);
@@ -57,29 +66,27 @@ const DetectionRuleTab: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch policies
   useEffect(() => {
     let cancelled = false;
-    const fetchPolicies = async () => {
+    const fetchDetectors = async () => {
       try {
-        const data = await detectionPolicyService.list({ limit: 200 });
-        if (!cancelled) setPolicies(data.items);
+        const data = await detectorService.list({ limit: 200 });
+        if (!cancelled) setDetectors(data.items);
       } catch {
-        if (!cancelled) setPolicies([]);
+        if (!cancelled) setDetectors([]);
       }
     };
-    fetchPolicies();
+    fetchDetectors();
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch rule detail
   useEffect(() => {
     if (!selectedRuleId) { setSelectedRule(null); return; }
     let cancelled = false;
     const fetchDetail = async () => {
       setDetailLoading(true);
       try {
-        const data = await sigmaRuleService.getById(selectedRuleId);
+        const data = await detectionRuleService.getById(selectedRuleId);
         if (!cancelled) setSelectedRule(data);
       } catch {
         if (!cancelled) setSelectedRule(null);
@@ -91,34 +98,33 @@ const DetectionRuleTab: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedRuleId]);
 
-  // Fetch policy detail + events
   useEffect(() => {
-    if (!selectedPolicyId) { setSelectedPolicy(null); setPolicyEvents([]); return; }
+    if (!selectedDetectorId) { setSelectedDetector(null); setDetectorFindings([]); return; }
     let cancelled = false;
-    const fetchPolicyDetail = async () => {
+    const fetchDetectorDetail = async () => {
       setDetailLoading(true);
       try {
-        const [policyData, eventsData] = await Promise.all([
-          detectionPolicyService.getById(selectedPolicyId),
-          detectionPolicyService.listEvents({ policy_id: selectedPolicyId, limit: 10 }),
+        const [detectorData, findingsData] = await Promise.all([
+          detectorService.getById(selectedDetectorId),
+          detectorService.listFindings({ detector_id: selectedDetectorId, limit: 10 }),
         ]);
         if (!cancelled) {
-          setSelectedPolicy(policyData);
-          setPolicyEvents(eventsData.items);
+          setSelectedDetector(detectorData);
+          setDetectorFindings(findingsData.items);
         }
       } catch {
-        if (!cancelled) { setSelectedPolicy(null); setPolicyEvents([]); }
+        if (!cancelled) { setSelectedDetector(null); setDetectorFindings([]); }
       } finally {
         if (!cancelled) setDetailLoading(false);
       }
     };
-    fetchPolicyDetail();
+    fetchDetectorDetail();
     return () => { cancelled = true; };
-  }, [selectedPolicyId]);
+  }, [selectedDetectorId]);
 
   const handleToggleEnabled = useCallback(async (ruleId: string) => {
     try {
-      const result = await sigmaRuleService.toggle(ruleId);
+      const result = await detectionRuleService.toggle(ruleId);
       setRules((prev) => prev.map((r) => r.id === ruleId ? { ...r, status: result.status } : r));
       if (selectedRule?.id === ruleId) {
         setSelectedRule((prev) => prev ? { ...prev, status: result.status } : prev);
@@ -128,46 +134,87 @@ const DetectionRuleTab: React.FC = () => {
 
   const handleTabChange = useCallback((tab: number) => {
     setActiveTab(tab);
-    setShowPolicyForm(false);
-    setEditingPolicy(null);
+    setShowDetectorForm(false);
+    setShowCustomRuleForm(false);
+    setEditingDetector(null);
+    setEditingRule(null);
   }, []);
 
-  const handleCreatePolicy = useCallback(async (data: DetectionPolicyCreate) => {
+  // Custom Rule handlers
+  const handleCreateCustomRule = useCallback(async (data: CustomRuleCreate) => {
     try {
-      const created = await detectionPolicyService.create(data);
-      setPolicies(prev => [created, ...prev]);
-      setShowPolicyForm(false);
-      setSelectedPolicyId(created.id);
+      const created = await detectionRuleService.create(data);
+      setRules(prev => [{ ...created, type: 'custom' as const } as SigmaRuleListItem, ...prev]);
+      setShowCustomRuleForm(false);
+      setSelectedRuleId(created.id);
     } catch { /* save failed */ }
   }, []);
 
-  const handleUpdatePolicy = useCallback(async (data: DetectionPolicyCreate) => {
-    if (!editingPolicy) return;
+  const handleUpdateCustomRule = useCallback(async (data: CustomRuleCreate) => {
+    if (!editingRule) return;
     try {
-      const updated = await detectionPolicyService.update(editingPolicy.id, data);
-      setPolicies(prev => prev.map(p => p.id === updated.id ? updated : p));
-      setSelectedPolicy(updated);
-      setEditingPolicy(null);
-      setShowPolicyForm(false);
+      const updated = await detectionRuleService.update(editingRule.id, data);
+      setRules(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } as SigmaRuleListItem : r));
+      setSelectedRule(updated);
+      setEditingRule(null);
+      setShowCustomRuleForm(false);
     } catch { /* update failed */ }
-  }, [editingPolicy]);
+  }, [editingRule]);
 
-  const handleDeletePolicy = useCallback(async () => {
-    if (!selectedPolicy || !confirm(t('dpDeleteConfirm'))) return;
-    try {
-      await detectionPolicyService.delete(selectedPolicy.id);
-      setPolicies(prev => prev.filter(p => p.id !== selectedPolicy.id));
-      setSelectedPolicyId(null);
-      setSelectedPolicy(null);
-    } catch { /* delete failed */ }
-  }, [selectedPolicy, t]);
-
-  const handleEditPolicy = useCallback(() => {
-    if (selectedPolicy) {
-      setEditingPolicy(selectedPolicy);
-      setShowPolicyForm(true);
+  const handleEditCustomRule = useCallback(() => {
+    if (selectedRule && selectedRule.type === 'custom') {
+      setEditingRule(selectedRule);
+      setShowCustomRuleForm(true);
     }
-  }, [selectedPolicy]);
+  }, [selectedRule]);
+
+  const handleDeleteCustomRule = useCallback(async () => {
+    if (!selectedRule || selectedRule.type !== 'custom' || !confirm(t('dpDeleteConfirm'))) return;
+    try {
+      await detectionRuleService.delete(selectedRule.id);
+      setRules(prev => prev.filter(r => r.id !== selectedRule.id));
+      setSelectedRuleId(null);
+      setSelectedRule(null);
+    } catch { /* delete failed */ }
+  }, [selectedRule, t]);
+
+  // Detector handlers
+  const handleCreateDetector = useCallback(async (data: DetectorCreate) => {
+    try {
+      const created = await detectorService.create(data);
+      setDetectors(prev => [created, ...prev]);
+      setShowDetectorForm(false);
+      setSelectedDetectorId(created.id);
+    } catch { /* save failed */ }
+  }, []);
+
+  const handleUpdateDetector = useCallback(async (data: DetectorCreate) => {
+    if (!editingDetector) return;
+    try {
+      const updated = await detectorService.update(editingDetector.id, data);
+      setDetectors(prev => prev.map(d => d.id === updated.id ? updated : d));
+      setSelectedDetector(updated);
+      setEditingDetector(null);
+      setShowDetectorForm(false);
+    } catch { /* update failed */ }
+  }, [editingDetector]);
+
+  const handleDeleteDetector = useCallback(async () => {
+    if (!selectedDetector || !confirm(t('dpDeleteConfirm'))) return;
+    try {
+      await detectorService.delete(selectedDetector.id);
+      setDetectors(prev => prev.filter(d => d.id !== selectedDetector.id));
+      setSelectedDetectorId(null);
+      setSelectedDetector(null);
+    } catch { /* delete failed */ }
+  }, [selectedDetector, t]);
+
+  const handleEditDetector = useCallback(() => {
+    if (selectedDetector) {
+      setEditingDetector(selectedDetector);
+      setShowDetectorForm(true);
+    }
+  }, [selectedDetector]);
 
   const [listWidth, setListWidth] = useState(320);
   const isResizing = React.useRef(false);
@@ -197,36 +244,75 @@ const DetectionRuleTab: React.FC = () => {
   }, []);
 
   const renderDetailPanel = () => {
+    // Tab 0: Detection Rules
     if (activeTab === 0) {
-      if (showPolicyForm) {
+      if (showCustomRuleForm) {
         return (
-          <DetectionPolicyForm
-            initialData={editingPolicy ?? undefined}
-            isEditing={!!editingPolicy}
-            onSave={editingPolicy ? handleUpdatePolicy : handleCreatePolicy}
-            onCancel={() => { setShowPolicyForm(false); setEditingPolicy(null); }}
+          <CustomRuleForm
+            initialData={editingRule ?? undefined}
+            isEditing={!!editingRule}
+            onSave={editingRule ? handleUpdateCustomRule : handleCreateCustomRule}
+            onCancel={() => { setShowCustomRuleForm(false); setEditingRule(null); }}
             t={t}
           />
         );
       }
       return (
-        <DetectionPolicyDetail
-          policy={selectedPolicy}
-          events={policyEvents}
+        <DetectionRuleDetail
+          rule={selectedRule}
+          t={t}
           loading={detailLoading}
-          onEdit={handleEditPolicy}
-          onDelete={handleDeletePolicy}
+          onEdit={selectedRule?.type === 'custom' ? handleEditCustomRule : undefined}
+          onDelete={selectedRule?.type === 'custom' ? handleDeleteCustomRule : undefined}
+        />
+      );
+    }
+
+    // Tab 1: Detectors
+    if (showDetectorForm) {
+      return (
+        <DetectorForm
+          initialData={editingDetector ?? undefined}
+          isEditing={!!editingDetector}
+          onSave={editingDetector ? handleUpdateDetector : handleCreateDetector}
+          onCancel={() => { setShowDetectorForm(false); setEditingDetector(null); }}
+          rules={rules}
           t={t}
         />
       );
     }
     return (
-      <DetectionRuleDetail
-        rule={selectedRule}
-        t={t}
+      <DetectionPolicyDetail
+        detector={selectedDetector}
+        findings={detectorFindings}
         loading={detailLoading}
+        onEdit={handleEditDetector}
+        onDelete={handleDeleteDetector}
+        t={t}
       />
     );
+  };
+
+  const showCreateButton = () => {
+    if (activeTab === 0 && !showCustomRuleForm) {
+      return (
+        <Button size="small" variant="contained" startIcon={<AddIcon />}
+          onClick={() => { setShowCustomRuleForm(true); setEditingRule(null); }}
+          sx={{ fontSize: '0.72rem' }}>
+          {t('drCreateCustomRule')}
+        </Button>
+      );
+    }
+    if (activeTab === 1 && !showDetectorForm) {
+      return (
+        <Button size="small" variant="contained" startIcon={<AddIcon />}
+          onClick={() => { setShowDetectorForm(true); setEditingDetector(null); }}
+          sx={{ fontSize: '0.72rem' }}>
+          {t('dpCreate')}
+        </Button>
+      );
+    }
+    return null;
   };
 
   return (
@@ -241,24 +327,26 @@ const DetectionRuleTab: React.FC = () => {
           <Chip label={t('heartbeatBeta')} size="small" variant="outlined" color="warning" icon={<ConstructionIcon />}
             sx={{ fontSize: '0.6rem', height: 22 }} />
         </Stack>
-        {activeTab === 0 && !showPolicyForm && (
-          <Button size="small" variant="contained" startIcon={<AddIcon />}
-            onClick={() => { setShowPolicyForm(true); setEditingPolicy(null); }}
-            sx={{ fontSize: '0.72rem' }}>
-            {t('dpCreate')}
-          </Button>
-        )}
+        {showCreateButton()}
       </Box>
 
       <Box id="detection-master-detail" sx={{ flex: '1 1 0', display: 'flex', minHeight: 0, overflow: 'hidden' }}>
         <DetectionRuleList
           width={listWidth}
           rules={rules}
-          policies={policies}
+          detectors={detectors}
           selectedRuleId={selectedRuleId}
-          selectedPolicyId={selectedPolicyId}
-          onSelect={setSelectedRuleId}
-          onSelectPolicy={setSelectedPolicyId}
+          selectedDetectorId={selectedDetectorId}
+          onSelect={(ruleId: string) => {
+            setSelectedRuleId(ruleId);
+            setShowCustomRuleForm(false);
+            setEditingRule(null);
+          }}
+          onSelectDetector={(detectorId: string) => {
+            setSelectedDetectorId(detectorId);
+            setShowDetectorForm(false);
+            setEditingDetector(null);
+          }}
           onToggleEnabled={handleToggleEnabled}
           loading={loading}
           t={t}

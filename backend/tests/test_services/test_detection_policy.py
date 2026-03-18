@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
 from app.services.detection_policy import DetectionPolicyService, DotDict
-from app.schemas.detection_policy import DetectionPolicyCreate, DetectionPolicyUpdate
+from app.schemas.detection_policy import DetectorCreate, DetectorUpdate
 
 
 class TestDotDict:
@@ -66,107 +66,148 @@ class TestRenderMessage:
         assert DetectionPolicyService._render_message("", {}) == ""
 
 
-class TestPolicyCRUD:
+class TestFieldMappings:
+    def test_apply_field_mappings(self):
+        config = {"query": {"match": {"CommandLine": "powershell"}}}
+        mappings = [{"rule_field": "CommandLine", "log_field": "process.command_line"}]
+        result = DetectionPolicyService._apply_field_mappings(config, mappings)
+        assert "process.command_line" in str(result)
+
+    def test_no_mappings_returns_original(self):
+        config = {"query": {"match_all": {}}}
+        result = DetectionPolicyService._apply_field_mappings(config, [])
+        assert result == config
+
+
+class TestDetectorCRUD:
     @pytest.fixture
-    def mock_repo(self):
-        with patch("app.services.detection_policy.DetectionPolicyRepository") as MockRepo:
-            mock = MockRepo.return_value
-            yield mock
+    def mock_repos(self):
+        with patch("app.services.detection_policy.DetectionPolicyRepository") as MockRepo, \
+             patch("app.services.detection_policy.SigmaRuleRepository") as MockRuleRepo:
+            mock_repo = MockRepo.return_value
+            mock_rule_repo = MockRuleRepo.return_value
+            yield mock_repo, mock_rule_repo
 
     @pytest.fixture
-    def service(self, mock_repo):
+    def service(self, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
         svc = DetectionPolicyService()
         svc.repository = mock_repo
+        svc.rule_repository = mock_rule_repo
         return svc
 
     @pytest.mark.asyncio
-    async def test_list_policies(self, service, mock_repo):
-        mock_repo.list_policies = AsyncMock(return_value=(1, [{"id": "p1", "name": "test"}]))
-        total, items = await service.list_policies()
+    async def test_list_detectors(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        mock_repo.list_detectors = AsyncMock(return_value=(1, [{"id": "d1", "name": "test"}]))
+        total, items = await service.list_detectors()
         assert total == 1
-        assert items[0]["id"] == "p1"
+        assert items[0]["id"] == "d1"
 
     @pytest.mark.asyncio
-    async def test_get_policy(self, service, mock_repo):
-        mock_repo.get_policy_by_id = AsyncMock(return_value={"id": "p1", "name": "test"})
-        result = await service.get_policy("p1")
-        assert result["id"] == "p1"
+    async def test_get_detector(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        mock_repo.get_detector_by_id = AsyncMock(return_value={"id": "d1", "name": "test"})
+        result = await service.get_detector("d1")
+        assert result["id"] == "d1"
 
     @pytest.mark.asyncio
-    async def test_create_policy(self, service, mock_repo):
-        policy_in = DetectionPolicyCreate(
-            name="Test Policy",
-            target_index="logs-test",
-            condition_config={"query": {"match_all": {}}},
-            interval_min=5,
+    async def test_create_detector(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        detector_in = DetectorCreate(
+            name="Test Detector",
+            detector_type="windows",
+            target_indices=["logs-sentinel_one.edr"],
+            schedule_interval_min=5,
+            linked_rule_ids=["rule-1"],
+            field_mappings=[{"rule_field": "CommandLine", "log_field": "process.command_line"}],
         )
-        mock_repo.create_policy = AsyncMock(return_value={"id": "p1", "name": "Test Policy"})
-        result = await service.create_policy(policy_in, user_id="user1")
-        assert result["name"] == "Test Policy"
-        mock_repo.create_policy.assert_called_once()
+        mock_repo.create_detector = AsyncMock(return_value={"id": "d1", "name": "Test Detector"})
+        result = await service.create_detector(detector_in, user_id="user1")
+        assert result["name"] == "Test Detector"
+        mock_repo.create_detector.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_update_policy(self, service, mock_repo):
-        update_in = DetectionPolicyUpdate(name="Updated Policy")
-        mock_repo.update_policy = AsyncMock(return_value={"id": "p1", "name": "Updated Policy"})
-        result = await service.update_policy("p1", update_in)
-        assert result["name"] == "Updated Policy"
+    async def test_update_detector(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        update_in = DetectorUpdate(name="Updated Detector")
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1", "name": "Updated Detector"})
+        result = await service.update_detector("d1", update_in)
+        assert result["name"] == "Updated Detector"
 
     @pytest.mark.asyncio
-    async def test_delete_policy(self, service, mock_repo):
-        mock_repo.delete_policy = AsyncMock(return_value=True)
-        assert await service.delete_policy("p1") is True
+    async def test_delete_detector(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        mock_repo.delete_detector = AsyncMock(return_value=True)
+        assert await service.delete_detector("d1") is True
 
 
-class TestEventCRUD:
+class TestFindingCRUD:
     @pytest.fixture
-    def mock_repo(self):
-        with patch("app.services.detection_policy.DetectionPolicyRepository") as MockRepo:
-            mock = MockRepo.return_value
-            yield mock
+    def mock_repos(self):
+        with patch("app.services.detection_policy.DetectionPolicyRepository") as MockRepo, \
+             patch("app.services.detection_policy.SigmaRuleRepository") as MockRuleRepo:
+            mock_repo = MockRepo.return_value
+            mock_rule_repo = MockRuleRepo.return_value
+            yield mock_repo, mock_rule_repo
 
     @pytest.fixture
-    def service(self, mock_repo):
+    def service(self, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
         svc = DetectionPolicyService()
         svc.repository = mock_repo
+        svc.rule_repository = mock_rule_repo
         return svc
 
     @pytest.mark.asyncio
-    async def test_list_events(self, service, mock_repo):
-        mock_repo.list_events = AsyncMock(return_value=(2, [{"id": "e1"}, {"id": "e2"}]))
-        total, items = await service.list_events()
+    async def test_list_findings(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        mock_repo.list_findings = AsyncMock(return_value=(2, [{"id": "f1"}, {"id": "f2"}]))
+        total, items = await service.list_findings()
         assert total == 2
 
     @pytest.mark.asyncio
-    async def test_update_event_status(self, service, mock_repo):
-        mock_repo.update_event_status = AsyncMock(return_value={"id": "e1", "status": "acknowledged"})
-        result = await service.update_event_status("e1", "acknowledged")
+    async def test_update_finding_status(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        mock_repo.update_finding_status = AsyncMock(return_value={"id": "f1", "status": "acknowledged"})
+        result = await service.update_finding_status("f1", "acknowledged")
         assert result["status"] == "acknowledged"
 
 
-class TestRunDetection:
+class TestDetectionEngine:
     @pytest.fixture
-    def mock_repo(self):
-        with patch("app.services.detection_policy.DetectionPolicyRepository") as MockRepo:
-            mock = MockRepo.return_value
-            mock.client = MagicMock()
-            yield mock
+    def mock_repos(self):
+        with patch("app.services.detection_policy.DetectionPolicyRepository") as MockRepo, \
+             patch("app.services.detection_policy.SigmaRuleRepository") as MockRuleRepo:
+            mock_repo = MockRepo.return_value
+            mock_repo.client = MagicMock()
+            mock_rule_repo = MockRuleRepo.return_value
+            yield mock_repo, mock_rule_repo
 
     @pytest.fixture
-    def service(self, mock_repo):
+    def service(self, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
         svc = DetectionPolicyService()
         svc.repository = mock_repo
+        svc.rule_repository = mock_rule_repo
         return svc
 
     @pytest.mark.asyncio
-    async def test_skips_inactive_policy(self, service, mock_repo):
-        await service.run_detection_for_policy({"id": "p1", "is_active": False})
-        mock_repo.update_policy.assert_not_called()
+    async def test_skips_inactive_detector(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        await service.run_detection_for_detector({"id": "d1", "is_active": False})
+        mock_repo.update_detector.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_creates_event_on_match(self, service, mock_repo):
-        mock_repo.update_policy = AsyncMock(return_value={"id": "p1"})
-        mock_repo.create_event = AsyncMock(return_value={"id": "e1"})
+    async def test_creates_findings_on_match(self, service, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+        mock_repo.create_finding = AsyncMock(return_value={"id": "f1"})
+        mock_rule_repo.get_rule_by_id = AsyncMock(return_value={
+            "id": "r1", "name": "Test Rule", "status": "active",
+            "detection_config": {"query": {"match_all": {}}},
+            "mitre_technique_ids": ["T1059"], "mitre_tactic_ids": ["execution"],
+        })
         mock_repo.client.search.return_value = {
             "hits": {
                 "total": {"value": 3},
@@ -178,47 +219,60 @@ class TestRunDetection:
             }
         }
 
-        policy = {
-            "id": "p1",
-            "name": "Test Policy",
+        detector = {
+            "id": "d1",
+            "name": "Test Detector",
             "is_active": True,
-            "target_index": "logs-test",
-            "condition_config": {"query": {"match_all": {}}},
+            "target_indices": ["logs-test"],
+            "linked_rule_ids": ["r1"],
+            "field_mappings": [],
             "trigger_condition": "total > 0",
             "message_template": "{{name}}: {{total}}건",
             "severity": "high",
-            "mitre_technique_ids": ["T1059"],
-            "mitre_tactic_ids": ["execution"],
-            "total_events_count": 0,
+            "total_findings_count": 0,
         }
 
-        result = await service.run_detection_for_policy(policy)
+        result = await service.run_detection_for_detector(detector)
         assert result is not None
-        mock_repo.create_event.assert_called_once()
+        assert len(result) == 1
+        mock_repo.create_finding.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_no_event_when_zero_hits(self, service, mock_repo):
-        mock_repo.update_policy = AsyncMock(return_value={"id": "p1"})
+    async def test_no_finding_when_zero_hits(self, service, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+        mock_rule_repo.get_rule_by_id = AsyncMock(return_value={
+            "id": "r1", "name": "Test Rule", "status": "active",
+            "detection_config": {"query": {"match_all": {}}},
+            "mitre_technique_ids": [], "mitre_tactic_ids": [],
+        })
         mock_repo.client.search.return_value = {
             "hits": {"total": {"value": 0}, "hits": []}
         }
 
-        policy = {
-            "id": "p1",
+        detector = {
+            "id": "d1",
             "name": "Test",
             "is_active": True,
-            "target_index": "logs-test",
-            "condition_config": {"query": {"match_all": {}}},
+            "target_indices": ["logs-test"],
+            "linked_rule_ids": ["r1"],
+            "field_mappings": [],
             "trigger_condition": None,
             "severity": "low",
-            "total_events_count": 0,
+            "total_findings_count": 0,
         }
-        result = await service.run_detection_for_policy(policy)
+        result = await service.run_detection_for_detector(detector)
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_no_event_when_trigger_not_met(self, service, mock_repo):
-        mock_repo.update_policy = AsyncMock(return_value={"id": "p1"})
+    async def test_no_finding_when_trigger_not_met(self, service, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+        mock_rule_repo.get_rule_by_id = AsyncMock(return_value={
+            "id": "r1", "name": "Test Rule", "status": "active",
+            "detection_config": {"query": {"match_all": {}}},
+            "mitre_technique_ids": [], "mitre_tactic_ids": [],
+        })
         mock_repo.client.search.return_value = {
             "hits": {
                 "total": {"value": 2},
@@ -226,15 +280,111 @@ class TestRunDetection:
             }
         }
 
-        policy = {
-            "id": "p1",
+        detector = {
+            "id": "d1",
             "name": "Test",
             "is_active": True,
-            "target_index": "logs-test",
-            "condition_config": {"query": {"match_all": {}}},
+            "target_indices": ["logs-test"],
+            "linked_rule_ids": ["r1"],
+            "field_mappings": [],
             "trigger_condition": "total > 100",
             "severity": "low",
-            "total_events_count": 0,
+            "total_findings_count": 0,
         }
-        result = await service.run_detection_for_policy(policy)
+        result = await service.run_detection_for_detector(detector)
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_no_rules_returns_none(self, service, mock_repos):
+        mock_repo, _ = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+
+        detector = {
+            "id": "d1",
+            "name": "Empty",
+            "is_active": True,
+            "target_indices": ["logs-test"],
+            "linked_rule_ids": [],
+            "field_mappings": [],
+            "trigger_condition": None,
+            "severity": "low",
+            "total_findings_count": 0,
+        }
+        result = await service.run_detection_for_detector(detector)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_multiple_rules_produce_multiple_findings(self, service, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+        mock_repo.create_finding = AsyncMock(side_effect=[{"id": "f1"}, {"id": "f2"}])
+
+        mock_rule_repo.get_rule_by_id = AsyncMock(side_effect=[
+            {
+                "id": "r1", "name": "Rule 1", "status": "active",
+                "detection_config": {"query": {"match_all": {}}},
+                "mitre_technique_ids": [], "mitre_tactic_ids": [],
+            },
+            {
+                "id": "r2", "name": "Rule 2", "status": "active",
+                "detection_config": {"query": {"match": {"host": "evil"}}},
+                "mitre_technique_ids": [], "mitre_tactic_ids": [],
+            },
+        ])
+        mock_repo.client.search.return_value = {
+            "hits": {
+                "total": {"value": 1},
+                "hits": [{"_source": {"host": "evil"}}],
+            }
+        }
+
+        detector = {
+            "id": "d1",
+            "name": "Multi-rule Detector",
+            "is_active": True,
+            "target_indices": ["logs-test"],
+            "linked_rule_ids": ["r1", "r2"],
+            "field_mappings": [],
+            "trigger_condition": None,
+            "severity": "high",
+            "total_findings_count": 0,
+        }
+        result = await service.run_detection_for_detector(detector)
+        assert result is not None
+        assert len(result) == 2
+
+    @pytest.mark.asyncio
+    async def test_field_mappings_applied(self, service, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+        mock_repo.create_finding = AsyncMock(return_value={"id": "f1"})
+
+        mock_rule_repo.get_rule_by_id = AsyncMock(return_value={
+            "id": "r1", "name": "Test Rule", "status": "active",
+            "detection_config": {"query": {"match": {"CommandLine": "powershell"}}},
+            "mitre_technique_ids": [], "mitre_tactic_ids": [],
+        })
+        mock_repo.client.search.return_value = {
+            "hits": {
+                "total": {"value": 1},
+                "hits": [{"_source": {"process.command_line": "powershell"}}],
+            }
+        }
+
+        detector = {
+            "id": "d1",
+            "name": "Mapped Detector",
+            "is_active": True,
+            "target_indices": ["logs-test"],
+            "linked_rule_ids": ["r1"],
+            "field_mappings": [{"rule_field": "CommandLine", "log_field": "process.command_line"}],
+            "trigger_condition": None,
+            "severity": "medium",
+            "total_findings_count": 0,
+        }
+        result = await service.run_detection_for_detector(detector)
+        assert result is not None
+
+        search_call = mock_repo.client.search.call_args
+        search_body = search_call[1]["body"] if "body" in search_call[1] else search_call[0][1]
+        assert "process.command_line" in str(search_body)

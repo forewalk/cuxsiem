@@ -1,7 +1,7 @@
 import api from './api';
-import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats } from '@/types';
+import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats, CustomRuleCreate, CustomRuleUpdate } from '@/types';
 
-interface ListSigmaRulesParams {
+interface ListRulesParams {
   skip?: number;
   limit?: number;
   sort_by?: string;
@@ -11,10 +11,11 @@ interface ListSigmaRulesParams {
   status?: string;
   log_source_product?: string;
   mitre_technique_id?: string;
+  rule_type?: 'sigma' | 'custom';
 }
 
-export const sigmaRuleService = {
-  list: async (params: ListSigmaRulesParams = {}) => {
+export const detectionRuleService = {
+  list: async (params: ListRulesParams = {}) => {
     const response = await api.get<{ total: number; items: SigmaRuleListItem[] }>(
       '/api/v1/sigma-rules',
       { params },
@@ -24,6 +25,16 @@ export const sigmaRuleService = {
 
   getById: async (id: string) => {
     const response = await api.get<SigmaRuleDetail>(`/api/v1/sigma-rules/${id}`);
+    return response.data;
+  },
+
+  create: async (data: CustomRuleCreate) => {
+    const response = await api.post<SigmaRuleDetail>('/api/v1/sigma-rules', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: CustomRuleUpdate) => {
+    const response = await api.put<SigmaRuleDetail>(`/api/v1/sigma-rules/${id}`, data);
     return response.data;
   },
 
@@ -43,3 +54,6 @@ export const sigmaRuleService = {
     return response.data;
   },
 };
+
+// Backward-compatible alias
+export const sigmaRuleService = detectionRuleService;

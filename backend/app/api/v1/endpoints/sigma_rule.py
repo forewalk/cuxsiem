@@ -8,6 +8,8 @@ from app.schemas.sigma_rule import (
     SigmaRuleResponse,
     SigmaRuleStatsResponse,
     SigmaRuleToggleResponse,
+    CustomRuleCreate,
+    CustomRuleUpdate,
 )
 from app.schemas.user import UserResponse
 from app.services.sigma_rule import SigmaRuleService
@@ -27,6 +29,7 @@ async def list_sigma_rules(
     status: Optional[str] = Query(None, description="active/inactive/deleted"),
     log_source_product: Optional[str] = Query(None, description="로그 소스 제품"),
     mitre_technique_id: Optional[str] = Query(None, description="MITRE 기술 ID"),
+    rule_type: Optional[str] = Query(None, description="sigma/custom", pattern="^(sigma|custom)$"),
 ):
     total, items = await service.list_rules(
         skip=skip,
@@ -38,8 +41,17 @@ async def list_sigma_rules(
         status=status,
         log_source_product=log_source_product,
         mitre_technique_id=mitre_technique_id,
+        rule_type=rule_type,
     )
     return {"total": total, "items": items}
+
+
+@router.post("", response_model=SigmaRuleResponse, status_code=status.HTTP_201_CREATED)
+async def create_custom_rule(
+    rule_in: CustomRuleCreate,
+    current_user: UserResponse = Depends(get_current_active_user),
+):
+    return await service.create_custom_rule(rule_in.model_dump())
 
 
 @router.get("/stats", response_model=SigmaRuleStatsResponse)
@@ -53,6 +65,18 @@ async def get_sigma_rule(rule_id: str):
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
     return rule
+
+
+@router.put("/{rule_id}", response_model=SigmaRuleResponse)
+async def update_custom_rule(
+    rule_id: str,
+    rule_in: CustomRuleUpdate,
+    current_user: UserResponse = Depends(get_current_active_user),
+):
+    result = await service.update_custom_rule(rule_id, rule_in.model_dump(exclude_none=True))
+    if not result:
+        raise HTTPException(status_code=404, detail="Custom rule not found or not editable")
+    return result
 
 
 @router.put("/{rule_id}/toggle", response_model=SigmaRuleToggleResponse)

@@ -187,11 +187,12 @@ export interface NotificationHistory {
   description?: string;
 }
 
-// ── Sigma Rule Types ────────────────────────────────────────────────────────
+// ── Detection Rule Types (Sigma + Custom 통합) ─────────────────────────────
 
 export interface SigmaRuleListItem {
   id: string;
-  sigma_id: string;
+  type: 'sigma' | 'custom';
+  sigma_id?: string | null;
   name: string;
   level_normalized: string;
   status: string;
@@ -206,7 +207,8 @@ export interface SigmaRuleListItem {
 
 export interface SigmaRuleDetail {
   id: string;
-  sigma_id: string;
+  type: 'sigma' | 'custom';
+  sigma_id?: string | null;
   name: string;
   description: string | null;
   level_original: string | null;
@@ -243,65 +245,95 @@ export interface SigmaRuleStats {
   mitre_coverage: Record<string, number>;
 }
 
-// ── Detection Policy Types ──────────────────────────────────────────────────
+export interface CustomRuleCreate {
+  name: string;
+  description?: string;
+  detection_config: Record<string, unknown>;
+  level_normalized?: string;
+  log_source_category?: string;
+  log_source_product?: string;
+  log_source_service?: string;
+  mitre_technique_ids?: string[];
+  mitre_tactic_ids?: string[];
+  false_positives?: string[];
+}
 
-export interface DetectionPolicy {
+export interface CustomRuleUpdate {
+  name?: string;
+  description?: string;
+  detection_config?: Record<string, unknown>;
+  level_normalized?: string;
+  log_source_category?: string;
+  log_source_product?: string;
+  log_source_service?: string;
+  mitre_technique_ids?: string[];
+  mitre_tactic_ids?: string[];
+  false_positives?: string[];
+}
+
+// ── Detector Types (탐지 정책 = OpenSearch Detector 등가) ──────────────────
+
+export interface FieldMapping {
+  rule_field: string;
+  log_field: string;
+}
+
+export interface Detector {
   id: string;
   name: string;
   description?: string;
-  target_index: string;
-  condition_config: Record<string, unknown>;
+  detector_type: string;
+  target_indices: string[];
+  linked_rule_ids: string[];
+  field_mappings: FieldMapping[];
+  schedule_interval_min: number;
   trigger_condition?: string;
   message_template?: string;
   severity: string;
-  interval_min: number;
-  linked_rule_ids: string[];
-  mitre_technique_ids: string[];
-  mitre_tactic_ids: string[];
   is_active: boolean;
   last_run_at?: string | null;
   last_triggered_at?: string | null;
-  total_events_count: number;
+  total_findings_count: number;
   created_by?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
   deleted_at?: string | null;
 }
 
-export interface DetectionPolicyCreate {
+export interface DetectorCreate {
   name: string;
   description?: string;
-  target_index: string;
-  condition_config: Record<string, unknown>;
+  detector_type: string;
+  target_indices: string[];
+  linked_rule_ids?: string[];
+  field_mappings?: FieldMapping[];
+  schedule_interval_min: number;
   trigger_condition?: string;
   message_template?: string;
   severity: string;
-  interval_min: number;
-  linked_rule_ids?: string[];
-  mitre_technique_ids?: string[];
-  mitre_tactic_ids?: string[];
   is_active: boolean;
 }
 
-export interface DetectionPolicyUpdate {
+export interface DetectorUpdate {
   name?: string;
   description?: string;
-  target_index?: string;
-  condition_config?: Record<string, unknown>;
+  detector_type?: string;
+  target_indices?: string[];
+  linked_rule_ids?: string[];
+  field_mappings?: FieldMapping[];
+  schedule_interval_min?: number;
   trigger_condition?: string;
   message_template?: string;
   severity?: string;
-  interval_min?: number;
-  linked_rule_ids?: string[];
-  mitre_technique_ids?: string[];
-  mitre_tactic_ids?: string[];
   is_active?: boolean;
 }
 
-export interface DetectionEvent {
+export interface Finding {
   id: string;
-  policy_id: string;
-  policy_name: string;
+  detector_id: string;
+  detector_name: string;
+  rule_id?: string;
+  rule_name?: string;
   severity: string;
   target_index: string;
   matched_count: number;
@@ -313,3 +345,9 @@ export interface DetectionEvent {
   status: string;
   created_at?: string;
 }
+
+// Backward-compatible aliases
+export type DetectionPolicy = Detector;
+export type DetectionPolicyCreate = DetectorCreate;
+export type DetectionPolicyUpdate = DetectorUpdate;
+export type DetectionEvent = Finding;

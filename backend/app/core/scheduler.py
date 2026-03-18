@@ -62,22 +62,22 @@ class DetectionScheduler:
             logger.error(f"[스케줄러] 오류: {e}", exc_info=True)
 
     async def run_active_detection_policies(self):
-        """활성화된 모든 탐지 정책을 조회하여 탐지 로직을 실행함"""
+        """활성화된 모든 Detector를 조회하여 탐지 로직을 실행함"""
         try:
-            total, policies = await self.detection_policy_service.list_policies(limit=1000, is_active=True)
+            total, detectors = await self.detection_policy_service.list_detectors(limit=1000, is_active=True)
 
             now = datetime.now(timezone.utc)
             tasks = []
 
-            for policy in policies:
-                if not policy.get("is_active"):
+            for detector in detectors:
+                if not detector.get("is_active"):
                     continue
 
-                interval_min = policy.get("interval_min")
+                interval_min = detector.get("schedule_interval_min")
                 if interval_min is None:
                     continue
 
-                last_run_at = policy.get("last_run_at")
+                last_run_at = detector.get("last_run_at")
                 should_run = False
                 if not last_run_at:
                     should_run = True
@@ -93,15 +93,15 @@ class DetectionScheduler:
                         should_run = True
 
                 if should_run:
-                    tasks.append(self.detection_policy_service.run_detection_for_policy(policy))
+                    tasks.append(self.detection_policy_service.run_detection_for_detector(detector))
 
             if tasks:
                 await asyncio.gather(*tasks)
 
         except NotFoundError:
-            logger.debug("[스케줄러] cs_detection_policies 인덱스 미존재 — 탐지 정책 스킵")
+            logger.debug("[스케줄러] cs_detection_policies 인덱스 미존재 — Detector 스킵")
         except Exception as e:
-            logger.error(f"[스케줄러] 탐지 정책 오류: {e}", exc_info=True)
+            logger.error(f"[스케줄러] Detector 탐지 오류: {e}", exc_info=True)
 
     async def expire_idle_sessions(self):
         """무활동 세션 만료 처리 (슬라이딩 세션)"""

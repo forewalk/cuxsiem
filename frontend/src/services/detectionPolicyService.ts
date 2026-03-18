@@ -1,12 +1,12 @@
 import api from './api';
 import type {
-  DetectionPolicy,
-  DetectionPolicyCreate,
-  DetectionPolicyUpdate,
-  DetectionEvent,
+  Detector,
+  DetectorCreate,
+  DetectorUpdate,
+  Finding,
 } from '@/types';
 
-interface ListPoliciesParams {
+interface ListDetectorsParams {
   skip?: number;
   limit?: number;
   sort_by?: string;
@@ -14,23 +14,24 @@ interface ListPoliciesParams {
   query?: string;
   severity?: string;
   is_active?: boolean;
+  detector_type?: string;
 }
 
-interface ListEventsParams {
+interface ListFindingsParams {
   skip?: number;
   limit?: number;
   sort_by?: string;
   order?: string;
-  policy_id?: string;
+  detector_id?: string;
   severity?: string;
   status?: string;
   from_date?: string;
   to_date?: string;
 }
 
-export const detectionPolicyService = {
-  list: async (params: ListPoliciesParams = {}) => {
-    const response = await api.get<{ total: number; items: DetectionPolicy[] }>(
+export const detectorService = {
+  list: async (params: ListDetectorsParams = {}) => {
+    const response = await api.get<{ total: number; items: Detector[] }>(
       '/api/v1/detection-policies',
       { params },
     );
@@ -38,17 +39,17 @@ export const detectionPolicyService = {
   },
 
   getById: async (id: string) => {
-    const response = await api.get<DetectionPolicy>(`/api/v1/detection-policies/${id}`);
+    const response = await api.get<Detector>(`/api/v1/detection-policies/${id}`);
     return response.data;
   },
 
-  create: async (data: DetectionPolicyCreate) => {
-    const response = await api.post<DetectionPolicy>('/api/v1/detection-policies', data);
+  create: async (data: DetectorCreate) => {
+    const response = await api.post<Detector>('/api/v1/detection-policies', data);
     return response.data;
   },
 
-  update: async (id: string, data: DetectionPolicyUpdate) => {
-    const response = await api.put<DetectionPolicy>(`/api/v1/detection-policies/${id}`, data);
+  update: async (id: string, data: DetectorUpdate) => {
+    const response = await api.put<Detector>(`/api/v1/detection-policies/${id}`, data);
     return response.data;
   },
 
@@ -56,27 +57,30 @@ export const detectionPolicyService = {
     await api.delete(`/api/v1/detection-policies/${id}`);
   },
 
-  testQuery: async (target_index: string, condition_config: Record<string, unknown>) => {
+  testQuery: async (target_index: string, query_body: Record<string, unknown>) => {
     const response = await api.post('/api/v1/detection-policies/test-query', {
       target_index,
-      condition_config,
+      query_body,
     });
     return response.data;
   },
 
-  listEvents: async (params: ListEventsParams = {}) => {
-    const response = await api.get<{ total: number; items: DetectionEvent[] }>(
+  listFindings: async (params: ListFindingsParams = {}) => {
+    const response = await api.get<{ total: number; items: Finding[] }>(
       '/api/v1/detection-events',
       { params },
     );
     return response.data;
   },
 
-  updateEventStatus: async (eventId: string, status: string) => {
-    const response = await api.put<DetectionEvent>(
-      `/api/v1/detection-events/${eventId}/status`,
+  updateFindingStatus: async (findingId: string, status: string) => {
+    const response = await api.put<Finding>(
+      `/api/v1/detection-events/${findingId}/status`,
       { status },
     );
     return response.data;
   },
 };
+
+// Backward-compatible alias
+export const detectionPolicyService = detectorService;

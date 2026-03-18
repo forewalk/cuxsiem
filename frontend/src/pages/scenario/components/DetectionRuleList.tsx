@@ -13,15 +13,15 @@ import {
 } from '@mui/material';
 import React from 'react';
 import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
-import type { SigmaRuleListItem, DetectionPolicy } from '@/types';
+import type { SigmaRuleListItem, Detector } from '@/types';
 
 interface DetectionRuleListProps {
   rules: SigmaRuleListItem[];
-  policies: DetectionPolicy[];
+  detectors: Detector[];
   selectedRuleId: string | null;
-  selectedPolicyId: string | null;
+  selectedDetectorId: string | null;
   onSelect: (ruleId: string) => void;
-  onSelectPolicy: (policyId: string) => void;
+  onSelectDetector: (detectorId: string) => void;
   onToggleEnabled: (ruleId: string) => void;
   loading: boolean;
   t: (key: string, params?: Record<string, string>) => string;
@@ -44,11 +44,11 @@ const platformLabel = (product: string | null): string => {
 
 export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   rules,
-  policies,
+  detectors,
   selectedRuleId,
-  selectedPolicyId,
+  selectedDetectorId,
   onSelect,
-  onSelectPolicy,
+  onSelectDetector,
   onToggleEnabled,
   loading,
   t,
@@ -85,53 +85,11 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
           '& .MuiTab-root': { minHeight: 36, py: 0.75, fontSize: '0.72rem', fontWeight: 'bold', textTransform: 'none' },
         }}
       >
-        <Tab label={t('drTabDetector')} />
         <Tab label={`${t('drTabRule')} (${rules.length})`} />
+        <Tab label={`${t('drTabDetector')} (${detectors.length})`} />
       </Tabs>
 
       {activeTab === 0 && (
-        <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-          {policies.length > 0 ? policies.map((policy) => (
-            <ListItemButton
-              key={policy.id}
-              selected={policy.id === selectedPolicyId}
-              onClick={() => onSelectPolicy(policy.id)}
-              sx={{ py: 1, px: 1.5, borderBottom: 1, borderColor: 'divider', gap: 0.5, alignItems: 'flex-start' }}
-            >
-              <ListItemText
-                primary={policy.name}
-                secondary={
-                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                    <Chip label={policy.target_index} size="small" variant="outlined"
-                      sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5, maxWidth: 120 }} />
-                    <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                      {policy.interval_min}min
-                    </Typography>
-                  </Box>
-                }
-                primaryTypographyProps={{ variant: 'caption', fontWeight: 600, noWrap: true, sx: { fontSize: '0.75rem' } }}
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
-                <SeverityChip severity={policy.severity} size="small" />
-                <Chip
-                  label={policy.is_active ? '●' : '○'}
-                  size="small"
-                  color={policy.is_active ? 'success' : 'default'}
-                  variant={policy.is_active ? 'filled' : 'outlined'}
-                  sx={{ fontSize: '0.55rem', height: 18, minWidth: 18, p: 0 }}
-                />
-              </Box>
-            </ListItemButton>
-          )) : !loading && (
-            <Box sx={{ py: 6, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.disabled">{t('drDetectorEmpty')}</Typography>
-            </Box>
-          )}
-        </List>
-      )}
-
-      {activeTab === 1 && (
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {rules.length > 0 ? rules.map((rule) => {
             const technique = extractFirstTechnique(rule.mitre_technique_ids);
@@ -156,11 +114,18 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                   primary={rule.name}
                   secondary={
                     <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                      <Chip
+                        label={rule.type === 'custom' ? 'Custom' : 'Sigma'}
+                        size="small"
+                        color={rule.type === 'custom' ? 'secondary' : 'default'}
+                        variant="outlined"
+                        sx={{ height: 16, fontSize: '0.55rem', fontWeight: 600, borderRadius: 0.5 }}
+                      />
                       <Chip label={platform} size="small" variant="outlined"
                         sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
                       {technique && (
                         <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-                          MITRE: {technique}
+                          {technique}
                         </Typography>
                       )}
                     </Box>
@@ -191,6 +156,48 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
               <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
                 {t('drRuleEmptySubtext')}
               </Typography>
+            </Box>
+          )}
+        </List>
+      )}
+
+      {activeTab === 1 && (
+        <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {detectors.length > 0 ? detectors.map((detector) => (
+            <ListItemButton
+              key={detector.id}
+              selected={detector.id === selectedDetectorId}
+              onClick={() => onSelectDetector(detector.id)}
+              sx={{ py: 1, px: 1.5, borderBottom: 1, borderColor: 'divider', gap: 0.5, alignItems: 'flex-start' }}
+            >
+              <ListItemText
+                primary={detector.name}
+                secondary={
+                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                    <Chip label={detector.detector_type || '-'} size="small" variant="outlined"
+                      sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
+                    <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                      {detector.schedule_interval_min}min · {detector.linked_rule_ids?.length ?? 0} rules
+                    </Typography>
+                  </Box>
+                }
+                primaryTypographyProps={{ variant: 'caption', fontWeight: 600, noWrap: true, sx: { fontSize: '0.75rem' } }}
+                secondaryTypographyProps={{ component: 'div' }}
+              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
+                <SeverityChip severity={detector.severity} size="small" />
+                <Chip
+                  label={detector.is_active ? '●' : '○'}
+                  size="small"
+                  color={detector.is_active ? 'success' : 'default'}
+                  variant={detector.is_active ? 'filled' : 'outlined'}
+                  sx={{ fontSize: '0.55rem', height: 18, minWidth: 18, p: 0 }}
+                />
+              </Box>
+            </ListItemButton>
+          )) : !loading && (
+            <Box sx={{ py: 6, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.disabled">{t('drDetectorEmpty')}</Typography>
             </Box>
           )}
         </List>

@@ -134,6 +134,7 @@ class TestSigmaRuleServiceParse:
         }
         doc = self.service.parse_sigma_yaml(parsed, "windows/test.yml", "raw yaml string")
 
+        assert doc["type"] == "sigma"
         assert doc["sigma_id"] == "abc-123"
         assert doc["name"] == "PowerShell Encoded Command"
         assert doc["level_original"] == "critical"
@@ -159,6 +160,7 @@ class TestSigmaRuleServiceParse:
         }
         doc = self.service.parse_sigma_yaml(parsed, "test.yml", "")
 
+        assert doc["type"] == "sigma"
         assert doc["name"] == "Minimal Rule"
         assert doc["level_normalized"] == "medium"
         assert doc["tags"] == []
@@ -166,6 +168,79 @@ class TestSigmaRuleServiceParse:
         assert doc["mitre_tactic_ids"] == []
         assert doc["false_positives"] == []
         assert doc["references"] == []
+
+
+class TestCustomRuleCRUD:
+    def setup_method(self):
+        self.service = SigmaRuleService()
+        self.service.repository = MagicMock()
+
+    @pytest.mark.asyncio
+    async def test_create_custom_rule(self):
+        self.service.repository.create_rule = AsyncMock(return_value={
+            "id": "cr-1", "type": "custom", "name": "My Custom Rule",
+            "detection_config": {"query": {"match_all": {}}},
+        })
+        result = await self.service.create_custom_rule({
+            "name": "My Custom Rule",
+            "detection_config": {"query": {"match_all": {}}},
+            "level_normalized": "high",
+            "mitre_technique_ids": ["T1059"],
+        })
+        assert result["type"] == "custom"
+        assert result["name"] == "My Custom Rule"
+        call_args = self.service.repository.create_rule.call_args[0][0]
+        assert call_args["type"] == "custom"
+        assert call_args["level_normalized"] == "high"
+        assert call_args["mitre_technique_ids"] == ["T1059"]
+
+    @pytest.mark.asyncio
+    async def test_create_custom_rule_defaults(self):
+        self.service.repository.create_rule = AsyncMock(return_value={"id": "cr-2", "type": "custom"})
+        await self.service.create_custom_rule({
+            "name": "Default Rule",
+            "detection_config": {"query": {"match_all": {}}},
+        })
+        call_args = self.service.repository.create_rule.call_args[0][0]
+        assert call_args["level_normalized"] == "medium"
+        assert call_args["mitre_technique_ids"] == []
+        assert call_args["status"] == "active"
+
+    @pytest.mark.asyncio
+    async def test_update_custom_rule(self):
+        self.service.repository.get_rule_by_id = AsyncMock(return_value={
+            "id": "cr-1", "type": "custom", "name": "Old Name",
+        })
+        self.service.repository.update_rule = AsyncMock(return_value={
+            "id": "cr-1", "type": "custom", "name": "New Name",
+        })
+        result = await self.service.update_custom_rule("cr-1", {"name": "New Name"})
+        assert result["name"] == "New Name"
+
+    @pytest.mark.asyncio
+    async def test_update_sigma_rule_rejected(self):
+        self.service.repository.get_rule_by_id = AsyncMock(return_value={
+            "id": "sr-1", "type": "sigma", "name": "Sigma Rule",
+        })
+        result = await self.service.update_custom_rule("sr-1", {"name": "Changed"})
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_update_nonexistent_rule_rejected(self):
+        self.service.repository.get_rule_by_id = AsyncMock(return_value=None)
+        result = await self.service.update_custom_rule("nonexistent", {"name": "Changed"})
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_list_rules_with_type_filter(self):
+        self.service.repository.list_rules = AsyncMock(return_value=(2, [
+            {"id": "cr-1", "type": "custom"},
+            {"id": "cr-2", "type": "custom"},
+        ]))
+        total, items = await self.service.list_rules(rule_type="custom")
+        self.service.repository.list_rules.assert_called_once()
+        call_kwargs = self.service.repository.list_rules.call_args[1]
+        assert call_kwargs["rule_type"] == "custom"
 
 
 class TestSigmaRuleServiceCRUD:

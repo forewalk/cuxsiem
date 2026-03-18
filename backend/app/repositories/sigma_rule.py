@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 # 경량 목록 조회 시 포함할 필드
 LIST_SOURCE_FIELDS = [
-    "id", "sigma_id", "name", "level_normalized", "status",
+    "id", "type", "sigma_id", "name", "level_normalized", "status",
     "log_source_category", "log_source_product",
     "tags", "mitre_technique_ids", "mitre_tactic_ids",
     "revision", "updated_at",
@@ -38,6 +38,7 @@ class SigmaRuleRepository:
         status: Optional[str] = None,
         log_source_product: Optional[str] = None,
         mitre_technique_id: Optional[str] = None,
+        rule_type: Optional[str] = None,
     ) -> Tuple[int, List[Dict[str, Any]]]:
         loop = asyncio.get_event_loop()
 
@@ -45,6 +46,8 @@ class SigmaRuleRepository:
             must = []
             must_not = [{"term": {"is_deleted": True}}]
 
+            if rule_type:
+                must.append({"term": {"type": rule_type}})
             if search:
                 must.append({
                     "bool": {

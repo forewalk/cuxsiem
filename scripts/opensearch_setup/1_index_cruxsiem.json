@@ -2451,6 +2451,7 @@
     "mappings": {
       "properties": {
         "id":                    { "type": "keyword" },
+        "type":                  { "type": "keyword" },
         "sigma_id":              { "type": "keyword" },
         "name":                  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
         "description":           { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
@@ -2493,26 +2494,25 @@
     "aliases": {},
     "mappings": {
       "properties": {
-        "id":                    { "type": "keyword" },
-        "name":                  { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
-        "description":           { "type": "text" },
-        "target_index":          { "type": "keyword" },
-        "condition_config":      { "type": "object" },
-        "trigger_condition":     { "type": "keyword" },
-        "message_template":      { "type": "text" },
-        "severity":              { "type": "keyword" },
-        "interval_min":          { "type": "integer" },
-        "linked_rule_ids":       { "type": "keyword" },
-        "mitre_technique_ids":   { "type": "keyword" },
-        "mitre_tactic_ids":      { "type": "keyword" },
-        "is_active":             { "type": "boolean" },
-        "last_run_at":           { "type": "date" },
-        "last_triggered_at":     { "type": "date" },
-        "total_events_count":    { "type": "integer" },
-        "created_by":            { "type": "keyword" },
-        "created_at":            { "type": "date" },
-        "updated_at":            { "type": "date" },
-        "deleted_at":            { "type": "date" }
+        "id":                       { "type": "keyword" },
+        "name":                     { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 256 } } },
+        "description":              { "type": "text" },
+        "detector_type":            { "type": "keyword" },
+        "target_indices":           { "type": "keyword" },
+        "linked_rule_ids":          { "type": "keyword" },
+        "field_mappings":           { "type": "nested", "properties": { "rule_field": { "type": "keyword" }, "log_field": { "type": "keyword" } } },
+        "schedule_interval_min":    { "type": "integer" },
+        "trigger_condition":        { "type": "keyword" },
+        "message_template":         { "type": "text" },
+        "severity":                 { "type": "keyword" },
+        "is_active":                { "type": "boolean" },
+        "last_run_at":              { "type": "date" },
+        "last_triggered_at":        { "type": "date" },
+        "total_findings_count":     { "type": "integer" },
+        "created_by":               { "type": "keyword" },
+        "created_at":               { "type": "date" },
+        "updated_at":               { "type": "date" },
+        "deleted_at":               { "type": "date" }
       }
     },
     "settings": {
@@ -2528,8 +2528,10 @@
     "mappings": {
       "properties": {
         "id":                    { "type": "keyword" },
-        "policy_id":             { "type": "keyword" },
-        "policy_name":           { "type": "keyword" },
+        "detector_id":           { "type": "keyword" },
+        "detector_name":         { "type": "keyword" },
+        "rule_id":               { "type": "keyword" },
+        "rule_name":             { "type": "keyword" },
         "severity":              { "type": "keyword" },
         "target_index":          { "type": "keyword" },
         "matched_count":         { "type": "integer" },

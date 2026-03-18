@@ -73,6 +73,7 @@ class SigmaRuleService:
         status: Optional[str] = None,
         log_source_product: Optional[str] = None,
         mitre_technique_id: Optional[str] = None,
+        rule_type: Optional[str] = None,
     ):
         return await self.repository.list_rules(
             skip=skip,
@@ -84,6 +85,7 @@ class SigmaRuleService:
             status=status,
             log_source_product=log_source_product,
             mitre_technique_id=mitre_technique_id,
+            rule_type=rule_type,
         )
 
     async def get_rule(self, rule_id: str):
@@ -98,6 +100,37 @@ class SigmaRuleService:
     async def get_stats(self):
         return await self.repository.get_stats()
 
+    # --- Custom Rule CRUD ---
+
+    async def create_custom_rule(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        rule_data = {
+            "type": "custom",
+            "name": data["name"],
+            "description": data.get("description"),
+            "level_original": data.get("level_normalized", DEFAULT_SEVERITY),
+            "level_normalized": data.get("level_normalized", DEFAULT_SEVERITY),
+            "detection_config": data.get("detection_config", {}),
+            "log_source_category": data.get("log_source_category"),
+            "log_source_product": data.get("log_source_product"),
+            "log_source_service": data.get("log_source_service"),
+            "mitre_technique_ids": data.get("mitre_technique_ids", []),
+            "mitre_tactic_ids": data.get("mitre_tactic_ids", []),
+            "false_positives": data.get("false_positives", []),
+            "tags": [],
+            "references": [],
+            "status": "active",
+        }
+        return await self.repository.create_rule(rule_data)
+
+    async def update_custom_rule(self, rule_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        existing = await self.repository.get_rule_by_id(rule_id)
+        if not existing or existing.get("type") != "custom":
+            return None
+        update_data = {k: v for k, v in data.items() if v is not None}
+        if "level_normalized" in update_data:
+            update_data["level_original"] = update_data["level_normalized"]
+        return await self.repository.update_rule(rule_id, update_data)
+
     # --- Import 관련 유틸리티 ---
 
     def parse_sigma_yaml(self, parsed: Dict[str, Any], file_path: str, raw_yaml_str: str) -> Dict[str, Any]:
@@ -108,6 +141,7 @@ class SigmaRuleService:
         logsource = parsed.get("logsource") or {}
 
         doc = {
+            "type": "sigma",
             "sigma_id": parsed.get("id", ""),
             "name": parsed.get("title", ""),
             "description": parsed.get("description"),

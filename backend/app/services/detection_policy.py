@@ -7,7 +7,8 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 from app.repositories.detection_policy import DetectionPolicyRepository
-from app.schemas.detection_policy import DetectionPolicyCreate, DetectionPolicyUpdate
+from app.repositories.sigma_rule import SigmaRuleRepository
+from app.schemas.detection_policy import DetectorCreate, DetectorUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,11 @@ class DotDict(dict):
 class DetectionPolicyService:
     def __init__(self):
         self.repository = DetectionPolicyRepository()
+        self.rule_repository = SigmaRuleRepository()
 
-    # ── Policy CRUD ──────────────────────────────────────────────────────
+    # ── Detector CRUD ─────────────────────────────────────────────────────
 
-    async def list_policies(
+    async def list_detectors(
         self,
         skip: int = 0,
         limit: int = 100,
@@ -41,53 +43,62 @@ class DetectionPolicyService:
         query: Optional[str] = None,
         severity: Optional[str] = None,
         is_active: Optional[bool] = None,
+        detector_type: Optional[str] = None,
     ):
-        return await self.repository.list_policies(
+        return await self.repository.list_detectors(
             skip=skip, limit=limit, sort_by=sort_by, order=order,
             query=query, severity=severity, is_active=is_active,
+            detector_type=detector_type,
         )
 
-    async def get_policy(self, policy_id: str):
-        return await self.repository.get_policy_by_id(policy_id)
+    async def get_detector(self, detector_id: str):
+        return await self.repository.get_detector_by_id(detector_id)
 
-    async def create_policy(self, policy_in: DetectionPolicyCreate, user_id: str = ""):
-        return await self.repository.create_policy(policy_in.model_dump(), user_id=user_id)
+    async def create_detector(self, detector_in: DetectorCreate, user_id: str = ""):
+        data = detector_in.model_dump()
+        data["field_mappings"] = [fm.model_dump() if hasattr(fm, "model_dump") else fm for fm in (detector_in.field_mappings or [])]
+        return await self.repository.create_detector(data, user_id=user_id)
 
-    async def update_policy(self, policy_id: str, policy_in: DetectionPolicyUpdate):
-        data = policy_in.model_dump(exclude_none=True)
-        return await self.repository.update_policy(policy_id, data)
+    async def update_detector(self, detector_id: str, detector_in: DetectorUpdate):
+        data = detector_in.model_dump(exclude_none=True)
+        if "field_mappings" in data and data["field_mappings"] is not None:
+            data["field_mappings"] = [
+                fm.model_dump() if hasattr(fm, "model_dump") else fm
+                for fm in data["field_mappings"]
+            ]
+        return await self.repository.update_detector(detector_id, data)
 
-    async def delete_policy(self, policy_id: str):
-        return await self.repository.delete_policy(policy_id)
+    async def delete_detector(self, detector_id: str):
+        return await self.repository.delete_detector(detector_id)
 
-    # ── Detection Event ──────────────────────────────────────────────────
+    # ── Finding (탐지 결과) ───────────────────────────────────────────────
 
-    async def list_events(
+    async def list_findings(
         self,
         skip: int = 0,
         limit: int = 50,
         sort_by: str = "created_at",
         order: str = "desc",
-        policy_id: Optional[str] = None,
+        detector_id: Optional[str] = None,
         severity: Optional[str] = None,
         status: Optional[str] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
     ):
-        return await self.repository.list_events(
+        return await self.repository.list_findings(
             skip=skip, limit=limit, sort_by=sort_by, order=order,
-            policy_id=policy_id, severity=severity, status=status,
+            detector_id=detector_id, severity=severity, status=status,
             from_date=from_date, to_date=to_date,
         )
 
-    async def update_event_status(self, event_id: str, status: str):
-        return await self.repository.update_event_status(event_id, status)
+    async def update_finding_status(self, finding_id: str, status: str):
+        return await self.repository.update_finding_status(finding_id, status)
 
     # ── DSL 쿼리 테스트 ──────────────────────────────────────────────────
 
-    async def test_query(self, target_index: str, condition_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def test_query(self, target_index: str, query_body: Dict[str, Any]) -> Dict[str, Any]:
         try:
-            search_body = {**condition_config, "size": condition_config.get("size", 10)}
+            search_body = {**query_body, "size": query_body.get("size", 10)}
             if "sort" not in search_body:
                 search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
 
@@ -99,35 +110,89 @@ class DetectionPolicyService:
         except Exception as e:
             raise Exception(f"Query execution failed: {e}")
 
-    # ── 탐지 실행 엔진 (스케줄러에서 호출) ───────────────────────────────
+    # ── 탐지 실행 엔진 (Detector → N개 룰 실행) ──────────────────────────
 
-    async def run_detection_for_policy(self, policy: Dict[str, Any]):
-        """단일 탐지 정책에 대해 DSL 쿼리를 실행하고 이벤트를 생성한다."""
-        if not policy.get("is_active"):
+    async def run_detection_for_detector(self, detector: Dict[str, Any]):
+        """Detector에 연결된 룰들을 순회하며 각 룰의 detection_config를 실행한다."""
+        if not detector.get("is_active"):
             return
 
-        policy_id = policy["id"]
-        target_index = policy.get("target_index", "logs-sentinel_one.edr")
-        condition_config = policy.get("condition_config", {})
+        detector_id = detector["id"]
+        target_indices = detector.get("target_indices", [])
+        field_mappings = detector.get("field_mappings", [])
+        linked_rule_ids = detector.get("linked_rule_ids", [])
         now = datetime.utcnow()
 
         try:
-            await self.repository.update_policy(policy_id, {"last_run_at": now.isoformat()})
+            await self.repository.update_detector(detector_id, {"last_run_at": now.isoformat()})
 
-            search_body = {**condition_config, "size": condition_config.get("size", 10)}
-            if "sort" not in search_body:
-                search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
+            if not linked_rule_ids:
+                return None
 
+            rules = await self._fetch_rules(linked_rule_ids)
+            if not rules:
+                return None
+
+            findings = []
+            for rule in rules:
+                finding = await self._run_rule_against_indices(
+                    detector=detector,
+                    rule=rule,
+                    target_indices=target_indices,
+                    field_mappings=field_mappings,
+                )
+                if finding:
+                    findings.append(finding)
+
+            if findings:
+                await self.repository.update_detector(detector_id, {
+                    "last_triggered_at": now.isoformat(),
+                    "total_findings_count": detector.get("total_findings_count", 0) + len(findings),
+                })
+
+            return findings if findings else None
+
+        except Exception as e:
+            logger.error(f"Detector {detector_id} 탐지 실행 오류: {e}")
+            return None
+
+    async def _fetch_rules(self, rule_ids: List[str]) -> List[Dict[str, Any]]:
+        rules = []
+        for rule_id in rule_ids:
+            rule = await self.rule_repository.get_rule_by_id(rule_id)
+            if rule and rule.get("status") == "active":
+                rules.append(rule)
+        return rules
+
+    async def _run_rule_against_indices(
+        self,
+        detector: Dict[str, Any],
+        rule: Dict[str, Any],
+        target_indices: List[str],
+        field_mappings: List[Dict[str, str]],
+    ) -> Optional[Dict[str, Any]]:
+        detection_config = rule.get("detection_config", {})
+        if not detection_config:
+            return None
+
+        search_body = self._apply_field_mappings(detection_config, field_mappings)
+        search_body = {**search_body, "size": search_body.get("size", 10)}
+        if "sort" not in search_body:
+            search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
+
+        index_pattern = ",".join(target_indices) if target_indices else "logs-*"
+
+        try:
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
-                lambda: self.repository.client.search(index=target_index, body=search_body),
+                lambda: self.repository.client.search(index=index_pattern, body=search_body),
             )
 
             total = result.get("hits", {}).get("total", {}).get("value", 0)
             hits = result.get("hits", {}).get("hits", [])
 
-            trigger_condition = policy.get("trigger_condition")
+            trigger_condition = detector.get("trigger_condition")
             if trigger_condition:
                 if not self._evaluate_trigger_condition(trigger_condition, DotDict(result)):
                     return None
@@ -137,34 +202,50 @@ class DetectionPolicyService:
 
             sample = [h.get("_source", h) for h in hits[:5]]
             message = self._render_message(
-                policy.get("message_template", ""),
-                {"total": total, "name": policy.get("name", ""), "severity": policy.get("severity", "")},
+                detector.get("message_template", ""),
+                {
+                    "total": total,
+                    "name": detector.get("name", ""),
+                    "severity": detector.get("severity", ""),
+                    "rule_name": rule.get("name", ""),
+                },
             )
 
-            event_data = {
-                "policy_id": policy_id,
-                "policy_name": policy.get("name", ""),
-                "severity": policy.get("severity", "medium"),
-                "target_index": target_index,
+            finding_data = {
+                "detector_id": detector["id"],
+                "detector_name": detector.get("name", ""),
+                "rule_id": rule.get("id"),
+                "rule_name": rule.get("name", ""),
+                "severity": detector.get("severity", "medium"),
+                "target_index": index_pattern,
                 "matched_count": total,
                 "sample_events": sample,
-                "mitre_technique_ids": policy.get("mitre_technique_ids", []),
-                "mitre_tactic_ids": policy.get("mitre_tactic_ids", []),
+                "mitre_technique_ids": rule.get("mitre_technique_ids", []),
+                "mitre_tactic_ids": rule.get("mitre_tactic_ids", []),
                 "trigger_value": f"total={total}",
                 "message": message,
                 "status": "new",
             }
-            created = await self.repository.create_event(event_data)
-
-            await self.repository.update_policy(policy_id, {
-                "last_triggered_at": now.isoformat(),
-                "total_events_count": policy.get("total_events_count", 0) + 1,
-            })
-            return created
+            return await self.repository.create_finding(finding_data)
 
         except Exception as e:
-            logger.error(f"정책 {policy_id} 탐지 실행 오류: {e}")
+            logger.error(f"룰 {rule.get('id')} 실행 오류 (detector={detector['id']}): {e}")
             return None
+
+    @staticmethod
+    def _apply_field_mappings(detection_config: Dict[str, Any], field_mappings: List[Dict[str, str]]) -> Dict[str, Any]:
+        """field_mappings를 적용하여 detection_config의 필드명을 변환한다."""
+        if not field_mappings:
+            return detection_config
+
+        mapping_dict = {fm["rule_field"]: fm["log_field"] for fm in field_mappings}
+        config_str = json.dumps(detection_config, ensure_ascii=False)
+        for rule_field, log_field in mapping_dict.items():
+            config_str = config_str.replace(f'"{rule_field}"', f'"{log_field}"')
+        try:
+            return json.loads(config_str)
+        except json.JSONDecodeError:
+            return detection_config
 
     # ── 트리거 조건 평가 (AST 기반) ──────────────────────────────────────
 
@@ -248,3 +329,29 @@ class DetectionPolicyService:
             return f"{{{{{key}}}}}"
 
         return re.sub(r"\{\{\s*([\w\.]+)\s*\}\}", replace_var, template)
+
+    # ── Backward-compatible aliases ───────────────────────────────────────
+
+    async def list_policies(self, **kwargs):
+        return await self.list_detectors(**kwargs)
+
+    async def get_policy(self, policy_id: str):
+        return await self.get_detector(policy_id)
+
+    async def create_policy(self, policy_in, user_id: str = ""):
+        return await self.create_detector(policy_in, user_id)
+
+    async def update_policy(self, policy_id: str, policy_in):
+        return await self.update_detector(policy_id, policy_in)
+
+    async def delete_policy(self, policy_id: str):
+        return await self.delete_detector(policy_id)
+
+    async def list_events(self, **kwargs):
+        return await self.list_findings(**kwargs)
+
+    async def update_event_status(self, event_id: str, status: str):
+        return await self.update_finding_status(event_id, status)
+
+    async def run_detection_for_policy(self, policy: Dict[str, Any]):
+        return await self.run_detection_for_detector(policy)

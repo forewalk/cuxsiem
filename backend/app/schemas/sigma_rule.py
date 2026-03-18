@@ -1,13 +1,14 @@
 from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 
-# --- Sigma Rule 경량 목록 응답 (raw_yaml, detection 미포함) ---
+# --- Detection Rule 경량 목록 응답 ---
 
 class SigmaRuleListItem(BaseModel):
     id: str
-    sigma_id: str
+    type: str = "sigma"
+    sigma_id: Optional[str] = None
     name: str
     level_normalized: str = "medium"
     status: str = "active"
@@ -22,11 +23,12 @@ class SigmaRuleListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# --- Sigma Rule 전체 상세 응답 ---
+# --- Detection Rule 전체 상세 응답 ---
 
 class SigmaRuleResponse(BaseModel):
     id: str
-    sigma_id: str
+    type: str = "sigma"
+    sigma_id: Optional[str] = None
     name: str
     description: Optional[str] = None
     level_original: Optional[str] = None
@@ -56,6 +58,34 @@ class SigmaRuleResponse(BaseModel):
     deleted_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- Custom Rule 생성/수정 ---
+
+class CustomRuleCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    detection_config: Dict[str, Any]
+    level_normalized: str = Field(default="medium", description="critical/high/medium/low/info")
+    log_source_category: Optional[str] = None
+    log_source_product: Optional[str] = None
+    log_source_service: Optional[str] = None
+    mitre_technique_ids: List[str] = []
+    mitre_tactic_ids: List[str] = []
+    false_positives: List[str] = []
+
+
+class CustomRuleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    detection_config: Optional[Dict[str, Any]] = None
+    level_normalized: Optional[str] = None
+    log_source_category: Optional[str] = None
+    log_source_product: Optional[str] = None
+    log_source_service: Optional[str] = None
+    mitre_technique_ids: Optional[List[str]] = None
+    mitre_tactic_ids: Optional[List[str]] = None
+    false_positives: Optional[List[str]] = None
 
 
 class SigmaRuleListResponse(BaseModel):

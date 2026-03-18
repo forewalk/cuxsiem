@@ -1,7 +1,6 @@
 import {
   Box,
   Chip,
-  Collapse,
   Divider,
   IconButton,
   List,
@@ -9,25 +8,27 @@ import {
   ListItemText,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   Typography,
 } from '@mui/material';
 import {
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import React, { useState } from 'react';
+import React from 'react';
 import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
-import type { DetectionPolicy, DetectionEvent } from '@/types';
+import type { Detector, Finding } from '@/types';
 
 interface DetectionPolicyDetailProps {
-  policy: DetectionPolicy | null;
-  events: DetectionEvent[];
+  detector: Detector | null;
+  findings: Finding[];
   loading?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
-  onEventStatusChange?: (eventId: string, status: string) => void;
   t: (key: string) => string;
 }
 
@@ -65,7 +66,7 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </Box>
 );
 
-const EVENT_STATUS_COLORS: Record<string, 'error' | 'warning' | 'success' | 'default'> = {
+const FINDING_STATUS_COLORS: Record<string, 'error' | 'warning' | 'success' | 'default'> = {
   new: 'error',
   acknowledged: 'warning',
   resolved: 'success',
@@ -73,32 +74,29 @@ const EVENT_STATUS_COLORS: Record<string, 'error' | 'warning' | 'success' | 'def
 };
 
 export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
-  policy,
-  events,
+  detector,
+  findings,
   loading,
   onEdit,
   onDelete,
   t,
 }) => {
-  const [queryExpanded, setQueryExpanded] = useState(false);
 
-  if (!policy) {
+  if (!detector) {
     return (
       <Paper elevation={1} sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5 }}>
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-          {loading ? '' : t('dpSelectPolicyPrompt')}
+          {loading ? '' : t('dpSelectDetectorPrompt')}
         </Typography>
       </Paper>
     );
   }
 
-  const dslText = policy.condition_config ? JSON.stringify(policy.condition_config, null, 2) : '-';
-
   return (
     <Paper elevation={1} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRadius: 1.5, overflow: 'hidden' }}>
       <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
-          {t('dpPolicyDetail')}
+          {t('dpDetectorDetail')}
         </Typography>
         <Stack direction="row" spacing={0.5}>
           {onEdit && <IconButton size="small" onClick={onEdit}><EditIcon fontSize="small" /></IconButton>}
@@ -109,94 +107,107 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
       <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 1.5 }}>
         <SectionHeader>{t('dpSectionBasic')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
-          <FieldRow label={t('dpPolicyName')}><FieldValue>{policy.name}</FieldValue></FieldRow>
-          <FieldRow label={t('dpSeverity')}><SeverityChip severity={policy.severity} size="small" /></FieldRow>
-          <FieldRow label={t('dpTargetIndex')}><FieldValue mono>{policy.target_index}</FieldValue></FieldRow>
-          <FieldRow label={t('dpDescription')}><FieldValue>{policy.description || '-'}</FieldValue></FieldRow>
-          <FieldRow label={t('dpInterval')}><FieldValue>{policy.interval_min}분</FieldValue></FieldRow>
+          <FieldRow label={t('dpDetectorName')}><FieldValue>{detector.name}</FieldValue></FieldRow>
+          <FieldRow label={t('dpDetectorType')}>
+            <Chip label={detector.detector_type || '-'} size="small" variant="outlined"
+              sx={{ fontWeight: 600, fontSize: '0.6rem', height: 20 }} />
+          </FieldRow>
+          <FieldRow label={t('dpSeverity')}><SeverityChip severity={detector.severity} size="small" /></FieldRow>
+          <FieldRow label={t('dpTargetIndices')}>
+            <Stack direction="row" flexWrap="wrap" gap={0.5}>
+              {(detector.target_indices ?? []).map((idx) => (
+                <Chip key={idx} label={idx} size="small" variant="outlined"
+                  sx={{ fontWeight: 500, fontSize: '0.6rem', height: 20, fontFamily: 'monospace' }} />
+              ))}
+            </Stack>
+          </FieldRow>
+          <FieldRow label={t('dpDescription')}><FieldValue>{detector.description || '-'}</FieldValue></FieldRow>
+          <FieldRow label={t('dpInterval')}><FieldValue>{detector.schedule_interval_min}분</FieldValue></FieldRow>
           <FieldRow label={t('dpActive')}>
             <Chip
-              label={policy.is_active ? t('dpActive') : t('dpInactive')}
+              label={detector.is_active ? t('dpActive') : t('dpInactive')}
               size="small"
-              color={policy.is_active ? 'success' : 'default'}
-              variant={policy.is_active ? 'filled' : 'outlined'}
+              color={detector.is_active ? 'success' : 'default'}
+              variant={detector.is_active ? 'filled' : 'outlined'}
               sx={{ fontWeight: 500, fontSize: '0.6rem', height: 20 }}
             />
           </FieldRow>
+          {detector.trigger_condition && (
+            <FieldRow label={t('dpTriggerCondition')}><FieldValue mono>{detector.trigger_condition}</FieldValue></FieldRow>
+          )}
         </Box>
 
-        <SectionHeader>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {t('dpSectionQuery')}
-            <IconButton size="small" onClick={() => setQueryExpanded(!queryExpanded)}>
-              {queryExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-            </IconButton>
-          </Box>
-        </SectionHeader>
-        <Collapse in={queryExpanded}>
-          <Box sx={{ px: 0.5 }}>
-            <Paper elevation={0}
-              sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'auto', maxHeight: 280 }}>
-              <Typography component="pre"
-                sx={{ fontFamily: 'monospace', fontSize: '0.72rem', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', m: 0 }}>
-                {dslText}
-              </Typography>
-            </Paper>
-            {policy.trigger_condition && (
-              <Box sx={{ mt: 1 }}>
-                <FieldRow label={t('dpTriggerCondition')}><FieldValue mono>{policy.trigger_condition}</FieldValue></FieldRow>
-              </Box>
-            )}
-          </Box>
-        </Collapse>
-
-        <SectionHeader>{t('dpSectionClassification')}</SectionHeader>
+        <SectionHeader>{t('dpSectionRules')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
-          <FieldRow label={t('dpMitreTactics')}>
+          <FieldRow label={t('dpLinkedRules')}>
             <Stack direction="row" flexWrap="wrap" gap={0.5}>
-              {(policy.mitre_tactic_ids ?? []).length > 0 ? policy.mitre_tactic_ids.map(t_id => (
-                <Chip key={t_id} label={t_id} size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 20, fontFamily: 'monospace' }} />
+              {(detector.linked_rule_ids ?? []).length > 0 ? detector.linked_rule_ids.map((ruleId) => (
+                <Chip key={ruleId} label={ruleId} size="small" variant="outlined"
+                  sx={{ fontSize: '0.58rem', height: 20, fontFamily: 'monospace', maxWidth: 200 }} />
               )) : <Typography variant="caption" color="text.disabled">-</Typography>}
             </Stack>
           </FieldRow>
-          <FieldRow label={t('dpMitreTechniques')}>
-            <Stack direction="row" flexWrap="wrap" gap={0.5}>
-              {(policy.mitre_technique_ids ?? []).length > 0 ? policy.mitre_technique_ids.map(tid => (
-                <Chip key={tid} label={tid} size="small" color="primary" variant="outlined"
-                  sx={{ fontSize: '0.6rem', height: 20, fontWeight: 'bold', fontFamily: 'monospace' }} />
-              )) : <Typography variant="caption" color="text.disabled">-</Typography>}
-            </Stack>
-          </FieldRow>
+
+          {(detector.field_mappings ?? []).length > 0 && (
+            <Box sx={{ mt: 1 }}>
+              <FieldLabel>{t('dpFieldMappings')}</FieldLabel>
+              <Table size="small" sx={{ mt: 0.5, '& td, & th': { py: 0.5, px: 1, fontSize: '0.68rem' } }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Rule Field</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Log Field</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {detector.field_mappings.map((fm, i) => (
+                    <TableRow key={i}>
+                      <TableCell sx={{ fontFamily: 'monospace' }}>{fm.rule_field}</TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace' }}>{fm.log_field}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          )}
         </Box>
 
         <SectionHeader>{t('dpSectionOperation')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
-          <FieldRow label={t('dpLastRun')}><FieldValue mono>{policy.last_run_at ? new Date(policy.last_run_at).toLocaleString() : '-'}</FieldValue></FieldRow>
-          <FieldRow label={t('dpLastTriggered')}><FieldValue mono>{policy.last_triggered_at ? new Date(policy.last_triggered_at).toLocaleString() : '-'}</FieldValue></FieldRow>
-          <FieldRow label={t('dpTotalEvents')}><FieldValue>{policy.total_events_count}</FieldValue></FieldRow>
-          <FieldRow label={t('dpCreatedBy')}><FieldValue>{policy.created_by || '-'}</FieldValue></FieldRow>
-          <FieldRow label={t('dpCreatedAt')}><FieldValue mono>{new Date(policy.created_at).toLocaleString()}</FieldValue></FieldRow>
+          <FieldRow label={t('dpLastRun')}><FieldValue mono>{detector.last_run_at ? new Date(detector.last_run_at).toLocaleString() : '-'}</FieldValue></FieldRow>
+          <FieldRow label={t('dpLastTriggered')}><FieldValue mono>{detector.last_triggered_at ? new Date(detector.last_triggered_at).toLocaleString() : '-'}</FieldValue></FieldRow>
+          <FieldRow label={t('dpTotalFindings')}><FieldValue>{detector.total_findings_count}</FieldValue></FieldRow>
+          <FieldRow label={t('dpCreatedBy')}><FieldValue>{detector.created_by || '-'}</FieldValue></FieldRow>
+          <FieldRow label={t('dpCreatedAt')}><FieldValue mono>{detector.created_at ? new Date(detector.created_at).toLocaleString() : '-'}</FieldValue></FieldRow>
         </Box>
 
-        {/* 최근 이벤트 */}
         <Divider sx={{ my: 2 }} />
-        <SectionHeader>{t('dpRecentEvents')}</SectionHeader>
-        {events.length > 0 ? (
+        <SectionHeader>{t('dpRecentFindings')}</SectionHeader>
+        {findings.length > 0 ? (
           <List disablePadding sx={{ px: 0.5 }}>
-            {events.map(ev => (
-              <ListItemButton key={ev.id} sx={{ py: 0.75, px: 1, borderBottom: 1, borderColor: 'divider', borderRadius: 0.5 }}>
+            {findings.map(finding => (
+              <ListItemButton key={finding.id} sx={{ py: 0.75, px: 1, borderBottom: 1, borderColor: 'divider', borderRadius: 0.5 }}>
                 <ListItemText
-                  primary={ev.message || `${ev.matched_count}건 매칭`}
-                  secondary={ev.created_at ? new Date(ev.created_at).toLocaleString() : ''}
+                  primary={finding.message || `${finding.matched_count}건 매칭`}
+                  secondary={
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                      {finding.rule_name && (
+                        <Chip label={finding.rule_name} size="small" variant="outlined"
+                          sx={{ fontSize: '0.55rem', height: 16, maxWidth: 120 }} />
+                      )}
+                      <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                        {finding.created_at ? new Date(finding.created_at).toLocaleString() : ''}
+                      </Typography>
+                    </Box>
+                  }
                   primaryTypographyProps={{ variant: 'caption', fontWeight: 600, fontSize: '0.72rem' }}
-                  secondaryTypographyProps={{ variant: 'caption', fontSize: '0.62rem' }}
+                  secondaryTypographyProps={{ component: 'div' }}
                 />
                 <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-                  <SeverityChip severity={ev.severity} size="small" />
+                  <SeverityChip severity={finding.severity} size="small" />
                   <Chip
-                    label={ev.status}
+                    label={finding.status}
                     size="small"
-                    color={EVENT_STATUS_COLORS[ev.status] ?? 'default'}
+                    color={FINDING_STATUS_COLORS[finding.status] ?? 'default'}
                     variant="outlined"
                     sx={{ fontSize: '0.58rem', height: 18, textTransform: 'capitalize' }}
                   />
@@ -206,7 +217,7 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
           </List>
         ) : (
           <Typography variant="caption" color="text.disabled" sx={{ px: 0.5, display: 'block', pb: 2 }}>
-            {t('dpNoEvents')}
+            {t('dpNoFindings')}
           </Typography>
         )}
       </Box>

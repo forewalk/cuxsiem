@@ -11,6 +11,8 @@ import {
 import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import React, { useState } from 'react';
 import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
@@ -20,6 +22,8 @@ interface DetectionRuleDetailProps {
   rule: SigmaRuleDetailType | null;
   t: (key: string, params?: Record<string, string>) => string;
   loading?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -56,7 +60,7 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </Box>
 );
 
-export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading }) => {
+export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, onEdit, onDelete }) => {
   const [detectionExpanded, setDetectionExpanded] = useState(false);
 
   if (!rule) {
@@ -78,9 +82,24 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
   return (
     <Paper elevation={1} sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRadius: 1.5, overflow: 'hidden' }}>
       <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
-          {t('drRuleDetail')}
-        </Typography>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
+            {t('drRuleDetail')}
+          </Typography>
+          <Chip
+            label={rule.type === 'custom' ? t('drRuleTypeCustom') : t('drRuleTypeSigma')}
+            size="small"
+            color={rule.type === 'custom' ? 'secondary' : 'default'}
+            variant="outlined"
+            sx={{ fontSize: '0.6rem', height: 20 }}
+          />
+        </Stack>
+        {rule.type === 'custom' && (
+          <Stack direction="row" spacing={0.5}>
+            {onEdit && <IconButton size="small" onClick={onEdit}><EditIcon fontSize="small" /></IconButton>}
+            {onDelete && <IconButton size="small" onClick={onDelete} color="error"><DeleteIcon fontSize="small" /></IconButton>}
+          </Stack>
+        )}
       </Box>
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 1.5 }}>
