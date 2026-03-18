@@ -565,6 +565,7 @@
   "drLicense": "ライセンス",
   "drRevision": "リビジョン",
   "drCreateCustomRule": "カスタムルール作成",
+  "drSearchPlaceholder": "ルール名、説明で検索",
   "drEditCustomRule": "カスタムルール編集",
   "drFilterAll": "すべて",
   "drFilterSigma": "Standard",

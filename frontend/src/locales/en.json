@@ -556,6 +556,7 @@
   "drLicense": "License",
   "drRevision": "Revision",
   "drCreateCustomRule": "Create Custom Rule",
+  "drSearchPlaceholder": "Search rules by name or description",
   "drEditCustomRule": "Edit Custom Rule",
   "drFilterAll": "All",
   "drFilterSigma": "Standard",

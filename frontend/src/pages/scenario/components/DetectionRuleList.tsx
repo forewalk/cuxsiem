@@ -1,11 +1,13 @@
 import { SeverityChip } from '@/components/shared/SeverityChip';
 import type { Detector, SigmaRuleListItem } from '@/types';
 import {
+  Add as AddIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import {
   Box,
+  Button,
   Checkbox,
   Chip,
   IconButton,
@@ -43,6 +45,9 @@ interface DetectionRuleListProps {
   pageSize: number;
   onRulePageChange: (page: number) => void;
   onDetectorPageChange: (page: number) => void;
+  onCreateCustomRule: () => void;
+  onCreateDetector: () => void;
+  onCreateDetectorWithRules: () => void;
 }
 
 const extractFirstTechnique = (ids: string[]): string | null => ids.length > 0 ? ids[0] : null;
@@ -109,6 +114,9 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   pageSize,
   onRulePageChange,
   onDetectorPageChange,
+  onCreateCustomRule,
+  onCreateDetector,
+  onCreateDetectorWithRules,
 }) => {
 
   return (
@@ -144,6 +152,20 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
       </Tabs>
 
       {activeTab === 0 && (<>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+          <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
+            onClick={onCreateCustomRule}
+            sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
+            {t('drCreateCustomRule')}
+          </Button>
+          {checkedRuleIds.size > 0 && (
+            <Button size="small" variant="contained" color="secondary" startIcon={<AddIcon />} fullWidth
+              onClick={onCreateDetectorWithRules}
+              sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
+              {t('dpCreate')} ({checkedRuleIds.size})
+            </Button>
+          )}
+        </Box>
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {rules.length > 0 ? rules.map((rule) => {
             const technique = extractFirstTechnique(rule.mitre_technique_ids);
@@ -219,6 +241,13 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
       </>)}
 
       {activeTab === 1 && (<>
+        <Box sx={{ px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+          <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
+            onClick={onCreateDetector}
+            sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
+            {t('dpCreate')}
+          </Button>
+        </Box>
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {detectors.length > 0 ? detectors.map((detector) => (
             <ListItemButton

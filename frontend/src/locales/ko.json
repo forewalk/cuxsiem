@@ -580,6 +580,7 @@
   "drLicense": "라이선스",
   "drRevision": "리비전",
   "drCreateCustomRule": "커스텀 룰 생성",
+  "drSearchPlaceholder": "규칙명, 설명 검색",
   "drEditCustomRule": "커스텀 룰 수정",
   "drFilterAll": "전체",
   "drFilterSigma": "Standard",

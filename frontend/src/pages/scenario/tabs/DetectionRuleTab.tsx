@@ -1,16 +1,7 @@
-import {
-  ConstructionOutlined as ConstructionIcon,
-  Rule as RuleIcon,
-  Add as AddIcon,
-} from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  Chip,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Box, Button } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
+import ControlSearchBar from '../../../components/shared/ControlSearchBar';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { DetectionRuleDetail } from '../components/DetectionRuleDetail';
@@ -33,6 +24,10 @@ const DetectionRuleTab: React.FC = () => {
   const { t } = useTranslation();
   const { settings } = useSettingsStore();
   const [activeTab, setActiveTab] = useState(0);
+
+  // Search & refresh
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Detection rules state (Sigma + Custom)
   const [rules, setRules] = useState<SigmaRuleListItem[]>([]);
@@ -64,7 +59,9 @@ const DetectionRuleTab: React.FC = () => {
     const fetchRules = async () => {
       setLoading(true);
       try {
-        const data = await detectionRuleService.list({ skip: rulePage * rulePageSize, limit: rulePageSize });
+        const params: Record<string, unknown> = { skip: rulePage * rulePageSize, limit: rulePageSize };
+        if (searchQuery) params.search = searchQuery;
+        const data = await detectionRuleService.list(params);
         if (!cancelled) {
           setRules(data.items);
           setRuleTotal(data.total);
@@ -77,7 +74,7 @@ const DetectionRuleTab: React.FC = () => {
     };
     fetchRules();
     return () => { cancelled = true; };
-  }, [rulePage, rulePageSize]);
+  }, [rulePage, rulePageSize, searchQuery, refreshKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -339,56 +336,48 @@ const DetectionRuleTab: React.FC = () => {
     );
   };
 
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setRulePage(0);
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
+
   const handleCreateDetectorWithCheckedRules = useCallback(() => {
     setActiveTab(1);
     setEditingDetector(null);
     setShowDetectorForm(true);
   }, []);
 
-  const showCreateButton = () => {
-    if (activeTab === 0 && !showCustomRuleForm) {
-      return (
-        <Stack direction="row" spacing={1}>
-          {checkedRuleIds.size > 0 && (
-            <Button size="small" variant="contained" color="secondary" startIcon={<AddIcon />}
-              onClick={handleCreateDetectorWithCheckedRules}
-              sx={{ fontSize: '0.72rem', textTransform: 'none' }}>
-              {t('dpCreate')} ({checkedRuleIds.size})
-            </Button>
-          )}
-          <Button size="small" variant="contained" startIcon={<AddIcon />}
-            onClick={() => { setShowCustomRuleForm(true); setEditingRule(null); }}
-            sx={{ fontSize: '0.72rem', textTransform: 'none' }}>
-            {t('drCreateCustomRule')}
-          </Button>
-        </Stack>
-      );
-    }
-    if (activeTab === 1 && !showDetectorForm) {
-      return (
-        <Button size="small" variant="contained" startIcon={<AddIcon />}
-          onClick={() => { setShowDetectorForm(true); setEditingDetector(null); }}
-          sx={{ fontSize: '0.72rem', textTransform: 'none' }}>
-          {t('dpCreate')}
-        </Button>
-      );
-    }
-    return null;
-  };
+  const handleOpenCustomRuleForm = useCallback(() => {
+    setShowCustomRuleForm(true);
+    setEditingRule(null);
+  }, []);
+
+  const handleOpenDetectorForm = useCallback(() => {
+    setShowDetectorForm(true);
+    setEditingDetector(null);
+  }, []);
 
   return (
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
 
-      <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <RuleIcon sx={{ fontSize: 20, color: 'primary.main' }} />
-          <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-            {t('detectionRules')}
-          </Typography>
-          <Chip label={t('heartbeatBeta')} size="small" variant="outlined" color="warning" icon={<ConstructionIcon />}
-            sx={{ fontSize: '0.6rem', height: 22 }} />
-        </Stack>
-        {showCreateButton()}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5, flexShrink: 0 }}>
+        <ControlSearchBar
+          t={t}
+          placeholder={t('drSearchPlaceholder')}
+          onSubmit={handleSearch}
+        />
+        <Button
+          variant="contained" disableElevation
+          startIcon={<RefreshIcon sx={{ fontSize: 16 }} />}
+          onClick={handleRefresh}
+          sx={{ bgcolor: '#005a5e', color: '#fff', textTransform: 'none', fontWeight: 'bold', px: 1.5, minWidth: 80, minHeight: 32, fontSize: '0.75rem', '&:hover': { bgcolor: '#004a4d' } }}
+        >
+          {t('refresh')}
+        </Button>
       </Box>
 
       <Box id="detection-master-detail" sx={{ flex: '1 1 0', display: 'flex', minHeight: 0, overflow: 'hidden' }}>
@@ -422,6 +411,9 @@ const DetectionRuleTab: React.FC = () => {
           pageSize={rulePageSize}
           onRulePageChange={setRulePage}
           onDetectorPageChange={setDetectorPage}
+          onCreateCustomRule={handleOpenCustomRuleForm}
+          onCreateDetector={handleOpenDetectorForm}
+          onCreateDetectorWithRules={handleCreateDetectorWithCheckedRules}
         />
 
         <Box

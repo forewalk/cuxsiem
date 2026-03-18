@@ -553,6 +553,7 @@
   "drLicense": "许可证",
   "drRevision": "版本",
   "drCreateCustomRule": "创建自定义规则",
+  "drSearchPlaceholder": "按规则名称或描述搜索",
   "drEditCustomRule": "编辑自定义规则",
   "drFilterAll": "全部",
   "drFilterSigma": "Standard",
