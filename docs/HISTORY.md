@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-18 18:10 | 박지은 | 배포 | origin/feature/detections push (세 번째 패널 규칙 미리보기, ResizablePanel 양방향, DetectorForm 서버사이드 필터링+페이지네이션) |
 | 2026-03-17 14:30 | 박지은 | 배포 | origin/feature/detection push (디텍션 룰 UI, 대시보드 검색 UUID 버그 수정, 위협현황 컬럼명 중복 구분) |
 | 2026-03-17 | 김장훈 | 배포 | origin/develop push (헬스체크 통합 — TCP/HTTP/SSL 단일 탭, 검색바, 시간/검색 필터, 공유 컴포넌트 추출) |
 | 2026-03-15 | 김장훈 | 배포 | origin/develop push (시나리오 메뉴 신설, BOM 메뉴 신설, 사이드메뉴 초기값 접힘 상태 변경) |
