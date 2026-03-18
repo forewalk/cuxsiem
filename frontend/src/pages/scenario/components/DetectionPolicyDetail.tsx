@@ -20,7 +20,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import React from 'react';
-import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
+import { SeverityChip } from '@/components/shared/SeverityChip';
 import type { Detector, Finding } from '@/types';
 
 interface DetectionPolicyDetailProps {

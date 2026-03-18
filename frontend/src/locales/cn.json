@@ -530,6 +530,7 @@
   "drAuthor": "作者",
   "drReferences": "参考文档",
   "drFalsePositives": "误报案例",
+  "drFalsePositivesPlaceholder": "每行输入一个",
   "drRuleStatus": "规则状态",
   "drRuleId": "规则ID",
   "drRuleType": "规则类型",
@@ -594,5 +595,7 @@
   "dpSectionBasic": "基本信息",
   "dpSectionRules": "关联规则和字段映射",
   "dpSectionClassification": "分类",
-  "dpSectionOperation": "运营信息"
+  "dpSectionOperation": "运营信息",
+  "dpTargetIndicesHelper": "用逗号(,)分隔多个索引",
+  "dpAddMapping": "添加映射"
 }

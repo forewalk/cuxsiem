@@ -12,7 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import React from 'react';
-import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
+import { SeverityChip } from '@/components/shared/SeverityChip';
 import type { SigmaRuleListItem, Detector } from '@/types';
 
 interface DetectionRuleListProps {

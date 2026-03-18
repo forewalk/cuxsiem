@@ -1,5 +1,5 @@
 import { useTranslation } from '@/hooks/useTranslation';
-import { SeverityChip } from '@/pages/admin/alerts/components/SeverityChip';
+import { SeverityChip } from '@/components/shared/SeverityChip';
 import { notificationService } from '@/services/notificationService';
 import useTabStore from '@/stores/tabStore';
 import { useLanguageStore } from '@/stores/useLanguageStore';

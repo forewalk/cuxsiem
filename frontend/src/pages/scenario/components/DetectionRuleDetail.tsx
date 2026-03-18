@@ -15,7 +15,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import React, { useState } from 'react';
-import { SeverityChip } from '../../admin/alerts/components/SeverityChip';
+import { SeverityChip } from '@/components/shared/SeverityChip';
 import type { SigmaRuleDetail as SigmaRuleDetailType } from '@/types';
 
 interface DetectionRuleDetailProps {

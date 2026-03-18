@@ -11,6 +11,7 @@ import {
   useTheme,
 } from '@mui/material';
 import React, { useCallback, useState } from 'react';
+import { SeverityChip } from '@/components/shared/SeverityChip';
 import type { CustomRuleCreate, SigmaRuleDetail } from '@/types';
 
 const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -30,6 +31,9 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
 
+const inputSx = { fontSize: '0.75rem' } as const;
+const labelSx = { fontSize: '0.75rem' } as const;
+
 interface CustomRuleFormProps {
   initialData?: Partial<SigmaRuleDetail>;
   isEditing?: boolean;
@@ -46,6 +50,7 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
   t,
 }) => {
   const theme = useTheme();
+  const monacoTheme = theme.palette.mode === 'dark' ? 'vs-dark' : 'light';
   const [name, setName] = useState(initialData?.name ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [severity, setSeverity] = useState(initialData?.level_normalized ?? 'medium');
@@ -99,68 +104,109 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
           {isEditing ? t('drEditCustomRule') : t('drCreateCustomRule')}
         </Typography>
         <Stack direction="row" spacing={1}>
-          <Button size="small" onClick={onCancel}>{t('dpCancel')}</Button>
-          <Button size="small" variant="contained" onClick={handleSubmit} disabled={!name || !!jsonError}>
+          <Button variant="outlined" size="small" onClick={onCancel}
+            sx={{ textTransform: 'none', fontSize: '0.75rem' }}>
+            {t('dpCancel')}
+          </Button>
+          <Button variant="contained" color="primary" size="small" onClick={handleSubmit}
+            disabled={!name || !!jsonError}
+            sx={{ textTransform: 'none', fontSize: '0.75rem' }}>
             {t('dpSave')}
           </Button>
         </Stack>
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 1.5 }}>
-        <SectionHeader>{t('drSectionSummary')}</SectionHeader>
-        <Grid container spacing={2} sx={{ px: 0.5 }}>
-          <Grid size={{ xs: 12 }}>
-            <TextField fullWidth size="small" label={t('drRuleName')} value={name} onChange={e => setName(e.target.value)} required />
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <TextField fullWidth size="small" label={t('drDescription')} value={description} onChange={e => setDescription(e.target.value)} multiline rows={2} />
-          </Grid>
-          <Grid size={{ xs: 4 }}>
-            <TextField fullWidth size="small" select label={t('dpSeverity')} value={severity} onChange={e => setSeverity(e.target.value)}>
-              {SEVERITIES.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-            </TextField>
-          </Grid>
-          <Grid size={{ xs: 8 }}>
-            <Stack direction="row" spacing={1}>
-              <TextField size="small" label="Category" value={logSourceCategory} onChange={e => setLogSourceCategory(e.target.value)} sx={{ flex: 1 }} />
-              <TextField size="small" label="Product" value={logSourceProduct} onChange={e => setLogSourceProduct(e.target.value)} sx={{ flex: 1 }} />
-              <TextField size="small" label="Service" value={logSourceService} onChange={e => setLogSourceService(e.target.value)} sx={{ flex: 1 }} />
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+        <Grid container spacing={3}>
+          {/* 1. 기본 정보 */}
+          <Grid size={12}>
+            <SectionHeader>{t('drSectionSummary')}</SectionHeader>
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={2}>
+                <TextField label={t('drRuleName')} fullWidth required value={name}
+                  onChange={e => setName(e.target.value)} size="small"
+                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+                <TextField select label={t('dpSeverity')} sx={{ minWidth: 140 }} value={severity}
+                  onChange={e => setSeverity(e.target.value)} size="small"
+                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
+                  SelectProps={{ renderValue: (v) => <SeverityChip severity={v as string} /> }}>
+                  {SEVERITIES.map(s => (
+                    <MenuItem key={s} value={s} sx={{ fontSize: '0.75rem' }}>
+                      <SeverityChip severity={s} />
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
+              <TextField label={t('drDescription')} fullWidth multiline rows={2} value={description}
+                onChange={e => setDescription(e.target.value)} size="small"
+                InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+              <Stack direction="row" spacing={2}>
+                <TextField size="small" label="Category" value={logSourceCategory}
+                  onChange={e => setLogSourceCategory(e.target.value)} sx={{ flex: 1 }}
+                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+                <TextField size="small" label="Product" value={logSourceProduct}
+                  onChange={e => setLogSourceProduct(e.target.value)} sx={{ flex: 1 }}
+                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+                <TextField size="small" label="Service" value={logSourceService}
+                  onChange={e => setLogSourceService(e.target.value)} sx={{ flex: 1 }}
+                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+              </Stack>
             </Stack>
           </Grid>
-        </Grid>
 
-        <SectionHeader>{t('drSectionDetection')}</SectionHeader>
-        <Box sx={{ px: 0.5 }}>
-          <Box sx={{ border: '1px solid', borderColor: jsonError ? 'error.main' : 'divider', borderRadius: 1, overflow: 'hidden' }}>
-            <MonacoEditor
-              height={200}
-              language="json"
-              theme={theme.palette.mode === 'dark' ? 'vs-dark' : 'light'}
-              value={dslString}
-              onChange={handleDslChange}
-              options={{ minimap: { enabled: false }, lineNumbers: 'on', scrollBeyondLastLine: false, fontSize: 12 }}
-            />
-          </Box>
-          {jsonError && <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>{jsonError}</Typography>}
-        </Box>
-
-        <SectionHeader>{t('drSectionClassification')}</SectionHeader>
-        <Grid container spacing={2} sx={{ px: 0.5 }}>
-          <Grid size={{ xs: 6 }}>
-            <TextField fullWidth size="small" label={t('drTechnique')} value={mitreTechniques}
-              onChange={e => setMitreTechniques(e.target.value)} placeholder="T1059, T1027" />
+          {/* 2. 탐지 쿼리 */}
+          <Grid size={12}>
+            <SectionHeader>{t('drSectionDetection')}</SectionHeader>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, display: 'block', color: 'text.secondary' }}>
+              DSL Query
+            </Typography>
+            <Box sx={{
+              border: '1px solid',
+              borderColor: jsonError ? 'error.main' : 'divider',
+              borderRadius: 1,
+              overflow: 'hidden',
+              '&:focus-within': { borderColor: jsonError ? 'error.main' : 'primary.main', borderWidth: 2 },
+            }}>
+              <MonacoEditor
+                height={200}
+                language="json"
+                theme={monacoTheme}
+                value={dslString}
+                onChange={handleDslChange}
+                options={{
+                  minimap: { enabled: false }, fontSize: 12,
+                  lineNumbers: 'on', lineNumbersMinChars: 2, lineDecorationsWidth: 4,
+                  glyphMargin: false, scrollBeyondLastLine: false, automaticLayout: true,
+                  tabSize: 2, wordWrap: 'on', formatOnPaste: true, formatOnType: true,
+                  bracketPairColorization: { enabled: true },
+                  scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+                }}
+              />
+            </Box>
+            {jsonError && <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>{jsonError}</Typography>}
           </Grid>
-          <Grid size={{ xs: 6 }}>
-            <TextField fullWidth size="small" label={t('drMitreTags')} value={mitreTactics}
-              onChange={e => setMitreTactics(e.target.value)} placeholder="execution, defense_evasion" />
-          </Grid>
-        </Grid>
 
-        <SectionHeader>{t('drSectionDocumentation')}</SectionHeader>
-        <Grid container spacing={2} sx={{ px: 0.5, pb: 2 }}>
-          <Grid size={{ xs: 12 }}>
+          {/* 3. 분류 */}
+          <Grid size={12}>
+            <SectionHeader>{t('drSectionClassification')}</SectionHeader>
+            <Stack direction="row" spacing={2}>
+              <TextField fullWidth size="small" label={t('drTechnique')} value={mitreTechniques}
+                onChange={e => setMitreTechniques(e.target.value)} placeholder="T1059, T1027"
+                InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+              <TextField fullWidth size="small" label={t('drMitreTags')} value={mitreTactics}
+                onChange={e => setMitreTactics(e.target.value)} placeholder="execution, defense_evasion"
+                InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+            </Stack>
+          </Grid>
+
+          {/* 4. 문서화 */}
+          <Grid size={12}>
+            <SectionHeader>{t('drSectionDocumentation')}</SectionHeader>
             <TextField fullWidth size="small" label={t('drFalsePositives')} value={falsePositives}
-              onChange={e => setFalsePositives(e.target.value)} multiline rows={2} placeholder="한 줄에 하나씩 입력" />
+              onChange={e => setFalsePositives(e.target.value)} multiline rows={2}
+              placeholder={t('drFalsePositivesPlaceholder')}
+              InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
+              FormHelperTextProps={{ sx: { fontSize: '0.65rem' } }} />
           </Grid>
         </Grid>
       </Box>

@@ -533,6 +533,7 @@
   "drAuthor": "Author",
   "drReferences": "References",
   "drFalsePositives": "False Positives",
+  "drFalsePositivesPlaceholder": "One per line",
   "drRuleStatus": "Rule Status",
   "drRuleId": "Rule ID",
   "drRuleType": "Rule Type",
@@ -597,5 +598,7 @@
   "dpSectionBasic": "Basic Information",
   "dpSectionRules": "Linked Rules & Field Mappings",
   "dpSectionClassification": "Classification",
-  "dpSectionOperation": "Operational Info"
+  "dpSectionOperation": "Operational Info",
+  "dpTargetIndicesHelper": "Enter multiple indices separated by commas",
+  "dpAddMapping": "Add Mapping"
 }

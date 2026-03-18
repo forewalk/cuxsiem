@@ -557,6 +557,7 @@
   "drAuthor": "작성자",
   "drReferences": "참조 문서",
   "drFalsePositives": "오탐 사례",
+  "drFalsePositivesPlaceholder": "한 줄에 하나씩 입력",
   "drRuleStatus": "룰 상태",
   "drRuleId": "룰 ID",
   "drRuleType": "룰 유형",
@@ -621,5 +622,7 @@
   "dpSectionBasic": "기본 정보",
   "dpSectionRules": "연결된 규칙 및 필드 매핑",
   "dpSectionClassification": "분류",
-  "dpSectionOperation": "운영 정보"
+  "dpSectionOperation": "운영 정보",
+  "dpTargetIndicesHelper": "콤마(,)로 구분하여 여러 인덱스 입력",
+  "dpAddMapping": "매핑 추가"
 }

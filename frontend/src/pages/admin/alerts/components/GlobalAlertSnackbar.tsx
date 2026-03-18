@@ -2,7 +2,7 @@ import React from 'react';
 import { Snackbar, Alert, Box, Typography } from '@mui/material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import type { AlertSnackbar } from '../../../../hooks/useGlobalAlertNotification';
-import { mapSeverityToMui } from './AlertTableStyles';
+import { mapSeverityToMui } from '@/components/shared/SeverityChip';
 
 interface GlobalAlertSnackbarProps {
   snackbars: AlertSnackbar[];

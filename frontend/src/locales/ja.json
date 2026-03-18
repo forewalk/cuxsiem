@@ -542,6 +542,7 @@
   "drAuthor": "作成者",
   "drReferences": "参考文献",
   "drFalsePositives": "誤検知事例",
+  "drFalsePositivesPlaceholder": "1行に1つずつ入力",
   "drRuleStatus": "ルール状態",
   "drRuleId": "ルールID",
   "drRuleType": "ルールタイプ",
@@ -606,5 +607,7 @@
   "dpSectionBasic": "基本情報",
   "dpSectionRules": "連結ルール・フィールドマッピング",
   "dpSectionClassification": "分類",
-  "dpSectionOperation": "運用情報"
+  "dpSectionOperation": "運用情報",
+  "dpTargetIndicesHelper": "カンマ(,)で区切って複数のインデックスを入力",
+  "dpAddMapping": "マッピング追加"
 }
