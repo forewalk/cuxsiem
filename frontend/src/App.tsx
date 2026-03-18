@@ -31,8 +31,8 @@ import { useRoleCodesStore } from "./stores/useRoleCodesStore";
 import NotificationBell from "./components/NotificationBell";
 import { getRoleName } from "./utils/roleUtils";
 
-const drawerWidth = 232;
-const collapsedWidth = 61;
+const drawerWidth = 246;
+const collapsedWidth = 65;
 const mobileDrawerWidth = 0;
 
 function App() {
@@ -135,15 +135,15 @@ function App() {
       },
     },
     typography: {
-      htmlFontSize: 13.6, // html font-size: 85% × 16px = 13.6px → rem 단위 자동 스케일
+      htmlFontSize: 14.4, // html font-size: 90% × 16px = 14.4px → rem 단위 자동 스케일
     },
-    spacing: 6.8, // 8 × 0.85 = 6.8px — MUI spacing 전체 85% 축소
+    spacing: 7.2, // 8 × 0.90 = 7.2px — MUI spacing 전체 90% 축소
     components: {
       MuiCssBaseline: {
         styleOverrides: `
-          /* 전체 UI 85% 스케일 */
+          /* 전체 UI 90% 스케일 */
           html {
-            font-size: 85% !important;
+            font-size: 90% !important;
           }
 
           /* 브라우저 전체 페이지 스크롤바 숨김 */
@@ -387,7 +387,7 @@ function App() {
               }),
             }}
           >
-            <Toolbar sx={{ justifyContent: "space-between", px: { xs: 1, sm: 3 }, py: { xs: 0.5, sm: 1 }, minHeight: { xs: 48, sm: 54 } }}>
+            <Toolbar sx={{ justifyContent: "space-between", px: { xs: 1, sm: 3 }, py: { xs: 0.5, sm: 1 }, minHeight: { xs: 50, sm: 58 } }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 2 } }}>
                 {isMobile && (
                   <IconButton
@@ -453,8 +453,8 @@ function App() {
             component="main"
             sx={{
               flexGrow: 1,
-              mt: { xs: '48px', sm: '54px' },
-              height: { xs: 'calc(100vh - 48px)', sm: 'calc(100vh - 54px)' },
+              mt: { xs: '50px', sm: '58px' },
+              height: { xs: 'calc(100vh - 50px)', sm: 'calc(100vh - 58px)' },
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',

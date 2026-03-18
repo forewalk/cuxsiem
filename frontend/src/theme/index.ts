@@ -44,10 +44,10 @@ const theme = createTheme({
 export function createPixelTheme() {
   return createTheme({
     typography: {
-      htmlFontSize: 13.6,
+      htmlFontSize: 14.4,
       fontFamily: "'DotGothic16', 'Courier New', monospace",
     },
-    spacing: 6.8,
+    spacing: 7.2,
     palette: {
       mode: "dark",
       primary: { main: "#00FF9C" },
@@ -271,7 +271,7 @@ export function createPixelTheme() {
       },
       MuiCssBaseline: {
         styleOverrides: `
-          html { font-size: 85% !important; }
+          html { font-size: 90% !important; }
           /* 스크롤바 — 폰트는 App.tsx에서 동적 주입 */
           ::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
           ::-webkit-scrollbar-track { background: #0D0E1A !important; }
