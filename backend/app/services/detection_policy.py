@@ -32,6 +32,21 @@ class DetectionPolicyService:
 
     # ── Policy CRUD ──────────────────────────────────────────────────────
 
+    @staticmethod
+    def _normalize_policy(doc: Dict[str, Any]) -> Dict[str, Any]:
+        """구 스키마 필드명을 현재 스키마로 정규화한다."""
+        # schedule_interval_min → interval_min
+        if "interval_min" not in doc and "schedule_interval_min" in doc:
+            doc["interval_min"] = doc["schedule_interval_min"]
+        # target_indices (list) → target_index (str)
+        if "target_index" not in doc and "target_indices" in doc:
+            indices = doc["target_indices"]
+            doc["target_index"] = indices[0] if indices else "logs-sentinel_one.edr"
+        # condition_config 기본값
+        if "condition_config" not in doc:
+            doc["condition_config"] = {}
+        return doc
+
     async def list_policies(
         self,
         skip: int = 0,
@@ -42,13 +57,17 @@ class DetectionPolicyService:
         severity: Optional[str] = None,
         is_active: Optional[bool] = None,
     ):
-        return await self.repository.list_policies(
+        total, items = await self.repository.list_policies(
             skip=skip, limit=limit, sort_by=sort_by, order=order,
             query=query, severity=severity, is_active=is_active,
         )
+        return total, [self._normalize_policy(doc) for doc in items]
 
     async def get_policy(self, policy_id: str):
-        return await self.repository.get_policy_by_id(policy_id)
+        doc = await self.repository.get_policy_by_id(policy_id)
+        if doc:
+            return self._normalize_policy(doc)
+        return None
 
     async def create_policy(self, policy_in: DetectionPolicyCreate, user_id: str = ""):
         return await self.repository.create_policy(policy_in.model_dump(), user_id=user_id)

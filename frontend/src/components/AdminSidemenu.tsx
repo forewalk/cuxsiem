@@ -242,7 +242,7 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
         )}
       </Toolbar>
 
-      <Box sx={{ overflowY: 'auto', flexGrow: 1 }}>
+      <Box sx={{ overflowY: 'auto', overflowX: 'hidden', flexGrow: 1 }}>
         <List>
           {/* Dashboard Menu Group */}
           <ListItem disablePadding sx={{ display: 'block' }}>

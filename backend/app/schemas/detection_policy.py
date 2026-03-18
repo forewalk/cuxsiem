@@ -42,6 +42,9 @@ class DetectionPolicyUpdate(BaseModel):
 
 
 class DetectionPolicyResponse(DetectionPolicyCreate):
+    # 구 문서에는 condition_config / interval_min 이 없을 수 있으므로 Optional로 오버라이드
+    condition_config: Optional[Dict[str, Any]] = None
+    interval_min: Optional[int] = None
     id: str
     last_run_at: Optional[datetime] = None
     last_triggered_at: Optional[datetime] = None
