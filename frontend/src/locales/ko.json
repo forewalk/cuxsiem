@@ -616,6 +616,7 @@
   "dpCreatedAt": "생성일",
   "dpDetectorDetail": "Detector 상세",
   "dpSelectDetectorPrompt": "왼쪽에서 Detector를 선택하세요",
+  "dpRulePreview": "규칙 미리보기",
   "dpRecentFindings": "최근 탐지 결과",
   "dpNoFindings": "탐지 결과가 없습니다",
   "dpMatchedCount": "매칭 건수",

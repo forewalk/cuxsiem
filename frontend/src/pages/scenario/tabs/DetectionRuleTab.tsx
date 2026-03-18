@@ -1,26 +1,26 @@
-import { Refresh as RefreshIcon } from '@mui/icons-material';
-import { Box, Button, Checkbox, Divider, FormControl, ListItemText, MenuItem, Select, Typography } from '@mui/material';
+import type {
+  CustomRuleCreate,
+  Detector,
+  DetectorCreate,
+  Finding,
+  SigmaRuleDetail as SigmaRuleDetailType,
+  SigmaRuleListItem,
+} from '@/types';
+import { Close as CloseIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import { Box, Button, Checkbox, CircularProgress, Divider, FormControl, IconButton, ListItemText, MenuItem, Paper, Select, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ControlSearchBar from '../../../components/shared/ControlSearchBar';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
 import ResizablePanel from '../../../components/shared/ResizablePanel';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { detectorService } from '../../../services/detectionPolicyService';
+import { detectionRuleService } from '../../../services/sigmaRuleService';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { CustomRuleForm } from '../components/CustomRuleForm';
+import { DetectionPolicyDetail } from '../components/DetectionPolicyDetail';
 import { DetectionRuleDetail } from '../components/DetectionRuleDetail';
 import { DetectionRuleList } from '../components/DetectionRuleList';
-import { DetectionPolicyDetail } from '../components/DetectionPolicyDetail';
 import { DetectorForm } from '../components/DetectorForm';
-import { CustomRuleForm } from '../components/CustomRuleForm';
-import { detectionRuleService } from '../../../services/sigmaRuleService';
-import { detectorService } from '../../../services/detectionPolicyService';
-import { LOG_TYPE_GROUPS, ALL_LOG_TYPES } from '../constants/logTypes';
-import type {
-  SigmaRuleListItem,
-  SigmaRuleDetail as SigmaRuleDetailType,
-  Detector,
-  Finding,
-  DetectorCreate,
-  CustomRuleCreate,
-} from '@/types';
+import { ALL_LOG_TYPES, LOG_TYPE_GROUPS } from '../constants/logTypes';
 
 const FILTER_SX = {
   width: 130,
@@ -135,6 +135,12 @@ const DetectionRuleTab: React.FC = () => {
   const [showDetectorForm, setShowDetectorForm] = useState(false);
   const [editingDetector, setEditingDetector] = useState<Detector | null>(null);
 
+  // Rule preview panel (Panel 3)
+  const [previewRuleId, setPreviewRuleId] = useState<string | null>(null);
+  const [previewRule, setPreviewRule] = useState<SigmaRuleDetailType | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     const fetchRules = async () => {
@@ -223,6 +229,41 @@ const DetectionRuleTab: React.FC = () => {
     return () => { cancelled = true; };
   }, [selectedDetectorId]);
 
+  useEffect(() => {
+    if (!previewRuleId) { setPreviewRule(null); setPreviewLoading(false); setPreviewError(null); return; }
+    let cancelled = false;
+    setPreviewRule(null);
+    setPreviewError(null);
+    setPreviewLoading(true);
+    const fetchPreview = async () => {
+      try {
+        const data = await detectionRuleService.getById(previewRuleId);
+        if (!cancelled) {
+          if (data) {
+            setPreviewRule(data);
+          } else {
+            setPreviewError(`Rule not found: ${previewRuleId}`);
+          }
+        }
+      } catch (err) {
+        console.error('[Panel3] Failed to fetch rule:', previewRuleId, err);
+        if (!cancelled) setPreviewError(`${previewRuleId}`);
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    };
+    fetchPreview();
+    return () => { cancelled = true; };
+  }, [previewRuleId]);
+
+  const handlePreviewRule = useCallback((ruleId: string) => {
+    setPreviewRuleId(prev => prev === ruleId ? null : ruleId);
+  }, []);
+
+  const handleClosePreview = useCallback(() => {
+    setPreviewRuleId(null);
+  }, []);
+
   const handleToggleEnabled = useCallback(async (ruleId: string) => {
     try {
       const result = await detectionRuleService.toggle(ruleId);
@@ -247,6 +288,7 @@ const DetectionRuleTab: React.FC = () => {
     setShowCustomRuleForm(false);
     setEditingDetector(null);
     setEditingRule(null);
+    setPreviewRuleId(null);
   }, []);
 
   // Custom Rule handlers
@@ -358,6 +400,7 @@ const DetectionRuleTab: React.FC = () => {
             onSave={editingDetector ? handleUpdateDetector : handleCreateDetector}
             onCancel={() => { setShowDetectorForm(false); setEditingDetector(null); }}
             rules={rules}
+            onRuleClick={handlePreviewRule}
             t={t}
           />
         );
@@ -369,6 +412,8 @@ const DetectionRuleTab: React.FC = () => {
           loading={detailLoading}
           onEdit={handleEditDetector}
           onDelete={handleDeleteDetector}
+          onRuleClick={handlePreviewRule}
+          rules={rules}
           t={t}
         />
       );
@@ -467,7 +512,8 @@ const DetectionRuleTab: React.FC = () => {
       </Box>
 
       <Box id="detection-master-detail" sx={{ flex: '1 1 0', display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-        <ResizablePanel containerId="detection-master-detail" initialWidth={320} minWidth={200} maxWidth={600}>
+        {/* Panel 1: 목록 */}
+        <ResizablePanel initialWidth={320} minWidth={200} maxWidth={600}>
           {(width) => (
             <DetectionRuleList
               width={width}
@@ -485,6 +531,7 @@ const DetectionRuleTab: React.FC = () => {
                 setSelectedDetectorId(detectorId);
                 setShowDetectorForm(false);
                 setEditingDetector(null);
+                setPreviewRuleId(null);
               }}
               onToggleEnabled={handleToggleEnabled}
               onToggleCheck={handleToggleCheck}
@@ -506,7 +553,50 @@ const DetectionRuleTab: React.FC = () => {
           )}
         </ResizablePanel>
 
-        {renderDetailPanel()}
+        {/* Panel 2: 상세/폼 */}
+        <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
+          {renderDetailPanel()}
+        </Box>
+
+        {/* Panel 3: 규칙 미리보기 (On-Demand) */}
+        {previewRuleId && (
+          <ResizablePanel direction="right" initialWidth={420} minWidth={280} maxWidth={700}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+              <Box sx={{ position: 'absolute', top: 6, right: 10, zIndex: 1 }}>
+                <IconButton size="small" onClick={handleClosePreview} sx={{ p: 0.25, bgcolor: 'background.paper', boxShadow: 1, '&:hover': { bgcolor: 'action.hover' } }}>
+                  <CloseIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Box>
+              {previewLoading ? (
+                <Paper elevation={1} sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5 }}>
+                  <CircularProgress size={24} />
+                </Paper>
+              ) : previewRule ? (
+                <DetectionRuleDetail
+                  rule={previewRule}
+                  t={t}
+                  loading={false}
+                  compact
+                />
+              ) : previewError ? (
+                <Paper elevation={1} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5, p: 2 }}>
+                  <Typography variant="caption" color="error" sx={{ fontSize: '0.7rem', mb: 0.5 }}>
+                    {t('dpRulePreview')}: 규칙을 찾을 수 없습니다
+                  </Typography>
+                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.6rem', wordBreak: 'break-all' }}>
+                    ID: {previewError}
+                  </Typography>
+                </Paper>
+              ) : (
+                <Paper elevation={1} sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                    {t('dpRulePreview')}
+                  </Typography>
+                </Paper>
+              )}
+            </Box>
+          </ResizablePanel>
+        )}
       </Box>
     </Box>
   );

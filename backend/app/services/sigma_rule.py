@@ -96,7 +96,10 @@ class SigmaRuleService:
         return await self.repository.get_filter_options(log_source_product=log_source_product)
 
     async def get_rule(self, rule_id: str):
-        return await self.repository.get_rule_by_id(rule_id)
+        result = await self.repository.get_rule_by_id(rule_id)
+        if not result:
+            result = await self.repository.get_rule_by_sigma_id(rule_id)
+        return result
 
     async def toggle_status(self, rule_id: str):
         return await self.repository.toggle_status(rule_id)

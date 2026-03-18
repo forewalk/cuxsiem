@@ -601,6 +601,7 @@
   "dpCreatedAt": "作成日",
   "dpDetectorDetail": "Detector詳細",
   "dpSelectDetectorPrompt": "左からDetectorを選択してください",
+  "dpRulePreview": "ルールプレビュー",
   "dpRecentFindings": "最近の検知結果",
   "dpNoFindings": "検知結果がありません",
   "dpMatchedCount": "マッチ件数",

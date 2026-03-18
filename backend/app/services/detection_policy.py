@@ -164,6 +164,7 @@ class DetectionPolicyService:
                 rules.append(rule)
         return rules
 
+
     async def _run_rule_against_indices(
         self,
         detector: Dict[str, Any],

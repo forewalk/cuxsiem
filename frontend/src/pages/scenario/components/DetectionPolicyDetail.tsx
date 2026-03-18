@@ -21,7 +21,7 @@ import {
 } from '@mui/icons-material';
 import React from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
-import type { Detector, Finding } from '@/types';
+import type { Detector, Finding, SigmaRuleListItem } from '@/types';
 
 interface DetectionPolicyDetailProps {
   detector: Detector | null;
@@ -29,6 +29,8 @@ interface DetectionPolicyDetailProps {
   loading?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onRuleClick?: (ruleId: string) => void;
+  rules?: SigmaRuleListItem[];
   t: (key: string) => string;
 }
 
@@ -79,8 +81,15 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
   loading,
   onEdit,
   onDelete,
+  onRuleClick,
+  rules = [],
   t,
 }) => {
+  const ruleNameMap = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const r of rules) map[r.id] = r.name;
+    return map;
+  }, [rules]);
 
   if (!detector) {
     return (
@@ -140,10 +149,21 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
         <SectionHeader>{t('dpSectionRules')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
           <FieldRow label={t('dpLinkedRules')}>
-            <Stack direction="row" flexWrap="wrap" gap={0.5}>
+            <Stack direction="column" gap={0.5}>
               {(detector.linked_rule_ids ?? []).length > 0 ? detector.linked_rule_ids.map((ruleId) => (
-                <Chip key={ruleId} label={ruleId} size="small" variant="outlined"
-                  sx={{ fontSize: '0.58rem', height: 20, fontFamily: 'monospace', maxWidth: 200 }} />
+                <Chip
+                  key={ruleId}
+                  label={ruleNameMap[ruleId] || ruleId}
+                  size="small"
+                  variant="outlined"
+                  title={ruleId}
+                  clickable={!!onRuleClick}
+                  onClick={onRuleClick ? () => onRuleClick(ruleId) : undefined}
+                  sx={{
+                    fontSize: '0.62rem', height: 22, maxWidth: 360, justifyContent: 'flex-start',
+                    ...(onRuleClick && { cursor: 'pointer', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }),
+                  }}
+                />
               )) : <Typography variant="caption" color="text.disabled">-</Typography>}
             </Stack>
           </FieldRow>

@@ -3,6 +3,7 @@ import {
   Button,
   Checkbox,
   Chip,
+  IconButton,
   ListItemText,
   ListSubheader,
   MenuItem,
@@ -17,9 +18,10 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Info as InfoIcon, Search as SearchIcon } from '@mui/icons-material';
 import React, { useCallback, useMemo, useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
 import {
@@ -59,6 +61,7 @@ interface DetectorFormProps {
   onSave: (data: DetectorCreate) => void;
   onCancel: () => void;
   rules: SigmaRuleListItem[];
+  onRuleClick?: (ruleId: string) => void;
   t: (key: string) => string;
 }
 
@@ -68,6 +71,7 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
   onSave,
   onCancel,
   rules,
+  onRuleClick,
   t,
 }) => {
   const [name, setName] = useState(initialData?.name ?? '');
@@ -283,6 +287,7 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                 <TableCell sx={{ ...headCellSx, width: 110 }}>{t('dpColLogType')}</TableCell>
                 <TableCell sx={{ ...headCellSx, width: 75 }}>Source</TableCell>
                 <TableCell sx={headCellSx}>{t('dpColDescription')}</TableCell>
+                {onRuleClick && <TableCell sx={{ ...headCellSx, width: 36 }} />}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -328,10 +333,23 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                       {rule.description || '-'}
                     </Typography>
                   </TableCell>
+                  {onRuleClick && (
+                    <TableCell sx={{ ...cellSx, p: 0.25 }}>
+                      <Tooltip title={t('dpRulePreview')} placement="left">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); onRuleClick(rule.id); }}
+                          sx={{ p: 0.25 }}
+                        >
+                          <InfoIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  )}
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
+                  <TableCell colSpan={onRuleClick ? 7 : 6} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
                       {selectedLogTypes.length === 0 ? t('dpSelectLogTypeFirst') : t('dpNoMatchingRules')}
                     </Typography>

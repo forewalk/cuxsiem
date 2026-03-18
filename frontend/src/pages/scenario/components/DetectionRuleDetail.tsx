@@ -23,13 +23,14 @@ interface DetectionRuleDetailProps {
   rule: SigmaRuleDetailType | null;
   t: (key: string, params?: Record<string, string>) => string;
   loading?: boolean;
+  compact?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   onClone?: () => void;
 }
 
-const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.68rem', minWidth: 130, flexShrink: 0 }}>
+const FieldLabel: React.FC<{ children: React.ReactNode; compact?: boolean }> = ({ children, compact }) => (
+  <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.68rem', minWidth: compact ? 72 : 130, flexShrink: 0 }}>
     {children}
   </Typography>
 );
@@ -40,9 +41,9 @@ const FieldValue: React.FC<{ children: React.ReactNode; mono?: boolean }> = ({ c
   </Typography>
 );
 
-const FieldRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <Stack direction="row" spacing={2} sx={{ py: 0.75, alignItems: 'flex-start' }}>
-    <FieldLabel>{label}</FieldLabel>
+const FieldRow: React.FC<{ label: string; children: React.ReactNode; compact?: boolean }> = ({ label, children, compact }) => (
+  <Stack direction="row" spacing={compact ? 1 : 2} sx={{ py: 0.75, alignItems: 'flex-start' }}>
+    <FieldLabel compact={compact}>{label}</FieldLabel>
     <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
   </Stack>
 );
@@ -62,7 +63,7 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </Box>
 );
 
-export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, onEdit, onDelete, onClone }) => {
+export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, compact, onEdit, onDelete, onClone }) => {
   const [detectionExpanded, setDetectionExpanded] = useState(false);
 
   if (!rule) {
@@ -115,13 +116,13 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
 
         <SectionHeader>{t('drSectionSummary')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
-          <FieldRow label={t('drRuleName')}>
+          <FieldRow label={t('drRuleName')} compact={compact}>
             <FieldValue>{rule.name}</FieldValue>
           </FieldRow>
-          <FieldRow label={t('severity')}>
+          <FieldRow label={t('severity')} compact={compact}>
             <SeverityChip severity={rule.level_normalized} size="small" />
           </FieldRow>
-          <FieldRow label={t('drLogSource')}>
+          <FieldRow label={t('drLogSource')} compact={compact}>
             <Stack direction="row" gap={0.5} flexWrap="wrap">
               {rule.log_source_product && (
                 <Chip label={rule.log_source_product} size="small" variant="outlined"
@@ -137,7 +138,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
               )}
             </Stack>
           </FieldRow>
-          <FieldRow label={t('drDescription')}>
+          <FieldRow label={t('drDescription')} compact={compact}>
             <FieldValue>{rule.description || '-'}</FieldValue>
           </FieldRow>
         </Box>
@@ -184,7 +185,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
 
         <SectionHeader>{t('drSectionClassification')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
-          <FieldRow label={t('drMitreTags')}>
+          <FieldRow label={t('drMitreTags')} compact={compact}>
             <Stack direction="row" flexWrap="wrap" gap={0.5}>
               {rule.mitre_tactic_ids.map((tactic) => (
                 <Chip key={tactic} label={tactic} size="small" variant="outlined"
@@ -192,7 +193,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
               ))}
             </Stack>
           </FieldRow>
-          <FieldRow label={t('drTechnique')}>
+          <FieldRow label={t('drTechnique')} compact={compact}>
             <Stack direction="row" flexWrap="wrap" gap={0.5}>
               {rule.mitre_technique_ids.map((tech) => (
                 <Chip key={tech} label={tech} size="small" color="primary" variant="outlined"
@@ -200,17 +201,17 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
               ))}
             </Stack>
           </FieldRow>
-          <FieldRow label={t('severity')}>
+          <FieldRow label={t('severity')} compact={compact}>
             <SeverityChip severity={rule.level_normalized} size="small" />
           </FieldRow>
         </Box>
 
         <SectionHeader>{t('drSectionDocumentation')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
-          <FieldRow label={t('drAuthor')}>
+          <FieldRow label={t('drAuthor')} compact={compact}>
             <FieldValue>{rule.author || '-'}</FieldValue>
           </FieldRow>
-          <FieldRow label={t('drReferences')}>
+          <FieldRow label={t('drReferences')} compact={compact}>
             <Stack spacing={0.5}>
               {rule.references.length > 0 ? rule.references.map((ref, i) => (
                 <Link key={i} href={ref} target="_blank" rel="noopener noreferrer"
@@ -222,7 +223,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
               )}
             </Stack>
           </FieldRow>
-          <FieldRow label={t('drFalsePositives')}>
+          <FieldRow label={t('drFalsePositives')} compact={compact}>
             <Stack spacing={0.25}>
               {rule.false_positives.length > 0 ? rule.false_positives.map((fp, i) => (
                 <FieldValue key={i}>{fp}</FieldValue>
@@ -232,7 +233,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
             </Stack>
           </FieldRow>
           {rule.license && (
-            <FieldRow label={t('drLicense')}>
+            <FieldRow label={t('drLicense')} compact={compact}>
               <FieldValue>{rule.license}</FieldValue>
             </FieldRow>
           )}
@@ -240,10 +241,10 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
 
         <SectionHeader>{t('drSectionMetadata')}</SectionHeader>
         <Box sx={{ px: 0.5, pb: 2 }}>
-          <FieldRow label={t('drRuleId')}>
+          <FieldRow label={t('drRuleId')} compact={compact}>
             <FieldValue mono>{rule.sigma_id}</FieldValue>
           </FieldRow>
-          <FieldRow label={t('drRuleStatus')}>
+          <FieldRow label={t('drRuleStatus')} compact={compact}>
             <Chip
               label={rule.sigma_status || '-'}
               size="small"
@@ -251,7 +252,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
               sx={{ fontWeight: 600, fontSize: '0.6rem', height: 20, textTransform: 'capitalize' }}
             />
           </FieldRow>
-          <FieldRow label={t('drEnabled')}>
+          <FieldRow label={t('drEnabled')} compact={compact}>
             <Chip
               label={isActive ? t('drEnabled') : t('drDisabled')}
               size="small"
@@ -260,10 +261,10 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
               sx={{ fontWeight: 500, fontSize: '0.6rem', height: 20 }}
             />
           </FieldRow>
-          <FieldRow label={t('drRevision')}>
+          <FieldRow label={t('drRevision')} compact={compact}>
             <FieldValue mono>{rule.revision}</FieldValue>
           </FieldRow>
-          <FieldRow label={t('drLastUpdated')}>
+          <FieldRow label={t('drLastUpdated')} compact={compact}>
             <FieldValue mono>{rule.updated_at ? new Date(rule.updated_at).toLocaleString() : '-'}</FieldValue>
           </FieldRow>
         </Box>

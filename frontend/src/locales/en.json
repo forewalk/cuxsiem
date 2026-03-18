@@ -592,6 +592,7 @@
   "dpCreatedAt": "Created At",
   "dpDetectorDetail": "Detector Detail",
   "dpSelectDetectorPrompt": "Select a detector from the left panel",
+  "dpRulePreview": "Rule Preview",
   "dpRecentFindings": "Recent Findings",
   "dpNoFindings": "No findings",
   "dpMatchedCount": "Matched Count",
