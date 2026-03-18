@@ -25,7 +25,6 @@ const DetectionRuleTab: React.FC = () => {
   const { settings } = useSettingsStore();
   const [activeTab, setActiveTab] = useState(0);
 
-  // Search & refresh
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -80,7 +79,9 @@ const DetectionRuleTab: React.FC = () => {
     let cancelled = false;
     const fetchDetectors = async () => {
       try {
-        const data = await detectorService.list({ skip: detectorPage * rulePageSize, limit: rulePageSize });
+        const params: Record<string, unknown> = { skip: detectorPage * rulePageSize, limit: rulePageSize };
+        if (searchQuery) params.query = searchQuery;
+        const data = await detectorService.list(params);
         if (!cancelled) {
           setDetectors(data.items);
           setDetectorTotal(data.total);
@@ -91,7 +92,7 @@ const DetectionRuleTab: React.FC = () => {
     };
     fetchDetectors();
     return () => { cancelled = true; };
-  }, [detectorPage, rulePageSize]);
+  }, [detectorPage, rulePageSize, searchQuery, refreshKey]);
 
   useEffect(() => {
     if (!selectedRuleId) { setSelectedRule(null); return; }
@@ -339,6 +340,7 @@ const DetectionRuleTab: React.FC = () => {
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     setRulePage(0);
+    setDetectorPage(0);
   }, []);
 
   const handleRefresh = useCallback(() => {

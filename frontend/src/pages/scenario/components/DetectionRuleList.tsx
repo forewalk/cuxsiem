@@ -118,7 +118,6 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   onCreateDetector,
   onCreateDetectorWithRules,
 }) => {
-
   return (
     <Paper
       elevation={1}
