@@ -1,5 +1,6 @@
 import {
   Box,
+  Checkbox,
   Chip,
   LinearProgress,
   List,
@@ -20,9 +21,11 @@ interface DetectionRuleListProps {
   detectors: Detector[];
   selectedRuleId: string | null;
   selectedDetectorId: string | null;
+  checkedRuleIds: Set<string>;
   onSelect: (ruleId: string) => void;
   onSelectDetector: (detectorId: string) => void;
   onToggleEnabled: (ruleId: string) => void;
+  onToggleCheck: (ruleId: string) => void;
   loading: boolean;
   t: (key: string, params?: Record<string, string>) => string;
   width?: number;
@@ -47,9 +50,11 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   detectors,
   selectedRuleId,
   selectedDetectorId,
+  checkedRuleIds,
   onSelect,
   onSelectDetector,
   onToggleEnabled,
+  onToggleCheck,
   loading,
   t,
   width = 320,
@@ -102,51 +107,53 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                 selected={rule.id === selectedRuleId}
                 onClick={() => onSelect(rule.id)}
                 sx={{
-                  py: 1,
+                  py: 0.75,
                   px: 1.5,
                   borderBottom: 1,
                   borderColor: 'divider',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'stretch',
                   gap: 0.5,
-                  alignItems: 'flex-start',
                 }}
               >
-                <ListItemText
-                  primary={rule.name}
-                  secondary={
-                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                      <Chip
-                        label={rule.type === 'custom' ? 'Custom' : 'Sigma'}
-                        size="small"
-                        color={rule.type === 'custom' ? 'secondary' : 'default'}
-                        variant="outlined"
-                        sx={{ height: 16, fontSize: '0.55rem', fontWeight: 600, borderRadius: 0.5 }}
-                      />
-                      <Chip label={platform} size="small" variant="outlined"
-                        sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
-                      {technique && (
-                        <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-                          {technique}
-                        </Typography>
-                      )}
-                    </Box>
-                  }
-                  primaryTypographyProps={{
-                    variant: 'caption',
-                    fontWeight: 600,
-                    noWrap: true,
-                    sx: { fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-                  }}
-                  secondaryTypographyProps={{ component: 'div' }}
-                />
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
+                {/* Row 1: checkbox + name + severity + toggle */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                  <Checkbox
+                    size="small"
+                    checked={checkedRuleIds.has(rule.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => onToggleCheck(rule.id)}
+                    sx={{ p: 0, flexShrink: 0, '& .MuiSvgIcon-root': { fontSize: 16 } }}
+                  />
+                  <Typography variant="caption" noWrap sx={{ flex: 1, fontWeight: 600, fontSize: '0.75rem', minWidth: 0 }}>
+                    {rule.name}
+                  </Typography>
                   <SeverityChip severity={rule.level_normalized} size="small" />
                   <Switch
                     size="small"
                     checked={isActive}
                     onClick={(e) => e.stopPropagation()}
                     onChange={() => onToggleEnabled(rule.id)}
+                    sx={{ flexShrink: 0 }}
                   />
+                </Box>
+                {/* Row 2: tags */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3.5 }}>
+                  <Chip
+                    label={rule.type === 'custom' ? 'Custom' : 'Sigma'}
+                    size="small"
+                    color={rule.type === 'custom' ? 'secondary' : 'default'}
+                    variant="outlined"
+                    sx={{ height: 16, fontSize: '0.55rem', fontWeight: 600, borderRadius: 0.5 }}
+                  />
+                  <Chip label={platform} size="small" variant="outlined"
+                    sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
+                  {technique && (
+                    <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', fontFamily: 'monospace' }}>
+                      {technique}
+                    </Typography>
+                  )}
                 </Box>
               </ListItemButton>
             );

@@ -41,6 +41,9 @@ const DetectionRuleTab: React.FC = () => {
   const [showCustomRuleForm, setShowCustomRuleForm] = useState(false);
   const [editingRule, setEditingRule] = useState<SigmaRuleDetailType | null>(null);
 
+  // Checked rule IDs for linking to detector
+  const [checkedRuleIds, setCheckedRuleIds] = useState<Set<string>>(new Set());
+
   // Detector state
   const [detectors, setDetectors] = useState<Detector[]>([]);
   const [selectedDetectorId, setSelectedDetectorId] = useState<string | null>(null);
@@ -104,19 +107,18 @@ const DetectionRuleTab: React.FC = () => {
     const fetchDetectorDetail = async () => {
       setDetailLoading(true);
       try {
-        const [detectorData, findingsData] = await Promise.all([
-          detectorService.getById(selectedDetectorId),
-          detectorService.listFindings({ detector_id: selectedDetectorId, limit: 10 }),
-        ]);
-        if (!cancelled) {
-          setSelectedDetector(detectorData);
-          setDetectorFindings(findingsData.items);
-        }
+        const detectorData = await detectorService.getById(selectedDetectorId);
+        if (!cancelled) setSelectedDetector(detectorData);
       } catch {
-        if (!cancelled) { setSelectedDetector(null); setDetectorFindings([]); }
-      } finally {
-        if (!cancelled) setDetailLoading(false);
+        if (!cancelled) setSelectedDetector(null);
       }
+      try {
+        const findingsData = await detectorService.listFindings({ detector_id: selectedDetectorId, limit: 10 });
+        if (!cancelled) setDetectorFindings(findingsData.items);
+      } catch {
+        if (!cancelled) setDetectorFindings([]);
+      }
+      if (!cancelled) setDetailLoading(false);
     };
     fetchDetectorDetail();
     return () => { cancelled = true; };
@@ -131,6 +133,14 @@ const DetectionRuleTab: React.FC = () => {
       }
     } catch { /* toggle failed */ }
   }, [selectedRule?.id]);
+
+  const handleToggleCheck = useCallback((ruleId: string) => {
+    setCheckedRuleIds(prev => {
+      const next = new Set(prev);
+      if (next.has(ruleId)) next.delete(ruleId); else next.add(ruleId);
+      return next;
+    });
+  }, []);
 
   const handleTabChange = useCallback((tab: number) => {
     setActiveTab(tab);
@@ -168,8 +178,8 @@ const DetectionRuleTab: React.FC = () => {
     }
   }, [selectedRule]);
 
-  const handleDeleteCustomRule = useCallback(async () => {
-    if (!selectedRule || selectedRule.type !== 'custom' || !confirm(t('dpDeleteConfirm'))) return;
+  const handleDeleteRule = useCallback(async () => {
+    if (!selectedRule || !confirm(t('dpDeleteConfirm'))) return;
     try {
       await detectionRuleService.delete(selectedRule.id);
       setRules(prev => prev.filter(r => r.id !== selectedRule.id));
@@ -178,6 +188,27 @@ const DetectionRuleTab: React.FC = () => {
     } catch { /* delete failed */ }
   }, [selectedRule, t]);
 
+  const handleCloneSigmaRule = useCallback(async () => {
+    if (!selectedRule || selectedRule.type !== 'sigma') return;
+    const cloneData: CustomRuleCreate = {
+      name: `${selectedRule.name}_copy`,
+      description: selectedRule.description || undefined,
+      detection_config: selectedRule.detection_config || {},
+      level_normalized: selectedRule.level_normalized || 'medium',
+      log_source_category: selectedRule.log_source_category || undefined,
+      log_source_product: selectedRule.log_source_product || undefined,
+      log_source_service: selectedRule.log_source_service || undefined,
+      mitre_technique_ids: selectedRule.mitre_technique_ids || [],
+      mitre_tactic_ids: selectedRule.mitre_tactic_ids || [],
+      false_positives: selectedRule.false_positives || [],
+    };
+    try {
+      const created = await detectionRuleService.create(cloneData);
+      setRules(prev => [{ ...created, type: 'custom' as const } as SigmaRuleListItem, ...prev]);
+      setSelectedRuleId(created.id);
+    } catch { /* clone failed */ }
+  }, [selectedRule]);
+
   // Detector handlers
   const handleCreateDetector = useCallback(async (data: DetectorCreate) => {
     try {
@@ -185,6 +216,7 @@ const DetectionRuleTab: React.FC = () => {
       setDetectors(prev => [created, ...prev]);
       setShowDetectorForm(false);
       setSelectedDetectorId(created.id);
+      setCheckedRuleIds(new Set());
     } catch { /* save failed */ }
   }, []);
 
@@ -263,7 +295,8 @@ const DetectionRuleTab: React.FC = () => {
           t={t}
           loading={detailLoading}
           onEdit={selectedRule?.type === 'custom' ? handleEditCustomRule : undefined}
-          onDelete={selectedRule?.type === 'custom' ? handleDeleteCustomRule : undefined}
+          onDelete={selectedRule ? handleDeleteRule : undefined}
+          onClone={selectedRule?.type === 'sigma' ? handleCloneSigmaRule : undefined}
         />
       );
     }
@@ -272,7 +305,7 @@ const DetectionRuleTab: React.FC = () => {
     if (showDetectorForm) {
       return (
         <DetectorForm
-          initialData={editingDetector ?? undefined}
+          initialData={editingDetector ?? (checkedRuleIds.size > 0 ? { linked_rule_ids: Array.from(checkedRuleIds) } : undefined)}
           isEditing={!!editingDetector}
           onSave={editingDetector ? handleUpdateDetector : handleCreateDetector}
           onCancel={() => { setShowDetectorForm(false); setEditingDetector(null); }}
@@ -293,21 +326,36 @@ const DetectionRuleTab: React.FC = () => {
     );
   };
 
+  const handleCreateDetectorWithCheckedRules = useCallback(() => {
+    setActiveTab(1);
+    setEditingDetector(null);
+    setShowDetectorForm(true);
+  }, []);
+
   const showCreateButton = () => {
     if (activeTab === 0 && !showCustomRuleForm) {
       return (
-        <Button size="small" variant="contained" startIcon={<AddIcon />}
-          onClick={() => { setShowCustomRuleForm(true); setEditingRule(null); }}
-          sx={{ fontSize: '0.72rem' }}>
-          {t('drCreateCustomRule')}
-        </Button>
+        <Stack direction="row" spacing={1}>
+          {checkedRuleIds.size > 0 && (
+            <Button size="small" variant="contained" color="secondary" startIcon={<AddIcon />}
+              onClick={handleCreateDetectorWithCheckedRules}
+              sx={{ fontSize: '0.72rem', textTransform: 'none' }}>
+              {t('dpCreate')} ({checkedRuleIds.size})
+            </Button>
+          )}
+          <Button size="small" variant="contained" startIcon={<AddIcon />}
+            onClick={() => { setShowCustomRuleForm(true); setEditingRule(null); }}
+            sx={{ fontSize: '0.72rem', textTransform: 'none' }}>
+            {t('drCreateCustomRule')}
+          </Button>
+        </Stack>
       );
     }
     if (activeTab === 1 && !showDetectorForm) {
       return (
         <Button size="small" variant="contained" startIcon={<AddIcon />}
           onClick={() => { setShowDetectorForm(true); setEditingDetector(null); }}
-          sx={{ fontSize: '0.72rem' }}>
+          sx={{ fontSize: '0.72rem', textTransform: 'none' }}>
           {t('dpCreate')}
         </Button>
       );
@@ -337,6 +385,7 @@ const DetectionRuleTab: React.FC = () => {
           detectors={detectors}
           selectedRuleId={selectedRuleId}
           selectedDetectorId={selectedDetectorId}
+          checkedRuleIds={checkedRuleIds}
           onSelect={(ruleId: string) => {
             setSelectedRuleId(ruleId);
             setShowCustomRuleForm(false);
@@ -348,6 +397,7 @@ const DetectionRuleTab: React.FC = () => {
             setEditingDetector(null);
           }}
           onToggleEnabled={handleToggleEnabled}
+          onToggleCheck={handleToggleCheck}
           loading={loading}
           t={t}
           activeTab={activeTab}

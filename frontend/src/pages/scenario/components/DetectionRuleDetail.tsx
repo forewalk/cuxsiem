@@ -13,6 +13,7 @@ import {
   ExpandLess as ExpandLessIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  ContentCopy as CloneIcon,
 } from '@mui/icons-material';
 import React, { useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
@@ -24,6 +25,7 @@ interface DetectionRuleDetailProps {
   loading?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onClone?: () => void;
 }
 
 const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -60,7 +62,7 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </Box>
 );
 
-export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, onEdit, onDelete }) => {
+export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, onEdit, onDelete, onClone }) => {
   const [detectionExpanded, setDetectionExpanded] = useState(false);
 
   if (!rule) {
@@ -94,12 +96,19 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
             sx={{ fontSize: '0.6rem', height: 20 }}
           />
         </Stack>
-        {rule.type === 'custom' && (
-          <Stack direction="row" spacing={0.5}>
-            {onEdit && <IconButton size="small" onClick={onEdit}><EditIcon fontSize="small" /></IconButton>}
-            {onDelete && <IconButton size="small" onClick={onDelete} color="error"><DeleteIcon fontSize="small" /></IconButton>}
-          </Stack>
-        )}
+        <Stack direction="row" spacing={0.5}>
+          {rule.type === 'sigma' && onClone && (
+            <IconButton size="small" onClick={onClone} title={t('drCloneToCustom')}>
+              <CloneIcon fontSize="small" />
+            </IconButton>
+          )}
+          {rule.type === 'custom' && onEdit && (
+            <IconButton size="small" onClick={onEdit}><EditIcon fontSize="small" /></IconButton>
+          )}
+          {onDelete && (
+            <IconButton size="small" onClick={onDelete} color="error"><DeleteIcon fontSize="small" /></IconButton>
+          )}
+        </Stack>
       </Box>
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 1.5 }}>

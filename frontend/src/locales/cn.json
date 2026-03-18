@@ -531,6 +531,7 @@
   "drReferences": "参考文档",
   "drFalsePositives": "误报案例",
   "drFalsePositivesPlaceholder": "每行输入一个",
+  "drCloneToCustom": "复制为自定义规则",
   "drRuleStatus": "规则状态",
   "drRuleId": "规则ID",
   "drRuleType": "规则类型",

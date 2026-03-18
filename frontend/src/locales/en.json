@@ -534,6 +534,7 @@
   "drReferences": "References",
   "drFalsePositives": "False Positives",
   "drFalsePositivesPlaceholder": "One per line",
+  "drCloneToCustom": "Clone as custom rule",
   "drRuleStatus": "Rule Status",
   "drRuleId": "Rule ID",
   "drRuleType": "Rule Type",

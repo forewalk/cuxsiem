@@ -543,6 +543,7 @@
   "drReferences": "参考文献",
   "drFalsePositives": "誤検知事例",
   "drFalsePositivesPlaceholder": "1行に1つずつ入力",
+  "drCloneToCustom": "カスタムルールとして複製",
   "drRuleStatus": "ルール状態",
   "drRuleId": "ルールID",
   "drRuleType": "ルールタイプ",
