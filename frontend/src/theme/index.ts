@@ -16,10 +16,13 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: "'Roboto', 'Noto Sans KR', sans-serif",
+    htmlFontSize: 14.4, // 16 × 0.9 = 14.4px — 90% 스케일
   },
+  spacing: 7.2, // 8 × 0.9 = 7.2px
   components: {
     MuiCssBaseline: {
       styleOverrides: `
+        html { font-size: 90% !important; }
         ::-webkit-scrollbar {
           width: 10px !important;
           height: 10px !important;
