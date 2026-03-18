@@ -3,7 +3,6 @@ import {
   Button,
   Checkbox,
   Chip,
-  IconButton,
   ListItemText,
   ListSubheader,
   MenuItem,
@@ -18,10 +17,9 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material';
-import { Info as InfoIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Search as SearchIcon } from '@mui/icons-material';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
 import { detectionRuleService } from '../../../services/sigmaRuleService';
@@ -310,7 +308,6 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                 <TableCell sx={{ ...headCellSx, width: 110 }}>{t('dpColLogType')}</TableCell>
                 <TableCell sx={{ ...headCellSx, width: 75 }}>Source</TableCell>
                 <TableCell sx={headCellSx}>{t('dpColDescription')}</TableCell>
-                {onRuleClick && <TableCell sx={{ ...headCellSx, width: 36 }} />}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -330,7 +327,14 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                     />
                   </TableCell>
                   <TableCell sx={{ ...cellSx, fontWeight: 600, maxWidth: 200 }}>
-                    <Typography variant="caption" noWrap sx={{ fontSize: '0.72rem', fontWeight: 600, display: 'block' }}>
+                    <Typography
+                      variant="caption" noWrap
+                      onClick={onRuleClick ? (e) => { e.stopPropagation(); onRuleClick(rule.id); } : undefined}
+                      sx={{
+                        fontSize: '0.72rem', fontWeight: 600, display: 'block',
+                        ...(onRuleClick && { cursor: 'pointer', '&:hover': { textDecoration: 'underline', color: 'primary.main' } }),
+                      }}
+                    >
                       {rule.name}
                     </Typography>
                   </TableCell>
@@ -356,23 +360,10 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                       {rule.log_source_category || rule.log_source_product || '-'}
                     </Typography>
                   </TableCell>
-                  {onRuleClick && (
-                    <TableCell sx={{ ...cellSx, p: 0.25 }}>
-                      <Tooltip title={t('dpRulePreview')} placement="left">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); onRuleClick(rule.id); }}
-                          sx={{ p: 0.25 }}
-                        >
-                          <InfoIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  )}
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={onRuleClick ? 7 : 6} sx={{ textAlign: 'center', py: 4 }}>
+                  <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
                       {rulesLoading ? '' : t('dpNoMatchingRules')}
                     </Typography>
