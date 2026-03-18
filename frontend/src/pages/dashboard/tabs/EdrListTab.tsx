@@ -27,6 +27,7 @@ import { useLanguageStore } from "../../../stores/useLanguageStore";
 import { useSettingsStore } from "../../../stores/useSettingsStore";
 import BarChartWidget from "../components/BarChartWidget";
 import ControlBar from "../components/ControlBar";
+import ResizablePanel from "../../../components/shared/ResizablePanel";
 
 // 아이콘
 import {
@@ -123,27 +124,6 @@ const EdrListTab: React.FC = () => {
 
   const resizingRef = useRef<{ field: string; startX: number; startWidth: number } | null>(null);
 
-  const [panelWidth, setPanelWidth] = useState(280);
-  const panelResizing = useRef(false);
-  const handlePanelMouseDown = useCallback(() => {
-    panelResizing.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    const onMove = (ev: MouseEvent) => {
-      if (!panelResizing.current) return;
-      const containerLeft = document.getElementById('edr-list-container')?.getBoundingClientRect().left ?? 0;
-      setPanelWidth(Math.max(160, Math.min(500, ev.clientX - containerLeft)));
-    };
-    const onUp = () => {
-      panelResizing.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, []);
 
   const handleResizeStart = (e: React.MouseEvent, field: string) => {
     e.stopPropagation();
@@ -629,18 +609,17 @@ const EdrListTab: React.FC = () => {
 
       {error && <Alert severity="error" sx={{ m: 1, fontSize: '0.75rem', flexShrink: 0 }}>{error}</Alert>}
       <Box id="edr-list-container" sx={{ display: 'flex', flex: '1 1 0', overflow: 'hidden', mt: { xs: 1, md: 2 }, minHeight: 0 }}>
-        <Paper elevation={1} sx={{ width: { xs: 0, md: panelWidth }, display: { xs: 'none', md: 'flex' }, flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', flexShrink: 0, overflow: 'hidden' }}>
-          <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields')} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover' } }} /></Box>
-          <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
-          <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1, minHeight: 0 }}>
-            <List disablePadding sx={{ mb: 2 }}>{selectedList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} selected onAction={handleToggleField} />)}</List>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, px: 0.5, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('availableFields')}</Typography>
-            <List disablePadding sx={{ pb: 4 }}>{availableList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} onAction={handleToggleField} />)}</List>
-          </Box>
-        </Paper>
-        <Box onMouseDown={handlePanelMouseDown} sx={{ width: 10, flexShrink: 0, cursor: 'col-resize', display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'center', '&:hover > div, &:active > div': { bgcolor: 'primary.main' } }}>
-          <Box sx={{ width: 2, height: 40, borderRadius: 1, bgcolor: 'divider', transition: 'background-color 0.2s' }} />
-        </Box>
+        <ResizablePanel containerId="edr-list-container" initialWidth={280} minWidth={160} maxWidth={500} hideOnMobile>
+          <Paper elevation={1} sx={{ width: '100%', display: 'flex', flexDirection: 'column', borderRadius: 1.5, bgcolor: 'background.paper', height: '100%', overflow: 'hidden' }}>
+            <Box sx={{ p: 1.5, flexShrink: 0 }}><TextField fullWidth size="small" variant="outlined" placeholder={t('searchFields')} value={fieldSearchQuery} onChange={(e) => setFieldSearchQuery(e.target.value)} InputProps={{ startAdornment: <SearchIcon sx={{ fontSize: 18, color: 'text.disabled', mr: 1 }} />, sx: { height: 32, fontSize: '0.75rem', bgcolor: 'action.hover' } }} /></Box>
+            <Box sx={{ px: 1.5, pt: 0.5, pb: 1, flexShrink: 0 }}><Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('selectedFields')}</Typography></Box>
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1, minHeight: 0 }}>
+              <List disablePadding sx={{ mb: 2 }}>{selectedList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} selected onAction={handleToggleField} />)}</List>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, px: 0.5, display: 'block', color: 'text.secondary', fontSize: '0.7rem' }}>{t('availableFields')}</Typography>
+              <List disablePadding sx={{ pb: 4 }}>{availableList.map((f) => <FieldItem key={f.name} name={f.name} type={f.type} onAction={handleToggleField} />)}</List>
+            </Box>
+          </Paper>
+        </ResizablePanel>
         <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Box sx={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1.5, pr: 0 }}>
             <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: 180, minHeight: 180, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}><Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}><BarChartWidget data={filteredData?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} /></Box></Paper>

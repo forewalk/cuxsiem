@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ControlSearchBar from '../../../components/shared/ControlSearchBar';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
+import ResizablePanel from '../../../components/shared/ResizablePanel';
 import { DetectionRuleDetail } from '../components/DetectionRuleDetail';
 import { DetectionRuleList } from '../components/DetectionRuleList';
 import { DetectionPolicyDetail } from '../components/DetectionPolicyDetail';
@@ -346,33 +347,6 @@ const DetectionRuleTab: React.FC = () => {
     }
   }, [selectedDetector]);
 
-  const [listWidth, setListWidth] = useState(600);
-  const isResizing = React.useRef(false);
-
-  const handleMouseDown = useCallback(() => {
-    isResizing.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return;
-      const containerLeft = document.getElementById('detection-master-detail')?.getBoundingClientRect().left ?? 0;
-      const newWidth = e.clientX - containerLeft;
-      setListWidth(Math.max(200, Math.min(600, newWidth)));
-    };
-
-    const handleMouseUp = () => {
-      isResizing.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, []);
-
   const renderDetailPanel = () => {
     // Tab 0: Detectors
     if (activeTab === 0) {
@@ -493,55 +467,44 @@ const DetectionRuleTab: React.FC = () => {
       </Box>
 
       <Box id="detection-master-detail" sx={{ flex: '1 1 0', display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-        <DetectionRuleList
-          width={listWidth}
-          rules={rules}
-          detectors={detectors}
-          selectedRuleId={selectedRuleId}
-          selectedDetectorId={selectedDetectorId}
-          checkedRuleIds={checkedRuleIds}
-          onSelect={(ruleId: string) => {
-            setSelectedRuleId(ruleId);
-            setShowCustomRuleForm(false);
-            setEditingRule(null);
-          }}
-          onSelectDetector={(detectorId: string) => {
-            setSelectedDetectorId(detectorId);
-            setShowDetectorForm(false);
-            setEditingDetector(null);
-          }}
-          onToggleEnabled={handleToggleEnabled}
-          onToggleCheck={handleToggleCheck}
-          loading={loading}
-          t={t}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          rulePage={rulePage}
-          ruleTotal={ruleTotal}
-          detectorPage={detectorPage}
-          detectorTotal={detectorTotal}
-          pageSize={rulePageSize}
-          onRulePageChange={setRulePage}
-          onDetectorPageChange={setDetectorPage}
-          onCreateCustomRule={handleOpenCustomRuleForm}
-          onCreateDetector={handleOpenDetectorForm}
-          onCreateDetectorWithRules={handleCreateDetectorWithCheckedRules}
-        />
-
-        <Box
-          onMouseDown={handleMouseDown}
-          sx={{
-            width: 10,
-            flexShrink: 0,
-            cursor: 'col-resize',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            '&:hover > div, &:active > div': { bgcolor: 'primary.main' },
-          }}
-        >
-          <Box sx={{ width: 2, height: 40, borderRadius: 1, bgcolor: 'divider', transition: 'background-color 0.2s' }} />
-        </Box>
+        <ResizablePanel containerId="detection-master-detail" initialWidth={320} minWidth={200} maxWidth={600}>
+          {(width) => (
+            <DetectionRuleList
+              width={width}
+              rules={rules}
+              detectors={detectors}
+              selectedRuleId={selectedRuleId}
+              selectedDetectorId={selectedDetectorId}
+              checkedRuleIds={checkedRuleIds}
+              onSelect={(ruleId: string) => {
+                setSelectedRuleId(ruleId);
+                setShowCustomRuleForm(false);
+                setEditingRule(null);
+              }}
+              onSelectDetector={(detectorId: string) => {
+                setSelectedDetectorId(detectorId);
+                setShowDetectorForm(false);
+                setEditingDetector(null);
+              }}
+              onToggleEnabled={handleToggleEnabled}
+              onToggleCheck={handleToggleCheck}
+              loading={loading}
+              t={t}
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              rulePage={rulePage}
+              ruleTotal={ruleTotal}
+              detectorPage={detectorPage}
+              detectorTotal={detectorTotal}
+              pageSize={rulePageSize}
+              onRulePageChange={setRulePage}
+              onDetectorPageChange={setDetectorPage}
+              onCreateCustomRule={handleOpenCustomRuleForm}
+              onCreateDetector={handleOpenDetectorForm}
+              onCreateDetectorWithRules={handleCreateDetectorWithCheckedRules}
+            />
+          )}
+        </ResizablePanel>
 
         {renderDetailPanel()}
       </Box>

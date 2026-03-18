@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box, Typography, Stack, Chip, Select, MenuItem,
   IconButton, Tooltip, Divider, TextField, InputAdornment,
@@ -109,17 +109,18 @@ const NODES: Record<string, ProcessNode> = {
 };
 
 const EDGES: ProcessEdge[] = [
-  { from: 'explorer', to: 'taskmgr',   label: '28 ms' },
-  { from: 'explorer', to: 'cmd1',      label: '45 ms' },
+  { from: 'explorer', to: 'taskmgr',    label: '28 ms' },
+  { from: 'explorer', to: 'cmd1',       label: '45 ms' },
   { from: 'explorer', to: 'cmd2' },
-  { from: 'explorer', to: 'powershell',label: '120 ms' },
-  { from: 'cmd1',     to: 'psblock1',  label: '880 ms', threat: true },
-  { from: 'cmd2',     to: 'psblock2',  label: '790 ms', threat: true },
-  { from: 'powershell',to: 'taskplorer',label: '490 ms' },
+  { from: 'explorer', to: 'powershell', label: '120 ms' },
+  { from: 'cmd1',     to: 'psblock1',   label: '880 ms', threat: true },
+  { from: 'cmd2',     to: 'psblock2',   label: '790 ms', threat: true },
+  { from: 'powershell', to: 'taskplorer', label: '490 ms' },
 ];
 
 const CANVAS_W = 830;
 const CANVAS_H = 510;
+const INITIAL_OFFSET = { x: 20, y: 20 };
 
 // ── 리소스 아이콘 ─────────────────────────────────────────────────────────────
 const ResIcon: Record<ResourceType, React.ReactNode> = {
@@ -144,23 +145,19 @@ const NodeCard: React.FC<{ node: ProcessNode }> = ({ node }) => {
         borderRadius: '4px',
         px: 1, py: 0.75,
         boxSizing: 'border-box',
-        cursor: 'pointer',
         '&:hover': { filter: 'brightness(1.2)' },
         transition: 'filter 0.15s',
       }}
     >
-      {/* 상태 레이블 */}
       <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.3 }}>
         {isDetected && <WarningIcon sx={{ fontSize: 11, color: c.label }} />}
         <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: c.label, letterSpacing: '0.05em', lineHeight: 1 }}>
           {node.label}
         </Typography>
       </Stack>
-      {/* 프로세스 이름 */}
       <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: C.text, lineHeight: 1.2, mb: 0.3 }}>
         {node.name}
       </Typography>
-      {/* PID / User 또는 decoded */}
       {node.decoded ? (
         <Typography sx={{ fontSize: '0.62rem', color: C.textSub, lineHeight: 1.2, mb: 0.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {node.decoded}
@@ -170,7 +167,6 @@ const NodeCard: React.FC<{ node: ProcessNode }> = ({ node }) => {
           PID: {node.pid} | User: {node.user}
         </Typography>
       )}
-      {/* 리소스 카운터 */}
       <Stack direction="row" spacing={1}>
         {node.resources.map((r, i) => (
           <Stack key={i} direction="row" alignItems="center" spacing={0.25}
@@ -225,6 +221,53 @@ const ScenarioProcessTreeTab: React.FC = () => {
   const { t } = useTranslation();
   const [scenario, setScenario] = useState('apt-2026-001');
   const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState(INITIAL_OFFSET);
+  const [grabbing, setGrabbing] = useState(false);
+
+  // 드래그 상태 — ref로 관리하여 mousemove 클로저 문제 방지
+  const isDragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // 휠 이벤트: passive: false 로 등록해야 preventDefault() 가능
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.1 : 0.9;
+      setZoom(z => Math.min(4, Math.max(0.2, z * factor)));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    isDragging.current = true;
+    setGrabbing(true);
+    dragStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current) return;
+    setOffset({
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y,
+    });
+  };
+
+  const stopDrag = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    setGrabbing(false);
+  };
+
+  const handleFit = () => {
+    setZoom(1);
+    setOffset(INITIAL_OFFSET);
+  };
 
   return (
     <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -259,21 +302,21 @@ const ScenarioProcessTreeTab: React.FC = () => {
           <Box sx={{ flexGrow: 1 }} />
           {/* 줌 컨트롤 */}
           <Stack direction="row" alignItems="center">
-            <Tooltip title="축소">
-              <IconButton size="small" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}>
+            <Tooltip title="축소 (휠 아래)">
+              <IconButton size="small" onClick={() => setZoom(z => Math.max(0.2, z * 0.9))}>
                 <ZoomOutIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Typography variant="caption" sx={{ minWidth: 40, textAlign: 'center' }}>
               {Math.round(zoom * 100)}%
             </Typography>
-            <Tooltip title="확대">
-              <IconButton size="small" onClick={() => setZoom(z => Math.min(2, z + 0.1))}>
+            <Tooltip title="확대 (휠 위)">
+              <IconButton size="small" onClick={() => setZoom(z => Math.min(4, z * 1.1))}>
                 <ZoomInIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title="전체화면 맞춤">
-              <IconButton size="small" onClick={() => setZoom(1)}>
+            <Tooltip title="원래 크기로 (핏)">
+              <IconButton size="small" onClick={handleFit}>
                 <FitIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -281,15 +324,29 @@ const ScenarioProcessTreeTab: React.FC = () => {
         </Stack>
       </Box>
 
-      {/* 캔버스 */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', bgcolor: C.canvas, p: 2 }}>
+      {/* 캔버스 — 드래그 패닝 + 휠 줌 */}
+      <Box
+        ref={canvasRef}
+        sx={{
+          flexGrow: 1,
+          overflow: 'hidden',
+          bgcolor: C.canvas,
+          cursor: grabbing ? 'grabbing' : 'grab',
+          userSelect: 'none',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={stopDrag}
+        onMouseLeave={stopDrag}
+      >
         <Box
           sx={{
             position: 'relative',
             width: CANVAS_W,
             height: CANVAS_H,
-            transform: `scale(${zoom})`,
+            transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
             transformOrigin: 'top left',
+            pointerEvents: 'none', // 클릭·호버 이벤트를 캔버스 컨테이너에서 처리
           }}
         >
           <EdgeLines />
@@ -316,7 +373,7 @@ const ScenarioProcessTreeTab: React.FC = () => {
           ))}
           <Box sx={{ flexGrow: 1 }} />
           <Typography variant="caption" color="text.disabled">
-            시나리오: {scenario.toUpperCase()} · 목업 데이터
+            드래그: 이동 · 휠: 확대/축소 · 시나리오: {scenario.toUpperCase()} · 목업 데이터
           </Typography>
         </Stack>
       </Box>

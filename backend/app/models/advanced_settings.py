@@ -2,6 +2,18 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+# 글로벌 설정 필드 — 관리자만 수정 가능, cs_policies/advanced_settings 문서에만 저장
+GLOBAL_FIELDS = frozenset({
+    'user_register', 'otp_required', 'allow_multiple_sessions',
+    'session_duration', 'session_idle_timeout',
+})
+
+# 개인화 설정 필드 — 사용자별 문서에 저장
+PERSONAL_FIELDS = frozenset({
+    'tab_count', 'pagination_size', 'time_filter_duration',
+    'time_filter_unit', 'pixel_mode', 'log_stream_size', 'log_stream_refresh',
+})
+
 @dataclass
 class AdvancedSettings:
     """고급 설정 데이터 클래스"""
