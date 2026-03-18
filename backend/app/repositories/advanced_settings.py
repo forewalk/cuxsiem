@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime
 
 from app.core.opensearch import get_opensearch_client
-from app.models.advanced_settings import AdvancedSettings
+from app.models.advanced_settings import AdvancedSettings, PERSONAL_FIELDS
 
 
 class AdvancedSettingsRepository:
@@ -52,15 +52,27 @@ class AdvancedSettingsRepository:
         return await loop.run_in_executor(None, get)
 
     async def update_settings(self, settings: AdvancedSettings) -> AdvancedSettings:
-        """설정 업데이트"""
+        """설정 업데이트.
+
+        글로벌 문서(user_id='global')는 모든 필드를 저장.
+        사용자 문서는 개인화 필드(PERSONAL_FIELDS)만 저장 — 글로벌 필드 중복 저장 방지.
+        """
         loop = asyncio.get_event_loop()
         doc_id = self._get_doc_id(settings.user_id)
+        full_dict = settings.to_dict()
+
+        if settings.user_id == "global":
+            body = full_dict
+        else:
+            # 개인 설정 필드 + 메타 필드만 저장
+            body = {k: v for k, v in full_dict.items()
+                    if k in PERSONAL_FIELDS or k in ('user_id', 'updated_at')}
 
         def upsert():
             self.client.index(
                 index=self.index,
                 id=doc_id,
-                body=settings.to_dict(),
+                body=body,
                 refresh=True
             )
             return settings
