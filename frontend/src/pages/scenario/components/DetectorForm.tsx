@@ -22,12 +22,13 @@ import {
   Typography,
 } from '@mui/material';
 import { Info as InfoIcon, Search as SearchIcon } from '@mui/icons-material';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
+import { detectionRuleService } from '../../../services/sigmaRuleService';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import {
   LOG_TYPE_GROUPS,
   ALL_LOG_TYPES,
-  matchLogTypes,
   getLogTypeLabel,
 } from '../constants/logTypes';
 import type { DetectorCreate, SigmaRuleListItem } from '@/types';
@@ -60,7 +61,6 @@ interface DetectorFormProps {
   isEditing?: boolean;
   onSave: (data: DetectorCreate) => void;
   onCancel: () => void;
-  rules: SigmaRuleListItem[];
   onRuleClick?: (ruleId: string) => void;
   t: (key: string) => string;
 }
@@ -70,10 +70,12 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
   isEditing = false,
   onSave,
   onCancel,
-  rules,
   onRuleClick,
   t,
 }) => {
+  const { settings } = useSettingsStore();
+  const pageSize = settings?.pagination_size ?? 20;
+
   const [name, setName] = useState(initialData?.name ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [intervalMin, setIntervalMin] = useState(initialData?.schedule_interval_min ?? 5);
@@ -84,35 +86,60 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [filterSource, setFilterSource] = useState<'all' | 'standard' | 'custom'>('all');
 
-  // Precompute rule → log type mapping
-  const ruleLogTypeMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    for (const rule of rules) {
-      map.set(rule.id, matchLogTypes(rule.log_source_product, rule.log_source_category, null));
-    }
-    return map;
-  }, [rules]);
+  // Server-side rule fetching
+  const [rules, setRules] = useState<SigmaRuleListItem[]>([]);
+  const [ruleTotal, setRuleTotal] = useState(0);
+  const [rulePage, setRulePage] = useState(0);
+  const [rulesLoading, setRulesLoading] = useState(false);
 
-  // Filtered rules
-  const filteredRules = useMemo(() => {
-    return rules.filter(rule => {
-      if (selectedLogTypes.length > 0) {
-        const ruleTypes = ruleLogTypeMap.get(rule.id) ?? [];
-        if (!selectedLogTypes.some(lt => ruleTypes.includes(lt))) return false;
-      }
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (!rule.name.toLowerCase().includes(q) && !(rule.description ?? '').toLowerCase().includes(q)) return false;
-      }
-      if (filterSeverity !== 'all' && rule.level_normalized !== filterSeverity) return false;
-      if (filterSource === 'standard' && rule.type !== 'sigma') return false;
-      if (filterSource === 'custom' && rule.type !== 'custom') return false;
-      return true;
-    });
-  }, [rules, selectedLogTypes, searchQuery, filterSeverity, filterSource, ruleLogTypeMap]);
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Build log_type_keywords from selected log types
+  const logTypeKeywords = useMemo(() => {
+    if (selectedLogTypes.length === 0) return '';
+    const keywords: string[] = [];
+    for (const ltValue of selectedLogTypes) {
+      const item = ALL_LOG_TYPES.find(lt => lt.value === ltValue);
+      if (item) keywords.push(...item.keywords);
+    }
+    return keywords.join(',');
+  }, [selectedLogTypes]);
+
+  // Reset page when filters change
+  useEffect(() => { setRulePage(0); }, [debouncedSearch, logTypeKeywords, filterSeverity, filterSource]);
+
+  // Fetch rules from API
+  useEffect(() => {
+    let cancelled = false;
+    const fetchRules = async () => {
+      setRulesLoading(true);
+      try {
+        const params: Record<string, unknown> = { skip: rulePage * pageSize, limit: pageSize };
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (logTypeKeywords) params.log_type_keywords = logTypeKeywords;
+        if (filterSeverity !== 'all') params.severity = filterSeverity;
+        if (filterSource !== 'all') params.rule_type = filterSource === 'standard' ? 'sigma' : 'custom';
+        const data = await detectionRuleService.list(params);
+        if (!cancelled) {
+          setRules(data.items);
+          setRuleTotal(data.total);
+        }
+      } catch { /* fetch failed */ }
+      finally { if (!cancelled) setRulesLoading(false); }
+    };
+    fetchRules();
+    return () => { cancelled = true; };
+  }, [rulePage, debouncedSearch, logTypeKeywords, filterSeverity, filterSource, pageSize]);
+
+  const totalPages = Math.ceil(ruleTotal / pageSize);
 
   const handleToggleRule = useCallback((ruleId: string) => {
     setLinkedRuleIds(prev => {
@@ -147,9 +174,8 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
   };
 
   const getRuleLogTypeLabel = (rule: SigmaRuleListItem): string => {
-    const types = ruleLogTypeMap.get(rule.id) ?? [];
-    if (types.length === 0) return rule.log_source_product || rule.log_source_category || '-';
-    return getLogTypeLabel(types[0]);
+    const src = [rule.log_source_product, rule.log_source_category].filter(Boolean).join('/');
+    return src || '-';
   };
 
   return (
@@ -199,51 +225,43 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
             InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
         </Stack>
 
-        {/* Section 2: Log Type */}
-        <SectionHeader>{t('dpSectionLogType')}</SectionHeader>
-        <Select
-          multiple
-          size="small"
-          value={selectedLogTypes}
-          onChange={e => {
-            const val = e.target.value;
-            setSelectedLogTypes(typeof val === 'string' ? val.split(',') : val);
-          }}
-          displayEmpty
-          renderValue={(selected) =>
-            selected.length === 0
-              ? <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>{t('dpSelectLogType')}</Typography>
-              : <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {selected.map(v => (
-                    <Chip key={v} label={getLogTypeLabel(v)} size="small"
-                      sx={{ height: 20, fontSize: '0.6rem' }}
-                      onDelete={() => setSelectedLogTypes(prev => prev.filter(p => p !== v))}
-                      onMouseDown={e => e.stopPropagation()} />
-                  ))}
-                </Box>
-          }
-          sx={{ width: '100%', fontSize: '0.75rem', '& .MuiSelect-select': { minHeight: 32 } }}
-          MenuProps={{ PaperProps: { sx: { maxHeight: 400 } } }}
-        >
-          {LOG_TYPE_GROUPS.flatMap(group => [
-            <ListSubheader key={`header-${group.group}`} sx={{ fontSize: '0.68rem', fontWeight: 'bold', lineHeight: '28px', bgcolor: 'action.hover', color: 'text.secondary' }}>
-              {group.group}
-            </ListSubheader>,
-            ...group.items.map(item => (
-              <MenuItem key={item.value} value={item.value} sx={{ fontSize: '0.75rem', py: 0.5, pl: 3 }}>
-                <Checkbox size="small" checked={selectedLogTypes.includes(item.value)}
-                  sx={{ p: 0, mr: 1, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-                <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.75rem' }} />
-              </MenuItem>
-            )),
-          ])}
-        </Select>
-
-        {/* Section 3: Rules selection */}
+        {/* Section 2: Rules selection */}
         <SectionHeader>{t('dpSectionRules')}</SectionHeader>
 
         {/* Filters row */}
-        <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} alignItems="center">
+        <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
+          <Select
+            multiple
+            size="small"
+            value={selectedLogTypes}
+            onChange={e => {
+              const val = e.target.value;
+              setSelectedLogTypes(typeof val === 'string' ? val.split(',') : val);
+            }}
+            displayEmpty
+            renderValue={(selected) =>
+              selected.length === 0
+                ? <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>{t('dpSelectLogType')}</Typography>
+                : <Typography variant="caption" noWrap sx={{ fontSize: '0.75rem' }}>
+                    {selected.map(v => getLogTypeLabel(v)).join(', ')}
+                  </Typography>
+            }
+            sx={{ minWidth: 140, maxWidth: 200, fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.75, px: 1 } }}
+            MenuProps={{ PaperProps: { sx: { maxHeight: 400 } } }}
+          >
+            {LOG_TYPE_GROUPS.flatMap(group => [
+              <ListSubheader key={`header-${group.group}`} sx={{ fontSize: '0.68rem', fontWeight: 'bold', lineHeight: '28px', bgcolor: 'action.hover', color: 'text.secondary' }}>
+                {group.group}
+              </ListSubheader>,
+              ...group.items.map(item => (
+                <MenuItem key={item.value} value={item.value} sx={{ fontSize: '0.75rem', py: 0.5, pl: 3 }}>
+                  <Checkbox size="small" checked={selectedLogTypes.includes(item.value)}
+                    sx={{ p: 0, mr: 1, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.75rem' }} />
+                </MenuItem>
+              )),
+            ])}
+          </Select>
           <TextField
             size="small"
             placeholder={t('dpSearchRules')}
@@ -276,6 +294,11 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
           </TextField>
         </Stack>
 
+        {/* Rule count */}
+        <Typography variant="caption" sx={{ fontSize: '0.68rem', color: 'text.secondary', mb: 0.5, display: 'block' }}>
+          {t('dpRuleCount').replace('{shown}', String(rules.length)).replace('{total}', String(ruleTotal))}
+        </Typography>
+
         {/* Rules table */}
         <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, maxHeight: 360 }}>
           <Table size="small" stickyHeader>
@@ -291,7 +314,7 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredRules.length > 0 ? filteredRules.map(rule => (
+              {rules.length > 0 ? rules.map(rule => (
                 <TableRow
                   key={rule.id}
                   hover
@@ -330,7 +353,7 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                   </TableCell>
                   <TableCell sx={{ ...cellSx, maxWidth: 180 }}>
                     <Typography variant="caption" noWrap sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>
-                      {rule.description || '-'}
+                      {rule.log_source_category || rule.log_source_product || '-'}
                     </Typography>
                   </TableCell>
                   {onRuleClick && (
@@ -351,7 +374,7 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                 <TableRow>
                   <TableCell colSpan={onRuleClick ? 7 : 6} sx={{ textAlign: 'center', py: 4 }}>
                     <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
-                      {selectedLogTypes.length === 0 ? t('dpSelectLogTypeFirst') : t('dpNoMatchingRules')}
+                      {rulesLoading ? '' : t('dpNoMatchingRules')}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -359,6 +382,23 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center" justifyContent="center">
+            <Button size="small" disabled={rulePage === 0 || rulesLoading} onClick={() => setRulePage(p => p - 1)}
+              sx={{ minWidth: 32, fontSize: '0.7rem', textTransform: 'none' }}>
+              ‹
+            </Button>
+            <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+              {rulePage + 1} / {totalPages}
+            </Typography>
+            <Button size="small" disabled={rulePage >= totalPages - 1 || rulesLoading} onClick={() => setRulePage(p => p + 1)}
+              sx={{ minWidth: 32, fontSize: '0.7rem', textTransform: 'none' }}>
+              ›
+            </Button>
+          </Stack>
+        )}
       </Box>
     </Paper>
   );

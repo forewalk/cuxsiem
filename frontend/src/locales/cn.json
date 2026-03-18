@@ -616,5 +616,6 @@
   "dpColLogType": "日志类型",
   "dpColDescription": "描述",
   "dpSelectLogTypeFirst": "请先选择日志类型",
-  "dpNoMatchingRules": "没有匹配的规则"
+  "dpNoMatchingRules": "没有匹配的规则",
+  "dpRuleCount": "{shown} / {total}条"
 }

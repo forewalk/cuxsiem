@@ -619,5 +619,6 @@
   "dpColLogType": "Log Type",
   "dpColDescription": "Description",
   "dpSelectLogTypeFirst": "Select a log type first",
-  "dpNoMatchingRules": "No matching rules found"
+  "dpNoMatchingRules": "No matching rules found",
+  "dpRuleCount": "{shown} / {total} rules"
 }

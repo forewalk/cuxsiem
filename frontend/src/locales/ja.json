@@ -628,5 +628,6 @@
   "dpColLogType": "ログタイプ",
   "dpColDescription": "説明",
   "dpSelectLogTypeFirst": "先にログタイプを選択してください",
-  "dpNoMatchingRules": "条件に合うルールがありません"
+  "dpNoMatchingRules": "条件に合うルールがありません",
+  "dpRuleCount": "{shown} / {total}件"
 }

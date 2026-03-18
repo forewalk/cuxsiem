@@ -643,5 +643,6 @@
   "dpColLogType": "로그 타입",
   "dpColDescription": "설명",
   "dpSelectLogTypeFirst": "로그 타입을 먼저 선택하세요",
-  "dpNoMatchingRules": "조건에 맞는 규칙이 없습니다"
+  "dpNoMatchingRules": "조건에 맞는 규칙이 없습니다",
+  "dpRuleCount": "{shown} / {total}건"
 }

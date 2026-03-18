@@ -399,7 +399,6 @@ const DetectionRuleTab: React.FC = () => {
             isEditing={!!editingDetector}
             onSave={editingDetector ? handleUpdateDetector : handleCreateDetector}
             onCancel={() => { setShowDetectorForm(false); setEditingDetector(null); }}
-            rules={rules}
             onRuleClick={handlePreviewRule}
             t={t}
           />
