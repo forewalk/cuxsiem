@@ -544,7 +544,7 @@ tags:
         assert doc["opensearch_query"] is not None
         assert "query" in doc["opensearch_query"]
         assert doc["query_conversion_error"] is None
-        assert doc["query_pipeline_id"] == "default"
+        assert doc["query_pipeline_id"] == "sentinelone_edr_v1"
         assert doc["query_converted_at"] is not None
 
     def test_parse_conversion_field_mapped(self):
@@ -588,3 +588,112 @@ tags:
         assert doc["log_source_product"] == "windows"
         assert "T1059.001" in doc["mitre_technique_ids"]
         assert doc["content_hash"] is not None
+
+
+class TestFieldMappings:
+    """필드 매핑 프리셋 모듈 테스트"""
+
+    def test_list_presets(self):
+        from app.core.field_mappings import list_presets
+        presets = list_presets()
+        assert len(presets) >= 1
+        assert presets[0]["id"] == "sentinelone_edr_v1"
+        assert presets[0]["field_count"] > 0
+
+    def test_get_preset_mappings(self):
+        from app.core.field_mappings import get_preset_mappings
+        mappings = get_preset_mappings("sentinelone_edr_v1")
+        assert "CommandLine" in mappings
+        assert mappings["CommandLine"] == "src.process.cmdline"
+
+    def test_get_preset_mappings_unknown(self):
+        from app.core.field_mappings import get_preset_mappings
+        mappings = get_preset_mappings("nonexistent")
+        assert mappings == {}
+
+    def test_get_preset_as_field_mapping_list(self):
+        from app.core.field_mappings import get_preset_as_field_mapping_list
+        fmlist = get_preset_as_field_mapping_list("sentinelone_edr_v1")
+        assert len(fmlist) > 0
+        assert all("rule_field" in fm and "log_field" in fm for fm in fmlist)
+
+    def test_sigma_pipeline_uses_preset(self):
+        """sigma_pipeline이 field_mappings 프리셋을 사용하는지 확인"""
+        from app.core.field_mappings import get_preset_mappings, DEFAULT_PRESET_ID
+        mappings = get_preset_mappings(DEFAULT_PRESET_ID)
+        assert len(mappings) > 30
+
+
+class TestExtractFieldsFromDetection:
+    """detection_config에서 필드명 추출 테스트"""
+
+    def test_simple_detection(self):
+        service = SigmaRuleService()
+        config = {
+            "selection": {"CommandLine|contains": "powershell", "ParentImage|endswith": "\\cmd.exe"},
+            "condition": "selection",
+        }
+        fields = service._extract_fields_from_detection(config)
+        assert "CommandLine" in fields
+        assert "ParentImage" in fields
+        assert "condition" not in fields
+
+    def test_list_detection(self):
+        service = SigmaRuleService()
+        config = {
+            "selection": [
+                {"Image|endswith": "\\cmd.exe"},
+                {"User": "SYSTEM"},
+            ],
+            "condition": "selection",
+        }
+        fields = service._extract_fields_from_detection(config)
+        assert "Image" in fields
+        assert "User" in fields
+
+    def test_empty_detection(self):
+        service = SigmaRuleService()
+        fields = service._extract_fields_from_detection({})
+        assert fields == []
+
+
+class TestConvertPreview:
+    """convert_preview 서비스 메서드 테스트"""
+
+    @pytest.mark.asyncio
+    async def test_rule_not_found(self):
+        service = SigmaRuleService()
+        with patch.object(service.repository, "get_rule_by_id", new_callable=AsyncMock, return_value=None):
+            result = await service.convert_preview("nonexistent-id")
+            assert result["status"] == "failed"
+            assert "not found" in result["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_rule_with_detection_config(self):
+        service = SigmaRuleService()
+        mock_rule = {
+            "id": "test-id",
+            "name": "Test Rule",
+            "type": "sigma",
+            "description": "A test rule",
+            "level_normalized": "high",
+            "log_source_category": "process_creation",
+            "log_source_product": "windows",
+            "log_source_service": None,
+            "mitre_technique_ids": ["T1059"],
+            "mitre_tactic_ids": ["execution"],
+            "false_positives": [],
+            "detection_config": {
+                "selection": {"CommandLine|contains": "powershell"},
+                "condition": "selection",
+            },
+            "raw_yaml": None,
+            "opensearch_query": {"query": {"match": {"src.process.cmdline": "powershell"}}},
+        }
+        with patch.object(service.repository, "get_rule_by_id", new_callable=AsyncMock, return_value=mock_rule):
+            result = await service.convert_preview("test-id")
+            assert result["rule_name"] == "Test Rule"
+            assert result["status"] == "success"
+            assert result["opensearch_query"] is not None
+            assert len(result["applied_mappings"]) > 0
+            assert result["metadata"]["level_normalized"] == "high"

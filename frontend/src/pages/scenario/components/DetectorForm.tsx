@@ -5,8 +5,8 @@ import {
   Checkbox,
   Chip,
   Divider,
+  IconButton,
   ListItemText,
-  ListSubheader,
   MenuItem,
   Paper,
   Select,
@@ -22,16 +22,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Search as SearchIcon } from '@mui/icons-material';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
 import { detectionRuleService } from '../../../services/sigmaRuleService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import {
-  LOG_TYPE_GROUPS,
-  ALL_LOG_TYPES,
-} from '../constants/logTypes';
-import type { DetectorCreate, SigmaRuleListItem } from '@/types';
+import { LogsourceSelect } from './LogsourceSelect';
+import type { DetectorCreate, FieldMapping, SigmaRuleListItem } from '@/types';
 
 const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Box sx={{
@@ -81,16 +78,27 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
   const [intervalMin, setIntervalMin] = useState(initialData?.schedule_interval_min ?? 5);
   const [timestampField, setTimestampField] = useState(initialData?.timestamp_field ?? '@timestamp');
   const [maxWindow, setMaxWindow] = useState(initialData?.max_search_window_min ?? 1440);
-  const [selectedLogTypes, setSelectedLogTypes] = useState<string[]>([]);
   const [linkedRuleIds, setLinkedRuleIds] = useState<Set<string>>(
     new Set(initialData?.linked_rule_ids ?? [])
   );
 
-  // Filters
+  // Logsource filters (from API)
+  const [filterProduct, setFilterProduct] = useState<string[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
+  const [filterService, setFilterService] = useState<string[]>([]);
+  const [lsProducts, setLsProducts] = useState<{ value: string; count: number }[]>([]);
+  const [lsCategories, setLsCategories] = useState<{ value: string; count: number }[]>([]);
+  const [lsServices, setLsServices] = useState<{ value: string; count: number }[]>([]);
+  const [lsLoading, setLsLoading] = useState(false);
+
+  // Other filters
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterSeverity, setFilterSeverity] = useState<string[]>([]);
   const [filterSource, setFilterSource] = useState<string[]>([]);
+
+  // Field mappings
+  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>(initialData?.field_mappings ?? []);
 
   // Server-side rule fetching
   const [rules, setRules] = useState<SigmaRuleListItem[]>([]);
@@ -104,19 +112,47 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Build log_type_keywords from selected log types
-  const logTypeKeywords = useMemo(() => {
-    if (selectedLogTypes.length === 0) return '';
-    const keywords: string[] = [];
-    for (const ltValue of selectedLogTypes) {
-      const item = ALL_LOG_TYPES.find(lt => lt.value === ltValue);
-      if (item) keywords.push(...item.keywords);
-    }
-    return keywords.join(',');
-  }, [selectedLogTypes]);
+  // Products: 전체 조회
+  useEffect(() => {
+    let cancelled = false;
+    setLsLoading(true);
+    detectionRuleService.getLogsourceOptions().then(data => {
+      if (!cancelled) setLsProducts(data.products);
+    }).catch(() => {}).finally(() => { if (!cancelled) setLsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Categories: product 선택에 따라 필터링
+  useEffect(() => {
+    let cancelled = false;
+    const params: { product?: string } = {};
+    if (filterProduct.length) params.product = filterProduct.join(',');
+    detectionRuleService.getLogsourceOptions(params).then(data => {
+      if (!cancelled) {
+        setLsCategories(data.categories);
+        setFilterCategory(prev => prev.filter(v => data.categories.some(c => c.value === v)));
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [filterProduct]);
+
+  // Services: product + category 선택에 따라 필터링
+  useEffect(() => {
+    let cancelled = false;
+    const params: { product?: string; category?: string } = {};
+    if (filterProduct.length) params.product = filterProduct.join(',');
+    if (filterCategory.length) params.category = filterCategory.join(',');
+    detectionRuleService.getLogsourceOptions(params).then(data => {
+      if (!cancelled) {
+        setLsServices(data.services);
+        setFilterService(prev => prev.filter(v => data.services.some(s => s.value === v)));
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [filterProduct, filterCategory]);
 
   // Reset page when filters change
-  useEffect(() => { setRulePage(0); }, [debouncedSearch, logTypeKeywords, filterSeverity, filterSource]);
+  useEffect(() => { setRulePage(0); }, [debouncedSearch, filterProduct, filterCategory, filterService, filterSeverity, filterSource]);
 
   // Fetch rules from API
   useEffect(() => {
@@ -126,7 +162,9 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
       try {
         const params: Record<string, unknown> = { skip: rulePage * pageSize, limit: pageSize };
         if (debouncedSearch) params.search = debouncedSearch;
-        if (logTypeKeywords) params.log_type_keywords = logTypeKeywords;
+        if (filterProduct.length) params.log_source_product = filterProduct.join(',');
+        if (filterCategory.length) params.log_source_category = filterCategory.join(',');
+        if (filterService.length) params.log_source_service = filterService.join(',');
         if (filterSeverity.length) params.severity = filterSeverity.join(',');
         if (filterSource.length) params.rule_type = filterSource.map(s => s === 'standard' ? 'sigma' : 'custom').join(',');
         const data = await detectionRuleService.list(params);
@@ -139,7 +177,7 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
     };
     fetchRules();
     return () => { cancelled = true; };
-  }, [rulePage, debouncedSearch, logTypeKeywords, filterSeverity, filterSource, pageSize]);
+  }, [rulePage, debouncedSearch, filterProduct, filterCategory, filterService, filterSeverity, filterSource, pageSize]);
 
   const totalPages = Math.ceil(ruleTotal / pageSize);
 
@@ -167,6 +205,39 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
     });
   }, [rules]);
 
+  // 필드 매핑 프리셋 자동 로드
+  useEffect(() => {
+    if (fieldMappings.length > 0) return;
+    let cancelled = false;
+    const loadPreset = async () => {
+      try {
+        const detail = await detectionRuleService.getFieldMappingPresetDetail('sentinelone_edr_v1');
+        if (!cancelled && detail?.mappings) {
+          const entries = Object.entries(detail.mappings).map(([rule_field, log_field]) => ({ rule_field, log_field }));
+          setFieldMappings(entries);
+        }
+      } catch { /* preset load failed */ }
+    };
+    loadPreset();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleMappingChange = useCallback((index: number, field: 'rule_field' | 'log_field', value: string) => {
+    setFieldMappings(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  }, []);
+
+  const handleAddMapping = useCallback(() => {
+    setFieldMappings(prev => [...prev, { rule_field: '', log_field: '' }]);
+  }, []);
+
+  const handleRemoveMapping = useCallback((index: number) => {
+    setFieldMappings(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
   const failedRulesInSelection = useMemo(() => {
     return rules.filter(r => linkedRuleIds.has(r.id) && r.query_conversion_status === 'failed');
   }, [rules, linkedRuleIds]);
@@ -186,14 +257,16 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
       return idx < severityOrder.indexOf(best) && idx >= 0 ? r.level_normalized : best;
     }, 'medium');
 
+    const validMappings = fieldMappings.filter(m => m.rule_field && m.log_field);
     const data: DetectorCreate = {
       name,
       description: description || undefined,
-      detector_type: selectedLogTypes.length === 1
-        ? (ALL_LOG_TYPES.find(lt => lt.value === selectedLogTypes[0])?.label ?? selectedLogTypes[0])
-        : selectedLogTypes.length > 1 ? 'multi' : 'custom',
+      detector_type: filterProduct.length === 1
+        ? filterProduct[0]
+        : filterProduct.length > 1 ? 'multi' : 'custom',
       target_indices: ['logs-*'],
       linked_rule_ids: linked,
+      field_mappings: validMappings,
       schedule_interval_min: intervalMin,
       severity: highestSeverity,
       is_active: true,
@@ -272,55 +345,10 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
         <SectionHeader>{t('dpSectionRules')}</SectionHeader>
 
         {/* Filters row */}
-        <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
-          <Select
-            multiple
-            size="small"
-            value={selectedLogTypes}
-            onChange={e => {
-              const raw = e.target.value;
-              const next = typeof raw === 'string' ? raw.split(',') : raw;
-              if (next.includes('__TOGGLE_ALL__')) {
-                const allValues = ALL_LOG_TYPES.map(lt => lt.value);
-                setSelectedLogTypes(selectedLogTypes.length === allValues.length ? [] : allValues);
-              } else {
-                setSelectedLogTypes(next);
-              }
-            }}
-            displayEmpty
-            renderValue={(selected) => (
-              <Typography variant="caption" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.disabled' : 'text.primary' }}>
-                {selected.length === 0
-                  ? t('dpSelectLogType')
-                  : selected.length === ALL_LOG_TYPES.length
-                    ? t('filterLogType')
-                    : `${t('filterLogType')} (${selected.length})`}
-              </Typography>
-            )}
-            sx={{ minWidth: 140, maxWidth: 200, fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.75, px: 1 } }}
-            MenuProps={{ PaperProps: { sx: { maxHeight: 400 } }, MenuListProps: { autoFocusItem: false } }}
-          >
-            <MenuItem value="__TOGGLE_ALL__" dense sx={{ px: 0.5, py: 0 }}>
-              <Checkbox size="small"
-                checked={selectedLogTypes.length === ALL_LOG_TYPES.length}
-                indeterminate={selectedLogTypes.length > 0 && selectedLogTypes.length < ALL_LOG_TYPES.length}
-                sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
-            </MenuItem>
-            <Divider sx={{ my: 0.25 }} />
-            {LOG_TYPE_GROUPS.flatMap(group => [
-              <ListSubheader key={`header-${group.group}`} sx={{ fontSize: '0.68rem', fontWeight: 'bold', lineHeight: '28px', bgcolor: 'action.hover', color: 'text.secondary', position: 'static' }}>
-                {group.group}
-              </ListSubheader>,
-              ...group.items.map(item => (
-                <MenuItem key={item.value} value={item.value} dense sx={{ py: 0.25, pl: 3 }}>
-                  <Checkbox size="small" checked={selectedLogTypes.includes(item.value)}
-                    sx={{ p: 0, mr: 1, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.75rem' }} />
-                </MenuItem>
-              )),
-            ])}
-          </Select>
+        <Stack direction="row" spacing={0.75} sx={{ mb: 1 }} alignItems="center">
+          <LogsourceSelect label="Product" options={lsProducts} selected={filterProduct} onChange={setFilterProduct} loading={lsLoading} minWidth={110} allowCustomInput />
+          <LogsourceSelect label="Category" options={lsCategories} selected={filterCategory} onChange={setFilterCategory} loading={lsLoading} minWidth={120} allowCustomInput />
+          <LogsourceSelect label="Service" options={lsServices} selected={filterService} onChange={setFilterService} loading={lsLoading} minWidth={110} allowCustomInput />
           <TextField
             size="small"
             placeholder={t('dpSearchRules')}
@@ -333,30 +361,25 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
             sx={{ flex: 1 }}
           />
           <Select
-            multiple
-            size="small"
-            value={filterSeverity}
+            multiple size="small" value={filterSeverity}
             onChange={e => {
               const raw = e.target.value;
               const next = typeof raw === 'string' ? raw.split(',') : raw;
-              if (next.includes('__TOGGLE_ALL__')) {
-                setFilterSeverity(filterSeverity.length === SEVERITIES.length ? [] : [...SEVERITIES]);
-              } else {
-                setFilterSeverity(next);
-              }
+              if (next.includes('__TOGGLE_ALL__')) { setFilterSeverity(filterSeverity.length === SEVERITIES.length ? [] : [...SEVERITIES]); }
+              else { setFilterSeverity(next); }
             }}
             displayEmpty
-            renderValue={(selected) => (
-              <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
-                {t('filterSeverity')}{selected.length > 0 && selected.length < SEVERITIES.length && ` (${selected.length})`}
+            renderValue={(sel) => (
+              <Typography component="span" noWrap sx={{ fontSize: '0.72rem', color: sel.length === 0 ? 'text.secondary' : 'text.primary' }}>
+                Severity{sel.length > 0 && sel.length < SEVERITIES.length && ` (${sel.length})`}
               </Typography>
             )}
-            sx={{ minWidth: 110, minHeight: 32, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.75rem' } }}
+            sx={{ minWidth: 100, minHeight: 30, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.72rem' } }}
             MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
           >
             <MenuItem value="__TOGGLE_ALL__" dense sx={{ px: 0.5, py: 0 }}>
               <Checkbox size="small" checked={filterSeverity.length === SEVERITIES.length} indeterminate={filterSeverity.length > 0 && filterSeverity.length < SEVERITIES.length} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+              <ListItemText primary="All" primaryTypographyProps={{ fontSize: '0.72rem', fontWeight: 600 }} />
             </MenuItem>
             <Divider sx={{ my: 0.25 }} />
             {SEVERITIES.map(s => (
@@ -367,30 +390,25 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
             ))}
           </Select>
           <Select
-            multiple
-            size="small"
-            value={filterSource}
+            multiple size="small" value={filterSource}
             onChange={e => {
               const raw = e.target.value;
               const next = typeof raw === 'string' ? raw.split(',') : raw;
-              if (next.includes('__TOGGLE_ALL__')) {
-                setFilterSource(filterSource.length === SOURCE_OPTIONS.length ? [] : [...SOURCE_OPTIONS]);
-              } else {
-                setFilterSource(next);
-              }
+              if (next.includes('__TOGGLE_ALL__')) { setFilterSource(filterSource.length === SOURCE_OPTIONS.length ? [] : [...SOURCE_OPTIONS]); }
+              else { setFilterSource(next); }
             }}
             displayEmpty
-            renderValue={(selected) => (
-              <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
-                {t('filterSource')}{selected.length > 0 && selected.length < SOURCE_OPTIONS.length && ` (${selected.length})`}
+            renderValue={(sel) => (
+              <Typography component="span" noWrap sx={{ fontSize: '0.72rem', color: sel.length === 0 ? 'text.secondary' : 'text.primary' }}>
+                Source{sel.length > 0 && sel.length < SOURCE_OPTIONS.length && ` (${sel.length})`}
               </Typography>
             )}
-            sx={{ minWidth: 110, minHeight: 32, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.75rem' } }}
+            sx={{ minWidth: 90, minHeight: 30, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.72rem' } }}
             MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
           >
             <MenuItem value="__TOGGLE_ALL__" dense sx={{ px: 0.5, py: 0 }}>
               <Checkbox size="small" checked={filterSource.length === SOURCE_OPTIONS.length} indeterminate={filterSource.length > 0 && filterSource.length < SOURCE_OPTIONS.length} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+              <ListItemText primary="All" primaryTypographyProps={{ fontSize: '0.72rem', fontWeight: 600 }} />
             </MenuItem>
             <Divider sx={{ my: 0.25 }} />
             {SOURCE_OPTIONS.map(s => (
@@ -526,6 +544,67 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
             </Button>
           </Stack>
         )}
+
+        {/* Section 3: Field Mappings */}
+        <SectionHeader>{t('fmFieldMappings')}</SectionHeader>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.68rem' }}>
+          {t('fmDetectorMappingsDesc')}
+        </Typography>
+        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={headCellSx}>{t('fmRuleField')}</TableCell>
+                <TableCell sx={headCellSx}>{t('fmLogField')}</TableCell>
+                <TableCell sx={{ ...headCellSx, width: 40 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {fieldMappings.length > 0 ? fieldMappings.map((mapping, idx) => (
+                <TableRow key={idx}>
+                  <TableCell sx={cellSx}>
+                    <TextField
+                      fullWidth size="small" variant="standard"
+                      value={mapping.rule_field}
+                      onChange={e => handleMappingChange(idx, 'rule_field', e.target.value)}
+                      InputProps={{ sx: { fontSize: '0.72rem', fontFamily: 'monospace' }, disableUnderline: true }}
+                    />
+                  </TableCell>
+                  <TableCell sx={cellSx}>
+                    <TextField
+                      fullWidth size="small" variant="standard"
+                      value={mapping.log_field}
+                      onChange={e => handleMappingChange(idx, 'log_field', e.target.value)}
+                      placeholder={t('fmSelectLogField')}
+                      InputProps={{ sx: { fontSize: '0.72rem', fontFamily: 'monospace' }, disableUnderline: true }}
+                    />
+                  </TableCell>
+                  <TableCell sx={cellSx} align="center">
+                    <Tooltip title={t('fmRemoveMapping')}>
+                      <IconButton size="small" onClick={() => handleRemoveMapping(idx)}>
+                        <DeleteIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={3} sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="caption" color="text.disabled">{t('fmNoMappings')}</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={handleAddMapping}
+          sx={{ mt: 0.5, textTransform: 'none', fontSize: '0.7rem' }}
+        >
+          {t('fmAddMapping')}
+        </Button>
       </Box>
     </Paper>
   );

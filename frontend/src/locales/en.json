@@ -648,5 +648,22 @@
   "drConversionPending": "Conversion Pending",
   "drReconvert": "Reconvert",
   "drConvertedAt": "Converted at",
-  "drNoQuery": "No converted query available"
+  "drNoQuery": "No converted query available",
+  "fmFieldMappings": "Field Mappings",
+  "fmFieldMappingsDesc": "Map Sigma rule fields to actual log index fields. Review auto-mapped values and modify as needed.",
+  "fmDetectorMappingsDesc": "Configure mappings between rule fields and log index fields. Pre-converted rules already have mappings applied.",
+  "fmRuleField": "Rule Field",
+  "fmLogField": "Log Field",
+  "fmAddMapping": "Add Mapping",
+  "fmRemoveMapping": "Remove Mapping",
+  "fmSelectLogField": "Enter log field",
+  "fmNoMappings": "No field mappings configured",
+  "fmLoadStandardRule": "Load Standard Rule",
+  "fmPickSigmaRule": "Select Standard Rule",
+  "fmSigmaRuleCount": "{count} rules total",
+  "fmNoRulesFound": "No rules found",
+  "fmLoadRule": "Load",
+  "fmSourceRule": "Source Rule",
+  "lsCustomInput": "Custom input",
+  "lsCustomInputPlaceholder": "Type and press Enter"
 }

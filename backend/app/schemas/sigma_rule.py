@@ -62,6 +62,8 @@ class SigmaRuleResponse(BaseModel):
     query_conversion_error: Optional[str] = None
     query_pipeline_id: Optional[str] = None
     query_converted_at: Optional[str] = None
+    source_sigma_id: Optional[str] = None
+    applied_field_mappings: List[Dict[str, str]] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -109,6 +111,8 @@ class CustomRuleCreate(BaseModel):
     mitre_technique_ids: List[str] = []
     mitre_tactic_ids: List[str] = []
     false_positives: List[str] = []
+    source_sigma_id: Optional[str] = Field(default=None, description="원본 Sigma 규칙 ID (스탠다드 규칙 기반 생성 시)")
+    applied_field_mappings: List[Dict[str, str]] = Field(default=[], description="적용된 필드 매핑 [{rule_field, log_field}]")
 
 
 class CustomRuleUpdate(BaseModel):
@@ -153,6 +157,42 @@ class FilterOptionsResponse(BaseModel):
     categories: List[str] = []
     severities: List[str] = []
     sources: List[str] = []
+
+
+# --- Field Mapping Preset ---
+
+class FieldMappingPresetItem(BaseModel):
+    id: str
+    name: str
+    description: str = ""
+    field_count: int = 0
+
+
+class FieldMappingPresetListResponse(BaseModel):
+    presets: List[FieldMappingPresetItem]
+
+
+class FieldMappingPresetDetailResponse(BaseModel):
+    id: str
+    name: str
+    description: str = ""
+    mappings: Dict[str, str]
+
+
+class ConvertPreviewRequest(BaseModel):
+    rule_id: str
+    preset_id: Optional[str] = None
+
+
+class ConvertPreviewResponse(BaseModel):
+    rule_id: str
+    rule_name: str
+    opensearch_query: Optional[Dict[str, Any]] = None
+    status: str
+    error: Optional[str] = None
+    applied_mappings: List[Dict[str, str]] = []
+    detection_config: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = {}
 
 
 # --- Import Job ---

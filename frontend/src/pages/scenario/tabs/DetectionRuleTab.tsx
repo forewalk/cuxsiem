@@ -7,7 +7,7 @@ import type {
   SigmaRuleListItem,
 } from '@/types';
 import { Close as CloseIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import { Box, Button, Checkbox, CircularProgress, Divider, FormControl, IconButton, ListItemText, ListSubheader, MenuItem, Paper, Select, Typography } from '@mui/material';
+import { Box, Button, Checkbox, CircularProgress, Divider, FormControl, IconButton, ListItemText, MenuItem, Paper, Select, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ControlSearchBar from '../../../components/shared/ControlSearchBar';
 import ResizablePanel from '../../../components/shared/ResizablePanel';
@@ -21,7 +21,7 @@ import { DetectionPolicyDetail } from '../components/DetectionPolicyDetail';
 import { DetectionRuleDetail } from '../components/DetectionRuleDetail';
 import { DetectionRuleList } from '../components/DetectionRuleList';
 import { DetectorForm } from '../components/DetectorForm';
-import { ALL_LOG_TYPES, LOG_TYPE_GROUPS } from '../constants/logTypes';
+import { LogsourceSelect } from '../components/LogsourceSelect';
 
 const FILTER_SX = {
   width: 130,
@@ -40,9 +40,17 @@ const DetectionRuleTab: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Filters (복수선택)
-  const [filterLogType, setFilterLogType] = useState<string[]>([]);
+  const [filterProduct, setFilterProduct] = useState<string[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string[]>([]);
+  const [filterService, setFilterService] = useState<string[]>([]);
   const [filterSeverity, setFilterSeverity] = useState<string[]>([]);
   const [filterSource, setFilterSource] = useState<string[]>([]);
+
+  // Logsource options from API
+  const [lsProducts, setLsProducts] = useState<{ value: string; count: number }[]>([]);
+  const [lsCategories, setLsCategories] = useState<{ value: string; count: number }[]>([]);
+  const [lsServices, setLsServices] = useState<{ value: string; count: number }[]>([]);
+  const [lsLoading, setLsLoading] = useState(false);
 
   const severityOptions = useMemo(() => ['critical', 'high', 'medium', 'low', 'info'], []);
   const sourceOptions = useMemo(() => ['sigma', 'custom'], []);
@@ -78,6 +86,45 @@ const DetectionRuleTab: React.FC = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
+  // Products: 항상 전체 조회
+  useEffect(() => {
+    let cancelled = false;
+    setLsLoading(true);
+    detectionRuleService.getLogsourceOptions().then(data => {
+      if (!cancelled) setLsProducts(data.products);
+    }).catch(() => {}).finally(() => { if (!cancelled) setLsLoading(false); });
+    return () => { cancelled = true; };
+  }, [refreshKey]);
+
+  // Categories: product 선택에 따라 필터링
+  useEffect(() => {
+    let cancelled = false;
+    const params: { product?: string } = {};
+    if (filterProduct.length) params.product = filterProduct.join(',');
+    detectionRuleService.getLogsourceOptions(params).then(data => {
+      if (!cancelled) {
+        setLsCategories(data.categories);
+        setFilterCategory(prev => prev.filter(v => data.categories.some(c => c.value === v)));
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [filterProduct, refreshKey]);
+
+  // Services: product + category 선택에 따라 필터링
+  useEffect(() => {
+    let cancelled = false;
+    const params: { product?: string; category?: string } = {};
+    if (filterProduct.length) params.product = filterProduct.join(',');
+    if (filterCategory.length) params.category = filterCategory.join(',');
+    detectionRuleService.getLogsourceOptions(params).then(data => {
+      if (!cancelled) {
+        setLsServices(data.services);
+        setFilterService(prev => prev.filter(v => data.services.some(s => s.value === v)));
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [filterProduct, filterCategory, refreshKey]);
+
   useEffect(() => {
     let cancelled = false;
     const fetchRules = async () => {
@@ -85,10 +132,9 @@ const DetectionRuleTab: React.FC = () => {
       try {
         const params: Record<string, unknown> = { skip: rulePage * rulePageSize, limit: rulePageSize };
         if (searchQuery) params.search = searchQuery;
-        if (filterLogType.length) {
-          const kws = filterLogType.flatMap(v => ALL_LOG_TYPES.find(lt => lt.value === v)?.keywords ?? []);
-          if (kws.length) params.log_type_keywords = kws.join(',');
-        }
+        if (filterProduct.length) params.log_source_product = filterProduct.join(',');
+        if (filterCategory.length) params.log_source_category = filterCategory.join(',');
+        if (filterService.length) params.log_source_service = filterService.join(',');
         if (filterSeverity.length) params.severity = filterSeverity.join(',');
         if (filterSource.length) params.rule_type = filterSource.join(',');
         const data = await detectionRuleService.list(params);
@@ -104,7 +150,7 @@ const DetectionRuleTab: React.FC = () => {
     };
     fetchRules();
     return () => { cancelled = true; };
-  }, [rulePage, rulePageSize, searchQuery, refreshKey, filterLogType, filterSeverity, filterSource]);
+  }, [rulePage, rulePageSize, searchQuery, refreshKey, filterProduct, filterCategory, filterService, filterSeverity, filterSource]);
 
   useEffect(() => {
     let cancelled = false;
@@ -385,16 +431,9 @@ const DetectionRuleTab: React.FC = () => {
     setDetectorPage(0);
   }, []);
 
-  const handleFilterChange = useCallback((key: 'logType' | 'severity' | 'source', value: string[]) => {
-    setRulePage(0);
-    if (key === 'logType') {
-      setFilterLogType(value);
-    } else if (key === 'severity') {
-      setFilterSeverity(value);
-    } else if (key === 'source') {
-      setFilterSource(value);
-    }
-  }, []);
+  const handleFilterProduct = useCallback((v: string[]) => { setRulePage(0); setFilterProduct(v); }, []);
+  const handleFilterCategory = useCallback((v: string[]) => { setRulePage(0); setFilterCategory(v); }, []);
+  const handleFilterService = useCallback((v: string[]) => { setRulePage(0); setFilterService(v); }, []);
 
   const handleRefresh = useCallback(() => {
     setRefreshKey(k => k + 1);
@@ -420,70 +459,19 @@ const DetectionRuleTab: React.FC = () => {
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mb: 0.75, flexShrink: 0, flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 140, maxWidth: 200, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' } }}>
-          <Select
-            multiple
-            size="small"
-            value={filterLogType}
-            onChange={e => {
-              const raw = e.target.value;
-              const next = typeof raw === 'string' ? raw.split(',') : raw;
-              if (next.includes(TOGGLE_ALL)) {
-                const allValues = ALL_LOG_TYPES.map(lt => lt.value);
-                handleFilterChange('logType', filterLogType.length === allValues.length ? [] : allValues);
-              } else {
-                handleFilterChange('logType', next);
-              }
-            }}
-            displayEmpty
-            renderValue={(selected) => (
-              <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
-                {selected.length === 0
-                  ? t('filterLogType')
-                  : selected.length === ALL_LOG_TYPES.length
-                    ? t('filterLogType')
-                    : `${t('filterLogType')} (${selected.length})`}
-              </Typography>
-            )}
-            sx={{ minHeight: 32, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.75rem' } }}
-            MenuProps={{ PaperProps: { sx: { maxHeight: 400 } }, MenuListProps: { autoFocusItem: false } }}
-          >
-
-            <MenuItem value={TOGGLE_ALL} dense sx={{ px: 0.5, py: 0 }}>
-              <Checkbox size="small"
-                checked={filterLogType.length === ALL_LOG_TYPES.length}
-                indeterminate={filterLogType.length > 0 && filterLogType.length < ALL_LOG_TYPES.length}
-                sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
-            </MenuItem>
-            <Divider sx={{ my: 0.25 }} />
-            {LOG_TYPE_GROUPS.flatMap(group => [
-              <ListSubheader key={`header-${group.group}`} sx={{ fontSize: '0.68rem', fontWeight: 'bold', lineHeight: '28px', bgcolor: 'action.hover', color: 'text.secondary', position: 'static' }}>
-                {group.group}
-              </ListSubheader>,
-              ...group.items.map(item => (
-                <MenuItem key={item.value} value={item.value} dense sx={{ py: 0.25, pl: 3 }}>
-                  <Checkbox size="small" checked={filterLogType.includes(item.value)}
-                    sx={{ p: 0, mr: 1, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.75rem' }} />
-                </MenuItem>
-              )),
-            ])}
-          </Select>
-        </FormControl>
+        <LogsourceSelect label="Product" options={lsProducts} selected={filterProduct} onChange={handleFilterProduct} loading={lsLoading} minWidth={110} />
+        <LogsourceSelect label="Category" options={lsCategories} selected={filterCategory} onChange={handleFilterCategory} loading={lsLoading} minWidth={120} />
+        <LogsourceSelect label="Service" options={lsServices} selected={filterService} onChange={handleFilterService} loading={lsLoading} minWidth={110} />
         <FormControl size="small" sx={FILTER_SX}>
           <Select
-            multiple
-            displayEmpty
-            value={filterSeverity}
+            multiple displayEmpty value={filterSeverity}
             onChange={(e) => {
               const raw = e.target.value;
               const next = typeof raw === 'string' ? raw.split(',') : raw;
               if (next.includes(TOGGLE_ALL)) {
-                handleFilterChange('severity', filterSeverity.length === severityOptions.length ? [] : [...severityOptions]);
-              } else {
-                handleFilterChange('severity', next);
-              }
+                setFilterSeverity(filterSeverity.length === severityOptions.length ? [] : [...severityOptions]);
+              } else { setFilterSeverity(next); }
+              setRulePage(0);
             }}
             renderValue={(selected) => (
               <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
@@ -508,17 +496,14 @@ const DetectionRuleTab: React.FC = () => {
         </FormControl>
         <FormControl size="small" sx={FILTER_SX}>
           <Select
-            multiple
-            displayEmpty
-            value={filterSource}
+            multiple displayEmpty value={filterSource}
             onChange={(e) => {
               const raw = e.target.value;
               const next = typeof raw === 'string' ? raw.split(',') : raw;
               if (next.includes(TOGGLE_ALL)) {
-                handleFilterChange('source', filterSource.length === sourceOptions.length ? [] : [...sourceOptions]);
-              } else {
-                handleFilterChange('source', next);
-              }
+                setFilterSource(filterSource.length === sourceOptions.length ? [] : [...sourceOptions]);
+              } else { setFilterSource(next); }
+              setRulePage(0);
             }}
             renderValue={(selected) => (
               <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>

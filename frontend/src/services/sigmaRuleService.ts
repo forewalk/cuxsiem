@@ -1,5 +1,5 @@
 import api from './api';
-import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats, SigmaRuleFilterOptions, CustomRuleCreate, CustomRuleUpdate, ConversionStats, ReconvertResult } from '@/types';
+import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats, SigmaRuleFilterOptions, CustomRuleCreate, CustomRuleUpdate, ConversionStats, ReconvertResult, FieldMappingPreset, ConvertPreviewResult } from '@/types';
 
 interface ListRulesParams {
   skip?: number;
@@ -11,6 +11,7 @@ interface ListRulesParams {
   status?: string;
   log_source_product?: string;
   log_source_category?: string;
+  log_source_service?: string;
   log_type_keywords?: string;
   mitre_technique_id?: string;
   rule_type?: 'sigma' | 'custom';
@@ -56,6 +57,15 @@ export const detectionRuleService = {
     return response.data;
   },
 
+  getLogsourceOptions: async (params?: { product?: string; category?: string }) => {
+    const response = await api.get<{
+      products: { value: string; count: number }[];
+      categories: { value: string; count: number }[];
+      services: { value: string; count: number }[];
+    }>('/api/v1/sigma-rules/logsource-options', { params });
+    return response.data;
+  },
+
   getFilterOptions: async (logSourceProduct?: string) => {
     const params: Record<string, string> = {};
     if (logSourceProduct) params.log_source_product = logSourceProduct;
@@ -77,6 +87,36 @@ export const detectionRuleService = {
     const response = await api.post<{ job_id: string; status: string; requested_count: number }>(
       '/api/v1/sigma-rules/reconvert',
       filter ? { filter } : {},
+    );
+    return response.data;
+  },
+
+  getFieldMappingPresets: async () => {
+    const response = await api.get<{ presets: FieldMappingPreset[] }>(
+      '/api/v1/sigma-rules/field-mappings/presets',
+    );
+    return response.data.presets;
+  },
+
+  getFieldMappingPresetDetail: async (presetId: string) => {
+    const response = await api.get<{ id: string; name: string; description: string; mappings: Record<string, string> }>(
+      `/api/v1/sigma-rules/field-mappings/presets/${presetId}`,
+    );
+    return response.data;
+  },
+
+  convertPreview: async (ruleId: string, presetId?: string) => {
+    const response = await api.post<ConvertPreviewResult>(
+      '/api/v1/sigma-rules/convert-preview',
+      { rule_id: ruleId, preset_id: presetId },
+    );
+    return response.data;
+  },
+
+  getIndexFields: async (indexPattern: string) => {
+    const response = await api.get<string[]>(
+      '/api/v1/sigma-rules/index-fields',
+      { params: { index: indexPattern } },
     );
     return response.data;
   },

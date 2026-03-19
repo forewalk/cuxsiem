@@ -3,6 +3,8 @@ from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 import logging
 
+from app.core.field_mappings import get_preset_mappings, DEFAULT_PRESET_ID
+
 logger = logging.getLogger(__name__)
 
 
@@ -56,60 +58,18 @@ class SigmaPipelineManager:
             from sigma.processing.pipeline import ProcessingPipeline, ProcessingItem
             from sigma.processing.transformations import FieldMappingTransformation
 
+            mappings = get_preset_mappings(DEFAULT_PRESET_ID)
             self._pipeline = ProcessingPipeline(
                 name="CruxSIEM SentinelOne EDR",
                 items=[
                     ProcessingItem(
                         identifier="crux_sentinelone_field_mapping",
-                        transformation=FieldMappingTransformation({
-                            # Process fields
-                            "CommandLine": "src.process.cmdline",
-                            "ParentCommandLine": "src.process.parent.cmdline",
-                            "Image": "src.process.image.path",
-                            "ParentImage": "src.process.parent.image.path",
-                            "OriginalFileName": "src.process.image.originalFileName",
-                            "Product": "src.process.image.productName",
-                            "Description": "src.process.image.description",
-                            "Company": "src.process.publisher",
-                            "ProcessId": "src.process.pid",
-                            "ParentProcessId": "src.process.parent.pid",
-                            "User": "src.process.user",
-                            "IntegrityLevel": "src.process.integrityLevel",
-                            "ProcessName": "src.process.name",
-                            "ParentProcessName": "src.process.parent.name",
-                            # File fields
-                            "TargetFilename": "tgt.file.path",
-                            "TargetFileName": "tgt.file.path",
-                            "FileName": "tgt.file.name",
-                            # Hash fields
-                            "md5": "src.process.image.md5",
-                            "sha1": "src.process.image.sha1",
-                            "sha256": "src.process.image.sha256",
-                            "Hashes": "src.process.image.sha256",
-                            # Network fields
-                            "SourceIp": "src.ip.address",
-                            "DestinationIp": "dst.ip.address",
-                            "DestinationPort": "dst.port.number",
-                            "DestinationHostname": "dst.address.value",
-                            # DNS fields
-                            "QueryName": "event.dns.request",
-                            "QueryResults": "event.dns.response",
-                            # Registry fields
-                            "TargetObject": "registry.key",
-                            "RegistryKey": "registry.key",
-                            "RegistryValue": "registry.value",
-                            # Endpoint fields
-                            "ComputerName": "endpoint.name",
-                            "HostName": "endpoint.name",
-                            # Event fields
-                            "EventType": "event.type",
-                            "ServiceName": "service.name",
-                        }),
+                        transformation=FieldMappingTransformation(mappings),
                     )
                 ],
             )
             self._backend = OpensearchLuceneBackend(self._pipeline)
-            self._pipeline_id = "sentinelone_edr_v1"
+            self._pipeline_id = DEFAULT_PRESET_ID
             logger.info("pySigma 파이프라인 초기화 완료 (pipeline=%s)", self._pipeline_id)
         except ImportError:
             logger.warning("pySigma 미설치 — 변환 기능 비활성")

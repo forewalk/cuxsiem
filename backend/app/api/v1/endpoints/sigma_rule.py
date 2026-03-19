@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -15,6 +15,10 @@ from app.schemas.sigma_rule import (
     ReconvertJobResponse,
     ReconvertResultResponse,
     BulkReconvertRequest,
+    FieldMappingPresetListResponse,
+    FieldMappingPresetDetailResponse,
+    ConvertPreviewRequest,
+    ConvertPreviewResponse,
 )
 from app.schemas.user import UserResponse
 from app.services.sigma_rule import SigmaRuleService
@@ -34,6 +38,7 @@ async def list_sigma_rules(
     status: Optional[str] = Query(None, description="active/inactive/deleted"),
     log_source_product: Optional[str] = Query(None, description="콤마 구분 복수값 가능"),
     log_source_category: Optional[str] = Query(None, description="콤마 구분 복수값 가능"),
+    log_source_service: Optional[str] = Query(None, description="콤마 구분 복수값 가능"),
     log_type_keywords: Optional[str] = Query(None, description="로그타입 keywords (product/category/service 매칭)"),
     mitre_technique_id: Optional[str] = Query(None, description="MITRE 기술 ID"),
     rule_type: Optional[str] = Query(None, description="콤마 구분 복수값 가능: sigma,custom"),
@@ -48,6 +53,7 @@ async def list_sigma_rules(
         status=status,
         log_source_product=log_source_product,
         log_source_category=log_source_category,
+        log_source_service=log_source_service,
         log_type_keywords=log_type_keywords,
         mitre_technique_id=mitre_technique_id,
         rule_type=rule_type,
@@ -68,6 +74,15 @@ async def get_sigma_rule_stats():
     return await service.get_stats()
 
 
+@router.get("/logsource-options")
+async def get_logsource_options(
+    product: Optional[str] = Query(None, description="선택된 product (콤마 구분)"),
+    category: Optional[str] = Query(None, description="선택된 category (콤마 구분)"),
+):
+    """규칙 인덱스에서 product/category/service 고유값과 건수를 집계 (상위 선택에 따라 하위 필터링)"""
+    return await service.get_logsource_options(product=product, category=category)
+
+
 @router.get("/filter-options", response_model=FilterOptionsResponse)
 async def get_filter_options(
     log_source_product: Optional[str] = Query(None, description="로그 타입 선택 시 카테고리 필터링"),
@@ -78,6 +93,31 @@ async def get_filter_options(
 @router.get("/conversion-stats", response_model=ConversionStatsResponse)
 async def get_conversion_stats():
     return await service.get_conversion_stats()
+
+
+@router.get("/field-mappings/presets", response_model=FieldMappingPresetListResponse)
+async def list_field_mapping_presets():
+    from app.core.field_mappings import list_presets
+    return {"presets": list_presets()}
+
+
+@router.get("/field-mappings/presets/{preset_id}", response_model=FieldMappingPresetDetailResponse)
+async def get_field_mapping_preset(preset_id: str):
+    from app.core.field_mappings import get_preset
+    preset = get_preset(preset_id)
+    if not preset:
+        raise HTTPException(status_code=404, detail="Preset not found")
+    return {"id": preset_id, "name": preset["name"], "description": preset.get("description", ""), "mappings": preset["mappings"]}
+
+
+@router.post("/convert-preview", response_model=ConvertPreviewResponse)
+async def convert_preview(body: ConvertPreviewRequest):
+    return await service.convert_preview(body.rule_id, body.preset_id)
+
+
+@router.get("/index-fields", response_model=List[str])
+async def get_index_fields(index: str = Query(..., description="OpenSearch 인덱스 패턴")):
+    return await service.get_index_fields(index)
 
 
 @router.post("/reconvert", response_model=ReconvertJobResponse, status_code=status.HTTP_202_ACCEPTED)

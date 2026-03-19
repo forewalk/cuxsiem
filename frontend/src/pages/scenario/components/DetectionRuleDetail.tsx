@@ -7,6 +7,12 @@ import {
   Link,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -18,8 +24,9 @@ import {
   ContentCopy as CloneIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
+import { detectionRuleService } from '../../../services/sigmaRuleService';
 import type { SigmaRuleDetail as SigmaRuleDetailType } from '@/types';
 
 interface DetectionRuleDetailProps {
@@ -68,8 +75,23 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </Box>
 );
 
+const mapCellSx = { fontSize: '0.72rem', py: 0.5, px: 1, fontFamily: 'monospace' } as const;
+const mapHeadCellSx = { ...mapCellSx, fontWeight: 'bold', color: 'text.secondary', fontFamily: 'inherit' } as const;
+
 export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, compact, onEdit, onDelete, onClone, onReconvert, reconverting }) => {
   const [detectionExpanded, setDetectionExpanded] = useState(false);
+  const [sourceSigmaName, setSourceSigmaName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (rule?.source_sigma_id) {
+      setSourceSigmaName(null);
+      detectionRuleService.getById(rule.source_sigma_id).then(r => {
+        if (r?.name) setSourceSigmaName(r.name);
+      }).catch(() => {});
+    } else {
+      setSourceSigmaName(null);
+    }
+  }, [rule?.source_sigma_id]);
 
   if (!rule) {
     return (
@@ -243,6 +265,40 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
                   {rule.query_pipeline_id && ` (pipeline: ${rule.query_pipeline_id})`}
                 </Typography>
               )}
+            </Box>
+          </>
+        )}
+
+        {/* Field Mappings (if rule has applied_field_mappings) */}
+        {rule.applied_field_mappings && rule.applied_field_mappings.length > 0 && (
+          <>
+            <SectionHeader>{t('fmFieldMappings')}</SectionHeader>
+            <Box sx={{ px: 0.5 }}>
+              {rule.source_sigma_id && (
+                <FieldRow label={t('fmSourceRule')} compact={compact}>
+                  <FieldValue mono>
+                    {sourceSigmaName ?? rule.source_sigma_id}
+                  </FieldValue>
+                </FieldRow>
+              )}
+              <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, mt: 0.5 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={mapHeadCellSx}>{t('fmRuleField')}</TableCell>
+                      <TableCell sx={mapHeadCellSx}>{t('fmLogField')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rule.applied_field_mappings.map((m, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell sx={mapCellSx}>{m.rule_field}</TableCell>
+                        <TableCell sx={mapCellSx}>{m.log_field}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </Box>
           </>
         )}

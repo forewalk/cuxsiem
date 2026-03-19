@@ -40,6 +40,7 @@ class SigmaRuleRepository:
         status: Optional[str] = None,
         log_source_product: Optional[str] = None,
         log_source_category: Optional[str] = None,
+        log_source_service: Optional[str] = None,
         log_type_keywords: Optional[str] = None,
         mitre_technique_id: Optional[str] = None,
         rule_type: Optional[str] = None,
@@ -76,6 +77,7 @@ class SigmaRuleRepository:
             _add_filter("status", status)
             _add_filter("log_source_product", log_source_product, use_keyword=True)
             _add_filter("log_source_category", log_source_category, use_keyword=True)
+            _add_filter("log_source_service", log_source_service, use_keyword=True)
             if log_type_keywords:
                 kws = [v.strip() for v in log_type_keywords.split(",") if v.strip()]
                 if kws:
@@ -321,6 +323,63 @@ class SigmaRuleRepository:
                     "severities": self.KNOWN_SEVERITIES,
                     "sources": self.KNOWN_SOURCES,
                 }
+
+        return await loop.run_in_executor(None, agg)
+
+    # --- Logsource 옵션 (Product / Category / Service) ---
+
+    async def get_logsource_options(
+        self,
+        product: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        loop = asyncio.get_event_loop()
+
+        def agg():
+            try:
+                must_not = [{"term": {"is_deleted": True}}]
+                must: List[Dict[str, Any]] = []
+                if product:
+                    vals = [v.strip() for v in product.split(",") if v.strip()]
+                    if len(vals) == 1:
+                        must.append({"term": {"log_source_product.keyword": vals[0]}})
+                    elif vals:
+                        must.append({"terms": {"log_source_product.keyword": vals}})
+                if category:
+                    vals = [v.strip() for v in category.split(",") if v.strip()]
+                    if len(vals) == 1:
+                        must.append({"term": {"log_source_category.keyword": vals[0]}})
+                    elif vals:
+                        must.append({"terms": {"log_source_category.keyword": vals}})
+
+                query = {"bool": {"must": must, "must_not": must_not}} if must else {"bool": {"must_not": must_not}}
+
+                result = self.client.search(
+                    index=self.rules_index,
+                    body={
+                        "size": 0,
+                        "query": query,
+                        "aggs": {
+                            "products": {"terms": {"field": "log_source_product.keyword", "size": 100, "order": {"_count": "desc"}}},
+                            "categories": {"terms": {"field": "log_source_category.keyword", "size": 200, "order": {"_count": "desc"}}},
+                            "services": {"terms": {"field": "log_source_service.keyword", "size": 200, "order": {"_count": "desc"}}},
+                        },
+                    },
+                )
+                agg_result = result.get("aggregations", {})
+
+                def extract(agg_name: str):
+                    return [{"value": b["key"], "count": b["doc_count"]}
+                            for b in agg_result.get(agg_name, {}).get("buckets", []) if b["key"]]
+
+                return {
+                    "products": extract("products"),
+                    "categories": extract("categories"),
+                    "services": extract("services"),
+                }
+            except Exception as e:
+                logger.error(f"logsource 옵션 조회 실패: {e}")
+                return {"products": [], "categories": [], "services": []}
 
         return await loop.run_in_executor(None, agg)
 

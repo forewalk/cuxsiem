@@ -4,6 +4,12 @@ import logging
 import re
 from typing import Optional, List, Dict, Any
 
+from app.core.field_mappings import (
+    get_preset_mappings,
+    get_preset_as_field_mapping_list,
+    list_presets,
+    DEFAULT_PRESET_ID,
+)
 from app.core.sigma_pipeline import SigmaPipelineManager
 from app.repositories.sigma_rule import SigmaRuleRepository
 
@@ -74,6 +80,7 @@ class SigmaRuleService:
         status: Optional[str] = None,
         log_source_product: Optional[str] = None,
         log_source_category: Optional[str] = None,
+        log_source_service: Optional[str] = None,
         log_type_keywords: Optional[str] = None,
         mitre_technique_id: Optional[str] = None,
         rule_type: Optional[str] = None,
@@ -88,6 +95,7 @@ class SigmaRuleService:
             status=status,
             log_source_product=log_source_product,
             log_source_category=log_source_category,
+            log_source_service=log_source_service,
             log_type_keywords=log_type_keywords,
             mitre_technique_id=mitre_technique_id,
             rule_type=rule_type,
@@ -95,6 +103,9 @@ class SigmaRuleService:
 
     async def get_filter_options(self, log_source_product: Optional[str] = None):
         return await self.repository.get_filter_options(log_source_product=log_source_product)
+
+    async def get_logsource_options(self, product: Optional[str] = None, category: Optional[str] = None):
+        return await self.repository.get_logsource_options(product=product, category=category)
 
     async def get_rule(self, rule_id: str):
         result = await self.repository.get_rule_by_id(rule_id)
@@ -131,6 +142,10 @@ class SigmaRuleService:
             "references": [],
             "status": "active",
         }
+        if data.get("source_sigma_id"):
+            rule_data["source_sigma_id"] = data["source_sigma_id"]
+        if data.get("applied_field_mappings"):
+            rule_data["applied_field_mappings"] = data["applied_field_mappings"]
         return await self.repository.create_rule(rule_data)
 
     async def update_custom_rule(self, rule_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -252,3 +267,103 @@ class SigmaRuleService:
         if not parsed.get("detection"):
             return "필수 필드 누락: detection"
         return None
+
+    # --- 필드 매핑 프리셋 / 변환 미리보기 ---
+
+    async def convert_preview(self, rule_id: str, preset_id: Optional[str] = None) -> Dict[str, Any]:
+        """Sigma 규칙을 DSL로 변환 미리보기 + 적용된 필드 매핑 반환"""
+        rule = await self.repository.get_rule_by_id(rule_id)
+        if not rule:
+            return {"rule_id": rule_id, "rule_name": "", "status": "failed", "error": "Rule not found"}
+
+        pid = preset_id or DEFAULT_PRESET_ID
+        preset_mappings = get_preset_mappings(pid)
+
+        raw_yaml = rule.get("raw_yaml")
+        opensearch_query = None
+        conversion_status = "pending"
+        error = None
+
+        if raw_yaml:
+            conversion = self._convert_sigma_rule(raw_yaml)
+            opensearch_query = conversion.get("opensearch_query")
+            conversion_status = conversion.get("query_conversion_status", "failed")
+            error = conversion.get("query_conversion_error")
+        elif rule.get("opensearch_query"):
+            opensearch_query = rule["opensearch_query"]
+            conversion_status = "success"
+
+        detection_config = rule.get("detection_config", {})
+        detection_fields = self._extract_fields_from_detection(detection_config)
+        applied = [
+            {"rule_field": f, "log_field": preset_mappings.get(f, "")}
+            for f in detection_fields
+        ]
+
+        metadata = {
+            "name": rule.get("name", ""),
+            "description": rule.get("description"),
+            "level_normalized": rule.get("level_normalized", "medium"),
+            "log_source_category": rule.get("log_source_category"),
+            "log_source_product": rule.get("log_source_product"),
+            "log_source_service": rule.get("log_source_service"),
+            "mitre_technique_ids": rule.get("mitre_technique_ids", []),
+            "mitre_tactic_ids": rule.get("mitre_tactic_ids", []),
+            "false_positives": rule.get("false_positives", []),
+        }
+
+        return {
+            "rule_id": rule_id,
+            "rule_name": rule.get("name", ""),
+            "opensearch_query": opensearch_query,
+            "status": conversion_status,
+            "error": error,
+            "applied_mappings": applied,
+            "detection_config": detection_config,
+            "metadata": metadata,
+        }
+
+    @staticmethod
+    def _extract_fields_from_detection(detection_config: Dict[str, Any]) -> List[str]:
+        """detection_config에서 사용되는 필드명을 추출 (Sigma detection 블록 파싱)"""
+        fields: set[str] = set()
+        for key, value in detection_config.items():
+            if key in ("condition", "timeframe"):
+                continue
+            if isinstance(value, dict):
+                for field_key in value:
+                    clean = field_key.split("|")[0]
+                    if clean:
+                        fields.add(clean)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        for field_key in item:
+                            clean = field_key.split("|")[0]
+                            if clean:
+                                fields.add(clean)
+        return sorted(fields)
+
+    async def get_index_fields(self, index_pattern: str) -> List[str]:
+        """OpenSearch 인덱스의 필드 목록 조회"""
+        from app.core.opensearch import get_opensearch
+        client = get_opensearch()
+        try:
+            mapping = client.indices.get_mapping(index=index_pattern)
+            fields: set[str] = set()
+            for index_data in mapping.values():
+                props = index_data.get("mappings", {}).get("properties", {})
+                self._collect_field_paths(props, "", fields)
+            return sorted(fields)
+        except Exception as e:
+            logger.warning("인덱스 필드 조회 실패 (%s): %s", index_pattern, e)
+            return []
+
+    @staticmethod
+    def _collect_field_paths(props: Dict[str, Any], prefix: str, result: set[str]):
+        """중첩 properties를 순회하며 dot-notation 필드 경로를 수집"""
+        for name, meta in props.items():
+            path = f"{prefix}{name}" if not prefix else f"{prefix}.{name}"
+            result.add(path)
+            if "properties" in meta:
+                SigmaRuleService._collect_field_paths(meta["properties"], path, result)

@@ -242,6 +242,9 @@ export interface SigmaRuleDetail {
   query_conversion_error?: string | null;
   query_pipeline_id?: string | null;
   query_converted_at?: string | null;
+  source_sigma_id?: string | null;
+  source_sigma_name?: string | null;
+  applied_field_mappings?: FieldMapping[];
 }
 
 export interface ConversionStats {
@@ -287,6 +290,36 @@ export interface CustomRuleCreate {
   mitre_technique_ids?: string[];
   mitre_tactic_ids?: string[];
   false_positives?: string[];
+  source_sigma_id?: string;
+  applied_field_mappings?: FieldMapping[];
+}
+
+export interface FieldMappingPreset {
+  id: string;
+  name: string;
+  description: string;
+  field_count: number;
+}
+
+export interface ConvertPreviewResult {
+  rule_id: string;
+  rule_name: string;
+  opensearch_query: Record<string, unknown> | null;
+  status: string;
+  error: string | null;
+  applied_mappings: FieldMapping[];
+  detection_config: Record<string, unknown>;
+  metadata: {
+    name: string;
+    description?: string;
+    level_normalized: string;
+    log_source_category?: string;
+    log_source_product?: string;
+    log_source_service?: string;
+    mitre_technique_ids: string[];
+    mitre_tactic_ids: string[];
+    false_positives: string[];
+  };
 }
 
 export interface CustomRuleUpdate {

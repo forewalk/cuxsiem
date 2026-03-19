@@ -645,5 +645,22 @@
   "drConversionPending": "等待转换",
   "drReconvert": "重新转换",
   "drConvertedAt": "转换时间",
-  "drNoQuery": "没有已转换的查询"
+  "drNoQuery": "没有已转换的查询",
+  "fmFieldMappings": "字段映射",
+  "fmFieldMappingsDesc": "将Sigma规则字段映射到实际日志索引字段。请检查自动映射的值并根据需要进行修改。",
+  "fmDetectorMappingsDesc": "配置规则字段和日志索引字段之间的映射。预转换的规则已应用映射。",
+  "fmRuleField": "规则字段",
+  "fmLogField": "日志字段",
+  "fmAddMapping": "添加映射",
+  "fmRemoveMapping": "删除映射",
+  "fmSelectLogField": "输入日志字段",
+  "fmNoMappings": "未配置字段映射",
+  "fmLoadStandardRule": "加载标准规则",
+  "fmPickSigmaRule": "选择标准规则",
+  "fmSigmaRuleCount": "共{count}条规则",
+  "fmNoRulesFound": "未找到规则",
+  "fmLoadRule": "加载",
+  "fmSourceRule": "源规则",
+  "lsCustomInput": "手动输入",
+  "lsCustomInputPlaceholder": "输入后按Enter"
 }

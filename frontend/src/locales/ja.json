@@ -657,5 +657,22 @@
   "drConversionPending": "変換待ち",
   "drReconvert": "再変換",
   "drConvertedAt": "変換日時",
-  "drNoQuery": "変換されたクエリがありません"
+  "drNoQuery": "変換されたクエリがありません",
+  "fmFieldMappings": "フィールドマッピング",
+  "fmFieldMappingsDesc": "Sigmaルールのフィールドを実際のログインデックスフィールドにマッピングします。自動マッピングされた値を確認し、必要に応じて修正してください。",
+  "fmDetectorMappingsDesc": "ルールフィールドとログインデックスフィールド間のマッピングを設定します。事前変換されたルールにはマッピングが適用済みです。",
+  "fmRuleField": "ルールフィールド",
+  "fmLogField": "ログフィールド",
+  "fmAddMapping": "マッピング追加",
+  "fmRemoveMapping": "マッピング削除",
+  "fmSelectLogField": "ログフィールドを入力",
+  "fmNoMappings": "フィールドマッピングがありません",
+  "fmLoadStandardRule": "標準ルール読込",
+  "fmPickSigmaRule": "標準ルール選択",
+  "fmSigmaRuleCount": "全{count}件のルール",
+  "fmNoRulesFound": "ルールが見つかりません",
+  "fmLoadRule": "読込",
+  "fmSourceRule": "元ルール",
+  "lsCustomInput": "直接入力",
+  "lsCustomInputPlaceholder": "入力してEnter"
 }
