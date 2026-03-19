@@ -7,6 +7,7 @@ from app.services.sigma_rule import (
     extract_mitre_from_tags,
     compute_content_hash,
 )
+from app.core.sigma_pipeline import SigmaPipelineManager
 
 
 class TestNormalizeSeverity:
@@ -265,6 +266,7 @@ class TestSigmaRuleServiceCRUD:
     @pytest.mark.asyncio
     async def test_get_rule_not_found(self):
         self.service.repository.get_rule_by_id = AsyncMock(return_value=None)
+        self.service.repository.get_rule_by_sigma_id = AsyncMock(return_value=None)
         rule = await self.service.get_rule("nonexistent")
         assert rule is None
 
@@ -380,3 +382,209 @@ class TestFilterOptions:
         call_kwargs = self.service.repository.list_rules.call_args[1]
         assert call_kwargs["log_type_keywords"] == "windows,sysmon"
         assert call_kwargs["severity"] == "critical"
+
+
+class TestReconvertSingle:
+    def setup_method(self):
+        SigmaPipelineManager._instance = None
+        SigmaPipelineManager._backend = None
+        SigmaPipelineManager._pipeline = None
+        self.service = SigmaRuleService()
+        self.service.repository = MagicMock()
+
+    def teardown_method(self):
+        SigmaPipelineManager._instance = None
+        SigmaPipelineManager._backend = None
+        SigmaPipelineManager._pipeline = None
+
+    SAMPLE_RAW_YAML = """
+title: Test Rule
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine|contains: whoami
+    condition: selection
+level: high
+"""
+
+    @pytest.mark.asyncio
+    async def test_reconvert_single_success(self):
+        self.service.repository.get_rule_by_id = AsyncMock(return_value={
+            "id": "r-1", "type": "sigma", "raw_yaml": self.SAMPLE_RAW_YAML,
+        })
+        self.service.repository.update_conversion_result = AsyncMock(return_value=True)
+        result = await self.service.reconvert_single("r-1")
+        assert result is not None
+        assert result["query_conversion_status"] == "success"
+        assert result["opensearch_query"] is not None
+        self.service.repository.update_conversion_result.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_reconvert_single_not_found(self):
+        self.service.repository.get_rule_by_id = AsyncMock(return_value=None)
+        result = await self.service.reconvert_single("nonexistent")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_reconvert_single_custom_rule(self):
+        self.service.repository.get_rule_by_id = AsyncMock(return_value={
+            "id": "cr-1", "type": "custom",
+        })
+        result = await self.service.reconvert_single("cr-1")
+        assert result["query_conversion_status"] == "skipped"
+
+    @pytest.mark.asyncio
+    async def test_reconvert_single_no_raw_yaml(self):
+        self.service.repository.get_rule_by_id = AsyncMock(return_value={
+            "id": "r-2", "type": "sigma", "raw_yaml": None,
+        })
+        result = await self.service.reconvert_single("r-2")
+        assert result["query_conversion_status"] == "failed"
+
+
+class TestConversionStats:
+    def setup_method(self):
+        self.service = SigmaRuleService()
+        self.service.repository = MagicMock()
+
+    @pytest.mark.asyncio
+    async def test_get_conversion_stats(self):
+        self.service.repository.get_conversion_stats = AsyncMock(return_value={
+            "total": 3100, "success": 3000, "failed": 50, "pending": 30, "skipped": 0, "not_converted": 20,
+        })
+        stats = await self.service.get_conversion_stats()
+        assert stats["total"] == 3100
+        assert stats["success"] + stats["failed"] + stats["pending"] + stats["not_converted"] == stats["total"]
+
+
+class TestBulkReconvert:
+    def setup_method(self):
+        self.service = SigmaRuleService()
+        self.service.repository = MagicMock()
+
+    @pytest.mark.asyncio
+    async def test_start_bulk_reconvert(self):
+        self.service.repository.get_active_reconvert_job = AsyncMock(return_value=None)
+        self.service.repository.create_reconvert_job = AsyncMock(return_value={"job_id": "rcj-1"})
+        result = await self.service.start_bulk_reconvert()
+        assert result["status"] == "started"
+        assert "job_id" in result
+        self.service.repository.create_reconvert_job.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_bulk_reconvert_conflict(self):
+        self.service.repository.get_active_reconvert_job = AsyncMock(return_value={
+            "job_id": "rcj-existing", "status": "started",
+        })
+        result = await self.service.start_bulk_reconvert()
+        assert result["error"] == "conflict"
+        assert result["job_id"] == "rcj-existing"
+
+
+class TestSigmaConversionIntegration:
+    """parse_sigma_yaml에서 pySigma 변환이 함께 실행되는지 검증"""
+
+    def setup_method(self):
+        SigmaPipelineManager._instance = None
+        SigmaPipelineManager._backend = None
+        SigmaPipelineManager._pipeline = None
+        self.service = SigmaRuleService()
+
+    def teardown_method(self):
+        SigmaPipelineManager._instance = None
+        SigmaPipelineManager._backend = None
+        SigmaPipelineManager._pipeline = None
+
+    SAMPLE_RAW_YAML = """
+title: PowerShell Encoded Command
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine|contains: powershell -enc
+    condition: selection
+level: high
+tags:
+    - attack.execution
+    - attack.t1059.001
+"""
+
+    SAMPLE_PARSED = {
+        "id": "test-001",
+        "title": "PowerShell Encoded Command",
+        "level": "high",
+        "logsource": {"category": "process_creation", "product": "windows"},
+        "detection": {"selection": {"CommandLine|contains": "powershell -enc"}, "condition": "selection"},
+        "tags": ["attack.execution", "attack.t1059.001"],
+    }
+
+    def test_parse_includes_conversion_fields(self):
+        doc = self.service.parse_sigma_yaml(
+            self.SAMPLE_PARSED,
+            "windows/test_rule.yml",
+            self.SAMPLE_RAW_YAML,
+        )
+
+        assert "opensearch_query" in doc
+        assert "query_conversion_status" in doc
+        assert "query_pipeline_id" in doc
+        assert "query_converted_at" in doc
+
+    def test_parse_conversion_success(self):
+        doc = self.service.parse_sigma_yaml(
+            self.SAMPLE_PARSED,
+            "windows/test_rule.yml",
+            self.SAMPLE_RAW_YAML,
+        )
+
+        assert doc["query_conversion_status"] == "success"
+        assert doc["opensearch_query"] is not None
+        assert "query" in doc["opensearch_query"]
+        assert doc["query_conversion_error"] is None
+        assert doc["query_pipeline_id"] == "default"
+        assert doc["query_converted_at"] is not None
+
+    def test_parse_conversion_field_mapped(self):
+        doc = self.service.parse_sigma_yaml(
+            self.SAMPLE_PARSED,
+            "windows/test_rule.yml",
+            self.SAMPLE_RAW_YAML,
+        )
+
+        import json
+        query_str = json.dumps(doc["opensearch_query"])
+        assert "process.command_line" in query_str
+        assert "CommandLine" not in query_str
+
+    def test_parse_with_invalid_yaml(self):
+        invalid_parsed = {
+            "title": "Invalid",
+            "logsource": {"category": "test"},
+            "detection": {"condition": "selection"},
+        }
+        doc = self.service.parse_sigma_yaml(
+            invalid_parsed,
+            "test/invalid.yml",
+            "this: is not valid sigma yaml",
+        )
+
+        assert doc["query_conversion_status"] == "failed"
+        assert doc["opensearch_query"] is None
+        assert doc["query_conversion_error"] is not None
+
+    def test_parse_preserves_existing_fields(self):
+        doc = self.service.parse_sigma_yaml(
+            self.SAMPLE_PARSED,
+            "windows/test_rule.yml",
+            self.SAMPLE_RAW_YAML,
+        )
+
+        assert doc["type"] == "sigma"
+        assert doc["name"] == "PowerShell Encoded Command"
+        assert doc["level_normalized"] == "high"
+        assert doc["log_source_product"] == "windows"
+        assert "T1059.001" in doc["mitre_technique_ids"]
+        assert doc["content_hash"] is not None

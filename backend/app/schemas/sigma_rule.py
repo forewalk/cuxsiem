@@ -19,6 +19,7 @@ class SigmaRuleListItem(BaseModel):
     mitre_tactic_ids: List[str] = []
     revision: int = 1
     updated_at: Optional[datetime] = None
+    query_conversion_status: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,8 +57,43 @@ class SigmaRuleResponse(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
+    opensearch_query: Optional[Dict[str, Any]] = None
+    query_conversion_status: Optional[str] = None
+    query_conversion_error: Optional[str] = None
+    query_pipeline_id: Optional[str] = None
+    query_converted_at: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- 변환 관련 응답 스키마 ---
+
+class ConversionStatsResponse(BaseModel):
+    total: int = 0
+    success: int = 0
+    failed: int = 0
+    pending: int = 0
+    skipped: int = 0
+    not_converted: int = 0
+
+
+class ReconvertJobResponse(BaseModel):
+    job_id: str
+    status: str
+    requested_count: int
+
+
+class ReconvertResultResponse(BaseModel):
+    id: str
+    query_conversion_status: str
+    opensearch_query: Optional[Dict[str, Any]] = None
+    query_pipeline_id: Optional[str] = None
+    query_converted_at: Optional[str] = None
+    query_conversion_error: Optional[str] = None
+
+
+class BulkReconvertRequest(BaseModel):
+    filter: Optional[Dict[str, str]] = None
 
 
 # --- Custom Rule 생성/수정 ---

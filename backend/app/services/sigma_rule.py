@@ -4,6 +4,7 @@ import logging
 import re
 from typing import Optional, List, Dict, Any
 
+from app.core.sigma_pipeline import SigmaPipelineManager
 from app.repositories.sigma_rule import SigmaRuleRepository
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ class SigmaRuleService:
     # --- Import 관련 유틸리티 ---
 
     def parse_sigma_yaml(self, parsed: Dict[str, Any], file_path: str, raw_yaml_str: str) -> Dict[str, Any]:
-        """파싱된 Sigma YAML dict → OpenSearch 문서 형식으로 변환"""
+        """파싱된 Sigma YAML dict → OpenSearch 문서 형식으로 변환 (pySigma 변환 포함)"""
         level_original, level_normalized = normalize_severity(parsed.get("level"))
         tags = parsed.get("tags") or []
         mitre_techniques, mitre_tactics = extract_mitre_from_tags(tags)
@@ -174,7 +175,73 @@ class SigmaRuleService:
             "file_path": file_path,
             "content_hash": compute_content_hash(parsed),
         }
+
+        conversion = self._convert_sigma_rule(raw_yaml_str)
+        doc.update(conversion)
+
         return doc
+
+    def _convert_sigma_rule(self, raw_yaml: str) -> Dict[str, Any]:
+        """pySigma를 사용하여 Sigma YAML → OpenSearch DSL 변환"""
+        try:
+            manager = SigmaPipelineManager.get_instance()
+            result = manager.convert_rule(raw_yaml)
+            return result.to_dict()
+        except Exception as e:
+            logger.error("Sigma 변환 중 예외: %s", e)
+            return {
+                "opensearch_query": None,
+                "query_conversion_status": "failed",
+                "query_conversion_error": str(e)[:500],
+                "query_pipeline_id": None,
+                "query_converted_at": None,
+            }
+
+    # --- 재변환/통계 ---
+
+    async def reconvert_single(self, rule_id: str) -> Optional[Dict[str, Any]]:
+        """단건 재변환: 룰의 raw_yaml을 다시 pySigma로 변환"""
+        rule = await self.repository.get_rule_by_id(rule_id)
+        if not rule:
+            return None
+        if rule.get("type") == "custom":
+            return {"id": rule_id, "query_conversion_status": "skipped", "error": "Custom rules do not use Sigma conversion"}
+
+        raw_yaml = rule.get("raw_yaml")
+        if not raw_yaml:
+            return {"id": rule_id, "query_conversion_status": "failed", "error": "raw_yaml is missing"}
+
+        conversion = self._convert_sigma_rule(raw_yaml)
+        await self.repository.update_conversion_result(rule_id, conversion)
+        return {"id": rule_id, **conversion}
+
+    async def get_conversion_stats(self) -> Dict[str, int]:
+        return await self.repository.get_conversion_stats()
+
+    async def start_bulk_reconvert(self, filter_params: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+        """벌크 재변환 비동기 작업 시작"""
+        active_job = await self.repository.get_active_reconvert_job()
+        if active_job:
+            return {"error": "conflict", "job_id": active_job["job_id"]}
+
+        import uuid as _uuid
+        from datetime import datetime, timezone
+        job_id = f"reconvert-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+        job_data = {
+            "job_id": job_id,
+            "status": "started",
+            "requested_count": 0,
+            "processed_count": 0,
+            "success_count": 0,
+            "failed_count": 0,
+            "skipped_count": 0,
+            "pipeline_id": "default",
+            "filter": filter_params,
+            "error_samples": [],
+            "started_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await self.repository.create_reconvert_job(job_data)
+        return {"job_id": job_id, "status": "started", "requested_count": 0}
 
     def validate_sigma_yaml(self, parsed: Dict[str, Any]) -> Optional[str]:
         """필수 필드 검증. 실패 시 에러 메시지 반환, 성공 시 None"""

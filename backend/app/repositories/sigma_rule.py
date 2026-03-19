@@ -13,11 +13,13 @@ LIST_SOURCE_FIELDS = [
     "id", "type", "sigma_id", "name", "level_normalized", "status",
     "log_source_category", "log_source_product",
     "tags", "mitre_technique_ids", "mitre_tactic_ids",
-    "revision", "updated_at",
+    "revision", "updated_at", "query_conversion_status",
 ]
 
 
 class SigmaRuleRepository:
+
+    RECONVERT_JOBS_INDEX = "cs_rule_reconvert_jobs"
 
     def __init__(self):
         self.client = get_opensearch_client()
@@ -398,3 +400,161 @@ class SigmaRuleRepository:
             return self.client.bulk(body=body, refresh=True)
 
         return await loop.run_in_executor(None, do_bulk)
+
+    # --- 변환 결과 업데이트 ---
+
+    async def update_conversion_result(self, rule_id: str, data: Dict[str, Any]) -> bool:
+        loop = asyncio.get_event_loop()
+
+        def update():
+            try:
+                data["updated_at"] = datetime.utcnow().isoformat()
+                self.client.update(
+                    index=self.rules_index,
+                    id=rule_id,
+                    body={"doc": data},
+                    refresh=True,
+                )
+                return True
+            except Exception as e:
+                logger.error(f"변환 결과 업데이트 실패 ({rule_id}): {e}")
+                return False
+
+        return await loop.run_in_executor(None, update)
+
+    async def bulk_update_conversion(self, updates: List[Dict[str, Any]]) -> Dict[str, int]:
+        loop = asyncio.get_event_loop()
+
+        def do_bulk():
+            body = []
+            now = datetime.utcnow().isoformat()
+            for u in updates:
+                rule_id = u["id"]
+                doc = {k: v for k, v in u.items() if k != "id"}
+                doc["updated_at"] = now
+                body.append({"update": {"_index": self.rules_index, "_id": rule_id}})
+                body.append({"doc": doc})
+            if not body:
+                return {"success": 0, "failed": 0}
+            result = self.client.bulk(body=body, refresh=True)
+            success = sum(1 for item in result.get("items", []) if item.get("update", {}).get("status") in (200, 201))
+            failed = len(result.get("items", [])) - success
+            return {"success": success, "failed": failed}
+
+        return await loop.run_in_executor(None, do_bulk)
+
+    # --- 변환 통계 ---
+
+    async def get_conversion_stats(self) -> Dict[str, int]:
+        loop = asyncio.get_event_loop()
+
+        def agg():
+            try:
+                result = self.client.search(
+                    index=self.rules_index,
+                    body={
+                        "size": 0,
+                        "query": {"bool": {"must_not": [{"term": {"is_deleted": True}}]}},
+                        "aggs": {
+                            "by_conversion_status": {
+                                "terms": {"field": "query_conversion_status", "size": 10, "missing": "not_converted"}
+                            }
+                        },
+                    },
+                )
+                total = result["hits"]["total"]["value"]
+                buckets = result.get("aggregations", {}).get("by_conversion_status", {}).get("buckets", [])
+                stats = {b["key"]: b["doc_count"] for b in buckets}
+                return {
+                    "total": total,
+                    "success": stats.get("success", 0),
+                    "failed": stats.get("failed", 0),
+                    "pending": stats.get("pending", 0),
+                    "skipped": stats.get("skipped", 0),
+                    "not_converted": stats.get("not_converted", 0),
+                }
+            except Exception as e:
+                logger.error(f"변환 통계 조회 실패: {e}")
+                return {"total": 0, "success": 0, "failed": 0, "pending": 0, "skipped": 0, "not_converted": 0}
+
+        return await loop.run_in_executor(None, agg)
+
+    # --- 변환 상태별 룰 조회 ---
+
+    async def list_rules_by_conversion_status(
+        self, status: str, skip: int = 0, limit: int = 100
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        loop = asyncio.get_event_loop()
+
+        def search():
+            query = {
+                "bool": {
+                    "must": [{"term": {"query_conversion_status": status}}],
+                    "must_not": [{"term": {"is_deleted": True}}],
+                }
+            }
+            result = self.client.search(
+                index=self.rules_index,
+                body={"from": skip, "size": limit, "query": query, "_source": True},
+            )
+            total = result["hits"]["total"]["value"]
+            items = [{"_id": hit["_id"], **hit["_source"]} for hit in result["hits"]["hits"]]
+            return total, items
+
+        return await loop.run_in_executor(None, search)
+
+    # --- Reconvert Job CRUD ---
+
+    async def create_reconvert_job(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
+        loop = asyncio.get_event_loop()
+        job_id = job_data.get("job_id", str(uuid.uuid4()))
+        job_data["job_id"] = job_id
+
+        def insert():
+            self.client.index(
+                index=self.RECONVERT_JOBS_INDEX,
+                id=job_id,
+                body=job_data,
+                refresh=True,
+            )
+            return job_data
+
+        return await loop.run_in_executor(None, insert)
+
+    async def update_reconvert_job(self, job_id: str, data: Dict[str, Any]) -> bool:
+        loop = asyncio.get_event_loop()
+
+        def update():
+            try:
+                self.client.update(
+                    index=self.RECONVERT_JOBS_INDEX,
+                    id=job_id,
+                    body={"doc": data},
+                    refresh=True,
+                )
+                return True
+            except Exception as e:
+                logger.error(f"Reconvert job 업데이트 실패 ({job_id}): {e}")
+                return False
+
+        return await loop.run_in_executor(None, update)
+
+    async def get_active_reconvert_job(self) -> Optional[Dict[str, Any]]:
+        loop = asyncio.get_event_loop()
+
+        def search():
+            try:
+                result = self.client.search(
+                    index=self.RECONVERT_JOBS_INDEX,
+                    body={
+                        "query": {"term": {"status": "started"}},
+                        "size": 1,
+                        "sort": [{"started_at": {"order": "desc"}}],
+                    },
+                )
+                hits = result.get("hits", {}).get("hits", [])
+                return hits[0]["_source"] if hits else None
+            except Exception:
+                return None
+
+        return await loop.run_in_executor(None, search)

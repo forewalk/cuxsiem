@@ -43,6 +43,7 @@ INDEX_MAPPINGS = {
         "mappings": {
             "properties": {
                 "detection_config": {"type": "object", "enabled": False},
+                "opensearch_query": {"type": "object", "enabled": False},
             }
         }
     },
@@ -132,6 +133,9 @@ def run_import(sigma_path: str, dry_run: bool = False):
         "skipped_count": 0,
         "failed_count": 0,
         "conflict_count": 0,
+        "conversion_success": 0,
+        "conversion_failed": 0,
+        "conversion_pending": 0,
         "errors": [],
         "started_at": datetime.utcnow().isoformat(),
     }
@@ -168,6 +172,14 @@ def run_import(sigma_path: str, dry_run: bool = False):
                 logger.warning(f"CONFLICT {f}: sigma_id={sigma_id}")
             job["processed_files"] += 1
             continue
+
+        conv_status = doc.get("query_conversion_status", "pending")
+        if conv_status == "success":
+            job["conversion_success"] += 1
+        elif conv_status == "failed":
+            job["conversion_failed"] += 1
+        else:
+            job["conversion_pending"] += 1
 
         parsed_docs[sigma_id] = (doc, str(f))
         job["processed_files"] += 1
@@ -255,6 +267,11 @@ def run_import(sigma_path: str, dry_run: bool = False):
                     "content_hash": doc["content_hash"],
                     "revision": new_rev,
                     "updated_at": now,
+                    "opensearch_query": doc.get("opensearch_query"),
+                    "query_conversion_status": doc.get("query_conversion_status"),
+                    "query_conversion_error": doc.get("query_conversion_error"),
+                    "query_pipeline_id": doc.get("query_pipeline_id"),
+                    "query_converted_at": doc.get("query_converted_at"),
                 }
                 client.update(index=RULES_INDEX, id=existing_id, body={"doc": update_data}, refresh=False)
                 job["updated_count"] += 1
@@ -287,6 +304,9 @@ def _print_summary(job: dict):
     logger.info(f"  스킵:      {job['skipped_count']}")
     logger.info(f"  충돌:      {job['conflict_count']}")
     logger.info(f"  실패:      {job['failed_count']}")
+    logger.info(f"  변환 성공: {job.get('conversion_success', 0)}")
+    logger.info(f"  변환 실패: {job.get('conversion_failed', 0)}")
+    logger.info(f"  변환 대기: {job.get('conversion_pending', 0)}")
     if job["errors"]:
         logger.info("  에러 목록:")
         for err in job["errors"][:10]:

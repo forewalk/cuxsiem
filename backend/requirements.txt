@@ -15,3 +15,8 @@ cryptography==41.0.0
 Pillow==10.0.0
 bcrypt==4.0.1
 PyYAML>=6.0
+# Sigma 룰 → OpenSearch DSL 변환
+pySigma>=1.2.0
+pySigma-backend-opensearch>=2.0.0
+pySigma-pipeline-windows>=2.0.0
+pySigma-pipeline-sysmon>=2.0.0

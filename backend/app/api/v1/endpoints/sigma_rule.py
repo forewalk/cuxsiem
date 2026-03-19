@@ -11,6 +11,10 @@ from app.schemas.sigma_rule import (
     FilterOptionsResponse,
     CustomRuleCreate,
     CustomRuleUpdate,
+    ConversionStatsResponse,
+    ReconvertJobResponse,
+    ReconvertResultResponse,
+    BulkReconvertRequest,
 )
 from app.schemas.user import UserResponse
 from app.services.sigma_rule import SigmaRuleService
@@ -69,6 +73,34 @@ async def get_filter_options(
     log_source_product: Optional[str] = Query(None, description="로그 타입 선택 시 카테고리 필터링"),
 ):
     return await service.get_filter_options(log_source_product=log_source_product)
+
+
+@router.get("/conversion-stats", response_model=ConversionStatsResponse)
+async def get_conversion_stats():
+    return await service.get_conversion_stats()
+
+
+@router.post("/reconvert", response_model=ReconvertJobResponse, status_code=status.HTTP_202_ACCEPTED)
+async def bulk_reconvert(
+    body: BulkReconvertRequest = None,
+    current_user: UserResponse = Depends(get_current_active_user),
+):
+    filter_params = body.filter if body else None
+    result = await service.start_bulk_reconvert(filter_params)
+    if result.get("error") == "conflict":
+        raise HTTPException(status_code=409, detail=f"Reconvert job already running: {result['job_id']}")
+    return result
+
+
+@router.post("/{rule_id}/reconvert", response_model=ReconvertResultResponse)
+async def reconvert_single(
+    rule_id: str,
+    current_user: UserResponse = Depends(get_current_active_user),
+):
+    result = await service.reconvert_single(rule_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    return result
 
 
 @router.get("/{rule_id}", response_model=SigmaRuleResponse)

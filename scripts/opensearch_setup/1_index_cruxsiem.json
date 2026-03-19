@@ -2479,7 +2479,12 @@
         "deleted_by":            { "type": "keyword" },
         "created_at":            { "type": "date" },
         "updated_at":            { "type": "date" },
-        "deleted_at":            { "type": "date" }
+        "deleted_at":            { "type": "date" },
+        "opensearch_query":          { "type": "object", "enabled": false },
+        "query_conversion_status":   { "type": "keyword" },
+        "query_conversion_error":    { "type": "text" },
+        "query_pipeline_id":         { "type": "keyword" },
+        "query_converted_at":        { "type": "date" }
       }
     },
     "settings": {
@@ -2512,7 +2517,9 @@
         "created_by":               { "type": "keyword" },
         "created_at":               { "type": "date" },
         "updated_at":               { "type": "date" },
-        "deleted_at":               { "type": "date" }
+        "deleted_at":               { "type": "date" },
+        "timestamp_field":          { "type": "keyword" },
+        "max_search_window_min":    { "type": "integer" }
       }
     },
     "settings": {
@@ -2589,6 +2596,32 @@
         "errors":           { "type": "object", "enabled": false },
         "started_at":       { "type": "date" },
         "completed_at":     { "type": "date" }
+      }
+    },
+    "settings": {
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0"
+      }
+    }
+  },
+  "cs_rule_reconvert_jobs": {
+    "aliases": {},
+    "mappings": {
+      "properties": {
+        "job_id":             { "type": "keyword" },
+        "status":             { "type": "keyword" },
+        "requested_count":    { "type": "integer" },
+        "processed_count":    { "type": "integer" },
+        "success_count":      { "type": "integer" },
+        "failed_count":       { "type": "integer" },
+        "skipped_count":      { "type": "integer" },
+        "pipeline_id":        { "type": "keyword" },
+        "filter":             { "type": "object", "enabled": false },
+        "error_samples":      { "type": "object", "enabled": false },
+        "started_at":         { "type": "date" },
+        "completed_at":       { "type": "date" },
+        "created_by":         { "type": "keyword" }
       }
     },
     "settings": {
