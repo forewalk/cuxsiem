@@ -34,7 +34,7 @@ export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackb
         >
           <Alert
             onClose={() => onClose(snackbar.id)}
-            severity={mapSeverityToMui(snackbar.severity)}
+            severity={mapSeverityToMui(snackbar.severity) === 'default' ? 'info' : mapSeverityToMui(snackbar.severity)}
             variant="filled"
             icon={<NotificationsActiveIcon />}
             sx={{ 

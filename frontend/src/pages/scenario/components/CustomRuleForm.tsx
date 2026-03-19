@@ -34,7 +34,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
 import { detectionRuleService } from '../../../services/sigmaRuleService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
