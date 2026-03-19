@@ -3,6 +3,7 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -86,9 +87,14 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
   const [name, setName] = useState(initialData?.name ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [severity, setSeverity] = useState(initialData?.level_normalized ?? 'medium');
-  const [logSourceCategory, setLogSourceCategory] = useState(initialData?.log_source_category ?? '');
   const [logSourceProduct, setLogSourceProduct] = useState(initialData?.log_source_product ?? '');
+  const [logSourceCategory, setLogSourceCategory] = useState(initialData?.log_source_category ?? '');
   const [logSourceService, setLogSourceService] = useState(initialData?.log_source_service ?? '');
+
+  // Form logsource autocomplete options (cascading)
+  const [formProducts, setFormProducts] = useState<string[]>([]);
+  const [formCategories, setFormCategories] = useState<string[]>([]);
+  const [formServices, setFormServices] = useState<string[]>([]);
   const [dslString, setDslString] = useState(
     initialData?.detection_config ? JSON.stringify(initialData.detection_config, null, 2) : '{\n  "query": {\n    "match_all": {}\n  }\n}'
   );
@@ -136,12 +142,17 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
 
   useEffect(() => { setPickerPage(0); }, [pickerDebouncedSearch, pickerProduct, pickerCategory, pickerService, pickerSeverity, pickerSource]);
 
-  // Products: 전체 조회
+  // Products: 전체 조회 (피커 + 폼 공용)
   useEffect(() => {
     let cancelled = false;
     setLsLoading(true);
     detectionRuleService.getLogsourceOptions().then(data => {
-      if (!cancelled) setLsProducts(data.products);
+      if (!cancelled) {
+        setLsProducts(data.products);
+        setFormProducts(data.products.map(p => p.value));
+        setFormCategories(data.categories.map(c => c.value));
+        setFormServices(data.services.map(s => s.value));
+      }
     }).catch(() => {}).finally(() => { if (!cancelled) setLsLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -174,6 +185,32 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [pickerProduct, pickerCategory]);
+
+  // Form field: Category options filtered by selected product
+  useEffect(() => {
+    if (!logSourceProduct) return;
+    let cancelled = false;
+    detectionRuleService.getLogsourceOptions({ product: logSourceProduct }).then(data => {
+      if (!cancelled) {
+        setFormCategories(data.categories.map(c => c.value));
+        setFormServices(data.services.map(s => s.value));
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [logSourceProduct]);
+
+  // Form field: Service options filtered by selected product + category
+  useEffect(() => {
+    if (!logSourceProduct && !logSourceCategory) return;
+    let cancelled = false;
+    const params: { product?: string; category?: string } = {};
+    if (logSourceProduct) params.product = logSourceProduct;
+    if (logSourceCategory) params.category = logSourceCategory;
+    detectionRuleService.getLogsourceOptions(params).then(data => {
+      if (!cancelled) setFormServices(data.services.map(s => s.value));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [logSourceProduct, logSourceCategory]);
 
   useEffect(() => {
     if (!pickerExpanded) return;
@@ -352,15 +389,39 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
                 onChange={e => setDescription(e.target.value)} size="small"
                 InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
               <Stack direction="row" spacing={2}>
-                <TextField size="small" label="Category" value={logSourceCategory}
-                  onChange={e => setLogSourceCategory(e.target.value)} sx={{ flex: 1 }}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
-                <TextField size="small" label="Product" value={logSourceProduct}
-                  onChange={e => setLogSourceProduct(e.target.value)} sx={{ flex: 1 }}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
-                <TextField size="small" label="Service" value={logSourceService}
-                  onChange={e => setLogSourceService(e.target.value)} sx={{ flex: 1 }}
-                  InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+                <Autocomplete
+                  freeSolo size="small" sx={{ flex: 1 }}
+                  options={formProducts}
+                  value={logSourceProduct}
+                  onInputChange={(_, v) => setLogSourceProduct(v)}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Product"
+                      InputProps={{ ...params.InputProps, sx: inputSx }}
+                      InputLabelProps={{ sx: labelSx }} />
+                  )}
+                />
+                <Autocomplete
+                  freeSolo size="small" sx={{ flex: 1 }}
+                  options={formCategories}
+                  value={logSourceCategory}
+                  onInputChange={(_, v) => setLogSourceCategory(v)}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Category"
+                      InputProps={{ ...params.InputProps, sx: inputSx }}
+                      InputLabelProps={{ sx: labelSx }} />
+                  )}
+                />
+                <Autocomplete
+                  freeSolo size="small" sx={{ flex: 1 }}
+                  options={formServices}
+                  value={logSourceService}
+                  onInputChange={(_, v) => setLogSourceService(v)}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Service"
+                      InputProps={{ ...params.InputProps, sx: inputSx }}
+                      InputLabelProps={{ sx: labelSx }} />
+                  )}
+                />
               </Stack>
             </Stack>
           </Grid>
