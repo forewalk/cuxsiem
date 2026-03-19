@@ -644,5 +644,18 @@
   "dpColDescription": "설명",
   "dpSelectLogTypeFirst": "로그 타입을 먼저 선택하세요",
   "dpNoMatchingRules": "조건에 맞는 규칙이 없습니다",
-  "dpRuleCount": "{shown} / {total}건"
+  "dpRuleCount": "{shown} / {total}건",
+  "dpTimestampField": "타임스탬프 필드",
+  "dpMaxWindow": "최대 검색 윈도우(분)",
+  "dpMaxWindowHelp": "last_run_at보다 오래된 로그는 이 시간 범위로 캡핑됩니다 (5~10080분)",
+  "dpFailedRulesWarning": "{count}개 규칙이 변환 실패 상태입니다. 탐지 시 자동 스킵됩니다.",
+  "dpAllRulesFailedWarning": "선택된 모든 규칙이 변환 실패 상태입니다. 탐지가 실행되지 않습니다.",
+  "dpRuleConversionFailed": "변환 실패 — 탐지 시 스킵",
+  "drSectionQuery": "OpenSearch 쿼리",
+  "drConversionSuccess": "변환 성공",
+  "drConversionFailed": "변환 실패",
+  "drConversionPending": "변환 대기",
+  "drReconvert": "재변환",
+  "drConvertedAt": "변환 시각",
+  "drNoQuery": "변환된 쿼리가 없습니다"
 }

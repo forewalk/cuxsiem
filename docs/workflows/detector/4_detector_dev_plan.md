@@ -1055,8 +1055,8 @@ pytest tests/test_services/test_detection_policy.py tests/test_api/test_detectio
 
 ### Phase 3: UI 연동 (5~7일)
 
-- [ ] 24. 프론트엔드 타입 정의 업데이트 (`types/index.ts`)
-- [ ] 25. `sigmaRuleService.ts` 확장
+- [x] 24. 프론트엔드 타입 정의 업데이트 (`types/index.ts`)
+- [x] 25. `sigmaRuleService.ts` 확장
 
 **--- 중간 테스트 3-A: 서비스 레이어 동작 확인 ---**
 
@@ -1070,7 +1070,7 @@ npm run dev  # 개발 서버 실행 후 브라우저 DevTools Network 탭에서 
 | 룰 목록 응답에 status 포함 | `listRules()` 응답 확인 | 각 item에 query_conversion_status 존재 |
 | 룰 상세 응답에 쿼리 포함 | `getRule(id)` 응답 확인 | opensearch_query 등 5개 필드 존재 |
 
-- [ ] 26. `DetectionRuleList.tsx` 수정 (변환 상태 아이콘)
+- [x] 26. `DetectionRuleList.tsx` 수정 (변환 상태 아이콘)
 
 **--- 중간 테스트 3-B: 룰 목록 UI 확인 ---**
 
@@ -1081,7 +1081,7 @@ npm run dev  # 개발 서버 실행 후 브라우저 DevTools Network 탭에서 
 | 변환 대기 아이콘 | pending 룰 확인 | ⏳ 아이콘 표시 |
 | 미변환 룰 | status null | 아이콘 없음 또는 회색 |
 
-- [ ] 27. `DetectionRuleDetail.tsx` 수정 (DSL 뷰어, 재변환 버튼)
+- [x] 27. `DetectionRuleDetail.tsx` 수정 (DSL 뷰어, 재변환 버튼)
 
 **--- 중간 테스트 3-C: 룰 상세 UI 확인 ---**
 
@@ -1092,7 +1092,7 @@ npm run dev  # 개발 서버 실행 후 브라우저 DevTools Network 탭에서 
 | 변환 시각 표시 | 상세 패널 확인 | query_converted_at 날짜 포맷 표시 |
 | 재변환 버튼 동작 | 관리자로 재변환 클릭 | API 호출 후 상태 갱신 |
 
-- [ ] 28. `DetectorForm.tsx` 수정 (신규 필드, 경고 메시지)
+- [x] 28. `DetectorForm.tsx` 수정 (신규 필드, 경고 메시지)
 
 **--- 중간 테스트 3-D: Detector 폼 UI 확인 ---**
 
@@ -1104,8 +1104,8 @@ npm run dev  # 개발 서버 실행 후 브라우저 DevTools Network 탭에서 
 | 전체 실패 룰만 선택 경고 | 실패 룰만 선택 | "모든 규칙이 변환 실패 상태" 경고 |
 | 저장 시 신규 필드 포함 | 저장 후 API 요청 확인 | request body에 timestamp_field, max_search_window_min 포함 |
 
-- [ ] 29. i18n 키 추가 (ko, en, ja, cn)
-- [ ] 30. 프론트엔드 테스트 작성
+- [x] 29. i18n 키 추가 (ko, en, ja, cn)
+- [ ] 30. 프론트엔드 테스트 작성 (수동 검증으로 대체)
 
 **--- 중간 테스트 3-E: 프론트엔드 자동 테스트 ---**
 

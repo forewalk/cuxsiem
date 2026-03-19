@@ -19,6 +19,7 @@ import {
   Switch,
   Tab,
   Tabs,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import React from 'react';
@@ -51,6 +52,24 @@ interface DetectionRuleListProps {
 }
 
 const extractFirstTechnique = (ids: string[]): string | null => ids.length > 0 ? ids[0] : null;
+
+const ConversionStatusIcon: React.FC<{ status?: string | null; t: (key: string) => string }> = ({ status, t }) => {
+  if (!status) return null;
+  const config: Record<string, { icon: string; color: string; label: string }> = {
+    success: { icon: '✅', color: 'success.main', label: t('drConversionSuccess') },
+    failed: { icon: '⚠', color: 'warning.main', label: t('drConversionFailed') },
+    pending: { icon: '⏳', color: 'text.secondary', label: t('drConversionPending') },
+  };
+  const c = config[status];
+  if (!c) return null;
+  return (
+    <Tooltip title={c.label} arrow placement="top">
+      <Typography component="span" sx={{ fontSize: '0.7rem', lineHeight: 1, cursor: 'default' }}>
+        {c.icon}
+      </Typography>
+    </Tooltip>
+  );
+};
 
 const platformLabel = (product: string | null): string => {
   if (!product) return '-';
@@ -258,7 +277,7 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                     sx={{ flexShrink: 0 }}
                   />
                 </Box>
-                {/* Row 2: tags */}
+                {/* Row 2: tags + conversion status */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3.5 }}>
                   <Chip
                     label={rule.type === 'custom' ? 'Custom' : 'Standard'}
@@ -267,6 +286,9 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                     variant="outlined"
                     sx={{ height: 16, fontSize: '0.55rem', fontWeight: 600, borderRadius: 0.5 }}
                   />
+                  {rule.type === 'sigma' && (
+                    <ConversionStatusIcon status={rule.query_conversion_status} t={t} />
+                  )}
                   <Chip label={platform} size="small" variant="outlined"
                     sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
                   {technique && (

@@ -203,6 +203,7 @@ export interface SigmaRuleListItem {
   mitre_tactic_ids: string[];
   revision: number;
   updated_at: string | null;
+  query_conversion_status?: string | null;
 }
 
 export interface SigmaRuleDetail {
@@ -236,6 +237,29 @@ export interface SigmaRuleDetail {
   created_at: string | null;
   updated_at: string | null;
   deleted_at: string | null;
+  opensearch_query?: Record<string, unknown> | null;
+  query_conversion_status?: string | null;
+  query_conversion_error?: string | null;
+  query_pipeline_id?: string | null;
+  query_converted_at?: string | null;
+}
+
+export interface ConversionStats {
+  total: number;
+  success: number;
+  failed: number;
+  pending: number;
+  skipped: number;
+  not_converted: number;
+}
+
+export interface ReconvertResult {
+  id: string;
+  query_conversion_status: string;
+  opensearch_query?: Record<string, unknown> | null;
+  query_pipeline_id?: string | null;
+  query_converted_at?: string | null;
+  query_conversion_error?: string | null;
 }
 
 export interface SigmaRuleStats {
@@ -298,6 +322,8 @@ export interface Detector {
   message_template?: string;
   severity: string;
   is_active: boolean;
+  timestamp_field: string;
+  max_search_window_min: number;
   last_run_at?: string | null;
   last_triggered_at?: string | null;
   total_findings_count: number;
@@ -319,6 +345,8 @@ export interface DetectorCreate {
   message_template?: string;
   severity: string;
   is_active: boolean;
+  timestamp_field?: string;
+  max_search_window_min?: number;
 }
 
 export interface DetectorUpdate {
@@ -333,6 +361,8 @@ export interface DetectorUpdate {
   message_template?: string;
   severity?: string;
   is_active?: boolean;
+  timestamp_field?: string;
+  max_search_window_min?: number;
 }
 
 export interface Finding {

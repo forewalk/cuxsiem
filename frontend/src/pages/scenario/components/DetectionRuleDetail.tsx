@@ -1,11 +1,13 @@
 import {
   Box,
   Chip,
+  CircularProgress,
   Collapse,
   IconButton,
   Link,
   Paper,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import {
@@ -14,6 +16,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   ContentCopy as CloneIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import React, { useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
@@ -27,6 +30,8 @@ interface DetectionRuleDetailProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onClone?: () => void;
+  onReconvert?: (id: string) => Promise<void>;
+  reconverting?: boolean;
 }
 
 const FieldLabel: React.FC<{ children: React.ReactNode; compact?: boolean }> = ({ children, compact }) => (
@@ -63,7 +68,7 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </Box>
 );
 
-export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, compact, onEdit, onDelete, onClone }) => {
+export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, compact, onEdit, onDelete, onClone, onReconvert, reconverting }) => {
   const [detectionExpanded, setDetectionExpanded] = useState(false);
 
   if (!rule) {
@@ -182,6 +187,69 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
             </Paper>
           </Box>
         </Collapse>
+
+        {rule.type === 'sigma' && (
+          <>
+            <SectionHeader>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                {t('drSectionQuery')}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {rule.query_conversion_status === 'success' && (
+                    <Chip label={t('drConversionSuccess')} size="small" color="success" variant="outlined" sx={{ fontSize: '0.55rem', height: 18 }} />
+                  )}
+                  {rule.query_conversion_status === 'failed' && (
+                    <Chip label={t('drConversionFailed')} size="small" color="error" variant="outlined" sx={{ fontSize: '0.55rem', height: 18 }} />
+                  )}
+                  {rule.query_conversion_status === 'pending' && (
+                    <Chip label={t('drConversionPending')} size="small" color="default" variant="outlined" sx={{ fontSize: '0.55rem', height: 18 }} />
+                  )}
+                  {onReconvert && (
+                    <Tooltip title={t('drReconvert')} arrow>
+                      <IconButton size="small" onClick={() => onReconvert(rule.id)} disabled={reconverting}>
+                        {reconverting ? <CircularProgress size={14} /> : <RefreshIcon sx={{ fontSize: 16 }} />}
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
+              </Box>
+            </SectionHeader>
+            <Box sx={{ px: 0.5 }}>
+              {rule.opensearch_query ? (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2, bgcolor: 'background.default',
+                    border: '1px solid', borderColor: 'divider',
+                    borderRadius: 1, overflow: 'auto', maxHeight: 280,
+                  }}
+                >
+                  <Typography component="pre" sx={{
+                    fontFamily: 'monospace', fontSize: '0.72rem', lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'text.primary', m: 0,
+                  }}>
+                    {JSON.stringify(rule.opensearch_query, null, 2)}
+                  </Typography>
+                </Paper>
+              ) : rule.query_conversion_error ? (
+                <Paper elevation={0} sx={{ p: 2, bgcolor: 'error.50', border: '1px solid', borderColor: 'error.200', borderRadius: 1 }}>
+                  <Typography variant="caption" sx={{ color: 'error.main', fontSize: '0.72rem', fontFamily: 'monospace' }}>
+                    {rule.query_conversion_error}
+                  </Typography>
+                </Paper>
+              ) : (
+                <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.72rem' }}>
+                  {t('drNoQuery')}
+                </Typography>
+              )}
+              {rule.query_converted_at && (
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem', display: 'block', mt: 0.5 }}>
+                  {t('drConvertedAt')}: {new Date(rule.query_converted_at).toLocaleString()}
+                  {rule.query_pipeline_id && ` (pipeline: ${rule.query_pipeline_id})`}
+                </Typography>
+              )}
+            </Box>
+          </>
+        )}
 
         <SectionHeader>{t('drSectionClassification')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>

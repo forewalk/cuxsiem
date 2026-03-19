@@ -1,5 +1,5 @@
 import api from './api';
-import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats, SigmaRuleFilterOptions, CustomRuleCreate, CustomRuleUpdate } from '@/types';
+import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats, SigmaRuleFilterOptions, CustomRuleCreate, CustomRuleUpdate, ConversionStats, ReconvertResult } from '@/types';
 
 interface ListRulesParams {
   skip?: number;
@@ -60,6 +60,24 @@ export const detectionRuleService = {
     const params: Record<string, string> = {};
     if (logSourceProduct) params.log_source_product = logSourceProduct;
     const response = await api.get<SigmaRuleFilterOptions>('/api/v1/sigma-rules/filter-options', { params });
+    return response.data;
+  },
+
+  getConversionStats: async () => {
+    const response = await api.get<ConversionStats>('/api/v1/sigma-rules/conversion-stats');
+    return response.data;
+  },
+
+  reconvertSingle: async (id: string) => {
+    const response = await api.post<ReconvertResult>(`/api/v1/sigma-rules/${id}/reconvert`);
+    return response.data;
+  },
+
+  reconvertBulk: async (filter?: Record<string, string>) => {
+    const response = await api.post<{ job_id: string; status: string; requested_count: number }>(
+      '/api/v1/sigma-rules/reconvert',
+      filter ? { filter } : {},
+    );
     return response.data;
   },
 };

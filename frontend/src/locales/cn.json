@@ -617,5 +617,18 @@
   "dpColDescription": "描述",
   "dpSelectLogTypeFirst": "请先选择日志类型",
   "dpNoMatchingRules": "没有匹配的规则",
-  "dpRuleCount": "{shown} / {total}条"
+  "dpRuleCount": "{shown} / {total}条",
+  "dpTimestampField": "时间戳字段",
+  "dpMaxWindow": "最大搜索窗口（分钟）",
+  "dpMaxWindowHelp": "比last_run_at更早的日志将被限制在此时间范围内（5~10080分钟）",
+  "dpFailedRulesWarning": "{count}条规则转换失败，检测时将自动跳过。",
+  "dpAllRulesFailedWarning": "所有已选规则均转换失败，检测将不会执行。",
+  "dpRuleConversionFailed": "转换失败 — 检测时跳过",
+  "drSectionQuery": "OpenSearch查询",
+  "drConversionSuccess": "转换成功",
+  "drConversionFailed": "转换失败",
+  "drConversionPending": "等待转换",
+  "drReconvert": "重新转换",
+  "drConvertedAt": "转换时间",
+  "drNoQuery": "没有已转换的查询"
 }

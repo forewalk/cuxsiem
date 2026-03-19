@@ -629,5 +629,18 @@
   "dpColDescription": "説明",
   "dpSelectLogTypeFirst": "先にログタイプを選択してください",
   "dpNoMatchingRules": "条件に合うルールがありません",
-  "dpRuleCount": "{shown} / {total}件"
+  "dpRuleCount": "{shown} / {total}件",
+  "dpTimestampField": "タイムスタンプフィールド",
+  "dpMaxWindow": "最大検索ウィンドウ（分）",
+  "dpMaxWindowHelp": "last_run_atより古いログはこの時間範囲で制限されます（5〜10080分）",
+  "dpFailedRulesWarning": "{count}件のルールが変換失敗状態です。検出時に自動スキップされます。",
+  "dpAllRulesFailedWarning": "選択されたすべてのルールが変換失敗状態です。検出は実行されません。",
+  "dpRuleConversionFailed": "変換失敗 — 検出時スキップ",
+  "drSectionQuery": "OpenSearchクエリ",
+  "drConversionSuccess": "変換成功",
+  "drConversionFailed": "変換失敗",
+  "drConversionPending": "変換待ち",
+  "drReconvert": "再変換",
+  "drConvertedAt": "変換日時",
+  "drNoQuery": "変換されたクエリがありません"
 }

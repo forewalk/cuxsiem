@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -17,6 +18,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
@@ -77,6 +79,8 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
   const [name, setName] = useState(initialData?.name ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [intervalMin, setIntervalMin] = useState(initialData?.schedule_interval_min ?? 5);
+  const [timestampField, setTimestampField] = useState(initialData?.timestamp_field ?? '@timestamp');
+  const [maxWindow, setMaxWindow] = useState(initialData?.max_search_window_min ?? 1440);
   const [selectedLogTypes, setSelectedLogTypes] = useState<string[]>([]);
   const [linkedRuleIds, setLinkedRuleIds] = useState<Set<string>>(
     new Set(initialData?.linked_rule_ids ?? [])
@@ -147,6 +151,16 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
     });
   }, []);
 
+  const failedRulesInSelection = useMemo(() => {
+    return rules.filter(r => linkedRuleIds.has(r.id) && r.query_conversion_status === 'failed');
+  }, [rules, linkedRuleIds]);
+
+  const allSelectedFailed = useMemo(() => {
+    if (linkedRuleIds.size === 0) return false;
+    const selectedRules = rules.filter(r => linkedRuleIds.has(r.id));
+    return selectedRules.length > 0 && selectedRules.every(r => r.query_conversion_status === 'failed');
+  }, [rules, linkedRuleIds]);
+
   const handleSubmit = () => {
     const linked = Array.from(linkedRuleIds);
     const linkedRules = rules.filter(r => linkedRuleIds.has(r.id));
@@ -167,6 +181,8 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
       schedule_interval_min: intervalMin,
       severity: highestSeverity,
       is_active: true,
+      timestamp_field: timestampField || '@timestamp',
+      max_search_window_min: maxWindow,
     };
     onSave(data);
   };
@@ -221,6 +237,19 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
           <TextField fullWidth size="small" label={t('dpDescription')} value={description}
             onChange={e => setDescription(e.target.value)} multiline rows={2}
             InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+          <Stack direction="row" spacing={2}>
+            <TextField size="small" label={t('dpTimestampField')} value={timestampField}
+              onChange={e => setTimestampField(e.target.value)}
+              InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
+              sx={{ minWidth: 180 }} />
+            <Tooltip title={t('dpMaxWindowHelp')} arrow placement="top">
+              <TextField size="small" type="number" label={t('dpMaxWindow')} value={maxWindow}
+                onChange={e => setMaxWindow(Math.max(5, Math.min(10080, Number(e.target.value))))}
+                slotProps={{ htmlInput: { min: 5, max: 10080 } }}
+                InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
+                sx={{ minWidth: 160 }} />
+            </Tooltip>
+          </Stack>
         </Stack>
 
         {/* Section 2: Rules selection */}
@@ -292,6 +321,18 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
           </TextField>
         </Stack>
 
+        {/* Conversion warnings */}
+        {allSelectedFailed && linkedRuleIds.size > 0 && (
+          <Alert severity="error" sx={{ mb: 1, py: 0, '& .MuiAlert-message': { fontSize: '0.72rem' } }}>
+            {t('dpAllRulesFailedWarning')}
+          </Alert>
+        )}
+        {!allSelectedFailed && failedRulesInSelection.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 1, py: 0, '& .MuiAlert-message': { fontSize: '0.72rem' } }}>
+            {t('dpFailedRulesWarning').replace('{count}', String(failedRulesInSelection.length))}
+          </Alert>
+        )}
+
         {/* Rule count */}
         <Typography variant="caption" sx={{ fontSize: '0.68rem', color: 'text.secondary', mb: 0.5, display: 'block' }}>
           {t('dpRuleCount').replace('{shown}', String(rules.length)).replace('{total}', String(ruleTotal))}
@@ -347,13 +388,20 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                     </Typography>
                   </TableCell>
                   <TableCell sx={cellSx}>
-                    <Chip
-                      label={rule.type === 'custom' ? 'Custom' : 'Standard'}
-                      size="small"
-                      variant="outlined"
-                      color={rule.type === 'custom' ? 'secondary' : 'default'}
-                      sx={{ fontSize: '0.55rem', height: 18, fontWeight: 600 }}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Chip
+                        label={rule.type === 'custom' ? 'Custom' : 'Standard'}
+                        size="small"
+                        variant="outlined"
+                        color={rule.type === 'custom' ? 'secondary' : 'default'}
+                        sx={{ fontSize: '0.55rem', height: 18, fontWeight: 600 }}
+                      />
+                      {rule.type === 'sigma' && rule.query_conversion_status === 'failed' && (
+                        <Tooltip title={t('dpRuleConversionFailed')} arrow>
+                          <Typography component="span" sx={{ fontSize: '0.7rem', cursor: 'default' }}>⚠</Typography>
+                        </Tooltip>
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell sx={{ ...cellSx, maxWidth: 180 }}>
                     <Typography variant="caption" noWrap sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>
