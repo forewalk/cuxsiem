@@ -1,7 +1,7 @@
 import { Chip } from '@mui/material';
 import React from 'react';
 
-type MuiSeverityColor = 'error' | 'warning' | 'info' | 'success' | 'default';
+type MuiSeverityColor = 'error' | 'warning' | 'info' | 'success';
 
 export const mapSeverityToMui = (severity: string | null | undefined): MuiSeverityColor => {
   if (!severity) return 'info';
