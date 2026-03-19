@@ -279,13 +279,9 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                 </Box>
                 {/* Row 2: tags + conversion status */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3.5 }}>
-                  <Chip
-                    label={rule.type === 'custom' ? 'Custom' : 'Standard'}
-                    size="small"
-                    color={rule.type === 'custom' ? 'secondary' : 'default'}
-                    variant="outlined"
-                    sx={{ height: 16, fontSize: '0.55rem', fontWeight: 600, borderRadius: 0.5 }}
-                  />
+                  <Typography variant="caption" sx={{ fontSize: '0.55rem', fontWeight: 600, color: 'text.secondary' }}>
+                    {rule.type === 'custom' ? 'Custom' : 'Standard'}
+                  </Typography>
                   {rule.type === 'sigma' && (
                     <ConversionStatusIcon status={rule.query_conversion_status} t={t} />
                   )}

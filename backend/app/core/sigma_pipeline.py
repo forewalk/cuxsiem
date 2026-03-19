@@ -57,30 +57,59 @@ class SigmaPipelineManager:
             from sigma.processing.transformations import FieldMappingTransformation
 
             self._pipeline = ProcessingPipeline(
-                name="CruxSIEM Default",
+                name="CruxSIEM SentinelOne EDR",
                 items=[
                     ProcessingItem(
-                        identifier="crux_field_mapping",
+                        identifier="crux_sentinelone_field_mapping",
                         transformation=FieldMappingTransformation({
-                            "CommandLine": "process.command_line",
-                            "ParentCommandLine": "process.parent.command_line",
-                            "Image": "process.executable",
-                            "ParentImage": "process.parent.executable",
-                            "TargetFilename": "file.path",
-                            "SourceIp": "source.ip",
-                            "DestinationIp": "destination.ip",
-                            "DestinationPort": "destination.port",
-                            "User": "user.name",
-                            "EventType": "event.action",
-                            "ServiceName": "service.name",
+                            # Process fields
+                            "CommandLine": "src.process.cmdline",
+                            "ParentCommandLine": "src.process.parent.cmdline",
+                            "Image": "src.process.image.path",
+                            "ParentImage": "src.process.parent.image.path",
+                            "OriginalFileName": "src.process.image.originalFileName",
+                            "Product": "src.process.image.productName",
+                            "Description": "src.process.image.description",
+                            "Company": "src.process.publisher",
+                            "ProcessId": "src.process.pid",
+                            "ParentProcessId": "src.process.parent.pid",
+                            "User": "src.process.user",
+                            "IntegrityLevel": "src.process.integrityLevel",
+                            "ProcessName": "src.process.name",
+                            "ParentProcessName": "src.process.parent.name",
+                            # File fields
+                            "TargetFilename": "tgt.file.path",
+                            "TargetFileName": "tgt.file.path",
+                            "FileName": "tgt.file.name",
+                            # Hash fields
+                            "md5": "src.process.image.md5",
+                            "sha1": "src.process.image.sha1",
+                            "sha256": "src.process.image.sha256",
+                            "Hashes": "src.process.image.sha256",
+                            # Network fields
+                            "SourceIp": "src.ip.address",
+                            "DestinationIp": "dst.ip.address",
+                            "DestinationPort": "dst.port.number",
+                            "DestinationHostname": "dst.address.value",
+                            # DNS fields
+                            "QueryName": "event.dns.request",
+                            "QueryResults": "event.dns.response",
+                            # Registry fields
+                            "TargetObject": "registry.key",
                             "RegistryKey": "registry.key",
                             "RegistryValue": "registry.value",
+                            # Endpoint fields
+                            "ComputerName": "endpoint.name",
+                            "HostName": "endpoint.name",
+                            # Event fields
+                            "EventType": "event.type",
+                            "ServiceName": "service.name",
                         }),
                     )
                 ],
             )
             self._backend = OpensearchLuceneBackend(self._pipeline)
-            self._pipeline_id = "default"
+            self._pipeline_id = "sentinelone_edr_v1"
             logger.info("pySigma 파이프라인 초기화 완료 (pipeline=%s)", self._pipeline_id)
         except ImportError:
             logger.warning("pySigma 미설치 — 변환 기능 비활성")

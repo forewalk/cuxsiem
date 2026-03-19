@@ -7,10 +7,11 @@ import type {
   SigmaRuleListItem,
 } from '@/types';
 import { Close as CloseIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import { Box, Button, Checkbox, CircularProgress, Divider, FormControl, IconButton, ListItemText, MenuItem, Paper, Select, Typography } from '@mui/material';
+import { Box, Button, Checkbox, CircularProgress, Divider, FormControl, IconButton, ListItemText, ListSubheader, MenuItem, Paper, Select, Typography } from '@mui/material';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ControlSearchBar from '../../../components/shared/ControlSearchBar';
 import ResizablePanel from '../../../components/shared/ResizablePanel';
+import { SeverityChip } from '../../../components/shared/SeverityChip';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { detectorService } from '../../../services/detectionPolicyService';
 import { detectionRuleService } from '../../../services/sigmaRuleService';
@@ -30,57 +31,6 @@ const FILTER_SX = {
 
 const TOGGLE_ALL = '__TOGGLE_ALL__';
 
-const FilterSelect: React.FC<{
-  label: string;
-  value: string[];
-  options: string[];
-  onChange: (value: string[]) => void;
-  labelMap?: Record<string, string>;
-  selectAllLabel?: string;
-}> = ({ label, value, options, onChange, labelMap, selectAllLabel }) => {
-  const allSelected = options.length > 0 && value.length === options.length;
-  const someSelected = value.length > 0 && value.length < options.length;
-
-  const handleChange = (raw: string | string[]) => {
-    const next = typeof raw === 'string' ? raw.split(',') : raw;
-    if (next.includes(TOGGLE_ALL)) {
-      onChange(allSelected || someSelected ? [] : [...options]);
-    } else {
-      onChange(next);
-    }
-  };
-
-  return (
-    <FormControl size="small" sx={FILTER_SX}>
-      <Select
-        multiple
-        displayEmpty
-        value={value}
-        onChange={(e) => handleChange(e.target.value as string[])}
-        renderValue={(selected) => (
-          <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
-            {label}{selected.length > 0 && selected.length < options.length && ` (${selected.length})`}
-          </Typography>
-        )}
-        MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
-        sx={{ minHeight: 32 }}
-      >
-        <MenuItem value={TOGGLE_ALL} dense sx={{ px: 0.5, py: 0 }}>
-          <Checkbox size="small" checked={allSelected} indeterminate={someSelected} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-          <ListItemText primary={selectAllLabel ?? label} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
-        </MenuItem>
-        <Divider sx={{ my: 0.25 }} />
-        {options.map((opt) => (
-          <MenuItem key={opt} value={opt} dense sx={{ px: 0.5, py: 0 }}>
-            <Checkbox size="small" checked={value.includes(opt)} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
-            <ListItemText primary={labelMap?.[opt] ?? opt} primaryTypographyProps={{ fontSize: '0.75rem' }} />
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
-};
-
 const DetectionRuleTab: React.FC = () => {
   const { t } = useTranslation();
   const { settings } = useSettingsStore();
@@ -90,23 +40,10 @@ const DetectionRuleTab: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Filters (복수선택)
-  const [filterCategory, setFilterCategory] = useState<string[]>([]);
   const [filterLogType, setFilterLogType] = useState<string[]>([]);
   const [filterSeverity, setFilterSeverity] = useState<string[]>([]);
   const [filterSource, setFilterSource] = useState<string[]>([]);
 
-  const categoryOptions = useMemo(() => LOG_TYPE_GROUPS.map(g => g.group), []);
-  const logTypeOptions = useMemo(() => {
-    if (filterCategory.length === 0) return ALL_LOG_TYPES.map(lt => lt.value);
-    return LOG_TYPE_GROUPS
-      .filter(g => filterCategory.includes(g.group))
-      .flatMap(g => g.items.map(i => i.value));
-  }, [filterCategory]);
-  const logTypeLabelMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const lt of ALL_LOG_TYPES) map[lt.value] = lt.label;
-    return map;
-  }, []);
   const severityOptions = useMemo(() => ['critical', 'high', 'medium', 'low', 'info'], []);
   const sourceOptions = useMemo(() => ['sigma', 'custom'], []);
 
@@ -448,17 +385,9 @@ const DetectionRuleTab: React.FC = () => {
     setDetectorPage(0);
   }, []);
 
-  const handleFilterChange = useCallback((key: 'logType' | 'category' | 'severity' | 'source', value: string[]) => {
+  const handleFilterChange = useCallback((key: 'logType' | 'severity' | 'source', value: string[]) => {
     setRulePage(0);
-    if (key === 'category') {
-      setFilterCategory(value);
-      if (value.length > 0) {
-        const validLogTypes = LOG_TYPE_GROUPS
-          .filter(g => value.includes(g.group))
-          .flatMap(g => g.items.map(i => i.value));
-        setFilterLogType(prev => prev.filter(v => validLogTypes.includes(v)));
-      }
-    } else if (key === 'logType') {
+    if (key === 'logType') {
       setFilterLogType(value);
     } else if (key === 'severity') {
       setFilterSeverity(value);
@@ -491,10 +420,129 @@ const DetectionRuleTab: React.FC = () => {
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mb: 0.75, flexShrink: 0, flexWrap: 'wrap' }}>
-        <FilterSelect label={t('filterCategory')} value={filterCategory} options={categoryOptions} onChange={(v) => handleFilterChange('category', v)} selectAllLabel={t('filterSelectAll')} />
-        <FilterSelect label={t('filterLogType')} value={filterLogType} options={logTypeOptions} onChange={(v) => handleFilterChange('logType', v)} labelMap={logTypeLabelMap} selectAllLabel={t('filterSelectAll')} />
-        <FilterSelect label={t('filterSeverity')} value={filterSeverity} options={severityOptions} onChange={(v) => handleFilterChange('severity', v)} labelMap={{ critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', info: 'Info' }} selectAllLabel={t('filterSelectAll')} />
-        <FilterSelect label={t('filterSource')} value={filterSource} options={sourceOptions} onChange={(v) => handleFilterChange('source', v)} labelMap={{ sigma: 'Standard', custom: 'Custom' }} selectAllLabel={t('filterSelectAll')} />
+        <FormControl size="small" sx={{ minWidth: 140, maxWidth: 200, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' } }}>
+          <Select
+            multiple
+            size="small"
+            value={filterLogType}
+            onChange={e => {
+              const raw = e.target.value;
+              const next = typeof raw === 'string' ? raw.split(',') : raw;
+              if (next.includes(TOGGLE_ALL)) {
+                const allValues = ALL_LOG_TYPES.map(lt => lt.value);
+                handleFilterChange('logType', filterLogType.length === allValues.length ? [] : allValues);
+              } else {
+                handleFilterChange('logType', next);
+              }
+            }}
+            displayEmpty
+            renderValue={(selected) => (
+              <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
+                {selected.length === 0
+                  ? t('filterLogType')
+                  : selected.length === ALL_LOG_TYPES.length
+                    ? t('filterLogType')
+                    : `${t('filterLogType')} (${selected.length})`}
+              </Typography>
+            )}
+            sx={{ minHeight: 32, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.75rem' } }}
+            MenuProps={{ PaperProps: { sx: { maxHeight: 400 } }, MenuListProps: { autoFocusItem: false } }}
+          >
+
+            <MenuItem value={TOGGLE_ALL} dense sx={{ px: 0.5, py: 0 }}>
+              <Checkbox size="small"
+                checked={filterLogType.length === ALL_LOG_TYPES.length}
+                indeterminate={filterLogType.length > 0 && filterLogType.length < ALL_LOG_TYPES.length}
+                sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+            </MenuItem>
+            <Divider sx={{ my: 0.25 }} />
+            {LOG_TYPE_GROUPS.flatMap(group => [
+              <ListSubheader key={`header-${group.group}`} sx={{ fontSize: '0.68rem', fontWeight: 'bold', lineHeight: '28px', bgcolor: 'action.hover', color: 'text.secondary', position: 'static' }}>
+                {group.group}
+              </ListSubheader>,
+              ...group.items.map(item => (
+                <MenuItem key={item.value} value={item.value} dense sx={{ py: 0.25, pl: 3 }}>
+                  <Checkbox size="small" checked={filterLogType.includes(item.value)}
+                    sx={{ p: 0, mr: 1, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+                  <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.75rem' }} />
+                </MenuItem>
+              )),
+            ])}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={FILTER_SX}>
+          <Select
+            multiple
+            displayEmpty
+            value={filterSeverity}
+            onChange={(e) => {
+              const raw = e.target.value;
+              const next = typeof raw === 'string' ? raw.split(',') : raw;
+              if (next.includes(TOGGLE_ALL)) {
+                handleFilterChange('severity', filterSeverity.length === severityOptions.length ? [] : [...severityOptions]);
+              } else {
+                handleFilterChange('severity', next);
+              }
+            }}
+            renderValue={(selected) => (
+              <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
+                {t('filterSeverity')}{selected.length > 0 && selected.length < severityOptions.length && ` (${selected.length})`}
+              </Typography>
+            )}
+            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+            sx={{ minHeight: 32 }}
+          >
+            <MenuItem value={TOGGLE_ALL} dense sx={{ px: 0.5, py: 0 }}>
+              <Checkbox size="small" checked={filterSeverity.length === severityOptions.length} indeterminate={filterSeverity.length > 0 && filterSeverity.length < severityOptions.length} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+            </MenuItem>
+            <Divider sx={{ my: 0.25 }} />
+            {severityOptions.map((opt) => (
+              <MenuItem key={opt} value={opt} dense sx={{ px: 0.5, py: 0 }}>
+                <Checkbox size="small" checked={filterSeverity.includes(opt)} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+                <SeverityChip severity={opt} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={FILTER_SX}>
+          <Select
+            multiple
+            displayEmpty
+            value={filterSource}
+            onChange={(e) => {
+              const raw = e.target.value;
+              const next = typeof raw === 'string' ? raw.split(',') : raw;
+              if (next.includes(TOGGLE_ALL)) {
+                handleFilterChange('source', filterSource.length === sourceOptions.length ? [] : [...sourceOptions]);
+              } else {
+                handleFilterChange('source', next);
+              }
+            }}
+            renderValue={(selected) => (
+              <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
+                {t('filterSource')}{selected.length > 0 && selected.length < sourceOptions.length && ` (${selected.length})`}
+              </Typography>
+            )}
+            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+            sx={{ minHeight: 32 }}
+          >
+            <MenuItem value={TOGGLE_ALL} dense sx={{ px: 0.5, py: 0 }}>
+              <Checkbox size="small" checked={filterSource.length === sourceOptions.length} indeterminate={filterSource.length > 0 && filterSource.length < sourceOptions.length} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+            </MenuItem>
+            <Divider sx={{ my: 0.25 }} />
+            {sourceOptions.map((opt) => (
+              <MenuItem key={opt} value={opt} dense sx={{ px: 0.5, py: 0 }}>
+                <Checkbox size="small" checked={filterSource.includes(opt)} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                  {opt === 'sigma' ? 'Standard' : 'Custom'}
+                </Typography>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         <ControlSearchBar
           t={t}
           placeholder={t('drSearchPlaceholder')}

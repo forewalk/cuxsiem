@@ -94,13 +94,9 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
             {t('drRuleDetail')}
           </Typography>
-          <Chip
-            label={rule.type === 'custom' ? t('drRuleTypeCustom') : t('drRuleTypeSigma')}
-            size="small"
-            color={rule.type === 'custom' ? 'secondary' : 'default'}
-            variant="outlined"
-            sx={{ fontSize: '0.6rem', height: 20 }}
-          />
+          <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary' }}>
+            {rule.type === 'custom' ? t('drRuleTypeCustom') : t('drRuleTypeSigma')}
+          </Typography>
         </Stack>
         <Stack direction="row" spacing={0.5}>
           {rule.type === 'sigma' && onClone && (

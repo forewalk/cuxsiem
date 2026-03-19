@@ -4,6 +4,7 @@ import {
   Button,
   Checkbox,
   Chip,
+  Divider,
   ListItemText,
   ListSubheader,
   MenuItem,
@@ -29,7 +30,6 @@ import { useSettingsStore } from '../../../stores/useSettingsStore';
 import {
   LOG_TYPE_GROUPS,
   ALL_LOG_TYPES,
-  getLogTypeLabel,
 } from '../constants/logTypes';
 import type { DetectorCreate, SigmaRuleListItem } from '@/types';
 
@@ -54,7 +54,7 @@ const cellSx = { fontSize: '0.72rem', py: 0.75, px: 1 } as const;
 const headCellSx = { ...cellSx, fontWeight: 'bold', color: 'text.secondary', borderBottom: 2, borderColor: 'divider' } as const;
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
-const SOURCE_OPTIONS = ['all', 'standard', 'custom'] as const;
+const SOURCE_OPTIONS = ['standard', 'custom'] as const;
 
 interface DetectorFormProps {
   initialData?: Partial<DetectorCreate> & { id?: string; linked_rule_ids?: string[] };
@@ -89,8 +89,8 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filterSeverity, setFilterSeverity] = useState('all');
-  const [filterSource, setFilterSource] = useState<'all' | 'standard' | 'custom'>('all');
+  const [filterSeverity, setFilterSeverity] = useState<string[]>([]);
+  const [filterSource, setFilterSource] = useState<string[]>([]);
 
   // Server-side rule fetching
   const [rules, setRules] = useState<SigmaRuleListItem[]>([]);
@@ -127,8 +127,8 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
         const params: Record<string, unknown> = { skip: rulePage * pageSize, limit: pageSize };
         if (debouncedSearch) params.search = debouncedSearch;
         if (logTypeKeywords) params.log_type_keywords = logTypeKeywords;
-        if (filterSeverity !== 'all') params.severity = filterSeverity;
-        if (filterSource !== 'all') params.rule_type = filterSource === 'standard' ? 'sigma' : 'custom';
+        if (filterSeverity.length) params.severity = filterSeverity.join(',');
+        if (filterSource.length) params.rule_type = filterSource.map(s => s === 'standard' ? 'sigma' : 'custom').join(',');
         const data = await detectionRuleService.list(params);
         if (!cancelled) {
           setRules(data.items);
@@ -150,6 +150,22 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
       return next;
     });
   }, []);
+
+  const allPageSelected = rules.length > 0 && rules.every(r => linkedRuleIds.has(r.id));
+  const somePageSelected = rules.some(r => linkedRuleIds.has(r.id)) && !allPageSelected;
+
+  const handleToggleAll = useCallback(() => {
+    setLinkedRuleIds(prev => {
+      const next = new Set(prev);
+      const pageIds = rules.map(r => r.id);
+      if (pageIds.every(id => next.has(id))) {
+        pageIds.forEach(id => next.delete(id));
+      } else {
+        pageIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  }, [rules]);
 
   const failedRulesInSelection = useMemo(() => {
     return rules.filter(r => linkedRuleIds.has(r.id) && r.query_conversion_status === 'failed');
@@ -262,26 +278,42 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
             size="small"
             value={selectedLogTypes}
             onChange={e => {
-              const val = e.target.value;
-              setSelectedLogTypes(typeof val === 'string' ? val.split(',') : val);
+              const raw = e.target.value;
+              const next = typeof raw === 'string' ? raw.split(',') : raw;
+              if (next.includes('__TOGGLE_ALL__')) {
+                const allValues = ALL_LOG_TYPES.map(lt => lt.value);
+                setSelectedLogTypes(selectedLogTypes.length === allValues.length ? [] : allValues);
+              } else {
+                setSelectedLogTypes(next);
+              }
             }}
             displayEmpty
-            renderValue={(selected) =>
-              selected.length === 0
-                ? <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.75rem' }}>{t('dpSelectLogType')}</Typography>
-                : <Typography variant="caption" noWrap sx={{ fontSize: '0.75rem' }}>
-                    {selected.map(v => getLogTypeLabel(v)).join(', ')}
-                  </Typography>
-            }
+            renderValue={(selected) => (
+              <Typography variant="caption" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.disabled' : 'text.primary' }}>
+                {selected.length === 0
+                  ? t('dpSelectLogType')
+                  : selected.length === ALL_LOG_TYPES.length
+                    ? t('filterLogType')
+                    : `${t('filterLogType')} (${selected.length})`}
+              </Typography>
+            )}
             sx={{ minWidth: 140, maxWidth: 200, fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.75, px: 1 } }}
-            MenuProps={{ PaperProps: { sx: { maxHeight: 400 } } }}
+            MenuProps={{ PaperProps: { sx: { maxHeight: 400 } }, MenuListProps: { autoFocusItem: false } }}
           >
+            <MenuItem value="__TOGGLE_ALL__" dense sx={{ px: 0.5, py: 0 }}>
+              <Checkbox size="small"
+                checked={selectedLogTypes.length === ALL_LOG_TYPES.length}
+                indeterminate={selectedLogTypes.length > 0 && selectedLogTypes.length < ALL_LOG_TYPES.length}
+                sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+            </MenuItem>
+            <Divider sx={{ my: 0.25 }} />
             {LOG_TYPE_GROUPS.flatMap(group => [
-              <ListSubheader key={`header-${group.group}`} sx={{ fontSize: '0.68rem', fontWeight: 'bold', lineHeight: '28px', bgcolor: 'action.hover', color: 'text.secondary' }}>
+              <ListSubheader key={`header-${group.group}`} sx={{ fontSize: '0.68rem', fontWeight: 'bold', lineHeight: '28px', bgcolor: 'action.hover', color: 'text.secondary', position: 'static' }}>
                 {group.group}
               </ListSubheader>,
               ...group.items.map(item => (
-                <MenuItem key={item.value} value={item.value} sx={{ fontSize: '0.75rem', py: 0.5, pl: 3 }}>
+                <MenuItem key={item.value} value={item.value} dense sx={{ py: 0.25, pl: 3 }}>
                   <Checkbox size="small" checked={selectedLogTypes.includes(item.value)}
                     sx={{ p: 0, mr: 1, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
                   <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: '0.75rem' }} />
@@ -300,25 +332,76 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
             }}
             sx={{ flex: 1 }}
           />
-          <TextField select size="small" value={filterSeverity}
-            onChange={e => setFilterSeverity(e.target.value)}
-            InputProps={{ sx: inputSx }} sx={{ minWidth: 110 }}>
-            <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>{t('dpFilterAll')}</MenuItem>
+          <Select
+            multiple
+            size="small"
+            value={filterSeverity}
+            onChange={e => {
+              const raw = e.target.value;
+              const next = typeof raw === 'string' ? raw.split(',') : raw;
+              if (next.includes('__TOGGLE_ALL__')) {
+                setFilterSeverity(filterSeverity.length === SEVERITIES.length ? [] : [...SEVERITIES]);
+              } else {
+                setFilterSeverity(next);
+              }
+            }}
+            displayEmpty
+            renderValue={(selected) => (
+              <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
+                {t('filterSeverity')}{selected.length > 0 && selected.length < SEVERITIES.length && ` (${selected.length})`}
+              </Typography>
+            )}
+            sx={{ minWidth: 110, minHeight: 32, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.75rem' } }}
+            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+          >
+            <MenuItem value="__TOGGLE_ALL__" dense sx={{ px: 0.5, py: 0 }}>
+              <Checkbox size="small" checked={filterSeverity.length === SEVERITIES.length} indeterminate={filterSeverity.length > 0 && filterSeverity.length < SEVERITIES.length} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+            </MenuItem>
+            <Divider sx={{ my: 0.25 }} />
             {SEVERITIES.map(s => (
-              <MenuItem key={s} value={s} sx={{ fontSize: '0.75rem' }}>
+              <MenuItem key={s} value={s} dense sx={{ px: 0.5, py: 0 }}>
+                <Checkbox size="small" checked={filterSeverity.includes(s)} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
                 <SeverityChip severity={s} />
               </MenuItem>
             ))}
-          </TextField>
-          <TextField select size="small" value={filterSource}
-            onChange={e => setFilterSource(e.target.value as typeof filterSource)}
-            InputProps={{ sx: inputSx }} sx={{ minWidth: 110 }}>
+          </Select>
+          <Select
+            multiple
+            size="small"
+            value={filterSource}
+            onChange={e => {
+              const raw = e.target.value;
+              const next = typeof raw === 'string' ? raw.split(',') : raw;
+              if (next.includes('__TOGGLE_ALL__')) {
+                setFilterSource(filterSource.length === SOURCE_OPTIONS.length ? [] : [...SOURCE_OPTIONS]);
+              } else {
+                setFilterSource(next);
+              }
+            }}
+            displayEmpty
+            renderValue={(selected) => (
+              <Typography component="span" noWrap sx={{ fontSize: '0.75rem', color: selected.length === 0 ? 'text.secondary' : 'text.primary' }}>
+                {t('filterSource')}{selected.length > 0 && selected.length < SOURCE_OPTIONS.length && ` (${selected.length})`}
+              </Typography>
+            )}
+            sx={{ minWidth: 110, minHeight: 32, '& .MuiSelect-select': { py: 0.5, px: 1, fontSize: '0.75rem' } }}
+            MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+          >
+            <MenuItem value="__TOGGLE_ALL__" dense sx={{ px: 0.5, py: 0 }}>
+              <Checkbox size="small" checked={filterSource.length === SOURCE_OPTIONS.length} indeterminate={filterSource.length > 0 && filterSource.length < SOURCE_OPTIONS.length} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+              <ListItemText primary={t('filterSelectAll')} primaryTypographyProps={{ fontSize: '0.75rem', fontWeight: 600 }} />
+            </MenuItem>
+            <Divider sx={{ my: 0.25 }} />
             {SOURCE_OPTIONS.map(s => (
-              <MenuItem key={s} value={s} sx={{ fontSize: '0.75rem' }}>
-                {s === 'all' ? t('dpFilterAll') : s === 'standard' ? 'Standard' : 'Custom'}
+              <MenuItem key={s} value={s} dense sx={{ px: 0.5, py: 0 }}>
+                <Checkbox size="small" checked={filterSource.includes(s)} sx={{ p: 0.25, '& .MuiSvgIcon-root': { fontSize: 16 } }} />
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                  {s === 'standard' ? 'Standard' : 'Custom'}
+                </Typography>
               </MenuItem>
             ))}
-          </TextField>
+          </Select>
         </Stack>
 
         {/* Conversion warnings */}
@@ -343,7 +426,15 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell padding="checkbox" sx={headCellSx} />
+                <TableCell sx={{ ...headCellSx, width: 56, textAlign: 'center', px: 0 }}>
+                  <Switch
+                    size="small"
+                    checked={allPageSelected}
+                    onChange={handleToggleAll}
+                    disabled={rules.length === 0}
+                    color={somePageSelected ? 'default' : 'primary'}
+                  />
+                </TableCell>
                 <TableCell sx={headCellSx}>{t('dpColRuleName')}</TableCell>
                 <TableCell sx={{ ...headCellSx, width: 80 }}>{t('dpColSeverity')}</TableCell>
                 <TableCell sx={{ ...headCellSx, width: 110 }}>{t('dpColLogType')}</TableCell>
@@ -359,12 +450,13 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                   onClick={() => handleToggleRule(rule.id)}
                   sx={{ cursor: 'pointer', '&:last-child td': { borderBottom: 0 } }}
                 >
-                  <TableCell padding="checkbox" sx={cellSx}>
+                  <TableCell sx={{ ...cellSx, textAlign: 'center' }}>
                     <Switch
                       size="small"
                       checked={linkedRuleIds.has(rule.id)}
                       onClick={e => e.stopPropagation()}
                       onChange={() => handleToggleRule(rule.id)}
+                      color="primary"
                     />
                   </TableCell>
                   <TableCell sx={{ ...cellSx, fontWeight: 600, maxWidth: 200 }}>
@@ -389,13 +481,9 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                   </TableCell>
                   <TableCell sx={cellSx}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Chip
-                        label={rule.type === 'custom' ? 'Custom' : 'Standard'}
-                        size="small"
-                        variant="outlined"
-                        color={rule.type === 'custom' ? 'secondary' : 'default'}
-                        sx={{ fontSize: '0.55rem', height: 18, fontWeight: 600 }}
-                      />
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary' }}>
+                        {rule.type === 'custom' ? 'Custom' : 'Standard'}
+                      </Typography>
                       {rule.type === 'sigma' && rule.query_conversion_status === 'failed' && (
                         <Tooltip title={t('dpRuleConversionFailed')} arrow>
                           <Typography component="span" sx={{ fontSize: '0.7rem', cursor: 'default' }}>⚠</Typography>
