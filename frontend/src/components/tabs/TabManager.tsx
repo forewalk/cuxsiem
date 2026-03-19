@@ -20,7 +20,6 @@ import SbomTab from '../../pages/bom/tabs/SbomTab';
 import AibomTab from '../../pages/bom/tabs/AibomTab';
 import ScenarioProcessTreeTab from '../../pages/scenario/tabs/ScenarioProcessTreeTab';
 import DetectionRuleTab from '../../pages/scenario/tabs/DetectionRuleTab';
-import DetectionEventTab from '../../pages/scenario/tabs/DetectionEventTab';
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../locales/ko.json";
@@ -44,7 +43,6 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   AibomTab: AibomTab,
   ScenarioProcessTreeTab: ScenarioProcessTreeTab,
   DetectionRuleTab: DetectionRuleTab,
-  DetectionEventTab: DetectionEventTab,
   HeartbeatTab: HeartbeatTab,
 };
 

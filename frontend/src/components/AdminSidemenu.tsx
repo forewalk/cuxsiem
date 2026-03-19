@@ -28,7 +28,6 @@ import {
   Schema as ScenarioIcon,
   AccountTree as ProcessTreeIcon,
   Rule as RuleIcon,
-  NotificationsActive as DetectionEventIcon,
 } from '@mui/icons-material';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -341,10 +340,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
               <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('detectionRules'), 'DetectionRuleTab', 'detectionRules')}>
                 <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><RuleIcon /></ListItemIcon>
                 <ListItemText primary={t('detectionRules')} sx={listItemTextStyle} />
-              </ListItemButton>
-              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('detectionEvents'), 'DetectionEventTab', 'detectionEvents')}>
-                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><DetectionEventIcon /></ListItemIcon>
-                <ListItemText primary={t('detectionEvents')} sx={listItemTextStyle} />
               </ListItemButton>
             </List>
           </Collapse>
