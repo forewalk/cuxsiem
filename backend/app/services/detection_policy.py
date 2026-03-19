@@ -34,6 +34,18 @@ class DetectionPolicyService:
 
     # ── Detector CRUD ─────────────────────────────────────────────────────
 
+    @staticmethod
+    def _normalize_detector(doc: Dict[str, Any]) -> Dict[str, Any]:
+        """구 스키마 필드명을 현재 스키마로 정규화한다."""
+        if "interval_min" not in doc and "schedule_interval_min" in doc:
+            doc["interval_min"] = doc["schedule_interval_min"]
+        if "target_index" not in doc and "target_indices" in doc:
+            indices = doc["target_indices"]
+            doc["target_index"] = indices[0] if indices else "logs-sentinel_one.edr"
+        if "condition_config" not in doc:
+            doc["condition_config"] = {}
+        return doc
+
     async def list_detectors(
         self,
         skip: int = 0,
@@ -45,14 +57,18 @@ class DetectionPolicyService:
         is_active: Optional[bool] = None,
         detector_type: Optional[str] = None,
     ):
-        return await self.repository.list_detectors(
+        total, items = await self.repository.list_detectors(
             skip=skip, limit=limit, sort_by=sort_by, order=order,
             query=query, severity=severity, is_active=is_active,
             detector_type=detector_type,
         )
+        return total, [self._normalize_detector(doc) for doc in items]
 
     async def get_detector(self, detector_id: str):
-        return await self.repository.get_detector_by_id(detector_id)
+        doc = await self.repository.get_detector_by_id(detector_id)
+        if doc:
+            return self._normalize_detector(doc)
+        return None
 
     async def create_detector(self, detector_in: DetectorCreate, user_id: str = ""):
         data = detector_in.model_dump()
