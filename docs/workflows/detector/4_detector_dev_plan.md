@@ -965,14 +965,15 @@ pytest tests/test_repositories/test_sigma_rule.py tests/test_services/test_sigma
 
 ### Phase 2: 탐지 엔진 개선 (5~7일)
 
-- [ ] 18. `app/schemas/detection_policy.py` 확장
-- [ ] 19. `test_services/test_detection_policy.py`에 탐지 엔진 테스트 추가 (Red)
-- [ ] 20. `app/services/detection_policy.py` 수정 (Green)
+- [x] 18. `app/schemas/detection_policy.py` 확장
+- [x] 19. `test_services/test_detection_policy.py`에 탐지 엔진 테스트 추가 (Red)
+- [x] 20. `app/services/detection_policy.py` 수정 (Green)
 
 **--- 중간 테스트 2-A: 탐지 엔진 핵심 로직 테스트 ---**
 
 ```bash
 pytest tests/test_services/test_detection_policy.py -v -k "run_rule or run_detection"
+# — 39/39 PASSED (기존 28 + V2 11개)
 ```
 
 | 테스트 | 검증 내용 | 통과 기준 |
@@ -989,12 +990,13 @@ pytest tests/test_services/test_detection_policy.py -v -k "run_rule or run_detec
 | test_partial_execution_report | 성공2 + 실패1 + 스킵1 | 리포트: executed=2, failed=1, skipped=1 |
 | test_all_rules_skipped_report | 모든 룰 변환 실패 | 리포트: executed=0, skipped=N, findings=0 |
 
-- [ ] 21. `app/core/scheduler.py` 수정 (Semaphore)
+- [x] 21. `app/core/scheduler.py` 수정 (Semaphore)
 
 **--- 중간 테스트 2-B: 스케줄러 동시 실행 테스트 ---**
 
 ```bash
 pytest tests/test_services/test_detection_policy.py -v -k "semaphore or concurrent"
+# — 3/3 PASSED
 ```
 
 | 테스트 | 검증 내용 | 통과 기준 |
@@ -1003,12 +1005,13 @@ pytest tests/test_services/test_detection_policy.py -v -k "semaphore or concurre
 | test_semaphore_all_complete | 세마포어 적용 후 전체 완료 | 모든 Detector 실행 결과 반환 |
 | test_detector_error_no_cascade | 1개 Detector 에러 | 다른 Detector 실행에 영향 없음 |
 
-- [ ] 22. `test_api/test_detection_policy.py` 작성 (Red)
+- [x] 22. `test_api/test_detection_policy.py` 작성 (Red)
 
 **--- 중간 테스트 2-C: Detector API 테스트 ---**
 
 ```bash
 pytest tests/test_api/test_detection_policy.py -v
+# — 4/4 PASSED
 ```
 
 | 테스트 | 검증 내용 | 통과 기준 |
@@ -1018,12 +1021,13 @@ pytest tests/test_api/test_detection_policy.py -v
 | test_update_detector_timestamp_field | timestamp_field 수정 | 200, 변경 반영 |
 | test_get_detector_includes_new_fields | 조회 시 신규 필드 | 응답에 기본값 포함 (1440, @timestamp) |
 
-- [ ] 23. 통합 테스트 (변환된 DSL 실행 검증)
+- [x] 23. 통합 테스트 (변환된 DSL 실행 검증)
 
 **--- 중간 테스트 2-D: E2E 탐지 실행 검증 ---**
 
 ```bash
 pytest tests/test_services/test_detection_policy.py -v -k "e2e or integration"
+# — 4/4 PASSED
 ```
 
 | 테스트 | 검증 내용 | 통과 기준 |
@@ -1036,6 +1040,7 @@ pytest tests/test_services/test_detection_policy.py -v -k "e2e or integration"
 ```bash
 # Phase 2 전체 테스트
 pytest tests/test_services/test_detection_policy.py tests/test_api/test_detection_policy.py -v --tb=short
+# — 50/50 PASSED
 ```
 
 **--- SentinelOne Custom 룰 PoC (수동 검증) ---**

@@ -30,6 +30,8 @@ class DetectorCreate(BaseModel):
     )
     severity: str = "medium"
     is_active: bool = True
+    timestamp_field: str = Field(default="@timestamp", description="시간 필터에 사용할 타임스탬프 필드명")
+    max_search_window_min: int = Field(default=1440, ge=5, le=10080, description="최대 검색 윈도우(분), 기본 1440(24h)")
 
 
 class DetectorUpdate(BaseModel):
@@ -44,6 +46,8 @@ class DetectorUpdate(BaseModel):
     message_template: Optional[str] = None
     severity: Optional[str] = None
     is_active: Optional[bool] = None
+    timestamp_field: Optional[str] = None
+    max_search_window_min: Optional[int] = Field(None, ge=5, le=10080)
 
 
 class DetectorResponse(BaseModel):
@@ -62,6 +66,8 @@ class DetectorResponse(BaseModel):
     last_run_at: Optional[datetime] = None
     last_triggered_at: Optional[datetime] = None
     total_findings_count: int = 0
+    timestamp_field: str = "@timestamp"
+    max_search_window_min: int = 1440
     created_by: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

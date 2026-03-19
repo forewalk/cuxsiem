@@ -3,7 +3,7 @@ import asyncio
 import json
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
 from app.repositories.detection_policy import DetectionPolicyRepository
@@ -129,7 +129,7 @@ class DetectionPolicyService:
     # ── 탐지 실행 엔진 (Detector → N개 룰 실행) ──────────────────────────
 
     async def run_detection_for_detector(self, detector: Dict[str, Any]):
-        """Detector에 연결된 룰들을 순회하며 각 룰의 detection_config를 실행한다."""
+        """Detector에 연결된 룰들을 순회하며 각 룰을 실행한다. 실행 리포트를 포함하여 반환."""
         if not detector.get("is_active"):
             return
 
@@ -137,7 +137,7 @@ class DetectionPolicyService:
         target_indices = detector.get("target_indices", [])
         field_mappings = detector.get("field_mappings", [])
         linked_rule_ids = detector.get("linked_rule_ids", [])
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         try:
             await self.repository.update_detector(detector_id, {"last_run_at": now.isoformat()})
@@ -149,16 +149,29 @@ class DetectionPolicyService:
             if not rules:
                 return None
 
+            report = {"executed": 0, "skipped": 0, "failed": 0, "findings_count": 0, "skipped_rules": []}
             findings = []
             for rule in rules:
-                finding = await self._run_rule_against_indices(
-                    detector=detector,
-                    rule=rule,
-                    target_indices=target_indices,
-                    field_mappings=field_mappings,
-                )
-                if finding:
-                    findings.append(finding)
+                should_skip, reason = self._should_skip_rule(rule)
+                if should_skip:
+                    report["skipped"] += 1
+                    report["skipped_rules"].append({"rule_id": rule.get("id"), "reason": reason})
+                    continue
+
+                try:
+                    finding = await self._run_rule_against_indices(
+                        detector=detector,
+                        rule=rule,
+                        target_indices=target_indices,
+                        field_mappings=field_mappings,
+                    )
+                    report["executed"] += 1
+                    if finding:
+                        findings.append(finding)
+                        report["findings_count"] += 1
+                except Exception as e:
+                    report["failed"] += 1
+                    logger.error(f"룰 {rule.get('id')} 실행 오류 (detector={detector_id}): {e}")
 
             if findings:
                 await self.repository.update_detector(detector_id, {
@@ -166,11 +179,32 @@ class DetectionPolicyService:
                     "total_findings_count": detector.get("total_findings_count", 0) + len(findings),
                 })
 
-            return findings if findings else None
+            has_activity = findings or report["executed"] or report["skipped"] or report["failed"]
+            return {"findings": findings, "report": report} if has_activity else None
 
         except Exception as e:
             logger.error(f"Detector {detector_id} 탐지 실행 오류: {e}")
             return None
+
+    @staticmethod
+    def _should_skip_rule(rule: Dict[str, Any]) -> tuple:
+        """룰의 변환 상태를 확인하여 스킵 여부와 사유를 반환"""
+        rule_type = rule.get("type", "sigma")
+        if rule_type == "custom":
+            return False, None
+
+        conv_status = rule.get("query_conversion_status")
+        opensearch_query = rule.get("opensearch_query")
+
+        if conv_status == "failed":
+            return True, "conversion_failed"
+
+        if not opensearch_query:
+            detection_config = rule.get("detection_config")
+            if not detection_config:
+                return True, "unconverted_sigma"
+
+        return False, None
 
     async def _fetch_rules(self, rule_ids: List[str]) -> List[Dict[str, Any]]:
         rules = []
@@ -180,6 +214,46 @@ class DetectionPolicyService:
                 rules.append(rule)
         return rules
 
+    @staticmethod
+    def _get_rule_query(rule: Dict[str, Any], field_mappings: List[Dict[str, str]]) -> Optional[Dict[str, Any]]:
+        """opensearch_query 우선, 없으면 detection_config fallback"""
+        opensearch_query = rule.get("opensearch_query")
+        if opensearch_query:
+            return opensearch_query
+
+        detection_config = rule.get("detection_config")
+        if detection_config:
+            return DetectionPolicyService._apply_field_mappings(detection_config, field_mappings)
+
+        return None
+
+    @staticmethod
+    def _build_time_range_filter(
+        detector: Dict[str, Any],
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        """last_run_at 기반 시간 범위 필터 생성. max_search_window_min으로 캡핑."""
+        if now is None:
+            now = datetime.now(timezone.utc)
+
+        timestamp_field = detector.get("timestamp_field", "@timestamp")
+        max_window = detector.get("max_search_window_min", 1440)
+        last_run_at = detector.get("last_run_at")
+
+        window_start = now - timedelta(minutes=max_window)
+
+        if last_run_at:
+            if isinstance(last_run_at, str):
+                last_run_dt = datetime.fromisoformat(last_run_at.replace("Z", "+00:00"))
+                if last_run_dt.tzinfo is None:
+                    last_run_dt = last_run_dt.replace(tzinfo=timezone.utc)
+            else:
+                last_run_dt = last_run_at
+            gte = max(last_run_dt, window_start)
+        else:
+            gte = window_start
+
+        return {"range": {timestamp_field: {"gte": gte.isoformat(), "lte": now.isoformat()}}}
 
     async def _run_rule_against_indices(
         self,
@@ -188,66 +262,81 @@ class DetectionPolicyService:
         target_indices: List[str],
         field_mappings: List[Dict[str, str]],
     ) -> Optional[Dict[str, Any]]:
-        detection_config = rule.get("detection_config", {})
-        if not detection_config:
+        query_body = self._get_rule_query(rule, field_mappings)
+        if not query_body:
             return None
 
-        search_body = self._apply_field_mappings(detection_config, field_mappings)
-        search_body = {**search_body, "size": search_body.get("size", 10)}
+        time_filter = self._build_time_range_filter(detector)
+
+        if "query" in query_body:
+            search_body = {
+                "query": {
+                    "bool": {
+                        "must": [query_body["query"]],
+                        "filter": [time_filter],
+                    }
+                }
+            }
+            for k, v in query_body.items():
+                if k != "query":
+                    search_body[k] = v
+        else:
+            search_body = {**query_body, "query": {"bool": {"filter": [time_filter]}}}
+
+        search_body.setdefault("size", 10)
+        timestamp_field = detector.get("timestamp_field", "@timestamp")
         if "sort" not in search_body:
-            search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
+            search_body["sort"] = [{timestamp_field: {"order": "desc"}}]
+        search_body["timeout"] = "30s"
 
         index_pattern = ",".join(target_indices) if target_indices else "logs-*"
 
-        try:
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                lambda: self.repository.client.search(index=index_pattern, body=search_body),
-            )
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: self.repository.client.search(index=index_pattern, body=search_body),
+        )
 
-            total = result.get("hits", {}).get("total", {}).get("value", 0)
-            hits = result.get("hits", {}).get("hits", [])
+        total = result.get("hits", {}).get("total", {}).get("value", 0)
+        hits = result.get("hits", {}).get("hits", [])
 
-            trigger_condition = detector.get("trigger_condition")
-            if trigger_condition:
-                if not self._evaluate_trigger_condition(trigger_condition, DotDict(result)):
-                    return None
-
-            if total == 0:
+        trigger_condition = detector.get("trigger_condition")
+        if trigger_condition:
+            trigger_ctx = DotDict(result)
+            trigger_ctx["total"] = total
+            if not self._evaluate_trigger_condition(trigger_condition, trigger_ctx):
                 return None
 
-            sample = [h.get("_source", h) for h in hits[:5]]
-            message = self._render_message(
-                detector.get("message_template", ""),
-                {
-                    "total": total,
-                    "name": detector.get("name", ""),
-                    "severity": detector.get("severity", ""),
-                    "rule_name": rule.get("name", ""),
-                },
-            )
-
-            finding_data = {
-                "detector_id": detector["id"],
-                "detector_name": detector.get("name", ""),
-                "rule_id": rule.get("id"),
-                "rule_name": rule.get("name", ""),
-                "severity": detector.get("severity", "medium"),
-                "target_index": index_pattern,
-                "matched_count": total,
-                "sample_events": sample,
-                "mitre_technique_ids": rule.get("mitre_technique_ids", []),
-                "mitre_tactic_ids": rule.get("mitre_tactic_ids", []),
-                "trigger_value": f"total={total}",
-                "message": message,
-                "status": "new",
-            }
-            return await self.repository.create_finding(finding_data)
-
-        except Exception as e:
-            logger.error(f"룰 {rule.get('id')} 실행 오류 (detector={detector['id']}): {e}")
+        if total == 0:
             return None
+
+        sample = [h.get("_source", h) for h in hits[:5]]
+        message = self._render_message(
+            detector.get("message_template", ""),
+            {
+                "total": total,
+                "name": detector.get("name", ""),
+                "severity": detector.get("severity", ""),
+                "rule_name": rule.get("name", ""),
+            },
+        )
+
+        finding_data = {
+            "detector_id": detector["id"],
+            "detector_name": detector.get("name", ""),
+            "rule_id": rule.get("id"),
+            "rule_name": rule.get("name", ""),
+            "severity": detector.get("severity", "medium"),
+            "target_index": index_pattern,
+            "matched_count": total,
+            "sample_events": sample,
+            "mitre_technique_ids": rule.get("mitre_technique_ids", []),
+            "mitre_tactic_ids": rule.get("mitre_tactic_ids", []),
+            "trigger_value": f"total={total}",
+            "message": message,
+            "status": "new",
+        }
+        return await self.repository.create_finding(finding_data)
 
     @staticmethod
     def _apply_field_mappings(detection_config: Dict[str, Any], field_mappings: List[Dict[str, str]]) -> Dict[str, Any]:

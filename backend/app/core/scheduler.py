@@ -14,11 +14,14 @@ logger = logging.getLogger("uvicorn.error")
 
 
 class DetectionScheduler:
+    MAX_CONCURRENT_DETECTORS = 50
+
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
         self.service = NotificationService()
         self.detection_policy_service = DetectionPolicyService()
         self.session_repo = SessionRepository()
+        self.max_concurrent_detectors = self.MAX_CONCURRENT_DETECTORS
 
     async def run_active_detections(self):
         """활성화된 모든 알림 규칙을 조회하여 탐지 로직을 실행함"""
@@ -62,12 +65,12 @@ class DetectionScheduler:
             logger.error(f"[스케줄러] 오류: {e}", exc_info=True)
 
     async def run_active_detection_policies(self):
-        """활성화된 모든 Detector를 조회하여 탐지 로직을 실행함"""
+        """활성화된 모든 Detector를 조회하여 탐지 로직을 실행함 (동시 실행 50개 제한)"""
         try:
             total, detectors = await self.detection_policy_service.list_detectors(limit=1000, is_active=True)
 
             now = datetime.now(timezone.utc)
-            tasks = []
+            targets = []
 
             for detector in detectors:
                 if not detector.get("is_active"):
@@ -93,10 +96,20 @@ class DetectionScheduler:
                         should_run = True
 
                 if should_run:
-                    tasks.append(self.detection_policy_service.run_detection_for_detector(detector))
+                    targets.append(detector)
 
-            if tasks:
-                await asyncio.gather(*tasks)
+            if targets:
+                sem = asyncio.Semaphore(self.max_concurrent_detectors)
+
+                async def _run_with_sem(det):
+                    async with sem:
+                        try:
+                            return await self.detection_policy_service.run_detection_for_detector(det)
+                        except Exception as e:
+                            logger.error(f"[스케줄러] Detector {det.get('id')} 실행 오류: {e}")
+                            return None
+
+                await asyncio.gather(*[_run_with_sem(d) for d in targets])
 
         except NotFoundError:
             logger.debug("[스케줄러] cs_detection_policies 인덱스 미존재 — Detector 스킵")
