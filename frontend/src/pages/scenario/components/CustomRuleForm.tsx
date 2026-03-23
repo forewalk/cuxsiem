@@ -111,12 +111,28 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
-    if (sourceSigmaId && !sourceSigmaName) {
-      detectionRuleService.getById(sourceSigmaId).then(rule => {
-        if (rule?.name) setSourceSigmaName(rule.name);
-      }).catch(() => {});
-    }
-  }, [sourceSigmaId, sourceSigmaName]);
+    if (!sourceSigmaId) return;
+    let cancelled = false;
+    const load = async () => {
+      if (!sourceSigmaName) {
+        try {
+          const rule = await detectionRuleService.getById(sourceSigmaId);
+          if (rule?.name && !cancelled) setSourceSigmaName(rule.name);
+        } catch { /* ignored */ }
+      }
+      if (fieldMappings.length === 0) {
+        try {
+          const preview = await detectionRuleService.convertPreview(sourceSigmaId);
+          const mappings = (preview?.applied_mappings ?? []).filter(
+            (m: { rule_field: string; log_field: string }) => m.rule_field && m.log_field,
+          );
+          if (mappings.length > 0 && !cancelled) setFieldMappings(mappings);
+        } catch { /* ignored */ }
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [sourceSigmaId]);
 
   // Picker filter/search state
   const [pickerSearch, setPickerSearch] = useState('');

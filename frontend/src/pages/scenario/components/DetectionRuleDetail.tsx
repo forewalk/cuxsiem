@@ -27,7 +27,7 @@ import {
 import React, { useEffect, useState } from 'react';
 import { SeverityChip } from '@/components/shared/SeverityChip';
 import { detectionRuleService } from '../../../services/sigmaRuleService';
-import type { SigmaRuleDetail as SigmaRuleDetailType } from '@/types';
+import type { FieldMapping, SigmaRuleDetail as SigmaRuleDetailType } from '@/types';
 
 interface DetectionRuleDetailProps {
   rule: SigmaRuleDetailType | null;
@@ -81,6 +81,7 @@ const mapHeadCellSx = { ...mapCellSx, fontWeight: 'bold', color: 'text.secondary
 export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, compact, onEdit, onDelete, onClone, onReconvert, reconverting }) => {
   const [detectionExpanded, setDetectionExpanded] = useState(false);
   const [sourceSigmaName, setSourceSigmaName] = useState<string | null>(null);
+  const [previewMappings, setPreviewMappings] = useState<FieldMapping[]>([]);
 
   useEffect(() => {
     if (rule?.source_sigma_id) {
@@ -92,6 +93,30 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
       setSourceSigmaName(null);
     }
   }, [rule?.source_sigma_id]);
+
+  useEffect(() => {
+    if (!rule?.id) { setPreviewMappings([]); return; }
+    if (rule.applied_field_mappings && rule.applied_field_mappings.length > 0) {
+      setPreviewMappings([]);
+      return;
+    }
+    const ruleIdForPreview = rule.type === 'sigma' ? rule.id : rule.source_sigma_id;
+    if (!ruleIdForPreview) { setPreviewMappings([]); return; }
+    let cancelled = false;
+    detectionRuleService.convertPreview(ruleIdForPreview).then(preview => {
+      if (!cancelled) {
+        const mappings = (preview?.applied_mappings ?? []).filter(
+          (m: { rule_field: string; log_field: string }) => m.rule_field && m.log_field,
+        );
+        setPreviewMappings(mappings);
+      }
+    }).catch(() => { if (!cancelled) setPreviewMappings([]); });
+    return () => { cancelled = true; };
+  }, [rule?.id, rule?.type, rule?.source_sigma_id, rule?.applied_field_mappings]);
+
+  const displayMappings = (rule?.applied_field_mappings && rule.applied_field_mappings.length > 0)
+    ? rule.applied_field_mappings
+    : previewMappings;
 
   if (!rule) {
     return (
@@ -269,8 +294,8 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
           </>
         )}
 
-        {/* Field Mappings (if rule has applied_field_mappings) */}
-        {rule.applied_field_mappings && rule.applied_field_mappings.length > 0 && (
+        {/* Field Mappings */}
+        {displayMappings.length > 0 && (
           <>
             <SectionHeader>{t('fmFieldMappings')}</SectionHeader>
             <Box sx={{ px: 0.5 }}>
@@ -290,7 +315,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rule.applied_field_mappings.map((m, idx) => (
+                    {displayMappings.map((m, idx) => (
                       <TableRow key={idx}>
                         <TableCell sx={mapCellSx}>{m.rule_field}</TableCell>
                         <TableCell sx={mapCellSx}>{m.log_field}</TableCell>

@@ -330,19 +330,25 @@ const DetectionRuleTab: React.FC = () => {
 
   const handleCloneSigmaRule = useCallback(async () => {
     if (!selectedRule || selectedRule.type !== 'sigma') return;
-    const cloneData: CustomRuleCreate = {
-      name: `${selectedRule.name}_copy`,
-      description: selectedRule.description || undefined,
-      detection_config: selectedRule.detection_config || {},
-      level_normalized: selectedRule.level_normalized || 'medium',
-      log_source_category: selectedRule.log_source_category || undefined,
-      log_source_product: selectedRule.log_source_product || undefined,
-      log_source_service: selectedRule.log_source_service || undefined,
-      mitre_technique_ids: selectedRule.mitre_technique_ids || [],
-      mitre_tactic_ids: selectedRule.mitre_tactic_ids || [],
-      false_positives: selectedRule.false_positives || [],
-    };
     try {
+      const preview = await detectionRuleService.convertPreview(selectedRule.id);
+      const appliedMappings = (preview?.applied_mappings ?? []).filter(
+        (m: { rule_field: string; log_field: string }) => m.rule_field && m.log_field,
+      );
+      const cloneData: CustomRuleCreate = {
+        name: `${selectedRule.name}_copy`,
+        description: selectedRule.description || undefined,
+        detection_config: selectedRule.detection_config || {},
+        level_normalized: selectedRule.level_normalized || 'medium',
+        log_source_category: selectedRule.log_source_category || undefined,
+        log_source_product: selectedRule.log_source_product || undefined,
+        log_source_service: selectedRule.log_source_service || undefined,
+        mitre_technique_ids: selectedRule.mitre_technique_ids || [],
+        mitre_tactic_ids: selectedRule.mitre_tactic_ids || [],
+        false_positives: selectedRule.false_positives || [],
+        source_sigma_id: selectedRule.id,
+        applied_field_mappings: appliedMappings,
+      };
       const created = await detectionRuleService.create(cloneData);
       setRules(prev => [{ ...created, type: 'custom' as const } as SigmaRuleListItem, ...prev]);
       setSelectedRuleId(created.id);
