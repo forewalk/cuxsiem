@@ -28,7 +28,7 @@ export const GlobalAlertSnackbar: React.FC<GlobalAlertSnackbarProps> = ({ snackb
           open={true}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           sx={{ 
-            mb: 2 + (index * 13.75),
+            mb: 2 + (index * 15),
             mr: 2,
           }}
         >
