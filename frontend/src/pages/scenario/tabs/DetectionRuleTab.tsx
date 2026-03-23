@@ -79,6 +79,7 @@ const DetectionRuleTab: React.FC = () => {
   const [detectorFindings, setDetectorFindings] = useState<Finding[]>([]);
   const [showDetectorForm, setShowDetectorForm] = useState(false);
   const [editingDetector, setEditingDetector] = useState<Detector | null>(null);
+  const [linkedRuleNames, setLinkedRuleNames] = useState<Record<string, string>>({});
 
   // Rule preview panel (Panel 3)
   const [previewRuleId, setPreviewRuleId] = useState<string | null>(null);
@@ -190,13 +191,28 @@ const DetectionRuleTab: React.FC = () => {
   }, [selectedRuleId]);
 
   useEffect(() => {
-    if (!selectedDetectorId) { setSelectedDetector(null); setDetectorFindings([]); return; }
+    if (!selectedDetectorId) { setSelectedDetector(null); setDetectorFindings([]); setLinkedRuleNames({}); return; }
     let cancelled = false;
     const fetchDetectorDetail = async () => {
       setDetailLoading(true);
       try {
         const detectorData = await detectorService.getById(selectedDetectorId);
-        if (!cancelled) setSelectedDetector(detectorData);
+        if (!cancelled) {
+          setSelectedDetector(detectorData);
+          const ruleIds = detectorData?.linked_rule_ids ?? [];
+          if (ruleIds.length > 0) {
+            const nameMap: Record<string, string> = {};
+            await Promise.all(ruleIds.map(async (id) => {
+              try {
+                const rule = await detectionRuleService.getById(id);
+                if (rule && !cancelled) nameMap[id] = rule.name;
+              } catch { /* rule fetch failed */ }
+            }));
+            if (!cancelled) setLinkedRuleNames(nameMap);
+          } else {
+            if (!cancelled) setLinkedRuleNames({});
+          }
+        }
       } catch {
         if (!cancelled) setSelectedDetector(null);
       }
@@ -396,6 +412,7 @@ const DetectionRuleTab: React.FC = () => {
           onDelete={handleDeleteDetector}
           onRuleClick={handlePreviewRule}
           rules={rules}
+          linkedRuleNames={linkedRuleNames}
           t={t}
         />
       );

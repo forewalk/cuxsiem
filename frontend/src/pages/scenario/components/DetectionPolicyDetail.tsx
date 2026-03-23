@@ -1,3 +1,9 @@
+import { SeverityChip } from '@/components/shared/SeverityChip';
+import type { Detector, Finding, SigmaRuleListItem } from '@/types';
+import {
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Chip,
@@ -15,13 +21,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
 import React from 'react';
-import { SeverityChip } from '@/components/shared/SeverityChip';
-import type { Detector, Finding, SigmaRuleListItem } from '@/types';
 
 interface DetectionPolicyDetailProps {
   detector: Detector | null;
@@ -31,6 +31,7 @@ interface DetectionPolicyDetailProps {
   onDelete?: () => void;
   onRuleClick?: (ruleId: string) => void;
   rules?: SigmaRuleListItem[];
+  linkedRuleNames?: Record<string, string>;
   t: (key: string) => string;
 }
 
@@ -83,13 +84,15 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
   onDelete,
   onRuleClick,
   rules = [],
+  linkedRuleNames,
   t,
 }) => {
   const ruleNameMap = React.useMemo(() => {
+    if (linkedRuleNames && Object.keys(linkedRuleNames).length > 0) return linkedRuleNames;
     const map: Record<string, string> = {};
     for (const r of rules) map[r.id] = r.name;
     return map;
-  }, [rules]);
+  }, [rules, linkedRuleNames]);
 
   if (!detector) {
     return (
@@ -145,7 +148,7 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
             <FieldRow label={t('dpTriggerCondition')}><FieldValue mono>{detector.trigger_condition}</FieldValue></FieldRow>
           )}
         </Box>
-
+        {/* ───────────────────────────연결된 규칙──────────────────────── */}
         <SectionHeader>{t('dpSectionRules')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
           <FieldRow label={t('dpLinkedRules')}>
@@ -190,7 +193,7 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
             </Box>
           )}
         </Box>
-
+        {/* ───────────────────────────연결된 규칙──────────────────────── */}
         <SectionHeader>{t('dpSectionOperation')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
           <FieldRow label={t('dpLastRun')}><FieldValue mono>{detector.last_run_at ? new Date(detector.last_run_at).toLocaleString() : '-'}</FieldValue></FieldRow>

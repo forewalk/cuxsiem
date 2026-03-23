@@ -101,7 +101,7 @@ export const LogsourceSelect: React.FC<LogsourceSelectProps> = ({
           <ListItemText
             primary={opt.value}
             secondary={`${opt.count}`}
-            primaryTypographyProps={{ fontSize: '0.72rem', fontFamily: 'monospace' }}
+            primaryTypographyProps={{ fontSize: '0.7rem', fontWeight: 600 }}
             secondaryTypographyProps={{ fontSize: '0.6rem', color: 'text.disabled' }}
             sx={{ my: 0 }}
           />
@@ -122,7 +122,7 @@ export const LogsourceSelect: React.FC<LogsourceSelectProps> = ({
             onChange={e => setCustomValue(e.target.value)}
             onKeyDown={handleCustomKeyDown}
             onBlur={handleCustomSubmit}
-            InputProps={{ sx: { fontSize: '0.72rem', fontFamily: 'monospace' } }}
+            InputProps={{ sx: { fontSize: '0.7rem' } }}
             sx={{ width: '100%' }}
           />
         </MenuItem>
