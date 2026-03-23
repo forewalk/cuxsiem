@@ -75,13 +75,18 @@ async def test_detector_webhook(request: dict):
 
 
 @router.get("/export")
-async def export_detectors():
+async def export_detectors(
+    ids: Optional[str] = Query(None, description="쉼표로 구분된 Detector ID 목록 (미지정 시 전체)"),
+):
     total, detectors = await service.list_detectors(skip=0, limit=10000)
+    if ids:
+        id_set = {i.strip() for i in ids.split(",") if i.strip()}
+        detectors = [d for d in detectors if d.get("id") in id_set]
     export_fields = [
         "name", "description", "detector_type", "target_indices",
         "linked_rule_ids", "field_mappings", "schedule_interval_min",
         "trigger_condition", "message_template", "severity", "is_active",
-        "timestamp_field", "max_search_window_min", "webhook_url", "webhook_headers",
+        "timestamp_field", "max_search_window_min", "webhook_url", "webhook_headers", "webhook_body",
     ]
     exported = [{k: d.get(k) for k in export_fields if k in d} for d in detectors]
     from datetime import datetime as dt
@@ -91,6 +96,27 @@ async def export_detectors():
         "exported_at": dt.utcnow().isoformat() + "Z",
         "detectors": exported,
     })
+
+
+@router.post("/bulk-delete", status_code=status.HTTP_200_OK)
+async def bulk_delete_detectors(
+    request: dict,
+    current_user: UserResponse = Depends(get_current_active_user),
+):
+    ids: list = request.get("ids", [])
+    if not ids:
+        raise HTTPException(status_code=400, detail="ids 배열이 비어있습니다.")
+    deleted, errors = 0, []
+    for detector_id in ids:
+        try:
+            success = await service.delete_detector(detector_id)
+            if success:
+                deleted += 1
+            else:
+                errors.append({"id": detector_id, "error": "not found"})
+        except Exception as e:
+            errors.append({"id": detector_id, "error": str(e)})
+    return {"deleted": deleted, "errors": errors}
 
 
 @router.post("/import")

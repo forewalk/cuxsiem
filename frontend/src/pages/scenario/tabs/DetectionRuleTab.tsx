@@ -80,6 +80,7 @@ const DetectionRuleTab: React.FC = () => {
   const [showDetectorForm, setShowDetectorForm] = useState(false);
   const [editingDetector, setEditingDetector] = useState<Detector | null>(null);
   const [linkedRuleNames, setLinkedRuleNames] = useState<Record<string, string>>({});
+  const [checkedDetectorIds, setCheckedDetectorIds] = useState<Set<string>>(new Set());
 
   // Rule preview panel (Panel 3)
   const [previewRuleId, setPreviewRuleId] = useState<string | null>(null);
@@ -510,6 +511,57 @@ const DetectionRuleTab: React.FC = () => {
     input.click();
   }, []);
 
+  const handleToggleDetectorCheck = useCallback((detectorId: string) => {
+    setCheckedDetectorIds(prev => {
+      const next = new Set(prev);
+      if (next.has(detectorId)) next.delete(detectorId); else next.add(detectorId);
+      return next;
+    });
+  }, []);
+
+  const handleBulkDeleteDetectors = useCallback(async () => {
+    if (checkedDetectorIds.size === 0) return;
+    if (!confirm(t('dpBulkDeleteConfirm', { count: String(checkedDetectorIds.size) }))) return;
+    try {
+      await detectorService.bulkDelete(Array.from(checkedDetectorIds));
+      setDetectors(prev => prev.filter(d => !checkedDetectorIds.has(d.id)));
+      if (selectedDetectorId && checkedDetectorIds.has(selectedDetectorId)) {
+        setSelectedDetectorId(null);
+        setSelectedDetector(null);
+      }
+      setCheckedDetectorIds(new Set());
+    } catch { /* bulk delete failed */ }
+  }, [checkedDetectorIds, selectedDetectorId, t]);
+
+  const handleExportSelectedDetectors = useCallback(async () => {
+    if (checkedDetectorIds.size === 0) return;
+    try {
+      const data = await detectorService.exportDetectors(Array.from(checkedDetectorIds));
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `detectors_selected_${checkedDetectorIds.size}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { /* export failed */ }
+  }, [checkedDetectorIds]);
+
+  const handleBulkDeleteRules = useCallback(async () => {
+    if (checkedRuleIds.size === 0) return;
+    if (!confirm(t('dpBulkDeleteRulesConfirm', { count: String(checkedRuleIds.size) }))) return;
+    try {
+      await detectionRuleService.bulkDelete(Array.from(checkedRuleIds));
+      setRules(prev => prev.filter(r => !checkedRuleIds.has(r.id)));
+      setRuleTotal(prev => prev - checkedRuleIds.size);
+      if (selectedRuleId && checkedRuleIds.has(selectedRuleId)) {
+        setSelectedRuleId(null);
+        setSelectedRule(null);
+      }
+      setCheckedRuleIds(new Set());
+    } catch { /* bulk delete failed */ }
+  }, [checkedRuleIds, selectedRuleId, t]);
+
   return (
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
 
@@ -622,6 +674,8 @@ const DetectionRuleTab: React.FC = () => {
               }}
               onToggleEnabled={handleToggleEnabled}
               onToggleCheck={handleToggleCheck}
+              onToggleDetectorCheck={handleToggleDetectorCheck}
+              checkedDetectorIds={checkedDetectorIds}
               loading={loading}
               t={t}
               activeTab={activeTab}
@@ -638,6 +692,9 @@ const DetectionRuleTab: React.FC = () => {
               onCreateDetectorWithRules={handleCreateDetectorWithCheckedRules}
               onExportDetectors={handleExportDetectors}
               onImportDetectors={handleImportDetectors}
+              onBulkDeleteDetectors={handleBulkDeleteDetectors}
+              onExportSelectedDetectors={handleExportSelectedDetectors}
+              onBulkDeleteRules={handleBulkDeleteRules}
             />
           )}
         </ResizablePanel>

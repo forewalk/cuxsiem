@@ -4,6 +4,7 @@ import {
   Add as AddIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  Delete as DeleteIcon,
   FileDownload as ExportIcon,
   FileUpload as ImportIcon,
 } from '@mui/icons-material';
@@ -32,10 +33,12 @@ interface DetectionRuleListProps {
   selectedRuleId: string | null;
   selectedDetectorId: string | null;
   checkedRuleIds: Set<string>;
+  checkedDetectorIds: Set<string>;
   onSelect: (ruleId: string) => void;
   onSelectDetector: (detectorId: string) => void;
   onToggleEnabled: (ruleId: string) => void;
   onToggleCheck: (ruleId: string) => void;
+  onToggleDetectorCheck: (detectorId: string) => void;
   loading: boolean;
   t: (key: string, params?: Record<string, string>) => string;
   width?: number;
@@ -53,6 +56,9 @@ interface DetectionRuleListProps {
   onCreateDetectorWithRules: () => void;
   onExportDetectors?: () => void;
   onImportDetectors?: () => void;
+  onBulkDeleteDetectors?: () => void;
+  onExportSelectedDetectors?: () => void;
+  onBulkDeleteRules?: () => void;
 }
 
 const extractFirstTechnique = (ids: string[]): string | null => ids.length > 0 ? ids[0] : null;
@@ -121,10 +127,12 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   selectedRuleId,
   selectedDetectorId,
   checkedRuleIds,
+  checkedDetectorIds,
   onSelect,
   onSelectDetector,
   onToggleEnabled,
   onToggleCheck,
+  onToggleDetectorCheck,
   loading,
   t,
   width = 320,
@@ -142,6 +150,9 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   onCreateDetectorWithRules,
   onExportDetectors,
   onImportDetectors,
+  onBulkDeleteDetectors,
+  onExportSelectedDetectors,
+  onBulkDeleteRules,
 }) => {
   return (
     <Paper
@@ -177,27 +188,49 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
 
       {activeTab === 0 && (<>
         <Box sx={{ px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', gap: 0.5 }}>
-          <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
-            onClick={onCreateDetector}
-            sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
-            {t('dpCreate')}
-          </Button>
-          {onExportDetectors && (
-            <Tooltip title={t('dpExport')} arrow>
-              <IconButton size="small" onClick={onExportDetectors}
-                sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
-                <ExportIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
-          )}
-          {onImportDetectors && (
-            <Tooltip title={t('dpImport')} arrow>
-              <IconButton size="small" onClick={onImportDetectors}
-                sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
-                <ImportIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
-          )}
+          {checkedDetectorIds.size > 0 ? (<>
+            <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', flex: 1 }}>
+              {t('dpSelected', { count: String(checkedDetectorIds.size) })}
+            </Typography>
+            {onBulkDeleteDetectors && (
+              <Tooltip title={t('dpBulkDelete')} arrow>
+                <IconButton size="small" color="error" onClick={onBulkDeleteDetectors}
+                  sx={{ border: 1, borderColor: 'error.main', borderRadius: 1, p: 0.5 }}>
+                  <DeleteIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onExportSelectedDetectors && (
+              <Tooltip title={t('dpExportSelected')} arrow>
+                <IconButton size="small" onClick={onExportSelectedDetectors}
+                  sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
+                  <ExportIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </>) : (<>
+            <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
+              onClick={onCreateDetector}
+              sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
+              {t('dpCreate')}
+            </Button>
+            {onExportDetectors && (
+              <Tooltip title={t('dpExport')} arrow>
+                <IconButton size="small" onClick={onExportDetectors}
+                  sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
+                  <ExportIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onImportDetectors && (
+              <Tooltip title={t('dpImport')} arrow>
+                <IconButton size="small" onClick={onImportDetectors}
+                  sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
+                  <ImportIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </>)}
         </Box>
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {detectors.length > 0 ? detectors.map((detector) => (
@@ -205,23 +238,19 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
               key={detector.id}
               selected={detector.id === selectedDetectorId}
               onClick={() => onSelectDetector(detector.id)}
-              sx={{ py: 1, px: 1.5, borderBottom: 1, borderColor: 'divider', gap: 0.5, alignItems: 'flex-start' }}
+              sx={{ py: 0.75, px: 1.5, borderBottom: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 0.25 }}
             >
-              <ListItemText
-                primary={detector.name}
-                secondary={
-                  <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                    <Chip label={detector.detector_type || '-'} size="small" variant="outlined"
-                      sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
-                    <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                      {detector.schedule_interval_min}min · {detector.linked_rule_ids?.length ?? 0} rules
-                    </Typography>
-                  </Box>
-                }
-                primaryTypographyProps={{ variant: 'caption', fontWeight: 600, noWrap: true, sx: { fontSize: '0.75rem' } }}
-                secondaryTypographyProps={{ component: 'div' }}
-              />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, mt: 0.25 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                <Checkbox
+                  size="small"
+                  checked={checkedDetectorIds.has(detector.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => onToggleDetectorCheck(detector.id)}
+                  sx={{ p: 0, flexShrink: 0, '& .MuiSvgIcon-root': { fontSize: 16 } }}
+                />
+                <Typography variant="caption" noWrap sx={{ flex: 1, fontWeight: 600, fontSize: '0.75rem', minWidth: 0 }}>
+                  {detector.name}
+                </Typography>
                 <SeverityChip severity={detector.severity} size="small" />
                 <Chip
                   label={detector.is_active ? '●' : '○'}
@@ -230,6 +259,13 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                   variant={detector.is_active ? 'filled' : 'outlined'}
                   sx={{ fontSize: '0.55rem', height: 18, minWidth: 18, p: 0 }}
                 />
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3.25 }}>
+                <Chip label={detector.detector_type || '-'} size="small" variant="outlined"
+                  sx={{ height: 16, fontSize: '0.55rem', fontWeight: 500, borderRadius: 0.5 }} />
+                <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
+                  {detector.schedule_interval_min}min · {detector.linked_rule_ids?.length ?? 0} rules
+                </Typography>
               </Box>
             </ListItemButton>
           )) : !loading && (
@@ -243,16 +279,28 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
 
       {activeTab === 1 && (<>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
-          <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
-            onClick={onCreateCustomRule}
-            sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
-            {t('drCreateCustomRule')}
-          </Button>
-          {checkedRuleIds.size > 0 && (
-            <Button size="small" variant="contained" color="secondary" startIcon={<AddIcon />} fullWidth
+          {checkedRuleIds.size > 0 ? (<>
+            <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', flex: 1 }}>
+              {t('dpSelected', { count: String(checkedRuleIds.size) })}
+            </Typography>
+            <Button size="small" variant="contained" color="secondary" startIcon={<AddIcon />}
               onClick={onCreateDetectorWithRules}
+              sx={{ fontSize: '0.68rem', textTransform: 'none', py: 0.25, px: 1 }}>
+              {t('dpCreate')}
+            </Button>
+            {onBulkDeleteRules && (
+              <Tooltip title={t('dpBulkDelete')} arrow>
+                <IconButton size="small" color="error" onClick={onBulkDeleteRules}
+                  sx={{ border: 1, borderColor: 'error.main', borderRadius: 1, p: 0.5 }}>
+                  <DeleteIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </>) : (
+            <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
+              onClick={onCreateCustomRule}
               sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
-              {t('dpCreate')} ({checkedRuleIds.size})
+              {t('drCreateCustomRule')}
             </Button>
           )}
         </Box>

@@ -52,6 +52,11 @@ export const detectionRuleService = {
     await api.delete(`/api/v1/sigma-rules/${id}`);
   },
 
+  bulkDelete: async (ids: string[]) => {
+    const response = await api.post('/api/v1/sigma-rules/bulk-delete', { ids });
+    return response.data;
+  },
+
   getStats: async () => {
     const response = await api.get<SigmaRuleStats>('/api/v1/sigma-rules/stats');
     return response.data;

@@ -132,6 +132,27 @@ async def bulk_reconvert(
     return result
 
 
+@router.post("/bulk-delete", status_code=status.HTTP_200_OK)
+async def bulk_delete_rules(
+    request: dict,
+    current_user: UserResponse = Depends(get_current_active_user),
+):
+    ids: list = request.get("ids", [])
+    if not ids:
+        raise HTTPException(status_code=400, detail="ids 배열이 비어있습니다.")
+    deleted, errors = 0, []
+    for rule_id in ids:
+        try:
+            success = await service.delete_rule(rule_id, deleted_by=current_user.id)
+            if success:
+                deleted += 1
+            else:
+                errors.append({"id": rule_id, "error": "not found"})
+        except Exception as e:
+            errors.append({"id": rule_id, "error": str(e)})
+    return {"deleted": deleted, "errors": errors}
+
+
 @router.post("/{rule_id}/reconvert", response_model=ReconvertResultResponse)
 async def reconvert_single(
     rule_id: str,

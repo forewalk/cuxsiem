@@ -86,13 +86,19 @@ export const detectorService = {
     return response.data;
   },
 
-  exportDetectors: async () => {
-    const response = await api.get('/api/v1/detection-policies/export');
+  exportDetectors: async (ids?: string[]) => {
+    const params = ids && ids.length > 0 ? { ids: ids.join(',') } : {};
+    const response = await api.get('/api/v1/detection-policies/export', { params });
     return response.data;
   },
 
   importDetectors: async (detectors: Record<string, unknown>[], overwrite = false) => {
     const response = await api.post('/api/v1/detection-policies/import', { detectors, overwrite });
+    return response.data;
+  },
+
+  bulkDelete: async (ids: string[]) => {
+    const response = await api.post('/api/v1/detection-policies/bulk-delete', { ids });
     return response.data;
   },
 };
