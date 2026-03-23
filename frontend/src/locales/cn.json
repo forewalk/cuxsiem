@@ -633,6 +633,7 @@
   "dpSelectLogTypeFirst": "请先选择日志类型",
   "dpNoMatchingRules": "没有匹配的规则",
   "dpRuleCount": "{shown} / {total}条",
+  "dpTargetIndices": "目标索引",
   "dpTimestampField": "时间戳字段",
   "dpMaxWindow": "最大搜索窗口（分钟）",
   "dpMaxWindowHelp": "比last_run_at更早的日志将被限制在此时间范围内（5~10080分钟）",

@@ -645,6 +645,7 @@
   "dpSelectLogTypeFirst": "先にログタイプを選択してください",
   "dpNoMatchingRules": "条件に合うルールがありません",
   "dpRuleCount": "{shown} / {total}件",
+  "dpTargetIndices": "対象インデックス",
   "dpTimestampField": "タイムスタンプフィールド",
   "dpMaxWindow": "最大検索ウィンドウ（分）",
   "dpMaxWindowHelp": "last_run_atより古いログはこの時間範囲で制限されます（5〜10080分）",

@@ -636,6 +636,7 @@
   "dpSelectLogTypeFirst": "Select a log type first",
   "dpNoMatchingRules": "No matching rules found",
   "dpRuleCount": "{shown} / {total} rules",
+  "dpTargetIndices": "Target Indices",
   "dpTimestampField": "Timestamp Field",
   "dpMaxWindow": "Max Search Window (min)",
   "dpMaxWindowHelp": "Logs older than last_run_at are capped to this window (5–10080 min)",

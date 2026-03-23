@@ -660,6 +660,7 @@
   "dpSelectLogTypeFirst": "로그 타입을 먼저 선택하세요",
   "dpNoMatchingRules": "조건에 맞는 규칙이 없습니다",
   "dpRuleCount": "{shown} / {total}건",
+  "dpTargetIndices": "대상 인덱스",
   "dpTimestampField": "타임스탬프 필드",
   "dpMaxWindow": "최대 검색 윈도우(분)",
   "dpMaxWindowHelp": "last_run_at보다 오래된 로그는 이 시간 범위로 캡핑됩니다 (5~10080분)",

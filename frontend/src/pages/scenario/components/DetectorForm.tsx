@@ -76,6 +76,7 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
   const [name, setName] = useState(initialData?.name ?? '');
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [intervalMin, setIntervalMin] = useState(initialData?.schedule_interval_min ?? 5);
+  const [targetIndices, setTargetIndices] = useState(initialData?.target_indices?.join(', ') ?? 'logs-*');
   const [timestampField, setTimestampField] = useState(initialData?.timestamp_field ?? '@timestamp');
   const [maxWindow, setMaxWindow] = useState(initialData?.max_search_window_min ?? 1440);
   const [linkedRuleIds, setLinkedRuleIds] = useState<Set<string>>(
@@ -264,7 +265,7 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
       detector_type: filterProduct.length === 1
         ? filterProduct[0]
         : filterProduct.length > 1 ? 'multi' : 'custom',
-      target_indices: ['logs-*'],
+      target_indices: targetIndices.split(',').map(s => s.trim()).filter(Boolean),
       linked_rule_ids: linked,
       field_mappings: validMappings,
       schedule_interval_min: intervalMin,
@@ -327,6 +328,11 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
             onChange={e => setDescription(e.target.value)} multiline rows={2}
             InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
           <Stack direction="row" spacing={2}>
+            <TextField size="small" label={t('dpTargetIndices')} value={targetIndices}
+              onChange={e => setTargetIndices(e.target.value)}
+              placeholder="logs-*, edr-*"
+              InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
+              sx={{ flex: 1 }} />
             <TextField size="small" label={t('dpTimestampField')} value={timestampField}
               onChange={e => setTimestampField(e.target.value)}
               InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
