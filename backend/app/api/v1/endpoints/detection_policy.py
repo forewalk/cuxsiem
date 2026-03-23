@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 
 from app.api.v1.deps import get_current_active_user
 from app.schemas.detection_policy import (
@@ -13,6 +14,7 @@ from app.schemas.detection_policy import (
 )
 from app.schemas.user import UserResponse
 from app.services.detection_policy import DetectionPolicyService
+from app.services.webhook import send_test_webhook
 
 router = APIRouter()
 event_router = APIRouter()
@@ -48,6 +50,91 @@ async def create_detector(
     return await service.create_detector(detector_in, user_id=current_user.id)
 
 
+@router.post("/test-query")
+async def test_detection_query(request: dict):
+    target_index = request.get("target_index")
+    query_body = request.get("query_body") or request.get("condition_config")
+    if not target_index or not query_body:
+        raise HTTPException(status_code=400, detail="target_index and query_body are required")
+    try:
+        return await service.test_query(target_index, query_body)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/webhook/test")
+async def test_detector_webhook(request: dict):
+    url = request.get("url")
+    if not url:
+        raise HTTPException(status_code=400, detail="Webhook URL이 필요합니다.")
+    headers = request.get("headers") or {}
+    result = await send_test_webhook(url, headers)
+    if result["status"] == "success":
+        return {"success": True, "message": f"Webhook 테스트 성공 (HTTP {result['status_code']})"}
+    return {"success": False, "message": result.get("error", "발송 실패"), "detail": result}
+
+
+@router.get("/export")
+async def export_detectors():
+    total, detectors = await service.list_detectors(skip=0, limit=10000)
+    export_fields = [
+        "name", "description", "detector_type", "target_indices",
+        "linked_rule_ids", "field_mappings", "schedule_interval_min",
+        "trigger_condition", "message_template", "severity", "is_active",
+        "timestamp_field", "max_search_window_min", "webhook_url", "webhook_headers",
+    ]
+    exported = [{k: d.get(k) for k in export_fields if k in d} for d in detectors]
+    from datetime import datetime as dt
+    return JSONResponse(content={
+        "version": "1.0",
+        "type": "detectors",
+        "exported_at": dt.utcnow().isoformat() + "Z",
+        "detectors": exported,
+    })
+
+
+@router.post("/import")
+async def import_detectors(
+    request: dict,
+    current_user: UserResponse = Depends(get_current_active_user),
+):
+    detectors_data: list = request.get("detectors", [])
+    overwrite: bool = request.get("overwrite", False)
+    if not detectors_data:
+        raise HTTPException(status_code=400, detail="detectors 배열이 비어있습니다.")
+
+    created, updated, errors = 0, 0, []
+    for idx, det_data in enumerate(detectors_data):
+        try:
+            if not det_data.get("name"):
+                errors.append({"index": idx, "error": "name 필드 필수"})
+                continue
+            existing_det = None
+            if overwrite:
+                _, existing_list = await service.list_detectors(skip=0, limit=1, query=det_data["name"])
+                for ed in existing_list:
+                    if ed.get("name") == det_data["name"]:
+                        existing_det = ed
+                        break
+            if existing_det and overwrite:
+                update_data = DetectorUpdate(**{
+                    k: v for k, v in det_data.items()
+                    if k in DetectorUpdate.model_fields and v is not None
+                })
+                await service.update_detector(existing_det["id"], update_data, user_id=current_user.id)
+                updated += 1
+            else:
+                det_in = DetectorCreate(**det_data)
+                await service.create_detector(det_in, user_id=current_user.id)
+                created += 1
+        except Exception as e:
+            errors.append({"index": idx, "name": det_data.get("name", ""), "error": str(e)})
+
+    return {"created": created, "updated": updated, "errors": errors, "total_processed": len(detectors_data)}
+
+
+# ── Parameterized routes (must come after static paths) ───────────────────
+
 @router.get("/{detector_id}", response_model=DetectorResponse)
 async def get_detector(detector_id: str):
     detector = await service.get_detector(detector_id)
@@ -62,7 +149,7 @@ async def update_detector(
     detector_in: DetectorUpdate,
     current_user: UserResponse = Depends(get_current_active_user),
 ):
-    detector = await service.update_detector(detector_id, detector_in)
+    detector = await service.update_detector(detector_id, detector_in, user_id=current_user.id)
     if not detector:
         raise HTTPException(status_code=404, detail="Detector not found")
     return detector
@@ -76,18 +163,6 @@ async def delete_detector(
     success = await service.delete_detector(detector_id)
     if not success:
         raise HTTPException(status_code=404, detail="Detector not found")
-
-
-@router.post("/test-query")
-async def test_detection_query(request: dict):
-    target_index = request.get("target_index")
-    query_body = request.get("query_body") or request.get("condition_config")
-    if not target_index or not query_body:
-        raise HTTPException(status_code=400, detail="target_index and query_body are required")
-    try:
-        return await service.test_query(target_index, query_body)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ── Finding API ───────────────────────────────────────────────────────────

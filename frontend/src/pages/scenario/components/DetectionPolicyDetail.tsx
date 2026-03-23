@@ -41,6 +41,14 @@ const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </Typography>
 );
 
+const TRIGGER_METRIC_LABELS: Record<string, string> = { total: 'dpTriggerMetricTotal' };
+function formatTriggerCondition(raw: string, t: (k: string) => string): string {
+  const m = raw.trim().match(/^(\w+)\s*(>=|<=|>|<|==|!=)\s*(-?\d+)$/);
+  if (!m) return raw;
+  const label = TRIGGER_METRIC_LABELS[m[1]] ? t(TRIGGER_METRIC_LABELS[m[1]]) : m[1];
+  return `${label} ${m[2]} ${m[3]}`;
+}
+
 const FieldValue: React.FC<{ children: React.ReactNode; mono?: boolean }> = ({ children, mono }) => (
   <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.5, fontFamily: mono ? 'monospace' : undefined, wordBreak: 'break-word' }}>
     {children}
@@ -145,7 +153,7 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
             />
           </FieldRow>
           {detector.trigger_condition && (
-            <FieldRow label={t('dpTriggerCondition')}><FieldValue mono>{detector.trigger_condition}</FieldValue></FieldRow>
+            <FieldRow label={t('dpTriggerCondition')}><FieldValue mono>{formatTriggerCondition(detector.trigger_condition, t)}</FieldValue></FieldRow>
           )}
         </Box>
         {/* ───────────────────────────연결된 규칙──────────────────────── */}
@@ -193,7 +201,31 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
             </Box>
           )}
         </Box>
-        {/* ───────────────────────────연결된 규칙──────────────────────── */}
+        {/* ──────────────────────────── Webhook ──────────────────────── */}
+        {detector.webhook_url && (
+          <>
+            <SectionHeader>{t('dpSectionWebhook')}</SectionHeader>
+            <Box sx={{ px: 0.5 }}>
+              <FieldRow label={t('dpWebhookUrl')}><FieldValue mono>{detector.webhook_url}</FieldValue></FieldRow>
+              {detector.webhook_headers && Object.keys(detector.webhook_headers).length > 0 && (
+                <FieldRow label={t('dpWebhookHeaders')}>
+                  <Box component="pre" sx={{ m: 0, fontSize: '0.72rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {Object.entries(detector.webhook_headers).map(([k, v]) => `${k}: ${v}`).join('\n')}
+                  </Box>
+                </FieldRow>
+              )}
+              {detector.webhook_body && (
+                <FieldRow label={t('dpWebhookBody')}>
+                  <Box component="pre" sx={{ m: 0, fontSize: '0.72rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {detector.webhook_body}
+                  </Box>
+                </FieldRow>
+              )}
+            </Box>
+          </>
+        )}
+
+        {/* ───────────────────────────운영 정보──────────────────────── */}
         <SectionHeader>{t('dpSectionOperation')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
           <FieldRow label={t('dpLastRun')}><FieldValue mono>{detector.last_run_at ? new Date(detector.last_run_at).toLocaleString() : '-'}</FieldValue></FieldRow>
@@ -202,6 +234,40 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
           <FieldRow label={t('dpCreatedBy')}><FieldValue>{detector.created_by || '-'}</FieldValue></FieldRow>
           <FieldRow label={t('dpCreatedAt')}><FieldValue mono>{detector.created_at ? new Date(detector.created_at).toLocaleString() : '-'}</FieldValue></FieldRow>
         </Box>
+
+        {/* ──────────────────────────── 변경 이력 ──────────────────────── */}
+        {(detector.change_history ?? []).length > 0 && (
+          <>
+            <SectionHeader>{t('dpSectionChangeHistory')}</SectionHeader>
+            <Table size="small" sx={{ '& td, & th': { py: 0.5, px: 1, fontSize: '0.68rem' } }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>{t('dpChangeDate')}</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>{t('dpChangeUser')}</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>{t('dpChangeFields')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {detector.change_history!.slice(-10).reverse().map((entry, i) => (
+                  <TableRow key={i}>
+                    <TableCell sx={{ fontFamily: 'monospace' }}>
+                      {new Date(entry.changed_at).toLocaleString()}
+                    </TableCell>
+                    <TableCell>{entry.user_id}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" flexWrap="wrap" gap={0.5}>
+                        {entry.changed_fields.map(f => (
+                          <Chip key={f} label={f} size="small" variant="outlined"
+                            sx={{ fontSize: '0.58rem', height: 18 }} />
+                        ))}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </>
+        )}
 
         <Divider sx={{ my: 2 }} />
         <SectionHeader>{t('dpRecentFindings')}</SectionHeader>

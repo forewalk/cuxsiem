@@ -28,6 +28,7 @@ import { SeverityChip } from '@/components/shared/SeverityChip';
 import { detectionRuleService } from '../../../services/sigmaRuleService';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { LogsourceSelect } from './LogsourceSelect';
+import { WebhookHeadersEditor, type HeaderEntry } from '../../admin/alerts/components/WebhookHeadersEditor';
 import type { DetectorCreate, FieldMapping, SigmaRuleListItem } from '@/types';
 
 const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -53,8 +54,32 @@ const headCellSx = { ...cellSx, fontWeight: 'bold', color: 'text.secondary', bor
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'];
 const SOURCE_OPTIONS = ['standard', 'custom'] as const;
 
+const TRIGGER_METRICS = [
+  { value: 'total', label: 'dpTriggerMetricTotal' },
+] as const;
+
+const TRIGGER_OPS = [
+  { value: '>', label: '>' },
+  { value: '>=', label: '>=' },
+  { value: '==', label: '==' },
+  { value: '<', label: '<' },
+  { value: '<=', label: '<=' },
+] as const;
+
+function parseTriggerCondition(raw?: string): { metric: string; op: string; threshold: number; enabled: boolean } {
+  if (!raw?.trim()) return { metric: 'total', op: '>=', threshold: 1, enabled: false };
+  const m = raw.trim().match(/^(\w+)\s*(>=|<=|>|<|==|!=)\s*(-?\d+)$/);
+  if (m) return { metric: m[1], op: m[2], threshold: Number(m[3]), enabled: true };
+  return { metric: 'total', op: '>=', threshold: 1, enabled: true };
+}
+
+type DetectorFormInitialData = Omit<Partial<DetectorCreate>, 'webhook_url' | 'webhook_headers' | 'webhook_body'> & {
+  id?: string; linked_rule_ids?: string[];
+  webhook_url?: string | null; webhook_headers?: Record<string, string> | null; webhook_body?: string | null;
+};
+
 interface DetectorFormProps {
-  initialData?: Partial<DetectorCreate> & { id?: string; linked_rule_ids?: string[] };
+  initialData?: DetectorFormInitialData;
   isEditing?: boolean;
   onSave: (data: DetectorCreate) => void;
   onCancel: () => void;
@@ -79,6 +104,18 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
   const [targetIndices, setTargetIndices] = useState(initialData?.target_indices?.join(', ') ?? 'logs-*');
   const [timestampField, setTimestampField] = useState(initialData?.timestamp_field ?? '@timestamp');
   const [maxWindow, setMaxWindow] = useState(initialData?.max_search_window_min ?? 1440);
+  const triggerInit = useMemo(() => parseTriggerCondition(initialData?.trigger_condition), [initialData?.trigger_condition]);
+  const [triggerEnabled, setTriggerEnabled] = useState(triggerInit.enabled);
+  const [triggerMetric, setTriggerMetric] = useState(triggerInit.metric);
+  const [triggerOp, setTriggerOp] = useState(triggerInit.op);
+  const [triggerThreshold, setTriggerThreshold] = useState(triggerInit.threshold);
+  const [webhookUrl, setWebhookUrl] = useState(initialData?.webhook_url ?? '');
+  const [webhookHeaders, setWebhookHeaders] = useState<HeaderEntry[]>(() => {
+    const h = initialData?.webhook_headers;
+    if (h && Object.keys(h).length > 0) return Object.entries(h).map(([key, value]) => ({ key, value }));
+    return [{ key: 'Content-Type', value: 'application/json' }];
+  });
+  const [webhookBody, setWebhookBody] = useState(initialData?.webhook_body ?? '');
   const [linkedRuleIds, setLinkedRuleIds] = useState<Set<string>>(
     new Set(initialData?.linked_rule_ids ?? [])
   );
@@ -259,6 +296,8 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
     }, 'medium');
 
     const validMappings = fieldMappings.filter(m => m.rule_field && m.log_field);
+    const parsedHeaders: Record<string, string> = {};
+    webhookHeaders.forEach(({ key, value }) => { if (key.trim()) parsedHeaders[key.trim()] = value; });
     const data: DetectorCreate = {
       name,
       description: description || undefined,
@@ -273,6 +312,10 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
       is_active: true,
       timestamp_field: timestampField || '@timestamp',
       max_search_window_min: maxWindow,
+      trigger_condition: triggerEnabled ? `${triggerMetric} ${triggerOp} ${triggerThreshold}` : undefined,
+      webhook_url: webhookUrl || undefined,
+      webhook_headers: Object.keys(parsedHeaders).length > 0 ? parsedHeaders : undefined,
+      webhook_body: webhookBody.trim() || undefined,
     };
     onSave(data);
   };
@@ -344,6 +387,32 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
                 InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }}
                 sx={{ minWidth: 160 }} />
             </Tooltip>
+          </Stack>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Switch size="small" checked={triggerEnabled} onChange={(_, v) => setTriggerEnabled(v)} />
+            <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+              {t('dpTriggerCondition')}
+            </Typography>
+            {triggerEnabled && (
+              <>
+                <TextField select size="small" value={triggerMetric} onChange={e => setTriggerMetric(e.target.value)}
+                  InputProps={{ sx: inputSx }} sx={{ minWidth: 120 }}>
+                  {TRIGGER_METRICS.map(m => (
+                    <MenuItem key={m.value} value={m.value} sx={{ fontSize: '0.72rem' }}>{t(m.label)}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField select size="small" value={triggerOp} onChange={e => setTriggerOp(e.target.value)}
+                  InputProps={{ sx: { ...inputSx, fontFamily: 'monospace', fontWeight: 700 } }} sx={{ minWidth: 72 }}>
+                  {TRIGGER_OPS.map(o => (
+                    <MenuItem key={o.value} value={o.value} sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{o.label}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField size="small" type="number" value={triggerThreshold}
+                  onChange={e => setTriggerThreshold(Math.max(0, Number(e.target.value)))}
+                  slotProps={{ htmlInput: { min: 0 } }}
+                  InputProps={{ sx: { ...inputSx, fontFamily: 'monospace' } }} sx={{ width: 80 }} />
+              </>
+            )}
           </Stack>
         </Stack>
 
@@ -611,6 +680,37 @@ export const DetectorForm: React.FC<DetectorFormProps> = ({
         >
           {t('fmAddMapping')}
         </Button>
+
+        {/* Section 4: Webhook */}
+        <SectionHeader>{t('dpSectionWebhook')}</SectionHeader>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.68rem' }}>
+          {t('dpWebhookDesc')}
+        </Typography>
+        <Stack spacing={2}>
+          <TextField fullWidth size="small" label={t('dpWebhookUrl')} value={webhookUrl}
+            onChange={e => setWebhookUrl(e.target.value)}
+            placeholder="https://hooks.slack.com/services/..."
+            InputProps={{ sx: inputSx }} InputLabelProps={{ sx: labelSx }} />
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 500, mb: 0.5, display: 'block', fontSize: '0.7rem', color: 'text.secondary' }}>
+              {t('dpWebhookHeaders')}
+            </Typography>
+            <WebhookHeadersEditor headers={webhookHeaders} onChange={setWebhookHeaders} t={t} />
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 500, mb: 0.5, display: 'block', fontSize: '0.7rem', color: 'text.secondary' }}>
+              {t('dpWebhookBody')}
+            </Typography>
+            <TextField fullWidth size="small" value={webhookBody}
+              onChange={e => setWebhookBody(e.target.value)}
+              placeholder={'{\n  "text": "{{detector_name}}: {{rule_name}} ({{severity}}) - {{matched_count}}건 탐지"\n}'}
+              multiline rows={5}
+              InputProps={{ sx: { ...inputSx, fontFamily: 'monospace', fontSize: '0.72rem' } }} />
+            <Typography variant="caption" sx={{ fontSize: '0.62rem', color: 'text.disabled', mt: 0.5, display: 'block' }}>
+              {t('dpWebhookBodyHelp')}
+            </Typography>
+          </Box>
+        </Stack>
       </Box>
     </Paper>
   );

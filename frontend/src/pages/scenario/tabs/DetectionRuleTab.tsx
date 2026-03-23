@@ -478,6 +478,38 @@ const DetectionRuleTab: React.FC = () => {
     setEditingDetector(null);
   }, []);
 
+  const handleExportDetectors = useCallback(async () => {
+    try {
+      const data = await detectorService.exportDetectors();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `detectors_export_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { /* export failed */ }
+  }, []);
+
+  const handleImportDetectors = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const json = JSON.parse(text);
+        const items = json.detectors || json.rules || [];
+        if (items.length === 0) return;
+        await detectorService.importDetectors(items, false);
+        setRefreshKey(k => k + 1);
+      } catch { /* import failed */ }
+    };
+    input.click();
+  }, []);
+
   return (
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
 
@@ -604,6 +636,8 @@ const DetectionRuleTab: React.FC = () => {
               onCreateCustomRule={handleOpenCustomRuleForm}
               onCreateDetector={handleOpenDetectorForm}
               onCreateDetectorWithRules={handleCreateDetectorWithCheckedRules}
+              onExportDetectors={handleExportDetectors}
+              onImportDetectors={handleImportDetectors}
             />
           )}
         </ResizablePanel>

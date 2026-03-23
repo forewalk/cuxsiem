@@ -80,6 +80,21 @@ export const detectorService = {
     );
     return response.data;
   },
+
+  testWebhook: async (url: string, headers?: Record<string, string>) => {
+    const response = await api.post('/api/v1/detection-policies/webhook/test', { url, headers });
+    return response.data;
+  },
+
+  exportDetectors: async () => {
+    const response = await api.get('/api/v1/detection-policies/export');
+    return response.data;
+  },
+
+  importDetectors: async (detectors: Record<string, unknown>[], overwrite = false) => {
+    const response = await api.post('/api/v1/detection-policies/import', { detectors, overwrite });
+    return response.data;
+  },
 };
 
 // Backward-compatible alias

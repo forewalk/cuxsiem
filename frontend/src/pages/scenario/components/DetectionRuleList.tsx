@@ -4,6 +4,8 @@ import {
   Add as AddIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  FileDownload as ExportIcon,
+  FileUpload as ImportIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -49,6 +51,8 @@ interface DetectionRuleListProps {
   onCreateCustomRule: () => void;
   onCreateDetector: () => void;
   onCreateDetectorWithRules: () => void;
+  onExportDetectors?: () => void;
+  onImportDetectors?: () => void;
 }
 
 const extractFirstTechnique = (ids: string[]): string | null => ids.length > 0 ? ids[0] : null;
@@ -136,6 +140,8 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   onCreateCustomRule,
   onCreateDetector,
   onCreateDetectorWithRules,
+  onExportDetectors,
+  onImportDetectors,
 }) => {
   return (
     <Paper
@@ -170,12 +176,28 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
       </Tabs>
 
       {activeTab === 0 && (<>
-        <Box sx={{ px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+        <Box sx={{ px: 1.5, py: 0.75, borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', gap: 0.5 }}>
           <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
             onClick={onCreateDetector}
             sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
             {t('dpCreate')}
           </Button>
+          {onExportDetectors && (
+            <Tooltip title={t('dpExport')} arrow>
+              <IconButton size="small" onClick={onExportDetectors}
+                sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
+                <ExportIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+          {onImportDetectors && (
+            <Tooltip title={t('dpImport')} arrow>
+              <IconButton size="small" onClick={onImportDetectors}
+                sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
+                <ImportIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {detectors.length > 0 ? detectors.map((detector) => (

@@ -6,9 +6,11 @@ import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
+from app.core.websocket import manager
 from app.repositories.detection_policy import DetectionPolicyRepository
 from app.repositories.sigma_rule import SigmaRuleRepository
 from app.schemas.detection_policy import DetectorCreate, DetectorUpdate
+from app.services.webhook import send_webhook
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +77,24 @@ class DetectionPolicyService:
         data["field_mappings"] = [fm.model_dump() if hasattr(fm, "model_dump") else fm for fm in (detector_in.field_mappings or [])]
         return await self.repository.create_detector(data, user_id=user_id)
 
-    async def update_detector(self, detector_id: str, detector_in: DetectorUpdate):
+    async def update_detector(self, detector_id: str, detector_in: DetectorUpdate, user_id: str = ""):
         data = detector_in.model_dump(exclude_none=True)
         if "field_mappings" in data and data["field_mappings"] is not None:
             data["field_mappings"] = [
                 fm.model_dump() if hasattr(fm, "model_dump") else fm
                 for fm in data["field_mappings"]
             ]
+        changed_fields = detector_in.changed_fields or list(data.keys())
+        if changed_fields and user_id:
+            existing = await self.repository.get_detector_by_id(detector_id)
+            if existing:
+                history = existing.get("change_history", [])
+                history.append({
+                    "user_id": user_id,
+                    "changed_at": datetime.utcnow().isoformat(),
+                    "changed_fields": changed_fields,
+                })
+                data["change_history"] = history
         return await self.repository.update_detector(detector_id, data)
 
     async def delete_detector(self, detector_id: str):
@@ -178,6 +191,8 @@ class DetectionPolicyService:
                     "last_triggered_at": now.isoformat(),
                     "total_findings_count": detector.get("total_findings_count", 0) + len(findings),
                 })
+                for finding in findings:
+                    await self._deliver_finding(detector, finding)
 
             has_activity = findings or report["executed"] or report["skipped"] or report["failed"]
             return {"findings": findings, "report": report} if has_activity else None
@@ -185,6 +200,65 @@ class DetectionPolicyService:
         except Exception as e:
             logger.error(f"Detector {detector_id} 탐지 실행 오류: {e}")
             return None
+
+    async def _deliver_finding(self, detector: Dict[str, Any], finding: Dict[str, Any]):
+        """Finding 생성 후 WebSocket 브로드캐스트 + Webhook 전송"""
+        # 1. WebSocket 브로드캐스트
+        try:
+            ws_message = {
+                "type": "new_alert",
+                "data": {
+                    "id": finding.get("id"),
+                    "rule_name": finding.get("rule_name"),
+                    "message": finding.get("message"),
+                    "severity": finding.get("severity"),
+                    "detector_name": finding.get("detector_name"),
+                    "matched_count": finding.get("matched_count", 0),
+                    "created_at": finding.get("created_at"),
+                    "source": "detection",
+                },
+            }
+            await manager.broadcast(ws_message)
+        except Exception as e:
+            logger.error(f"[Detection] WebSocket 전송 실패: {e}")
+
+        # 2. Webhook 전송
+        webhook_url = detector.get("webhook_url")
+        if webhook_url:
+            try:
+                default_payload = {
+                    "type": "detection_finding",
+                    "detector_name": detector.get("name"),
+                    "detector_id": detector.get("id"),
+                    "rule_name": finding.get("rule_name"),
+                    "severity": finding.get("severity"),
+                    "matched_count": finding.get("matched_count", 0),
+                    "message": finding.get("message"),
+                    "target_index": finding.get("target_index"),
+                    "created_at": finding.get("created_at"),
+                }
+                webhook_body_tpl = detector.get("webhook_body")
+                if webhook_body_tpl:
+                    payload = self._render_webhook_body(webhook_body_tpl, default_payload)
+                else:
+                    payload = default_payload
+                webhook_headers = detector.get("webhook_headers") or {}
+                await send_webhook(webhook_url, payload, webhook_headers)
+            except Exception as e:
+                logger.error(f"[Detection] Webhook 전송 실패: {e}")
+
+    @staticmethod
+    def _render_webhook_body(template: str, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """{{key}} 플레이스홀더를 ctx 값으로 치환한 뒤 JSON 파싱. 실패 시 ctx 그대로 반환."""
+        try:
+            rendered = re.sub(
+                r"\{\{(\w+)\}\}",
+                lambda m: str(ctx.get(m.group(1), m.group(0))),
+                template,
+            )
+            return json.loads(rendered)
+        except Exception:
+            return ctx
 
     @staticmethod
     def _should_skip_rule(rule: Dict[str, Any]) -> tuple:

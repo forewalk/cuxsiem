@@ -342,6 +342,12 @@ export interface FieldMapping {
   log_field: string;
 }
 
+export interface DetectorChangeHistory {
+  user_id: string;
+  changed_at: string;
+  changed_fields: string[];
+}
+
 export interface Detector {
   id: string;
   name: string;
@@ -357,6 +363,10 @@ export interface Detector {
   is_active: boolean;
   timestamp_field: string;
   max_search_window_min: number;
+  webhook_url?: string | null;
+  webhook_headers?: Record<string, string> | null;
+  webhook_body?: string | null;
+  change_history?: DetectorChangeHistory[];
   last_run_at?: string | null;
   last_triggered_at?: string | null;
   total_findings_count: number;
@@ -380,6 +390,9 @@ export interface DetectorCreate {
   is_active: boolean;
   timestamp_field?: string;
   max_search_window_min?: number;
+  webhook_url?: string;
+  webhook_headers?: Record<string, string>;
+  webhook_body?: string;
 }
 
 export interface DetectorUpdate {
@@ -396,6 +409,10 @@ export interface DetectorUpdate {
   is_active?: boolean;
   timestamp_field?: string;
   max_search_window_min?: number;
+  webhook_url?: string;
+  webhook_headers?: Record<string, string>;
+  webhook_body?: string;
+  changed_fields?: string[];
 }
 
 export interface Finding {

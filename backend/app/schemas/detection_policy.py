@@ -10,6 +10,14 @@ class FieldMapping(BaseModel):
     log_field: str
 
 
+# --- Change History ---
+
+class ChangeHistoryEntry(BaseModel):
+    user_id: str
+    changed_at: datetime
+    changed_fields: List[str] = []
+
+
 # --- Detector (탐지 정책 = OpenSearch Detector 등가) ---
 
 class DetectorCreate(BaseModel):
@@ -32,6 +40,9 @@ class DetectorCreate(BaseModel):
     is_active: bool = True
     timestamp_field: str = Field(default="@timestamp", description="시간 필터에 사용할 타임스탬프 필드명")
     max_search_window_min: int = Field(default=1440, ge=5, le=10080, description="최대 검색 윈도우(분), 기본 1440(24h)")
+    webhook_url: Optional[str] = Field(default=None, description="Webhook URL")
+    webhook_headers: Optional[Dict[str, str]] = Field(default=None, description="Webhook 커스텀 헤더")
+    webhook_body: Optional[str] = Field(default=None, description="Webhook 본문 템플릿 (JSON). 미설정 시 기본 payload 전송")
 
 
 class DetectorUpdate(BaseModel):
@@ -48,6 +59,10 @@ class DetectorUpdate(BaseModel):
     is_active: Optional[bool] = None
     timestamp_field: Optional[str] = None
     max_search_window_min: Optional[int] = Field(None, ge=5, le=10080)
+    webhook_url: Optional[str] = None
+    webhook_headers: Optional[Dict[str, str]] = None
+    webhook_body: Optional[str] = None
+    changed_fields: Optional[List[str]] = Field(None, exclude=True)
 
 
 class DetectorResponse(BaseModel):
@@ -68,6 +83,10 @@ class DetectorResponse(BaseModel):
     total_findings_count: int = 0
     timestamp_field: str = "@timestamp"
     max_search_window_min: int = 1440
+    webhook_url: Optional[str] = None
+    webhook_headers: Optional[Dict[str, str]] = None
+    webhook_body: Optional[str] = None
+    change_history: List[ChangeHistoryEntry] = []
     created_by: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

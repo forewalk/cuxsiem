@@ -8,6 +8,16 @@ from app.services.detection_policy import DetectionPolicyService, DotDict
 from app.schemas.detection_policy import DetectorCreate, DetectorUpdate
 
 
+@pytest.fixture(autouse=True)
+def mock_delivery():
+    """WebSocket manager와 send_webhook을 전역 모킹하여 테스트 격리"""
+    with patch("app.services.detection_policy.manager") as mock_mgr, \
+         patch("app.services.detection_policy.send_webhook", new_callable=AsyncMock) as mock_wh:
+        mock_mgr.broadcast = AsyncMock()
+        mock_mgr.send_to_roles = AsyncMock()
+        yield mock_mgr, mock_wh
+
+
 class TestDotDict:
     def test_attribute_access(self):
         d = DotDict({"a": 1, "b": {"c": 2}})
@@ -975,3 +985,148 @@ class TestDetectionE2E:
         assert report["skipped"] == 1
         assert report["findings_count"] == 2
         assert report["skipped_rules"][0]["reason"] == "conversion_failed"
+
+
+# ── Webhook + WebSocket 전달 테스트 ──────────────────────────────────────
+
+class TestFindingDelivery:
+    @pytest.fixture
+    def mock_repos(self):
+        with patch("app.services.detection_policy.DetectionPolicyRepository") as MockRepo, \
+             patch("app.services.detection_policy.SigmaRuleRepository") as MockRuleRepo:
+            mock_repo = MockRepo.return_value
+            mock_repo.client = MagicMock()
+            mock_rule_repo = MockRuleRepo.return_value
+            yield mock_repo, mock_rule_repo
+
+    @pytest.fixture
+    def service(self, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
+        svc = DetectionPolicyService()
+        svc.repository = mock_repo
+        svc.rule_repository = mock_rule_repo
+        return svc
+
+    @pytest.mark.asyncio
+    async def test_websocket_broadcast_on_finding(self, service, mock_repos, mock_delivery):
+        """Finding 생성 시 WebSocket broadcast 호출"""
+        mock_mgr, _ = mock_delivery
+        mock_repo, mock_rule_repo = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+        mock_repo.create_finding = AsyncMock(return_value={
+            "id": "f1", "rule_name": "Test", "message": "found",
+            "severity": "high", "detector_name": "Detector", "matched_count": 3,
+            "created_at": "2026-01-01T00:00:00",
+        })
+        mock_rule_repo.get_rule_by_id = AsyncMock(return_value={
+            "id": "r1", "name": "Rule", "status": "active", "type": "sigma",
+            "opensearch_query": {"query": {"match_all": {}}},
+            "query_conversion_status": "success",
+            "mitre_technique_ids": [], "mitre_tactic_ids": [],
+        })
+        mock_repo.client.search.return_value = _search_result(1)
+
+        await service.run_detection_for_detector(_make_detector())
+        mock_mgr.broadcast.assert_called_once()
+        ws_msg = mock_mgr.broadcast.call_args[0][0]
+        assert ws_msg["type"] == "new_alert"
+        assert ws_msg["data"]["source"] == "detection"
+
+    @pytest.mark.asyncio
+    async def test_webhook_called_when_configured(self, service, mock_repos, mock_delivery):
+        """webhook_url 설정된 Detector → Finding 생성 시 webhook 호출"""
+        _, mock_wh = mock_delivery
+        mock_repo, mock_rule_repo = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+        mock_repo.create_finding = AsyncMock(return_value={
+            "id": "f1", "rule_name": "Rule", "message": "found",
+            "severity": "high", "detector_name": "D1", "matched_count": 1,
+            "created_at": "2026-01-01T00:00:00", "target_index": "logs-test",
+        })
+        mock_rule_repo.get_rule_by_id = AsyncMock(return_value={
+            "id": "r1", "name": "Rule", "status": "active", "type": "sigma",
+            "opensearch_query": {"query": {"match_all": {}}},
+            "query_conversion_status": "success",
+            "mitre_technique_ids": [], "mitre_tactic_ids": [],
+        })
+        mock_repo.client.search.return_value = _search_result(1)
+
+        detector = _make_detector(webhook_url="https://hooks.example.com/test", webhook_headers={"X-Token": "abc"})
+        await service.run_detection_for_detector(detector)
+        mock_wh.assert_called_once()
+        call_args = mock_wh.call_args
+        assert call_args[0][0] == "https://hooks.example.com/test"
+        assert call_args[0][1]["type"] == "detection_finding"
+        assert call_args[0][2]["X-Token"] == "abc"
+
+    @pytest.mark.asyncio
+    async def test_no_webhook_when_not_configured(self, service, mock_repos, mock_delivery):
+        """webhook_url 미설정 Detector → webhook 미호출"""
+        _, mock_wh = mock_delivery
+        mock_repo, mock_rule_repo = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1"})
+        mock_repo.create_finding = AsyncMock(return_value={
+            "id": "f1", "rule_name": "Rule", "message": "found",
+            "severity": "high", "detector_name": "D1", "matched_count": 1,
+            "created_at": "2026-01-01T00:00:00",
+        })
+        mock_rule_repo.get_rule_by_id = AsyncMock(return_value={
+            "id": "r1", "name": "Rule", "status": "active", "type": "sigma",
+            "opensearch_query": {"query": {"match_all": {}}},
+            "query_conversion_status": "success",
+            "mitre_technique_ids": [], "mitre_tactic_ids": [],
+        })
+        mock_repo.client.search.return_value = _search_result(1)
+
+        await service.run_detection_for_detector(_make_detector())
+        mock_wh.assert_not_called()
+
+
+# ── 변경 이력 추적 테스트 ────────────────────────────────────────────────
+
+class TestChangeHistory:
+    @pytest.fixture
+    def mock_repos(self):
+        with patch("app.services.detection_policy.DetectionPolicyRepository") as MockRepo, \
+             patch("app.services.detection_policy.SigmaRuleRepository") as MockRuleRepo:
+            mock_repo = MockRepo.return_value
+            mock_rule_repo = MockRuleRepo.return_value
+            yield mock_repo, mock_rule_repo
+
+    @pytest.fixture
+    def service(self, mock_repos):
+        mock_repo, mock_rule_repo = mock_repos
+        svc = DetectionPolicyService()
+        svc.repository = mock_repo
+        svc.rule_repository = mock_rule_repo
+        return svc
+
+    @pytest.mark.asyncio
+    async def test_update_records_change_history(self, service, mock_repos):
+        """user_id가 있는 update → change_history에 항목 추가"""
+        mock_repo, _ = mock_repos
+        mock_repo.get_detector_by_id = AsyncMock(return_value={
+            "id": "d1", "name": "Old", "change_history": [],
+        })
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1", "name": "New"})
+
+        update_in = DetectorUpdate(name="New")
+        await service.update_detector("d1", update_in, user_id="user-1")
+
+        call_data = mock_repo.update_detector.call_args[0][1]
+        assert "change_history" in call_data
+        assert len(call_data["change_history"]) == 1
+        assert call_data["change_history"][0]["user_id"] == "user-1"
+        assert "name" in call_data["change_history"][0]["changed_fields"]
+
+    @pytest.mark.asyncio
+    async def test_update_without_user_no_history(self, service, mock_repos):
+        """user_id 없는 update → change_history 미기록 (스케줄러 등)"""
+        mock_repo, _ = mock_repos
+        mock_repo.update_detector = AsyncMock(return_value={"id": "d1", "name": "New"})
+
+        update_in = DetectorUpdate(name="New")
+        await service.update_detector("d1", update_in, user_id="")
+
+        call_data = mock_repo.update_detector.call_args[0][1]
+        assert "change_history" not in call_data
