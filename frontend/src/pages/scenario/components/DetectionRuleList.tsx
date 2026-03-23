@@ -59,6 +59,7 @@ interface DetectionRuleListProps {
   onBulkDeleteDetectors?: () => void;
   onExportSelectedDetectors?: () => void;
   onBulkDeleteRules?: () => void;
+  onToggleDetectorActive?: (detectorId: string) => void;
 }
 
 const extractFirstTechnique = (ids: string[]): string | null => ids.length > 0 ? ids[0] : null;
@@ -153,6 +154,7 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   onBulkDeleteDetectors,
   onExportSelectedDetectors,
   onBulkDeleteRules,
+  onToggleDetectorActive,
 }) => {
   return (
     <Paper
@@ -252,12 +254,12 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                   {detector.name}
                 </Typography>
                 <SeverityChip severity={detector.severity} size="small" />
-                <Chip
-                  label={detector.is_active ? '●' : '○'}
+                <Switch
                   size="small"
-                  color={detector.is_active ? 'success' : 'default'}
-                  variant={detector.is_active ? 'filled' : 'outlined'}
-                  sx={{ fontSize: '0.55rem', height: 18, minWidth: 18, p: 0 }}
+                  checked={detector.is_active}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => onToggleDetectorActive?.(detector.id)}
+                  sx={{ flexShrink: 0 }}
                 />
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3.25 }}>

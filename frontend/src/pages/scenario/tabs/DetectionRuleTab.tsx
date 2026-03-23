@@ -417,6 +417,7 @@ const DetectionRuleTab: React.FC = () => {
           loading={detailLoading}
           onEdit={handleEditDetector}
           onDelete={handleDeleteDetector}
+          onToggleActive={() => selectedDetector && handleToggleDetectorActive(selectedDetector.id)}
           onRuleClick={handlePreviewRule}
           rules={rules}
           linkedRuleNames={linkedRuleNames}
@@ -562,6 +563,16 @@ const DetectionRuleTab: React.FC = () => {
     } catch { /* bulk delete failed */ }
   }, [checkedRuleIds, selectedRuleId, t]);
 
+  const handleToggleDetectorActive = useCallback(async (detectorId: string) => {
+    const detector = detectors.find(d => d.id === detectorId);
+    if (!detector) return;
+    try {
+      const updated = await detectorService.update(detectorId, { is_active: !detector.is_active });
+      setDetectors(prev => prev.map(d => d.id === detectorId ? { ...d, is_active: updated.is_active } : d));
+      if (selectedDetector?.id === detectorId) setSelectedDetector(prev => prev ? { ...prev, is_active: updated.is_active } : prev);
+    } catch { /* toggle failed */ }
+  }, [detectors, selectedDetector]);
+
   return (
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
 
@@ -695,6 +706,7 @@ const DetectionRuleTab: React.FC = () => {
               onBulkDeleteDetectors={handleBulkDeleteDetectors}
               onExportSelectedDetectors={handleExportSelectedDetectors}
               onBulkDeleteRules={handleBulkDeleteRules}
+              onToggleDetectorActive={handleToggleDetectorActive}
             />
           )}
         </ResizablePanel>

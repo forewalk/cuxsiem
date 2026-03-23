@@ -698,6 +698,7 @@
   "fmDetectorMappingsDesc": "규칙 필드와 로그 인덱스 필드 간의 매핑을 설정합니다. 사전 변환된 규칙에는 매핑이 이미 적용되어 있습니다.",
   "fmRuleField": "규칙 필드",
   "fmLogField": "로그 필드",
+  "fmUnmapped": "미매핑",
   "fmAddMapping": "매핑 추가",
   "fmRemoveMapping": "매핑 삭제",
   "fmSelectLogField": "로그 필드 입력",

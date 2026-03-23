@@ -671,6 +671,7 @@
   "fmDetectorMappingsDesc": "配置规则字段和日志索引字段之间的映射。预转换的规则已应用映射。",
   "fmRuleField": "规则字段",
   "fmLogField": "日志字段",
+  "fmUnmapped": "未映射",
   "fmAddMapping": "添加映射",
   "fmRemoveMapping": "删除映射",
   "fmSelectLogField": "输入日志字段",

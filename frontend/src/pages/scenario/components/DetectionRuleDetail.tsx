@@ -106,7 +106,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
     detectionRuleService.convertPreview(ruleIdForPreview).then(preview => {
       if (!cancelled) {
         const mappings = (preview?.applied_mappings ?? []).filter(
-          (m: { rule_field: string; log_field: string }) => m.rule_field && m.log_field,
+          (m: { rule_field: string; log_field: string }) => m.rule_field,
         );
         setPreviewMappings(mappings);
       }
@@ -318,7 +318,9 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
                     {displayMappings.map((m, idx) => (
                       <TableRow key={idx}>
                         <TableCell sx={mapCellSx}>{m.rule_field}</TableCell>
-                        <TableCell sx={mapCellSx}>{m.log_field}</TableCell>
+                        <TableCell sx={{ ...mapCellSx, ...(m.log_field ? {} : { color: 'text.disabled', fontStyle: 'italic' }) }}>
+                          {m.log_field || t('fmUnmapped')}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

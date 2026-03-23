@@ -683,6 +683,7 @@
   "fmDetectorMappingsDesc": "ルールフィールドとログインデックスフィールド間のマッピングを設定します。事前変換されたルールにはマッピングが適用済みです。",
   "fmRuleField": "ルールフィールド",
   "fmLogField": "ログフィールド",
+  "fmUnmapped": "未マッピング",
   "fmAddMapping": "マッピング追加",
   "fmRemoveMapping": "マッピング削除",
   "fmSelectLogField": "ログフィールドを入力",

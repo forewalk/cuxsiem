@@ -674,6 +674,7 @@
   "fmDetectorMappingsDesc": "Configure mappings between rule fields and log index fields. Pre-converted rules already have mappings applied.",
   "fmRuleField": "Rule Field",
   "fmLogField": "Log Field",
+  "fmUnmapped": "unmapped",
   "fmAddMapping": "Add Mapping",
   "fmRemoveMapping": "Remove Mapping",
   "fmSelectLogField": "Enter log field",

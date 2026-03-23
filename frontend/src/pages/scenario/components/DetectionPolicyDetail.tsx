@@ -14,6 +14,7 @@ import {
   ListItemText,
   Paper,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -29,6 +30,7 @@ interface DetectionPolicyDetailProps {
   loading?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onToggleActive?: () => void;
   onRuleClick?: (ruleId: string) => void;
   rules?: SigmaRuleListItem[];
   linkedRuleNames?: Record<string, string>;
@@ -90,6 +92,7 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
   loading,
   onEdit,
   onDelete,
+  onToggleActive,
   onRuleClick,
   rules = [],
   linkedRuleNames,
@@ -144,13 +147,12 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
           <FieldRow label={t('dpDescription')}><FieldValue>{detector.description || '-'}</FieldValue></FieldRow>
           <FieldRow label={t('dpInterval')}><FieldValue>{detector.schedule_interval_min}분</FieldValue></FieldRow>
           <FieldRow label={t('dpActive')}>
-            <Chip
-              label={detector.is_active ? t('dpActive') : t('dpInactive')}
-              size="small"
-              color={detector.is_active ? 'success' : 'default'}
-              variant={detector.is_active ? 'filled' : 'outlined'}
-              sx={{ fontWeight: 500, fontSize: '0.6rem', height: 20 }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Switch size="small" checked={detector.is_active} onChange={() => onToggleActive?.()} />
+              <Typography variant="caption" sx={{ fontSize: '0.68rem', color: detector.is_active ? 'success.main' : 'text.disabled' }}>
+                {detector.is_active ? t('dpActive') : t('dpInactive')}
+              </Typography>
+            </Box>
           </FieldRow>
           {detector.trigger_condition && (
             <FieldRow label={t('dpTriggerCondition')}><FieldValue mono>{formatTriggerCondition(detector.trigger_condition, t)}</FieldValue></FieldRow>
