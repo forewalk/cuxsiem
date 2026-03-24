@@ -54,7 +54,6 @@ interface DetectionRuleListProps {
   onCreateCustomRule: () => void;
   onCreateDetector: () => void;
   onCreateDetectorWithRules: () => void;
-  onExportDetectors?: () => void;
   onImportDetectors?: () => void;
   onBulkDeleteDetectors?: () => void;
   onExportSelectedDetectors?: () => void;
@@ -65,9 +64,8 @@ interface DetectionRuleListProps {
 const extractFirstTechnique = (ids: string[]): string | null => ids.length > 0 ? ids[0] : null;
 
 const ConversionStatusIcon: React.FC<{ status?: string | null; t: (key: string) => string }> = ({ status, t }) => {
-  if (!status) return null;
+  if (!status || status === 'success') return null;
   const config: Record<string, { icon: string; color: string; label: string }> = {
-    success: { icon: '✅', color: 'success.main', label: t('drConversionSuccess') },
     failed: { icon: '⚠', color: 'warning.main', label: t('drConversionFailed') },
     pending: { icon: '⏳', color: 'text.secondary', label: t('drConversionPending') },
   };
@@ -149,7 +147,6 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   onCreateCustomRule,
   onCreateDetector,
   onCreateDetectorWithRules,
-  onExportDetectors,
   onImportDetectors,
   onBulkDeleteDetectors,
   onExportSelectedDetectors,
@@ -202,28 +199,12 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                 </IconButton>
               </Tooltip>
             )}
-            {onExportSelectedDetectors && (
-              <Tooltip title={t('dpExportSelected')} arrow>
-                <IconButton size="small" onClick={onExportSelectedDetectors}
-                  sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
-                  <ExportIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Tooltip>
-            )}
           </>) : (<>
             <Button size="small" variant="contained" startIcon={<AddIcon />} fullWidth
               onClick={onCreateDetector}
               sx={{ fontSize: '0.7rem', textTransform: 'none', py: 0.5 }}>
               {t('dpCreate')}
             </Button>
-            {onExportDetectors && (
-              <Tooltip title={t('dpExport')} arrow>
-                <IconButton size="small" onClick={onExportDetectors}
-                  sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
-                  <ExportIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Tooltip>
-            )}
             {onImportDetectors && (
               <Tooltip title={t('dpImport')} arrow>
                 <IconButton size="small" onClick={onImportDetectors}
@@ -233,6 +214,14 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
               </Tooltip>
             )}
           </>)}
+          {checkedDetectorIds.size > 0 && onExportSelectedDetectors && (
+            <Tooltip title={t('dpExportSelected')} arrow>
+              <IconButton size="small" onClick={onExportSelectedDetectors}
+                sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.5 }}>
+                <ExportIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
         <List disablePadding sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {detectors.length > 0 ? detectors.map((detector) => (

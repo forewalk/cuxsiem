@@ -480,19 +480,6 @@ const DetectionRuleTab: React.FC = () => {
     setEditingDetector(null);
   }, []);
 
-  const handleExportDetectors = useCallback(async () => {
-    try {
-      const data = await detectorService.exportDetectors();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `detectors_export_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch { /* export failed */ }
-  }, []);
-
   const handleImportDetectors = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -701,7 +688,6 @@ const DetectionRuleTab: React.FC = () => {
               onCreateCustomRule={handleOpenCustomRuleForm}
               onCreateDetector={handleOpenDetectorForm}
               onCreateDetectorWithRules={handleCreateDetectorWithCheckedRules}
-              onExportDetectors={handleExportDetectors}
               onImportDetectors={handleImportDetectors}
               onBulkDeleteDetectors={handleBulkDeleteDetectors}
               onExportSelectedDetectors={handleExportSelectedDetectors}
