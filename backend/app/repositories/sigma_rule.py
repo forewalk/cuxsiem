@@ -383,85 +383,6 @@ class SigmaRuleRepository:
 
         return await loop.run_in_executor(None, agg)
 
-    # --- History (이력 저장) ---
-
-    async def create_history(self, history_data: Dict[str, Any]) -> Dict[str, Any]:
-        loop = asyncio.get_event_loop()
-        history_id = str(uuid.uuid4())
-        history_data["id"] = history_id
-        history_data["changed_at"] = history_data.get("changed_at") or datetime.utcnow().isoformat()
-
-        def insert():
-            self.client.index(index=self.history_index, id=history_id, body=history_data, refresh=True)
-            return history_data
-
-        return await loop.run_in_executor(None, insert)
-
-    # --- Import Job ---
-
-    async def create_import_job(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
-        loop = asyncio.get_event_loop()
-        job_id = job_data.get("job_id", str(uuid.uuid4()))
-        job_data["job_id"] = job_id
-
-        def insert():
-            self.client.index(index=self.jobs_index, id=job_id, body=job_data, refresh=True)
-            return job_data
-
-        return await loop.run_in_executor(None, insert)
-
-    async def update_import_job(self, job_id: str, data: Dict[str, Any]) -> bool:
-        loop = asyncio.get_event_loop()
-
-        def update():
-            try:
-                self.client.update(index=self.jobs_index, id=job_id, body={"doc": data}, refresh=True)
-                return True
-            except Exception as e:
-                logger.error(f"Import job 업데이트 실패 ({job_id}): {e}")
-                return False
-
-        return await loop.run_in_executor(None, update)
-
-    # --- 벌크 인덱스 존재 확인 ---
-
-    async def check_index_exists(self) -> bool:
-        loop = asyncio.get_event_loop()
-
-        def check():
-            try:
-                return self.client.indices.exists(index=self.rules_index)
-            except Exception:
-                return False
-
-        return await loop.run_in_executor(None, check)
-
-    # --- 벌크 Upsert ---
-
-    async def bulk_upsert(self, operations: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """OpenSearch _bulk API로 일괄 upsert"""
-        loop = asyncio.get_event_loop()
-
-        def do_bulk():
-            body = []
-            for op in operations:
-                action = op["action"]
-                doc_id = op["id"]
-                doc = op["doc"]
-                if action == "index":
-                    body.append({"index": {"_index": self.rules_index, "_id": doc_id}})
-                    body.append(doc)
-                elif action == "update":
-                    body.append({"update": {"_index": self.rules_index, "_id": doc_id}})
-                    body.append({"doc": doc})
-            if not body:
-                return {"errors": False, "items": []}
-            return self.client.bulk(body=body, refresh=True)
-
-        return await loop.run_in_executor(None, do_bulk)
-
-    # --- 변환 결과 업데이트 ---
-
     async def update_conversion_result(self, rule_id: str, data: Dict[str, Any]) -> bool:
         loop = asyncio.get_event_loop()
 
@@ -480,27 +401,6 @@ class SigmaRuleRepository:
                 return False
 
         return await loop.run_in_executor(None, update)
-
-    async def bulk_update_conversion(self, updates: List[Dict[str, Any]]) -> Dict[str, int]:
-        loop = asyncio.get_event_loop()
-
-        def do_bulk():
-            body = []
-            now = datetime.utcnow().isoformat()
-            for u in updates:
-                rule_id = u["id"]
-                doc = {k: v for k, v in u.items() if k != "id"}
-                doc["updated_at"] = now
-                body.append({"update": {"_index": self.rules_index, "_id": rule_id}})
-                body.append({"doc": doc})
-            if not body:
-                return {"success": 0, "failed": 0}
-            result = self.client.bulk(body=body, refresh=True)
-            success = sum(1 for item in result.get("items", []) if item.get("update", {}).get("status") in (200, 201))
-            failed = len(result.get("items", [])) - success
-            return {"success": success, "failed": failed}
-
-        return await loop.run_in_executor(None, do_bulk)
 
     # --- 변환 통계 ---
 
@@ -538,29 +438,10 @@ class SigmaRuleRepository:
 
         return await loop.run_in_executor(None, agg)
 
-    # --- 변환 상태별 룰 조회 ---
-
-    async def list_rules_by_conversion_status(
-        self, status: str, skip: int = 0, limit: int = 100
-    ) -> Tuple[int, List[Dict[str, Any]]]:
-        loop = asyncio.get_event_loop()
-
-        def search():
-            query = {
-                "bool": {
-                    "must": [{"term": {"query_conversion_status": status}}],
-                    "must_not": [{"term": {"is_deleted": True}}],
-                }
-            }
-            result = self.client.search(
-                index=self.rules_index,
-                body={"from": skip, "size": limit, "query": query, "_source": True},
-            )
-            total = result["hits"]["total"]["value"]
-            items = [{"_id": hit["_id"], **hit["_source"]} for hit in result["hits"]["hits"]]
-            return total, items
-
-        return await loop.run_in_executor(None, search)
+    # DEAD CODE: list_rules_by_conversion_status — 프로덕션 코드에서 호출하지 않음 (테스트에서만 참조).
+    # reconvert_rules.py 스크립트가 직접 쿼리 수행.
+    # async def list_rules_by_conversion_status(self, status, skip=0, limit=100):
+    #     ...
 
     # --- Reconvert Job CRUD ---
 
@@ -579,24 +460,6 @@ class SigmaRuleRepository:
             return job_data
 
         return await loop.run_in_executor(None, insert)
-
-    async def update_reconvert_job(self, job_id: str, data: Dict[str, Any]) -> bool:
-        loop = asyncio.get_event_loop()
-
-        def update():
-            try:
-                self.client.update(
-                    index=self.RECONVERT_JOBS_INDEX,
-                    id=job_id,
-                    body={"doc": data},
-                    refresh=True,
-                )
-                return True
-            except Exception as e:
-                logger.error(f"Reconvert job 업데이트 실패 ({job_id}): {e}")
-                return False
-
-        return await loop.run_in_executor(None, update)
 
     async def get_active_reconvert_job(self) -> Optional[Dict[str, Any]]:
         loop = asyncio.get_event_loop()

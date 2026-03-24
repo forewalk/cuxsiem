@@ -83,9 +83,3 @@ def list_presets() -> List[Dict[str, Any]]:
             "field_count": len(preset["mappings"]),
         })
     return result
-
-
-def get_preset_as_field_mapping_list(preset_id: str) -> List[Dict[str, str]]:
-    """프리셋을 [{rule_field, log_field}] 형태로 변환"""
-    mappings = get_preset_mappings(preset_id)
-    return [{"rule_field": k, "log_field": v} for k, v in mappings.items()]

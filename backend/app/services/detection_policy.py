@@ -510,28 +510,4 @@ class DetectionPolicyService:
 
         return re.sub(r"\{\{\s*([\w\.]+)\s*\}\}", replace_var, template)
 
-    # ── Backward-compatible aliases ───────────────────────────────────────
-
-    async def list_policies(self, **kwargs):
-        return await self.list_detectors(**kwargs)
-
-    async def get_policy(self, policy_id: str):
-        return await self.get_detector(policy_id)
-
-    async def create_policy(self, policy_in, user_id: str = ""):
-        return await self.create_detector(policy_in, user_id)
-
-    async def update_policy(self, policy_id: str, policy_in):
-        return await self.update_detector(policy_id, policy_in)
-
-    async def delete_policy(self, policy_id: str):
-        return await self.delete_detector(policy_id)
-
-    async def list_events(self, **kwargs):
-        return await self.list_findings(**kwargs)
-
-    async def update_event_status(self, event_id: str, status: str):
-        return await self.update_finding_status(event_id, status)
-
-    async def run_detection_for_policy(self, policy: Dict[str, Any]):
-        return await self.run_detection_for_detector(policy)
+ 

@@ -1,5 +1,11 @@
+import type {
+  ConvertPreviewResult,
+  CustomRuleCreate,
+  CustomRuleUpdate,
+  SigmaRuleDetail,
+  SigmaRuleListItem,
+} from '@/types';
 import api from './api';
-import type { SigmaRuleListItem, SigmaRuleDetail, SigmaRuleStats, SigmaRuleFilterOptions, CustomRuleCreate, CustomRuleUpdate, ConversionStats, ReconvertResult, FieldMappingPreset, ConvertPreviewResult } from '@/types';
 
 interface ListRulesParams {
   skip?: number;
@@ -57,10 +63,6 @@ export const detectionRuleService = {
     return response.data;
   },
 
-  getStats: async () => {
-    const response = await api.get<SigmaRuleStats>('/api/v1/sigma-rules/stats');
-    return response.data;
-  },
 
   getLogsourceOptions: async (params?: { product?: string; category?: string }) => {
     const response = await api.get<{
@@ -69,38 +71,6 @@ export const detectionRuleService = {
       services: { value: string; count: number }[];
     }>('/api/v1/sigma-rules/logsource-options', { params });
     return response.data;
-  },
-
-  getFilterOptions: async (logSourceProduct?: string) => {
-    const params: Record<string, string> = {};
-    if (logSourceProduct) params.log_source_product = logSourceProduct;
-    const response = await api.get<SigmaRuleFilterOptions>('/api/v1/sigma-rules/filter-options', { params });
-    return response.data;
-  },
-
-  getConversionStats: async () => {
-    const response = await api.get<ConversionStats>('/api/v1/sigma-rules/conversion-stats');
-    return response.data;
-  },
-
-  reconvertSingle: async (id: string) => {
-    const response = await api.post<ReconvertResult>(`/api/v1/sigma-rules/${id}/reconvert`);
-    return response.data;
-  },
-
-  reconvertBulk: async (filter?: Record<string, string>) => {
-    const response = await api.post<{ job_id: string; status: string; requested_count: number }>(
-      '/api/v1/sigma-rules/reconvert',
-      filter ? { filter } : {},
-    );
-    return response.data;
-  },
-
-  getFieldMappingPresets: async () => {
-    const response = await api.get<{ presets: FieldMappingPreset[] }>(
-      '/api/v1/sigma-rules/field-mappings/presets',
-    );
-    return response.data.presets;
   },
 
   getFieldMappingPresetDetail: async (presetId: string) => {
@@ -118,14 +88,4 @@ export const detectionRuleService = {
     return response.data;
   },
 
-  getIndexFields: async (indexPattern: string) => {
-    const response = await api.get<string[]>(
-      '/api/v1/sigma-rules/index-fields',
-      { params: { index: indexPattern } },
-    );
-    return response.data;
-  },
 };
-
-// Backward-compatible alias
-export const sigmaRuleService = detectionRuleService;

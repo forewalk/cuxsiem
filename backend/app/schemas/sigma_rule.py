@@ -193,21 +193,3 @@ class ConvertPreviewResponse(BaseModel):
     applied_mappings: List[Dict[str, str]] = []
     detection_config: Dict[str, Any] = {}
     metadata: Dict[str, Any] = {}
-
-
-# --- Import Job ---
-
-class ImportJobResponse(BaseModel):
-    job_id: str
-    status: str
-    total_files: int = 0
-    processed_files: int = 0
-    inserted_count: int = 0
-    updated_count: int = 0
-    skipped_count: int = 0
-    failed_count: int = 0
-    conflict_count: int = 0
-    error_message: Optional[str] = None
-    errors: List[Dict[str, Any]] = []
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None

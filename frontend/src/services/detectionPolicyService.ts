@@ -1,10 +1,10 @@
-import api from './api';
 import type {
   Detector,
   DetectorCreate,
   DetectorUpdate,
   Finding,
 } from '@/types';
+import api from './api';
 
 interface ListDetectorsParams {
   skip?: number;
@@ -57,13 +57,6 @@ export const detectorService = {
     await api.delete(`/api/v1/detection-policies/${id}`);
   },
 
-  testQuery: async (target_index: string, query_body: Record<string, unknown>) => {
-    const response = await api.post('/api/v1/detection-policies/test-query', {
-      target_index,
-      query_body,
-    });
-    return response.data;
-  },
 
   listFindings: async (params: ListFindingsParams = {}) => {
     const response = await api.get<{ total: number; items: Finding[] }>(
@@ -81,10 +74,6 @@ export const detectorService = {
     return response.data;
   },
 
-  testWebhook: async (url: string, headers?: Record<string, string>) => {
-    const response = await api.post('/api/v1/detection-policies/webhook/test', { url, headers });
-    return response.data;
-  },
 
   exportDetectors: async (ids?: string[]) => {
     const params = ids && ids.length > 0 ? { ids: ids.join(',') } : {};
@@ -103,5 +92,3 @@ export const detectorService = {
   },
 };
 
-// Backward-compatible alias
-export const detectionPolicyService = detectorService;

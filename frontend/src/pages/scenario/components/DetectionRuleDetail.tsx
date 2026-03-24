@@ -1,7 +1,15 @@
+import { SeverityChip } from '@/components/shared/SeverityChip';
+import type { FieldMapping, SigmaRuleDetail as SigmaRuleDetailType } from '@/types';
+import {
+  ContentCopy as CloneIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Chip,
-  CircularProgress,
   Collapse,
   IconButton,
   Link,
@@ -13,21 +21,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Tooltip,
-  Typography,
+  Typography
 } from '@mui/material';
-import {
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  ContentCopy as CloneIcon,
-  Refresh as RefreshIcon,
-} from '@mui/icons-material';
 import React, { useEffect, useState } from 'react';
-import { SeverityChip } from '@/components/shared/SeverityChip';
 import { detectionRuleService } from '../../../services/sigmaRuleService';
-import type { FieldMapping, SigmaRuleDetail as SigmaRuleDetailType } from '@/types';
 
 interface DetectionRuleDetailProps {
   rule: SigmaRuleDetailType | null;
@@ -37,8 +34,7 @@ interface DetectionRuleDetailProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onClone?: () => void;
-  onReconvert?: (id: string) => Promise<void>;
-  reconverting?: boolean;
+
 }
 
 const FieldLabel: React.FC<{ children: React.ReactNode; compact?: boolean }> = ({ children, compact }) => (
@@ -78,7 +74,7 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 const mapCellSx = { fontSize: '0.72rem', py: 0.5, px: 1, fontFamily: 'monospace' } as const;
 const mapHeadCellSx = { ...mapCellSx, fontWeight: 'bold', color: 'text.secondary', fontFamily: 'inherit' } as const;
 
-export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, compact, onEdit, onDelete, onClone, onReconvert, reconverting }) => {
+export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, t, loading, compact, onEdit, onDelete, onClone }) => {
   const [detectionExpanded, setDetectionExpanded] = useState(false);
   const [sourceSigmaName, setSourceSigmaName] = useState<string | null>(null);
   const [previewMappings, setPreviewMappings] = useState<FieldMapping[]>([]);
@@ -88,7 +84,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
       setSourceSigmaName(null);
       detectionRuleService.getById(rule.source_sigma_id).then(r => {
         if (r?.name) setSourceSigmaName(r.name);
-      }).catch(() => {});
+      }).catch(() => { });
     } else {
       setSourceSigmaName(null);
     }
@@ -245,13 +241,6 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
                   )}
                   {rule.query_conversion_status === 'pending' && (
                     <Chip label={t('drConversionPending')} size="small" color="default" variant="outlined" sx={{ fontSize: '0.55rem', height: 18 }} />
-                  )}
-                  {onReconvert && (
-                    <Tooltip title={t('drReconvert')} arrow>
-                      <IconButton size="small" onClick={() => onReconvert(rule.id)} disabled={reconverting}>
-                        {reconverting ? <CircularProgress size={14} /> : <RefreshIcon sx={{ fontSize: 16 }} />}
-                      </IconButton>
-                    </Tooltip>
                   )}
                 </Box>
               </Box>

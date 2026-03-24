@@ -6,8 +6,7 @@ from typing import Optional, List, Dict, Any
 
 from app.core.field_mappings import (
     get_preset_mappings,
-    get_preset_as_field_mapping_list,
-    list_presets,
+
     DEFAULT_PRESET_ID,
 )
 from app.core.sigma_pipeline import SigmaPipelineManager
@@ -239,7 +238,6 @@ class SigmaRuleService:
         if active_job:
             return {"error": "conflict", "job_id": active_job["job_id"]}
 
-        import uuid as _uuid
         from datetime import datetime, timezone
         job_id = f"reconvert-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
         job_data = {

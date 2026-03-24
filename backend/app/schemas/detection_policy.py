@@ -129,13 +129,3 @@ class FindingListResponse(BaseModel):
 
 class FindingStatusUpdate(BaseModel):
     status: str = Field(description="new / acknowledged / resolved / false_positive")
-
-
-# --- Backward-compatible aliases ---
-DetectionPolicyCreate = DetectorCreate
-DetectionPolicyUpdate = DetectorUpdate
-DetectionPolicyResponse = DetectorResponse
-DetectionPolicyListResponse = DetectorListResponse
-DetectionEventResponse = FindingResponse
-DetectionEventListResponse = FindingListResponse
-DetectionEventStatusUpdate = FindingStatusUpdate

@@ -229,28 +229,36 @@ class DetectionPolicyRepository:
 
         return await loop.run_in_executor(None, update)
 
-    # ── Backward-compatible aliases ───────────────────────────────────────
+    # ── Backward-compatible aliases (Unused, Dead Code) ───────────────────
 
-    async def list_policies(self, **kwargs):
-        return await self.list_detectors(**kwargs)
+    # async def list_policies(self, **kwargs):
+    #     """Detector로 명칭 변경됨. 더 이상 사용되지 않음."""
+    #     return await self.list_detectors(**kwargs)
 
-    async def get_policy_by_id(self, policy_id: str):
-        return await self.get_detector_by_id(policy_id)
+    # async def get_policy_by_id(self, policy_id: str):
+    #     """Detector로 명칭 변경됨. 더 이상 사용되지 않음."""
+    #     return await self.get_detector_by_id(policy_id)
 
-    async def create_policy(self, data, user_id=""):
-        return await self.create_detector(data, user_id)
+    # async def create_policy(self, data, user_id=""):
+    #     """Detector로 명칭 변경됨. 더 이상 사용되지 않음."""
+    #     return await self.create_detector(data, user_id)
 
-    async def update_policy(self, policy_id, data):
-        return await self.update_detector(policy_id, data)
+    # async def update_policy(self, policy_id, data):
+    #     """Detector로 명칭 변경됨. 더 이상 사용되지 않음."""
+    #     return await self.update_detector(policy_id, data)
 
-    async def delete_policy(self, policy_id):
-        return await self.delete_detector(policy_id)
+    # async def delete_policy(self, policy_id):
+    #     """Detector로 명칭 변경됨. 더 이상 사용되지 않음."""
+    #     return await self.delete_detector(policy_id)
 
-    async def create_event(self, data):
-        return await self.create_finding(data)
+    # async def create_event(self, data):
+    #     """Finding으로 명칭 변경됨. 더 이상 사용되지 않음."""
+    #     return await self.create_finding(data)
 
-    async def list_events(self, **kwargs):
-        return await self.list_findings(**kwargs)
+    # async def list_events(self, **kwargs):
+    #     """Finding으로 명칭 변경됨. 더 이상 사용되지 않음."""
+    #     return await self.list_findings(**kwargs)
 
-    async def update_event_status(self, event_id, status):
-        return await self.update_finding_status(event_id, status)
+    # async def update_event_status(self, event_id, status):
+    #     """Finding으로 명칭 변경됨. 더 이상 사용되지 않음."""
+    #     return await self.update_finding_status(event_id, status)
