@@ -1,5 +1,6 @@
 import { SeverityChip } from '@/components/shared/SeverityChip';
 import type { Detector, Finding, SigmaRuleListItem } from '@/types';
+import { formatKST } from '@/utils/dateUtils';
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
@@ -230,11 +231,11 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
         {/* ───────────────────────────운영 정보──────────────────────── */}
         <SectionHeader>{t('dpSectionOperation')}</SectionHeader>
         <Box sx={{ px: 0.5 }}>
-          <FieldRow label={t('dpLastRun')}><FieldValue mono>{detector.last_run_at ? new Date(detector.last_run_at).toLocaleString() : '-'}</FieldValue></FieldRow>
-          <FieldRow label={t('dpLastTriggered')}><FieldValue mono>{detector.last_triggered_at ? new Date(detector.last_triggered_at).toLocaleString() : '-'}</FieldValue></FieldRow>
+          <FieldRow label={t('dpLastRun')}><FieldValue mono>{formatKST(detector.last_run_at)}</FieldValue></FieldRow>
+          <FieldRow label={t('dpLastTriggered')}><FieldValue mono>{formatKST(detector.last_triggered_at)}</FieldValue></FieldRow>
           <FieldRow label={t('dpTotalFindings')}><FieldValue>{detector.total_findings_count}</FieldValue></FieldRow>
           <FieldRow label={t('dpCreatedBy')}><FieldValue>{detector.created_by || '-'}</FieldValue></FieldRow>
-          <FieldRow label={t('dpCreatedAt')}><FieldValue mono>{detector.created_at ? new Date(detector.created_at).toLocaleString() : '-'}</FieldValue></FieldRow>
+          <FieldRow label={t('dpCreatedAt')}><FieldValue mono>{formatKST(detector.created_at)}</FieldValue></FieldRow>
         </Box>
 
         {/* ──────────────────────────── 변경 이력 ──────────────────────── */}
@@ -253,7 +254,7 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
                 {detector.change_history!.slice(-10).reverse().map((entry, i) => (
                   <TableRow key={i}>
                     <TableCell sx={{ fontFamily: 'monospace' }}>
-                      {new Date(entry.changed_at).toLocaleString()}
+                      {formatKST(entry.changed_at)}
                     </TableCell>
                     <TableCell>{entry.user_id}</TableCell>
                     <TableCell>
@@ -286,7 +287,7 @@ export const DetectionPolicyDetail: React.FC<DetectionPolicyDetailProps> = ({
                           sx={{ fontSize: '0.55rem', height: 16, maxWidth: 120 }} />
                       )}
                       <Typography component="span" variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>
-                        {finding.created_at ? new Date(finding.created_at).toLocaleString() : ''}
+                        {formatKST(finding.created_at)}
                       </Typography>
                     </Box>
                   }

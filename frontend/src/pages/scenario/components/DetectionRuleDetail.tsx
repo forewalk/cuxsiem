@@ -1,5 +1,6 @@
 import { SeverityChip } from '@/components/shared/SeverityChip';
 import type { FieldMapping, SigmaRuleDetail as SigmaRuleDetailType } from '@/types';
+import { formatKST } from '@/utils/dateUtils';
 import {
   ContentCopy as CloneIcon,
   Delete as DeleteIcon,
@@ -275,7 +276,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
               )}
               {rule.query_converted_at && (
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem', display: 'block', mt: 0.5 }}>
-                  {t('drConvertedAt')}: {new Date(rule.query_converted_at).toLocaleString()}
+                  {t('drConvertedAt')}: {formatKST(rule.query_converted_at)}
                   {rule.query_pipeline_id && ` (pipeline: ${rule.query_pipeline_id})`}
                 </Typography>
               )}
@@ -401,7 +402,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
             <FieldValue mono>{rule.revision}</FieldValue>
           </FieldRow>
           <FieldRow label={t('drLastUpdated')} compact={compact}>
-            <FieldValue mono>{rule.updated_at ? new Date(rule.updated_at).toLocaleString() : '-'}</FieldValue>
+            <FieldValue mono>{formatKST(rule.updated_at)}</FieldValue>
           </FieldRow>
         </Box>
       </Box>

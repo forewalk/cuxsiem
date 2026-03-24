@@ -1,4 +1,5 @@
 import type { Finding } from '@/types';
+import { formatKST } from '@/utils/dateUtils';
 import {
   CheckCircle as AckIcon,
   ExpandMore as ExpandIcon,
@@ -98,14 +99,7 @@ const DetectionEventTab: React.FC = () => {
     }
   };
 
-  const formatTime = (ts?: string) => {
-    if (!ts) return '-';
-    const d = new Date(ts);
-    return d.toLocaleString('ko-KR', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-    });
-  };
+  const formatTime = (ts?: string) => formatKST(ts);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2, gap: 1.5 }}>
