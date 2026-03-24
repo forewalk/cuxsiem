@@ -4,7 +4,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { notificationService } from '@/services/notificationService.ts';
 import { useRoleCodesStore } from '@/stores/useRoleCodesStore';
 import { useSettingsStore } from '@/stores/useSettingsStore';
-import type { NotificationRule, NotificationRuleCreate } from '@/types';
+import type { NotificationRule, NotificationRuleCreate, SourceType, PreviewResponse } from '@/types';
 import { getRoleName } from '@/utils/roleUtils';
 import { getAlertWsUrl } from '@/utils/wsUtils';
 import {
@@ -26,7 +26,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ResizablePanel from '@/components/shared/ResizablePanel';
 import { NotificationRuleDetail } from '../components/NotificationRuleDetail';
 import { NotificationRuleList } from '../components/NotificationRuleList';
@@ -38,52 +38,16 @@ type ViewMode = 'empty' | 'readonly' | 'edit';
 const DEFAULT_FORM_DATA: NotificationRuleCreate = {
   name: '',
   description: '',
-  target_index: 'logs-sentinel_one.edr',
-  condition_config: {
-    "query": {
-      "bool": {
-        "filter": [
-          {
-            "range": {
-              "@timestamp": {
-                "gte": "now-1d"
-              }
-            }
-          },
-          {
-            "term": {
-              "event.type": "File Modification"
-            }
-          }
-        ]
-      }
-    },
-    "aggs": {
-      "processName": {
-        "terms": {
-          "field": "src.process.name"
-        }
-      },
-      "agentOS": {
-        "terms": {
-          "field": "endpoint.os"
-        }
-      }
-    }
-  },
-  message_template: `
-============AgentOS 집계===================
-{{aggregations.agentOS.buckets}}
-============ProcessName 집계===============
-{{aggregations.processName.buckets}}
-==========================================
-
-`,
+  source_type: 'healthcheck',
+  source_config: { condition: 'status_down', monitor_filter: '*' },
+  message_template: '{{monitor_name}} 모니터가 DOWN 상태입니다.',
   severity: 'info',
   interval_min: 1,
-  trigger_condition: 'hits.total.value > 0',
-  receiver: { type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: { 'Content-Type': 'application/json' }, webhook_body: '{\n  "rule_name": "{{rule_name}}",\n  "severity": "{{rule_severity}}",\n  "message": "{{message}}",\n  "created_at": "{{created_at}}"\n}' },
-  is_active: true
+  receiver: {
+    type: 'role', values: ['role-1'], webhook_url: '', webhook_headers: { 'Content-Type': 'application/json' },
+    webhook_body: '{\n  "rule_name": "{{rule_name}}",\n  "severity": "{{severity}}",\n  "message": "{{message}}"\n}',
+  },
+  is_active: true,
 };
 
 const NotificationRuleListTab: React.FC = () => {
@@ -100,144 +64,62 @@ const NotificationRuleListTab: React.FC = () => {
   const wsUrl = getAlertWsUrl();
 
   useWebSocket({
-    url: wsUrl,
-    token,
-    onMessage: (data) => {
-      if (data.type === 'new_alert') {
-        loadRules();
-      }
-    }
+    url: wsUrl, token,
+    onMessage: (data) => { if (data.type === 'new_alert') loadRules(); },
   });
 
   useEffect(() => { fetchRoleCodes(); }, [fetchRoleCodes]);
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
-  useEffect(() => {
-    if (settings && settings.pagination_size) setRowsPerPage(settings.pagination_size);
-  }, [settings]);
+  useEffect(() => { if (settings?.pagination_size) setRowsPerPage(settings.pagination_size); }, [settings]);
 
+  // 소스 타입 목록
+  const [sourceTypes, setSourceTypes] = useState<SourceType[]>([]);
+  useEffect(() => {
+    notificationService.getSourceTypes().then(setSourceTypes).catch(console.error);
+  }, []);
 
   // 마스터-디테일 상태
   const [viewMode, setViewMode] = useState<ViewMode>('empty');
   const [selectedRule, setSelectedRule] = useState<NotificationRule | null>(null);
   const [deleteIds, setDeleteIds] = useState<string[]>([]);
   const [formData, setFormData] = useState<NotificationRuleCreate>(DEFAULT_FORM_DATA);
-  const [dslString, setDslString] = useState(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
-  const [jsonError, setJsonError] = useState<string | null>(null);
   const [webhookHeaders, setWebhookHeaders] = useState<HeaderEntry[]>([{ key: 'Content-Type', value: 'application/json' }]);
   const [webhookBodyStr, setWebhookBodyStr] = useState('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({ open: false, message: '', severity: 'success' });
 
-  // 변경 감지용 원본 데이터
   const originalFormRef = useRef<string>('');
 
-  // 쿼리 테스트 상태
-  const [queryTestLoading, setQueryTestLoading] = useState(false);
-  const [queryTestResult, setQueryTestResult] = useState<any | null>(null);
-  const [queryTestError, setQueryTestError] = useState<string | null>(null);
-
-  // 트리거 테스트 상태
-  const [triggerTestLoading, setTriggerTestLoading] = useState(false);
-  const [triggerTestResult, setTriggerTestResult] = useState<{ evaluation: boolean; total: number; has_aggregations: boolean } | null>(null);
-  const [triggerTestError, setTriggerTestError] = useState<string | null>(null);
+  // 프리뷰 상태
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewResult, setPreviewResult] = useState<PreviewResponse | null>(null);
 
   // Export/Import
   const [selectedRuleIds, setSelectedRuleIds] = useState<Set<string>>(new Set());
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // 메시지 템플릿 프리뷰 — 순수 context 경로 탐색
-  const renderMessagePreview = useMemo(() => {
-    let preview = formData.message_template;
-    if (queryTestResult) {
-      const parseKeySegments = (key: string): (string | number)[] => {
-        const segments: (string | number)[] = [];
-        for (const part of key.split('.')) {
-          const m = part.match(/^(\w+)\[(\d+)\]$/);
-          if (m) {
-            segments.push(m[1]);
-            segments.push(parseInt(m[2], 10));
-          } else {
-            segments.push(part);
-          }
-        }
-        return segments;
-      };
-
-      const getNestedValue = (obj: any, segments: (string | number)[]): any => {
-        if (!obj) return null;
-        let value = obj;
-        for (let i = 0; i < segments.length; i++) {
-          const k = segments[i];
-          if (typeof k === 'number') {
-            if (Array.isArray(value) && k >= 0 && k < value.length) { value = value[k]; }
-            else { return null; }
-          } else if (value && typeof value === 'object' && k in value) {
-            value = value[k];
-          } else {
-            // flattened key 탐색: 남은 문자열 세그먼트를 '.'으로 합침
-            const remaining: string[] = [];
-            for (const s of segments.slice(i)) {
-              if (typeof s === 'number') break;
-              remaining.push(s);
-            }
-            const flatKey = remaining.join('.');
-            if (value && typeof value === 'object' && flatKey in value) return value[flatKey];
-            return null;
-          }
-        }
-        return value;
-      };
-
-      const toStr = (value: any): string => {
-        if (typeof value === 'object' && value !== null) return JSON.stringify(value, null, 2);
-        return String(value);
-      };
-
-      const context: Record<string, any> = { ...queryTestResult };
-
-      preview = preview.replace(/\{\{\s*([\w.@[\]]+)\s*\}\}/g, (_match: string, key: string) => {
-        const segments = parseKeySegments(key);
-        const value = getNestedValue(context, segments);
-        if (value !== null && value !== undefined) return toStr(value);
-        return `{{${key}}}`;
-      });
-    }
-    return preview;
-  }, [formData.message_template, queryTestResult]);
-
   const loadRules = useCallback(async () => {
     if (!user || user.role !== 'role-1') { setLoading(false); return; }
     setLoading(true);
     try {
-      const skip = page * rowsPerPage;
-      const params: { skip: number; limit: number; sort_by: string; order: string } = {
-        skip, limit: rowsPerPage, sort_by: 'created_at', order: 'desc'
-      };
-      const data = await notificationService.getRules(params);
+      const data = await notificationService.getRules({ skip: page * rowsPerPage, limit: rowsPerPage, sort_by: 'created_at', order: 'desc' });
       setRules(data.items);
-    } catch (error) {
-      console.error('Failed to load rules:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error('Failed to load rules:', error); }
+    finally { setLoading(false); }
   }, [page, rowsPerPage]);
 
   useEffect(() => { loadRules(); }, [loadRules]);
 
-  const handleSelectRule = (rule: NotificationRule) => {
-    setSelectedRule(rule);
-    setViewMode('readonly');
-  };
+  const handleSelectRule = (rule: NotificationRule) => { setSelectedRule(rule); setViewMode('readonly'); };
 
   const populateFormFromRule = (rule: NotificationRule) => {
-    setFormData({
+    const fd: NotificationRuleCreate = {
       name: rule.name,
       description: rule.description,
-      target_index: rule.target_index,
-      condition_config: JSON.parse(JSON.stringify(rule.condition_config)),
+      source_type: rule.source_type,
+      source_config: JSON.parse(JSON.stringify(rule.source_config)),
       message_template: rule.message_template,
       severity: rule.severity,
       interval_min: rule.interval_min,
-      trigger_condition: rule.trigger_condition || '',
       receiver: {
         ...rule.receiver,
         values: (() => {
@@ -250,119 +132,49 @@ const NotificationRuleListTab: React.FC = () => {
         webhook_headers: rule.receiver?.webhook_headers || {},
         webhook_body: rule.receiver?.webhook_body || '',
       },
-      is_active: rule.is_active
-    });
-    setDslString(JSON.stringify(rule.condition_config, null, 2));
+      is_active: rule.is_active,
+    };
+    setFormData(fd);
     const wh = rule.receiver?.webhook_headers;
     setWebhookHeaders(wh && Object.keys(wh).length > 0 ? Object.entries(wh).map(([key, value]) => ({ key, value })) : [{ key: '', value: '' }]);
     setWebhookBodyStr(rule.receiver?.webhook_body || '');
-    setJsonError(null);
-    setQueryTestResult(null);
-    setQueryTestError(null);
-    setTriggerTestResult(null);
-    setTriggerTestError(null);
-    originalFormRef.current = JSON.stringify({
-      name: rule.name,
-      description: rule.description,
-      target_index: rule.target_index,
-      condition_config: rule.condition_config,
-      message_template: rule.message_template,
-      severity: rule.severity,
-      interval_min: rule.interval_min,
-      trigger_condition: rule.trigger_condition || '',
-      receiver: {
-        type: rule.receiver?.type,
-        values: rule.receiver?.values,
-        webhook_url: rule.receiver?.webhook_url || '',
-        webhook_headers: rule.receiver?.webhook_headers || {},
-        webhook_body: rule.receiver?.webhook_body || '',
-      },
-      is_active: rule.is_active,
-    });
+    setPreviewResult(null);
+    originalFormRef.current = JSON.stringify(fd);
   };
 
-  const handleEdit = () => {
-    if (selectedRule) {
-      populateFormFromRule(selectedRule);
-      setViewMode('edit');
-    }
-  };
-
-  const handleCancelEdit = () => {
-    if (selectedRule) {
-      setViewMode('readonly');
-    } else {
-      setViewMode('empty');
-    }
-  };
+  const handleEdit = () => { if (selectedRule) { populateFormFromRule(selectedRule); setViewMode('edit'); } };
+  const handleCancelEdit = () => { setViewMode(selectedRule ? 'readonly' : 'empty'); };
 
   const handleAddNew = () => {
     setSelectedRule(null);
     setViewMode('edit');
     setFormData(DEFAULT_FORM_DATA);
-    setDslString(JSON.stringify(DEFAULT_FORM_DATA.condition_config, null, 2));
     setWebhookHeaders([{ key: 'Content-Type', value: 'application/json' }]);
     setWebhookBodyStr(DEFAULT_FORM_DATA.receiver.webhook_body || '');
-    setJsonError(null);
-    setQueryTestResult(null);
-    setQueryTestError(null);
-    setTriggerTestResult(null);
-    setTriggerTestError(null);
+    setPreviewResult(null);
     originalFormRef.current = '';
   };
 
-  const handleDslChange = (value: string) => {
-    setDslString(value);
+  const handlePreview = async () => {
+    setPreviewLoading(true); setPreviewResult(null);
     try {
-      const parsed = JSON.parse(value);
-      setFormData(prev => ({ ...prev, condition_config: parsed }));
-      setJsonError(null);
-    } catch { setJsonError(t('invalidJson')); }
-  };
-
-  const handleTestQuery = async () => {
-    if (jsonError) { setSnackbar({ open: true, message: t('dslJsonError'), severity: 'error' }); return; }
-    setQueryTestLoading(true); setQueryTestError(null); setQueryTestResult(null);
-    try {
-      const result = await notificationService.testQuery(formData.target_index, formData.condition_config);
-      setQueryTestResult(result);
-      setSnackbar({ open: true, message: t('queryTestSuccess'), severity: 'success' });
+      const result = await notificationService.previewRule({ source_type: formData.source_type, source_config: formData.source_config });
+      setPreviewResult(result);
     } catch (error: any) {
-      const errorMsg = error.response?.data?.detail || error.message || t('queryRunFailed');
-      setQueryTestError(errorMsg);
-      setSnackbar({ open: true, message: errorMsg, severity: 'error' });
-    } finally { setQueryTestLoading(false); }
-  };
-
-  const handleTestTrigger = async () => {
-    if (jsonError) { setSnackbar({ open: true, message: t('dslJsonError'), severity: 'error' }); return; }
-    setTriggerTestLoading(true); setTriggerTestError(null); setTriggerTestResult(null);
-    try {
-      const result = await notificationService.testTrigger(formData.target_index, formData.condition_config, formData.trigger_condition || '');
-      setTriggerTestResult(result);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.detail || error.message || 'Trigger test failed';
-      setTriggerTestError(errorMsg);
-    } finally { setTriggerTestLoading(false); }
+      setSnackbar({ open: true, message: error.response?.data?.detail || error.message || 'Preview failed', severity: 'error' });
+    } finally { setPreviewLoading(false); }
   };
 
   const getChangedFields = (): string[] => {
     if (!originalFormRef.current) return [];
     const original = JSON.parse(originalFormRef.current);
     const fields: string[] = [];
-    const compare = (key: string) => JSON.stringify(original[key]) !== JSON.stringify((formData as any)[key]);
-    if (compare('name')) fields.push('name');
-    if (compare('description')) fields.push('description');
-    if (compare('target_index')) fields.push('target_index');
-    if (compare('condition_config')) fields.push('condition_config');
-    if (compare('message_template')) fields.push('message_template');
-    if (compare('severity')) fields.push('severity');
-    if (compare('interval_min')) fields.push('interval_min');
-    if (compare('trigger_condition')) fields.push('trigger_condition');
-    if (compare('is_active')) fields.push('is_active');
+    const compare = (key: string) => JSON.stringify(original[key]) !== JSON.stringify((formData as Record<string, unknown>)[key]);
+    for (const key of ['name', 'description', 'source_type', 'source_config', 'message_template', 'severity', 'interval_min', 'is_active']) {
+      if (compare(key)) fields.push(key);
+    }
     const origR = original.receiver || {};
     const curR = formData.receiver || {};
-    if (JSON.stringify(origR.type) !== JSON.stringify(curR.type)) fields.push('receiver_type');
     if (JSON.stringify(origR.values) !== JSON.stringify(curR.values)) fields.push('receiver_values');
     if ((origR.webhook_url || '') !== (curR.webhook_url || '')) fields.push('webhook_url');
     if (JSON.stringify(origR.webhook_headers || {}) !== JSON.stringify(curR.webhook_headers || {})) fields.push('webhook_headers');
@@ -375,18 +187,13 @@ const NotificationRuleListTab: React.FC = () => {
       let saved: NotificationRule;
       if (selectedRule) {
         const changedFields = getChangedFields();
-        if (changedFields.length === 0) {
-          setSnackbar({ open: true, message: t('noChanges'), severity: 'info' });
-          return;
-        }
+        if (changedFields.length === 0) { setSnackbar({ open: true, message: t('noChanges'), severity: 'info' }); return; }
         saved = await notificationService.updateRule(selectedRule.id, { ...formData, changed_fields: changedFields });
-        setSelectedRule(saved);
-        originalFormRef.current = JSON.stringify(formData);
       } else {
         saved = await notificationService.createRule(formData);
-        setSelectedRule(saved);
-        originalFormRef.current = JSON.stringify(formData);
       }
+      setSelectedRule(saved);
+      originalFormRef.current = JSON.stringify(formData);
       setViewMode('readonly');
       setSnackbar({ open: true, message: t('ruleSaveSuccess'), severity: 'success' });
       await loadRules();
@@ -401,15 +208,8 @@ const NotificationRuleListTab: React.FC = () => {
     try {
       await Promise.all(deleteIds.map(id => notificationService.deleteRule(id)));
       setSnackbar({ open: true, message: t('ruleDeleteSuccess'), severity: 'success' });
-      if (selectedRule && deleteIds.includes(selectedRule.id)) {
-        setViewMode('empty');
-        setSelectedRule(null);
-      }
-      setSelectedRuleIds(prev => {
-        const next = new Set(prev);
-        deleteIds.forEach(id => next.delete(id));
-        return next;
-      });
+      if (selectedRule && deleteIds.includes(selectedRule.id)) { setViewMode('empty'); setSelectedRule(null); }
+      setSelectedRuleIds(prev => { const next = new Set(prev); deleteIds.forEach(id => next.delete(id)); return next; });
       setDeleteIds([]);
       loadRules();
     } catch { setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' }); }
@@ -420,15 +220,11 @@ const NotificationRuleListTab: React.FC = () => {
       const saved = await notificationService.updateRule(rule.id, { is_active: !rule.is_active, changed_fields: ['is_active'] });
       if (selectedRule?.id === rule.id) {
         setSelectedRule(saved);
-        originalFormRef.current = JSON.stringify({ ...formData, is_active: saved.is_active });
         setFormData(prev => ({ ...prev, is_active: saved.is_active }));
       }
       setSnackbar({ open: true, message: t('ruleSaveSuccess'), severity: 'success' });
       loadRules();
-    } catch (error) {
-      console.error('Failed to toggle active status:', error);
-      setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' });
-    }
+    } catch { setSnackbar({ open: true, message: t('saveFailed'), severity: 'error' }); }
   };
 
   const handleWebhookHeadersChange = (updated: HeaderEntry[]) => {
@@ -447,20 +243,18 @@ const NotificationRuleListTab: React.FC = () => {
     try {
       const res = await notificationService.testWebhook(formData.receiver?.webhook_url || '', formData.receiver?.webhook_headers);
       setSnackbar({ open: true, message: res.success ? t('webhookTestSuccess') : `${t('webhookTestFail')}: ${res.message}`, severity: res.success ? 'success' : 'error' });
-    } catch (err: any) {
-      setSnackbar({ open: true, message: `${t('webhookTestFail')}: ${err.message}`, severity: 'error' });
-    }
+    } catch (err: any) { setSnackbar({ open: true, message: `${t('webhookTestFail')}: ${err.message}`, severity: 'error' }); }
   };
 
   const handleExport = async () => {
     try {
-      const exportFields = ["name", "description", "target_index", "condition_config", "message_template", "severity", "interval_min", "trigger_condition", "receiver", "is_active"];
+      const exportFields = ['name', 'description', 'source_type', 'source_config', 'message_template', 'severity', 'interval_min', 'receiver', 'is_active'];
       const selectedRules = rules.filter(r => selectedRuleIds.has(r.id)).map(r => {
-        const obj: Record<string, any> = {};
-        for (const k of exportFields) if (k in r) obj[k] = (r as any)[k];
+        const obj: Record<string, unknown> = {};
+        for (const k of exportFields) if (k in r) obj[k] = (r as Record<string, unknown>)[k];
         return obj;
       });
-      const data = { version: "1.0", exported_at: new Date().toISOString(), rules: selectedRules };
+      const data = { version: '2.0', exported_at: new Date().toISOString(), rules: selectedRules };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `alert-rules-${new Date().toISOString().slice(0, 10)}.json`; a.click();
@@ -484,7 +278,7 @@ const NotificationRuleListTab: React.FC = () => {
         setSnackbar({
           open: true,
           message: `${t('importSuccess')}: ${result.created} ${t('importCreated')}${result.errors.length > 0 ? `, ${result.errors.length} ${t('importErrors')}` : ''}`,
-          severity: result.errors.length > 0 ? 'error' : 'success'
+          severity: result.errors.length > 0 ? 'error' : 'success',
         });
         loadRules();
       } catch { setSnackbar({ open: true, message: t('importFailed'), severity: 'error' }); }
@@ -505,11 +299,8 @@ const NotificationRuleListTab: React.FC = () => {
     <Box sx={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', bgcolor: 'background.default', overflow: 'hidden', p: { xs: 1.5, sm: 2, md: 3 }, minHeight: 0, position: 'relative' }}>
       {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }} />}
 
-      {/* 상단 액션 바 */}
       <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-          {t('notificationCenter')}
-        </Typography>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{t('notificationCenter')}</Typography>
         <Stack direction="row" spacing={1}>
           <Tooltip title={selectedRuleIds.size === 0 ? t('selectRulesToExport') : ''}>
             <span>
@@ -529,8 +320,7 @@ const NotificationRuleListTab: React.FC = () => {
           <Tooltip title={selectedRuleIds.size === 0 ? t('selectRulesToDelete') : ''}>
             <span>
               <Button variant="outlined" color="error" size="small" disabled={selectedRuleIds.size === 0}
-                startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
-                onClick={() => setDeleteIds(Array.from(selectedRuleIds))}
+                startIcon={<DeleteIcon sx={{ fontSize: 16 }} />} onClick={() => setDeleteIds(Array.from(selectedRuleIds))}
                 sx={{ borderRadius: 1, textTransform: 'none', fontWeight: 'bold', fontSize: '0.75rem' }}>
                 {t('deleteRule')}{selectedRuleIds.size > 0 ? ` (${selectedRuleIds.size})` : ''}
               </Button>
@@ -539,90 +329,40 @@ const NotificationRuleListTab: React.FC = () => {
         </Stack>
       </Box>
 
-      {/* 마스터-디테일 레이아웃 */}
       <Box id="master-detail-container" sx={{ flex: '1 1 0', display: 'flex', minHeight: 0, overflow: 'hidden' }}>
         <ResizablePanel containerId="master-detail-container" initialWidth={320} minWidth={200} maxWidth={600}>
           {(width) => (
             <NotificationRuleList
-              width={width}
-              rules={rules}
-              selectedRuleId={selectedRule?.id ?? null}
-              selectedRuleIds={selectedRuleIds}
+              width={width} rules={rules} selectedRuleId={selectedRule?.id ?? null} selectedRuleIds={selectedRuleIds}
               onSelect={handleSelectRule}
-              onToggleSelect={(ruleId) => {
-                setSelectedRuleIds(prev => {
-                  const next = new Set(prev);
-                  if (next.has(ruleId)) next.delete(ruleId); else next.add(ruleId);
-                  return next;
-                });
-              }}
-              onSelectAll={(checked) => {
-                if (checked) setSelectedRuleIds(new Set(rules.map(r => r.id)));
-                else setSelectedRuleIds(new Set());
-              }}
-              onAdd={handleAddNew}
-              onToggleActive={handleToggleActive}
-              loading={loading}
-              t={t}
+              onToggleSelect={(ruleId) => { setSelectedRuleIds(prev => { const next = new Set(prev); if (next.has(ruleId)) next.delete(ruleId); else next.add(ruleId); return next; }); }}
+              onSelectAll={(checked) => { setSelectedRuleIds(checked ? new Set(rules.map(r => r.id)) : new Set()); }}
+              onAdd={handleAddNew} onToggleActive={handleToggleActive} loading={loading} t={t}
             />
           )}
         </ResizablePanel>
         {viewMode === 'readonly' && selectedRule ? (
-          <NotificationRuleReadonly
-            rule={selectedRule}
-            onEdit={handleEdit}
-            t={t}
-            language={language}
-            roleNames={roleNames}
-            getRoleName={getRoleName}
-          />
+          <NotificationRuleReadonly rule={selectedRule} onEdit={handleEdit} t={t} language={language} roleNames={roleNames} getRoleName={getRoleName} />
         ) : (
           <NotificationRuleDetail
-            showForm={viewMode === 'edit'}
-            isEditing={!!selectedRule}
-            formData={formData}
-            onFormDataChange={setFormData}
-            onSave={handleSave}
-            onDelete={() => { if (selectedRule) setDeleteIds([selectedRule.id]); }}
-            onCancel={handleCancelEdit}
-            t={t}
-            dslString={dslString}
-            onDslChange={handleDslChange}
-            jsonError={jsonError}
-            onTestQuery={handleTestQuery}
-            queryTestLoading={queryTestLoading}
-            queryTestResult={queryTestResult}
-            queryTestError={queryTestError}
-            onTestTrigger={handleTestTrigger}
-            triggerTestLoading={triggerTestLoading}
-            triggerTestResult={triggerTestResult}
-            triggerTestError={triggerTestError}
-            renderMessagePreview={renderMessagePreview}
-            webhookHeaders={webhookHeaders}
-            onWebhookHeadersChange={handleWebhookHeadersChange}
-            webhookBodyStr={webhookBodyStr}
-            onWebhookBodyChange={handleWebhookBodyChange}
-            onTestWebhook={handleTestWebhook}
-            roleCodes={roleCodes}
-            roleNames={roleNames}
-            language={language}
-            getRoleName={getRoleName}
-            saveDisabled={!!jsonError || !formData.name}
+            showForm={viewMode === 'edit'} isEditing={!!selectedRule}
+            formData={formData} onFormDataChange={setFormData}
+            onSave={handleSave} onDelete={() => { if (selectedRule) setDeleteIds([selectedRule.id]); }} onCancel={handleCancelEdit}
+            t={t} sourceTypes={sourceTypes}
+            onPreview={handlePreview} previewLoading={previewLoading} previewResult={previewResult}
+            webhookHeaders={webhookHeaders} onWebhookHeadersChange={handleWebhookHeadersChange}
+            webhookBodyStr={webhookBodyStr} onWebhookBodyChange={handleWebhookBodyChange} onTestWebhook={handleTestWebhook}
+            roleCodes={roleCodes} roleNames={roleNames} language={language} getRoleName={getRoleName}
+            saveDisabled={!formData.name || !formData.source_type}
             changeHistory={selectedRule?.change_history}
-            createdAt={selectedRule?.created_at}
           />
         )}
       </Box>
 
-      {/* 삭제 확인 다이얼로그 */}
       <Dialog open={deleteIds.length > 0} onClose={() => setDeleteIds([])}>
         <DialogTitle>{t('deleteRule')}</DialogTitle>
         <DialogContent>
-          <Typography>
-            {deleteIds.length > 1
-              ? t('confirmDeleteRules', { count: String(deleteIds.length) })
-              : t('confirmDeleteRule')}
-          </Typography>
+          <Typography>{deleteIds.length > 1 ? t('confirmDeleteRules', { count: String(deleteIds.length) }) : t('confirmDeleteRule')}</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteIds([])}>{t('cancel')}</Button>
@@ -632,8 +372,9 @@ const NotificationRuleListTab: React.FC = () => {
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}
-          sx={{ width: '100%' }}>{snackbar.message}</Alert>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
       </Snackbar>
     </Box>
   );

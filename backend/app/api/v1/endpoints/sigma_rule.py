@@ -115,6 +115,34 @@ async def convert_preview(body: ConvertPreviewRequest):
     return await service.convert_preview(body.rule_id, body.preset_id)
 
 
+@router.post("/test-query")
+async def test_query(request: dict):
+    """
+    DSL 쿼리를 실행하여 결과를 반환한다.
+    - target_index + query_body: 직접 DSL 쿼리 테스트
+    - rule_id + target_index: 저장된 규칙의 변환된 쿼리로 테스트
+    """
+    rule_id = request.get("rule_id")
+    target_index = request.get("target_index")
+    query_body = request.get("query_body")
+
+    if not target_index:
+        raise HTTPException(status_code=400, detail="target_index is required")
+
+    try:
+        if rule_id and not query_body:
+            result = await service.test_rule_query(rule_id, target_index)
+        elif query_body:
+            result = await service.test_query(target_index, query_body)
+        else:
+            raise HTTPException(status_code=400, detail="query_body or rule_id is required")
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Query execution failed: {str(e)}")
+
+
 @router.get("/index-fields", response_model=List[str])
 async def get_index_fields(index: str = Query(..., description="OpenSearch 인덱스 패턴")):
     return await service.get_index_fields(index)

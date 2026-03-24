@@ -246,6 +246,7 @@ export const DetectionRuleDetail: React.FC<DetectionRuleDetailProps> = ({ rule, 
                 </Box>
               </Box>
             </SectionHeader>
+
             <Box sx={{ px: 0.5 }}>
               {rule.opensearch_query ? (
                 <Paper

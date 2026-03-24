@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -9,7 +9,9 @@ from app.schemas.notification import (
     NotificationRuleUpdate,
     NotificationRuleResponse,
     NotificationRuleListResponse,
-    NotificationListResponse
+    NotificationListResponse,
+    PreviewRequest,
+    PreviewResponse,
 )
 from app.schemas.user import UserResponse
 from app.services.notification import NotificationService
@@ -19,7 +21,15 @@ router = APIRouter()
 service = NotificationService()
 
 
-# --- 알림규칙 목록 조회 ---
+# --- 소스 타입 ---
+
+@router.get("/source-types")
+async def list_source_types():
+    """사용 가능한 소스 타입 목록"""
+    return service.get_source_types()
+
+
+# --- 규칙 CRUD ---
 
 @router.get("/rules", response_model=NotificationRuleListResponse)
 async def list_rules(
@@ -31,29 +41,23 @@ async def list_rules(
     severities: Optional[str] = Query(None, description="중요도 필터 (쉼표로 구분)"),
     is_active: Optional[bool] = Query(None, description="활성화 여부"),
     from_date: Optional[str] = Query(None, description="시작 날짜 (ISO 8601)"),
-    to_date: Optional[str] = Query(None, description="종료 날짜 (ISO 8601)")
+    to_date: Optional[str] = Query(None, description="종료 날짜 (ISO 8601)"),
 ):
-    # severities를 리스트로 변환
     severity_list = [s.strip().lower() for s in severities.split(",")] if severities else None
-
     total, rules = await service.list_rules(
-        skip=skip,
-        limit=limit,
-        sort_by=sort_by,
-        order=order,
-        query=query,
-        severities=severity_list,
-        is_active=is_active,
-        from_date=from_date,
-        to_date=to_date
+        skip=skip, limit=limit, sort_by=sort_by, order=order,
+        query=query, severities=severity_list, is_active=is_active,
+        from_date=from_date, to_date=to_date,
     )
     return {"total": total, "items": rules}
 
 
-# --- 알림규칙 생성 ---
 @router.post("/rules", response_model=NotificationRuleResponse, status_code=status.HTTP_201_CREATED)
 async def create_rule(rule_in: NotificationRuleBase, current_user: UserResponse = Depends(get_current_active_user)):
-    return await service.create_rule(rule_in, user_id=current_user.id)
+    try:
+        return await service.create_rule(rule_in, user_id=current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/rules/{rule_id}", response_model=NotificationRuleResponse)
@@ -66,7 +70,10 @@ async def get_rule(rule_id: str):
 
 @router.put("/rules/{rule_id}", response_model=NotificationRuleResponse)
 async def update_rule(rule_id: str, rule_in: NotificationRuleUpdate, current_user: UserResponse = Depends(get_current_active_user)):
-    rule = await service.update_rule(rule_id, rule_in, user_id=current_user.id)
+    try:
+        rule = await service.update_rule(rule_id, rule_in, user_id=current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
     return rule
@@ -79,87 +86,42 @@ async def delete_rule(rule_id: str):
         raise HTTPException(status_code=404, detail="Rule not found")
 
 
-@router.post("/rules/test-query")
-async def test_query(request: dict):
-    """
-    DSL 쿼리를 실행하여 결과 미리보기
-    - 규칙 생성 전 쿼리 검증용
-    - OpenSearch 응답을 그대로 반환
+# --- 프리뷰 ---
 
-    Request Body:
-    {
-        "target_index": "logs-sentinel_one.edr",
-        "condition_config": { ... DSL 쿼리 ... }
-    }
-    """
-    target_index = request.get("target_index")
-    condition_config = request.get("condition_config")
-
-    if not target_index or not condition_config:
-        raise HTTPException(status_code=400, detail="target_index and condition_config are required")
-
+@router.post("/rules/preview", response_model=PreviewResponse)
+async def preview_rule(req: PreviewRequest):
+    """규칙 저장 전 현재 조건을 즉시 평가"""
     try:
-        result = await service.test_query(target_index, condition_config)
-        return result
+        return await service.preview_rule(req.source_type, req.source_config)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Query execution failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
 
 
-@router.post("/rules/test-trigger")
-async def test_trigger(request: dict):
-    """
-    쿼리 실행 후 트리거 조건을 평가하여 결과 반환
-    Request Body:
-    {
-        "target_index": "logs-sentinel_one.edr",
-        "condition_config": { ... DSL 쿼리 ... },
-        "trigger_condition": "total > 0"
-    }
-    """
-    target_index = request.get("target_index")
-    condition_config = request.get("condition_config")
-    trigger_condition = request.get("trigger_condition")
-
-    if not target_index or not condition_config:
-        raise HTTPException(status_code=400, detail="target_index and condition_config are required")
-
-    try:
-        result = await service.test_trigger(target_index, condition_config, trigger_condition)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Trigger evaluation failed: {str(e)}")
-
+# --- Webhook 테스트 ---
 
 @router.post("/webhook/test")
 async def test_webhook(request: dict):
-    """
-    Webhook 연결 테스트
-    Request Body: { "url": "http://...", "headers": {} }
-    """
     url = request.get("url")
     if not url:
         raise HTTPException(status_code=400, detail="Webhook URL이 필요합니다.")
-
     headers = request.get("headers") or {}
     result = await send_test_webhook(url, headers)
-
     if result["status"] == "success":
         return {"success": True, "message": f"Webhook 테스트 성공 (HTTP {result['status_code']})"}
     else:
         return {"success": False, "message": result.get("error", "발송 실패"), "detail": result}
 
 
-# --- 규칙 Export / Import ---
+# --- Export / Import ---
 
 @router.get("/rules/export")
 async def export_rules():
-    """모든 활성 규칙을 JSON으로 내보내기"""
     total, rules = await service.list_rules(skip=0, limit=10000)
-
     export_fields = [
-        "name", "description", "target_index", "condition_config",
-        "message_template", "severity", "interval_min", "trigger_condition",
-        "receiver", "is_active"
+        "name", "description", "source_type", "source_config",
+        "message_template", "severity", "interval_min", "receiver", "is_active",
     ]
     exported = []
     for rule in rules:
@@ -167,19 +129,14 @@ async def export_rules():
 
     from datetime import datetime as dt
     return JSONResponse(content={
-        "version": "1.0",
+        "version": "2.0",
         "exported_at": dt.utcnow().isoformat() + "Z",
-        "rules": exported
+        "rules": exported,
     })
 
 
 @router.post("/rules/import")
 async def import_rules(request: dict):
-    """
-    JSON 규칙 목록을 가져와서 일괄 생성.
-    Request Body: { "rules": [...], "overwrite": false }
-    overwrite=true 시 동일 이름 규칙 덮어쓰기
-    """
     rules_data: list = request.get("rules", [])
     overwrite: bool = request.get("overwrite", False)
 
@@ -198,9 +155,7 @@ async def import_rules(request: dict):
 
             existing_rule = None
             if overwrite:
-                _, existing_rules = await service.list_rules(
-                    skip=0, limit=1, query=rule_data["name"]
-                )
+                _, existing_rules = await service.list_rules(skip=0, limit=1, query=rule_data["name"])
                 for er in existing_rules:
                     if er.get("name") == rule_data["name"]:
                         existing_rule = er
@@ -220,15 +175,10 @@ async def import_rules(request: dict):
         except Exception as e:
             errors.append({"index": idx, "name": rule_data.get("name", ""), "error": str(e)})
 
-    return {
-        "created": created,
-        "updated": updated,
-        "errors": errors,
-        "total_processed": len(rules_data)
-    }
+    return {"created": created, "updated": updated, "errors": errors, "total_processed": len(rules_data)}
 
 
-# --- 알림내역 조회 ---
+# --- 알림 내역 ---
 
 @router.get("/", response_model=NotificationListResponse)
 async def list_notifications(
@@ -240,20 +190,12 @@ async def list_notifications(
     to_date: Optional[str] = Query(None, description="종료 날짜 (ISO 8601)"),
     sort_by: str = Query("created_at", pattern="^(created_at)$"),
     order: str = Query("desc", pattern="^(asc|desc)$"),
-    current_user: UserResponse = Depends(get_current_active_user)
+    current_user: UserResponse = Depends(get_current_active_user),
 ):
-    """현재 사용자의 role에 맞는 알림만 조회"""
     severity_list = [s.strip().lower() for s in severities.split(",")] if severities else None
-
     total, notifications = await service.list_notifications(
-        skip=skip,
-        limit=limit,
-        query=query,
-        severities=severity_list,
-        from_date=from_date,
-        to_date=to_date,
-        user_role=current_user.role,
-        sort_by=sort_by,
-        order=order
+        skip=skip, limit=limit, query=query, severities=severity_list,
+        from_date=from_date, to_date=to_date, user_role=current_user.role,
+        sort_by=sort_by, order=order,
     )
     return {"total": total, "items": notifications}

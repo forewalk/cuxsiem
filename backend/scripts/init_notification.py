@@ -49,7 +49,7 @@ try:
     info = client.info()
     logger.info(f"[+] OpenSearch connected: {info['version']['number']}")
 
-    # 1. cs_notification_rules mapping (운영 필드 및 채널 객체 반영)
+    # 1. cs_alert_rules mapping (소스 타입 기반 재설계)
     rules_mapping = {
         "settings": {
             "number_of_shards": 1,
@@ -59,49 +59,33 @@ try:
             "properties": {
                 "id": {"type": "keyword"},
                 "name": {"type": "text"},
-                "target_index": {"type": "keyword"},
-                "condition_type": {"type": "keyword"},
-                "condition_config": {"type": "object", "enabled": True},
+                "description": {"type": "text"},
+                "source_type": {"type": "keyword"},
+                "source_config": {"type": "object", "enabled": True},
                 "message_template": {"type": "text"},
                 "severity": {"type": "keyword"},
                 "interval_min": {"type": "integer"},
-                "trigger_condition": {"type": "text"},
-                "channels": { 
-                    "properties": {
-                        "webhooks": {
-                            "type": "nested",
-                            "properties": {
-                                "url": {"type": "keyword"},
-                                "method": {"type": "keyword"},
-                                "headers": {"type": "object"}
-                            }
-                        },
-                        "slack": {
-                            "type": "nested",
-                            "properties": {
-                                "channel": {"type": "keyword"},
-                                "webhook_url": {"type": "keyword"}
-                            }
-                        },
-                        "email": {
-                            "type": "nested",
-                            "properties": {
-                                "recipients": {"type": "keyword"},
-                                "subject_template": {"type": "text"}
-                            }
-                        }
-                    }
-                },
                 "receiver": {
                     "properties": {
                         "type": {"type": "keyword"},
-                        "values": {"type": "keyword"}
+                        "values": {"type": "keyword"},
+                        "webhook_url": {"type": "keyword"},
+                        "webhook_headers": {"type": "object", "enabled": False},
+                        "webhook_body": {"type": "text"}
                     }
                 },
                 "is_active": {"type": "boolean"},
                 "last_run_at": {"type": "date"},
                 "last_triggered_at": {"type": "date"},
                 "total_alerts_count": {"type": "integer"},
+                "change_history": {
+                    "type": "nested",
+                    "properties": {
+                        "user_id": {"type": "keyword"},
+                        "changed_at": {"type": "date"},
+                        "changed_fields": {"type": "keyword"}
+                    }
+                },
                 "created_at": {"type": "date"},
                 "updated_at": {"type": "date"},
                 "deleted_at": {"type": "date"}
@@ -132,7 +116,7 @@ try:
         }
     }
 
-    # 3. cs_alerts mapping (실제 알림 내역 저장소)
+    # 3. cs_alerts mapping (알림 내역 — 소스 메타데이터 포함)
     alerts_mapping = {
         "settings": {
             "number_of_shards": 1,
@@ -142,23 +126,17 @@ try:
             "properties": {
                 "id": {"type": "keyword"},
                 "rule_id": {"type": "keyword"},
-                
-                # 규칙 메타데이터
+
                 "rule_name": {"type": "text"},
                 "rule_description": {"type": "text"},
                 "rule_severity": {"type": "keyword"},
-                "rule_target_index": {"type": "keyword"},
-                
-                # 메시지
+
+                "source_type": {"type": "keyword"},
+                "source_detail": {"type": "object", "enabled": True},
+
                 "message": {"type": "text"},
                 "message_template": {"type": "text"},
-                
-                # 이벤트 관련
-                "event_ref": {"type": "keyword"},
-                "event_index": {"type": "keyword"},
-                "event_source": {"type": "object", "enabled": True},
-                
-                # 중복 제거 및 수신자
+
                 "dedup_key": {"type": "keyword"},
                 "severity": {"type": "keyword"},
                 "receiver": {
@@ -167,16 +145,16 @@ try:
                         "values": {"type": "keyword"}
                     }
                 },
-                
-                # 상태
+
                 "status": {"type": "keyword"},
                 "error_message": {"type": "text"},
+                "delivery_results": {"type": "object", "enabled": False},
                 "created_at": {"type": "date"}
             }
         }
     }
 
-    recreate_index("cs_notification_rules", rules_mapping)
+    recreate_index("cs_alert_rules", rules_mapping)
     recreate_index("cs_notifications", notifications_mapping)
     recreate_index("cs_alerts", alerts_mapping)
 

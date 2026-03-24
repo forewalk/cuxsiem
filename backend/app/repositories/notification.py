@@ -189,18 +189,15 @@ class NotificationRepository:
                     history.append(entry)
                     data["change_history"] = history
 
-                if 'condition_config' in data:
-                    logger.info(f"[리포지토리] condition_config 포함 - 전체 문서 교체 방식 사용")
+                if 'source_config' in data:
                     for key, value in data.items():
                         existing_doc[key] = value
-
                     self.client.index(
                         index=self.rules_index,
                         id=rule_id,
                         body=existing_doc,
                         refresh=True
                     )
-                    logger.info(f"[리포지토리] condition_config 완전 교체 성공")
                 else:
                     self.client.update(
                         index=self.rules_index,
@@ -208,18 +205,14 @@ class NotificationRepository:
                         body={"doc": data},
                         refresh=True
                     )
-                    logger.info(f"[리포지토리] 일반 업데이트 성공")
-                
+
                 return True
             except Exception as e:
                 logger.error(f"[리포지토리] OpenSearch 업데이트 실패 - ID: {rule_id}, 오류: {e}")
                 return False
-                
+
         if await loop.run_in_executor(None, update_doc):
-            updated_rule = await self.get_rule_by_id(rule_id)
-            if updated_rule and 'condition_config' in data:
-                logger.info(f"[리포지토리] 업데이트 후 조회된 condition_config 키: {list(updated_rule.get('condition_config', {}).keys())}")
-            return updated_rule
+            return await self.get_rule_by_id(rule_id)
         return None
 
     async def delete_rule(self, rule_id: str) -> bool:

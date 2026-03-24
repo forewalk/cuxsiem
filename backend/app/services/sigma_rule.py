@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import logging
@@ -365,3 +366,35 @@ class SigmaRuleService:
             result.add(path)
             if "properties" in meta:
                 SigmaRuleService._collect_field_paths(meta["properties"], path, result)
+
+    async def test_query(self, target_index: str, query_body: Dict[str, Any]) -> Dict[str, Any]:
+        """DSL 쿼리를 지정 인덱스에 실행하여 결과를 반환한다."""
+        try:
+            search_body = {**query_body, "size": query_body.get("size", 10)}
+            if "sort" not in search_body:
+                search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
+
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(
+                None,
+                lambda: self.repository.client.search(index=target_index, body=search_body),
+            )
+        except Exception as e:
+            raise Exception(f"Query execution failed: {e}")
+
+    async def test_rule_query(self, rule_id: str, target_index: str) -> Dict[str, Any]:
+        """저장된 규칙의 변환된 DSL 쿼리를 target_index에 실행한다."""
+        rule = await self.get_rule(rule_id)
+        if not rule:
+            raise ValueError(f"규칙을 찾을 수 없습니다: {rule_id}")
+
+        query_converted = rule.get("query_converted")
+        if not query_converted:
+            raise ValueError("이 규칙은 아직 변환된 쿼리가 없습니다. 먼저 변환을 수행하세요.")
+
+        if isinstance(query_converted, str):
+            query_body = json.loads(query_converted)
+        else:
+            query_body = query_converted
+
+        return await self.test_query(target_index, query_body)

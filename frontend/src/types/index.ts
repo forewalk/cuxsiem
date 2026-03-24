@@ -111,18 +111,38 @@ export interface ChangeHistoryEntry {
   changed_fields?: string[];
 }
 
+export interface HealthCheckSourceConfig {
+  condition: 'status_down' | 'latency_high' | 'cert_expiring';
+  monitor_filter: string;
+  latency_threshold_ms?: number | null;
+  days_before?: number | null;
+}
+
+export interface SourceTypeCondition {
+  id: string;
+  name: string;
+  fields: string[];
+}
+
+export interface SourceType {
+  id: string;
+  name: string;
+  description: string;
+  conditions: SourceTypeCondition[];
+}
+
 export interface NotificationRule {
   id: string;
   name: string;
   description?: string;
-  target_index: string;
-  condition_config: Record<string, unknown>;
+  source_type: string;
+  source_config: Record<string, unknown>;
   message_template: string;
   severity: string;
   interval_min: number;
-  trigger_condition?: string;
   receiver: NotificationReceiver;
   is_active: boolean;
+  last_run_at?: string;
   last_triggered_at?: string;
   total_alerts_count: number;
   created_at: string;
@@ -133,12 +153,11 @@ export interface NotificationRule {
 export interface NotificationRuleCreate {
   name: string;
   description?: string;
-  target_index: string;
-  condition_config: Record<string, unknown>;
+  source_type: string;
+  source_config: Record<string, unknown>;
   message_template: string;
   severity: string;
   interval_min: number;
-  trigger_condition?: string;
   receiver: NotificationReceiver;
   is_active: boolean;
 }
@@ -146,43 +165,43 @@ export interface NotificationRuleCreate {
 export interface NotificationRuleUpdate {
   name?: string;
   description?: string;
-  target_index?: string;
-  condition_config?: Record<string, unknown>;
+  source_type?: string;
+  source_config?: Record<string, unknown>;
   message_template?: string;
   severity?: string;
   interval_min?: number;
-  trigger_condition?: string;
   receiver?: NotificationReceiver;
   is_active?: boolean;
   changed_fields?: string[];
 }
 
-// 알림 내역 (cs_alerts 인덱스)
+export interface PreviewRequest {
+  source_type: string;
+  source_config: Record<string, unknown>;
+}
+
+export interface PreviewResponse {
+  would_trigger: boolean;
+  matched_count: number;
+  details: Record<string, unknown>[];
+  message_preview?: string;
+}
+
 export interface NotificationHistory {
   id: string;
   rule_id: string;
-
-  // 규칙 메타데이터
   rule_name: string;
   rule_description?: string;
   rule_severity: string;
-  rule_target_index: string;
-
-  // 메시지 관련
-  message: string;              // 렌더링된 메시지
-  message_template: string;     // 원본 템플릿
-
-  // 이벤트 관련
-  event_index: string;          // 원본 인덱스명
-
-  // 기타
+  source_type?: string;
+  source_detail?: Record<string, unknown>;
+  message: string;
+  message_template: string;
   dedup_key: string;
   receiver: NotificationReceiver | null;
   status: string;
   error_message: string | null;
   created_at: string;
-
-  // 하위 호환성 (기존 코드와 호환)
   title?: string;
   description?: string;
 }

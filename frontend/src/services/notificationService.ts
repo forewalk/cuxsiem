@@ -1,5 +1,13 @@
 import api from './api';
-import type { NotificationRule, NotificationRuleCreate, NotificationRuleUpdate, NotificationHistory } from '@/types';
+import type {
+  NotificationRule,
+  NotificationRuleCreate,
+  NotificationRuleUpdate,
+  NotificationHistory,
+  SourceType,
+  PreviewRequest,
+  PreviewResponse,
+} from '@/types';
 
 interface GetNotificationsParams {
   skip?: number;
@@ -25,25 +33,19 @@ interface GetRulesParams {
 }
 
 export const notificationService = {
-  /* 알림 규칙 목록 조회 */
   getRules: async (params: GetRulesParams = {}) => {
-    const response = await api.get<{ total: number, items: NotificationRule[] }>('/api/v1/notifications/rules', {
-      params,
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    });
+    const response = await api.get<{ total: number; items: NotificationRule[] }>(
+      '/api/v1/notifications/rules',
+      { params, headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } },
+    );
     return response.data;
   },
 
   getRule: async (id: string) => {
-    const response = await api.get<NotificationRule>(`/api/v1/notifications/rules/${id}`, {
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    });
+    const response = await api.get<NotificationRule>(
+      `/api/v1/notifications/rules/${id}`,
+      { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } },
+    );
     return response.data;
   },
 
@@ -61,55 +63,39 @@ export const notificationService = {
     await api.delete(`/api/v1/notifications/rules/${id}`);
   },
 
-  /* DSL 쿼리 테스트 */
-  testQuery: async (targetIndex: string, conditionConfig: any) => {
-    const response = await api.post<any>('/api/v1/notifications/rules/test-query', {
-      target_index: targetIndex,
-      condition_config: conditionConfig
-    });
+  getSourceTypes: async () => {
+    const response = await api.get<SourceType[]>('/api/v1/notifications/source-types');
     return response.data;
   },
 
-  /* 트리거 조건 테스트 */
-  testTrigger: async (targetIndex: string, conditionConfig: any, triggerCondition: string) => {
-    const response = await api.post<{
-      evaluation: boolean;
-      total: number;
-      has_aggregations: boolean;
-    }>('/api/v1/notifications/rules/test-trigger', {
-      target_index: targetIndex,
-      condition_config: conditionConfig,
-      trigger_condition: triggerCondition
-    });
+  previewRule: async (req: PreviewRequest) => {
+    const response = await api.post<PreviewResponse>('/api/v1/notifications/rules/preview', req);
     return response.data;
   },
 
-  /* 알림 목록 조회 */
   getNotifications: async (params: GetNotificationsParams = {}) => {
-    const response = await api.get<{ total: number, items: NotificationHistory[] }>('/api/v1/notifications/', {
-      params
-    });
+    const response = await api.get<{ total: number; items: NotificationHistory[] }>(
+      '/api/v1/notifications/',
+      { params },
+    );
     return response.data;
   },
 
-  /* Webhook 연결 테스트 */
   testWebhook: async (url: string, headers?: Record<string, string>) => {
     const response = await api.post('/api/v1/notifications/webhook/test', { url, headers });
     return response.data;
   },
 
-  /* 규칙 Export */
   exportRules: async () => {
     const response = await api.get('/api/v1/notifications/rules/export');
     return response.data;
   },
 
-  /* 규칙 Import */
-  importRules: async (rules: any[], overwrite: boolean = false) => {
+  importRules: async (rules: unknown[], overwrite: boolean = false) => {
     const response = await api.post<{
       created: number;
       updated: number;
-      errors: any[];
+      errors: unknown[];
       total_processed: number;
     }>('/api/v1/notifications/rules/import', { rules, overwrite });
     return response.data;

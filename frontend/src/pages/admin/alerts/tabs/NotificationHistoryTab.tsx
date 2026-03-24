@@ -218,6 +218,9 @@ const NotificationHistoryTab: React.FC = () => {
                   <FilterListIcon sx={{ fontSize: 14, color: selectedSeverities.length > 0 ? 'primary.main' : 'text.secondary' }} />
                 </IconButton>
               </Box>
+              <Box sx={{ width: 100, minWidth: 100, flexShrink: 0, px: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>{t('source')}</Typography>
+              </Box>
               <Typography variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontWeight: 'bold', fontSize: '0.75rem', px: 1 }}>{t('ruleName')}</Typography>
               <Typography variant="caption" sx={{ width: 300, minWidth: 300, flexShrink: 0, fontWeight: 'bold', fontSize: '0.75rem', px: 1 }}>{t('receiverGroup')}</Typography>
             </Box>
@@ -239,6 +242,9 @@ const NotificationHistoryTab: React.FC = () => {
                     </Typography>
                     <Box sx={{ width: 120, minWidth: 120, flexShrink: 0, px: 1 }}>
                       <SeverityChip severity={row.rule_severity} />
+                    </Box>
+                    <Box sx={{ width: 100, minWidth: 100, flexShrink: 0, px: 1 }}>
+                      <Chip label={row.source_type || '-'} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
                     </Box>
                     <Typography variant="caption" sx={{ width: 250, minWidth: 250, flexShrink: 0, fontSize: '0.75rem', px: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
                       {row.rule_name || row.title}

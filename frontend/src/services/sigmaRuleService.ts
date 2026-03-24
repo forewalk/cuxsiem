@@ -88,4 +88,20 @@ export const detectionRuleService = {
     return response.data;
   },
 
+  testQuery: async (targetIndex: string, queryBody: Record<string, unknown>) => {
+    const response = await api.post('/api/v1/sigma-rules/test-query', {
+      target_index: targetIndex,
+      query_body: queryBody,
+    });
+    return response.data;
+  },
+
+  testRuleQuery: async (ruleId: string, targetIndex: string) => {
+    const response = await api.post('/api/v1/sigma-rules/test-query', {
+      rule_id: ruleId,
+      target_index: targetIndex,
+    });
+    return response.data;
+  },
+
 };

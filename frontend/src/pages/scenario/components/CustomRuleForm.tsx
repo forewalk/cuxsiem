@@ -3,10 +3,12 @@ import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Autocomplete,
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   Divider,
   Grid,
@@ -32,6 +34,7 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
+  PlayArrow as PlayArrowIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -99,6 +102,31 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
     initialData?.detection_config ? JSON.stringify(initialData.detection_config, null, 2) : '{\n  "query": {\n    "match_all": {}\n  }\n}'
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
+
+  // DSL 쿼리 테스트 상태
+  const [queryTargetIndex, setQueryTargetIndex] = useState('logs-sentinel_one.edr');
+  const [queryLoading, setQueryLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [queryResult, setQueryResult] = useState<any>(null);
+  const [queryError, setQueryError] = useState<string | null>(null);
+
+  const handleRunQuery = useCallback(async () => {
+    if (!queryTargetIndex.trim() || jsonError) return;
+    setQueryLoading(true);
+    setQueryError(null);
+    setQueryResult(null);
+    try {
+      const queryBody = JSON.parse(dslString);
+      const result = await detectionRuleService.testQuery(queryTargetIndex.trim(), queryBody);
+      setQueryResult(result);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data?.detail
+        || (err as { message?: string })?.message || 'Query failed';
+      setQueryError(msg);
+    } finally {
+      setQueryLoading(false);
+    }
+  }, [dslString, queryTargetIndex, jsonError]);
   const [mitreTechniques, setMitreTechniques] = useState((initialData?.mitre_technique_ids ?? []).join(', '));
   const [mitreTactics, setMitreTactics] = useState((initialData?.mitre_tactic_ids ?? []).join(', '));
   const [falsePositives, setFalsePositives] = useState((initialData?.false_positives ?? []).join('\n'));
@@ -630,36 +658,113 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
               </Accordion>
             </Grid>
 
-          {/* 3. 탐지 쿼리 */}
+          {/* 3. 탐지 쿼리 + 쿼리 실행 결과 */}
           <Grid size={12}>
             <SectionHeader>{t('drSectionDetection')}</SectionHeader>
-            <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 1, display: 'block', color: 'text.secondary' }}>
-              DSL Query
-            </Typography>
-            <Box sx={{
-              border: '1px solid',
-              borderColor: jsonError ? 'error.main' : 'divider',
-              borderRadius: 1,
-              overflow: 'hidden',
-              '&:focus-within': { borderColor: jsonError ? 'error.main' : 'primary.main', borderWidth: 2 },
-            }}>
-              <MonacoEditor
-                height={200}
-                language="json"
-                theme={monacoTheme}
-                value={dslString}
-                onChange={handleDslChange}
-                options={{
-                  minimap: { enabled: false }, fontSize: 12,
-                  lineNumbers: 'on', lineNumbersMinChars: 2, lineDecorationsWidth: 4,
-                  glyphMargin: false, scrollBeyondLastLine: false, automaticLayout: true,
-                  tabSize: 2, wordWrap: 'on', formatOnPaste: true, formatOnType: true,
-                  bracketPairColorization: { enabled: true },
-                  scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
-                }}
-              />
-            </Box>
-            {jsonError && <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>{jsonError}</Typography>}
+            <Stack direction="row" spacing={2} sx={{ minHeight: 320 }}>
+              {/* 좌측: DSL 에디터 */}
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 0.5, color: 'text.secondary', fontSize: '0.68rem' }}>
+                  {t('drDslQuery')}
+                </Typography>
+                <Box sx={{
+                  flex: 1,
+                  border: '1px solid',
+                  borderColor: jsonError ? 'error.main' : 'divider',
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  '&:focus-within': { borderColor: jsonError ? 'error.main' : 'primary.main', borderWidth: 2 },
+                }}>
+                  <MonacoEditor
+                    height={240}
+                    language="json"
+                    theme={monacoTheme}
+                    value={dslString}
+                    onChange={handleDslChange}
+                    options={{
+                      minimap: { enabled: false }, fontSize: 12,
+                      lineNumbers: 'on', lineNumbersMinChars: 2, lineDecorationsWidth: 4,
+                      glyphMargin: false, scrollBeyondLastLine: false, automaticLayout: true,
+                      tabSize: 2, wordWrap: 'on', formatOnPaste: true, formatOnType: true,
+                      bracketPairColorization: { enabled: true },
+                      scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+                    }}
+                  />
+                </Box>
+                {jsonError && <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>{jsonError}</Typography>}
+
+                {/* 타겟 인덱스 + Run 버튼 */}
+                <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                  <TextField
+                    size="small" fullWidth placeholder="logs-sentinel_one.edr"
+                    value={queryTargetIndex}
+                    onChange={(e) => setQueryTargetIndex(e.target.value)}
+                    inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.75rem' } }}
+                    InputLabelProps={{ sx: { fontSize: '0.75rem' } }}
+                    label={t('drTargetIndex')}
+                  />
+                  <Button
+                    variant="contained" size="small"
+                    startIcon={<PlayArrowIcon sx={{ fontSize: 14 }} />}
+                    onClick={handleRunQuery}
+                    disabled={queryLoading || !queryTargetIndex.trim() || !!jsonError}
+                    sx={{ minWidth: 90, fontSize: '0.75rem', textTransform: 'none', whiteSpace: 'nowrap' }}
+                  >
+                    {queryLoading ? t('drQueryRunning') : t('drRunQuery')}
+                  </Button>
+                </Stack>
+              </Box>
+
+              {/* 우측: 쿼리 결과 */}
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <Typography variant="caption" sx={{ fontWeight: 'bold', mb: 0.5, color: 'text.secondary', fontSize: '0.68rem' }}>
+                  {t('drQueryResult')}
+                </Typography>
+                <Paper elevation={0} sx={{
+                  flex: 1, p: 2, bgcolor: 'background.default',
+                  border: '1px solid', borderColor: 'divider', borderRadius: 1,
+                  overflow: 'auto', maxHeight: 340, display: 'flex', flexDirection: 'column',
+                }}>
+                  {queryLoading ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1 }}>
+                      <CircularProgress size={16} />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{t('drQueryRunning')}</Typography>
+                    </Box>
+                  ) : queryError ? (
+                    <Alert severity="error" sx={{ fontSize: '0.72rem' }}>{queryError}</Alert>
+                  ) : queryResult ? (
+                    <>
+                      <Stack direction="row" spacing={1} sx={{ mb: 1, flexShrink: 0 }}>
+                        <Chip
+                          label={`${t('drHitsTotal')}: ${queryResult?.hits?.total?.value ?? 0}`}
+                          size="small" color="primary" variant="outlined"
+                          sx={{ fontSize: '0.65rem', height: 20, fontWeight: 600 }}
+                        />
+                        {queryResult?.took !== undefined && (
+                          <Chip
+                            label={`${queryResult.took}ms`}
+                            size="small" variant="outlined"
+                            sx={{ fontSize: '0.65rem', height: 20 }}
+                          />
+                        )}
+                      </Stack>
+                      <Box sx={{
+                        flex: 1, overflow: 'auto',
+                        fontFamily: 'monospace', fontSize: '0.7rem',
+                        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                        color: 'text.primary', lineHeight: 1.6,
+                      }}>
+                        {JSON.stringify(queryResult, null, 2)}
+                      </Box>
+                    </>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>{t('drRunQueryPrompt')}</Typography>
+                    </Box>
+                  )}
+                </Paper>
+              </Box>
+            </Stack>
           </Grid>
 
           {/* 4. 필드 매핑 (스탠다드 규칙 로드 시 표시) */}
