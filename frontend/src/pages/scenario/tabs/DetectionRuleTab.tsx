@@ -82,6 +82,10 @@ const DetectionRuleTab: React.FC = () => {
   const [linkedRuleNames, setLinkedRuleNames] = useState<Record<string, string>>({});
   const [checkedDetectorIds, setCheckedDetectorIds] = useState<Set<string>>(new Set());
 
+  // Form remount key (폼이 이미 열려있을 때 신규 생성 클릭 시 강제 리마운트)
+  const [ruleFormKey, setRuleFormKey] = useState(0);
+  const [detectorFormKey, setDetectorFormKey] = useState(0);
+
   // Rule preview panel (Panel 3)
   const [previewRuleId, setPreviewRuleId] = useState<string | null>(null);
   const [previewRule, setPreviewRule] = useState<SigmaRuleDetailType | null>(null);
@@ -316,6 +320,7 @@ const DetectionRuleTab: React.FC = () => {
     if (selectedRule && selectedRule.type === 'custom') {
       setEditingRule(selectedRule);
       setShowCustomRuleForm(true);
+      setRuleFormKey(k => k + 1);
     }
   }, [selectedRule]);
 
@@ -392,6 +397,7 @@ const DetectionRuleTab: React.FC = () => {
     if (selectedDetector) {
       setEditingDetector(selectedDetector);
       setShowDetectorForm(true);
+      setDetectorFormKey(k => k + 1);
     }
   }, [selectedDetector]);
 
@@ -401,6 +407,7 @@ const DetectionRuleTab: React.FC = () => {
       if (showDetectorForm) {
         return (
           <DetectorForm
+            key={detectorFormKey}
             initialData={editingDetector ?? (checkedRuleIds.size > 0 ? { linked_rule_ids: Array.from(checkedRuleIds) } : undefined)}
             isEditing={!!editingDetector}
             onSave={editingDetector ? handleUpdateDetector : handleCreateDetector}
@@ -430,6 +437,7 @@ const DetectionRuleTab: React.FC = () => {
     if (showCustomRuleForm) {
       return (
         <CustomRuleForm
+          key={ruleFormKey}
           initialData={editingRule ?? undefined}
           isEditing={!!editingRule}
           onSave={editingRule ? handleUpdateCustomRule : handleCreateCustomRule}
@@ -471,13 +479,15 @@ const DetectionRuleTab: React.FC = () => {
   }, []);
 
   const handleOpenCustomRuleForm = useCallback(() => {
-    setShowCustomRuleForm(true);
     setEditingRule(null);
+    setShowCustomRuleForm(true);
+    setRuleFormKey(k => k + 1);
   }, []);
 
   const handleOpenDetectorForm = useCallback(() => {
-    setShowDetectorForm(true);
     setEditingDetector(null);
+    setShowDetectorForm(true);
+    setDetectorFormKey(k => k + 1);
   }, []);
 
   const handleImportDetectors = useCallback(() => {

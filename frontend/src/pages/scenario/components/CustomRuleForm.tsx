@@ -767,13 +767,13 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
             </Stack>
           </Grid>
 
-          {/* 4. 필드 매핑 (스탠다드 규칙 로드 시 표시) */}
-          {fieldMappings.length > 0 && (
-            <Grid size={12}>
-              <SectionHeader>{t('fmFieldMappings')}</SectionHeader>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.68rem' }}>
-                {t('fmFieldMappingsDesc')}
-              </Typography>
+          {/* 4. 필드 매핑 */}
+          <Grid size={12}>
+            <SectionHeader>{t('fmFieldMappings')}</SectionHeader>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.68rem' }}>
+              {t('fmFieldMappingsDesc')}
+            </Typography>
+            {fieldMappings.length > 0 && (
               <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
                 <Table size="small">
                   <TableHead>
@@ -815,16 +815,16 @@ export const CustomRuleForm: React.FC<CustomRuleFormProps> = ({
                   </TableBody>
                 </Table>
               </TableContainer>
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleAddMapping}
-                sx={{ mt: 0.5, textTransform: 'none', fontSize: '0.7rem' }}
-              >
-                {t('fmAddMapping')}
-              </Button>
-            </Grid>
-          )}
+            )}
+            <Button
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={handleAddMapping}
+              sx={{ mt: 0.5, textTransform: 'none', fontSize: '0.7rem' }}
+            >
+              {t('fmAddMapping')}
+            </Button>
+          </Grid>
 
           {/* 5. 분류 */}
           <Grid size={12}>
