@@ -25,6 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-26 17:15 | 박지은 | 배포 | origin/develop push — feature/detections 머지 (TS 타입 단언 수정, 미사용 import 제거, 조건부 렌더링 truthiness 수정) |
 | 2026-03-24 09:40 | 박지은 | 배포 | origin/develop push — feature/detections 머지 (죽은 코드 정리, 내보내기 조건부 표시, 타임존 통일, 토글/벌크삭제/웹훅 등) |
 | 2026-03-24 09:40 | 박지은 | 리팩터 | 디텍션 죽은 코드 정리, 내보내기 버튼 조건부 표시, 변환완료 아이콘 제거, 날짜 표시 Asia/Seoul 타임존 통일 |
 | 2026-03-18 18:10 | 박지은 | 배포 | origin/feature/detections push (세 번째 패널 규칙 미리보기, ResizablePanel 양방향, DetectorForm 서버사이드 필터링+페이지네이션) |

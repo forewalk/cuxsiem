@@ -111,12 +111,12 @@ export const NotificationRuleReadonly: React.FC<NotificationRuleReadonlyProps> =
           <FieldRow label={t('monitorFilter')}>
             <FieldValue mono>{(sc.monitor_filter as string) || '*'}</FieldValue>
           </FieldRow>
-          {sc.condition === 'latency_high' && sc.latency_threshold_ms && (
+          {sc.condition === 'latency_high' && !!sc.latency_threshold_ms && (
             <FieldRow label={t('latencyThreshold')}>
               <FieldValue mono>{String(sc.latency_threshold_ms)} ms</FieldValue>
             </FieldRow>
           )}
-          {sc.condition === 'cert_expiring' && sc.days_before && (
+          {sc.condition === 'cert_expiring' && !!sc.days_before && (
             <FieldRow label={t('certDaysBefore')}>
               <FieldValue mono>{String(sc.days_before)} {t('days')}</FieldValue>
             </FieldRow>

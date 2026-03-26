@@ -169,7 +169,7 @@ const NotificationRuleListTab: React.FC = () => {
     if (!originalFormRef.current) return [];
     const original = JSON.parse(originalFormRef.current);
     const fields: string[] = [];
-    const compare = (key: string) => JSON.stringify(original[key]) !== JSON.stringify((formData as Record<string, unknown>)[key]);
+    const compare = (key: string) => JSON.stringify(original[key]) !== JSON.stringify((formData as unknown as Record<string, unknown>)[key]);
     for (const key of ['name', 'description', 'source_type', 'source_config', 'message_template', 'severity', 'interval_min', 'is_active']) {
       if (compare(key)) fields.push(key);
     }
@@ -251,7 +251,7 @@ const NotificationRuleListTab: React.FC = () => {
       const exportFields = ['name', 'description', 'source_type', 'source_config', 'message_template', 'severity', 'interval_min', 'receiver', 'is_active'];
       const selectedRules = rules.filter(r => selectedRuleIds.has(r.id)).map(r => {
         const obj: Record<string, unknown> = {};
-        for (const k of exportFields) if (k in r) obj[k] = (r as Record<string, unknown>)[k];
+        for (const k of exportFields) if (k in r) obj[k] = (r as unknown as Record<string, unknown>)[k];
         return obj;
       });
       const data = { version: '2.0', exported_at: new Date().toISOString(), rules: selectedRules };
