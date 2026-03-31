@@ -25,6 +25,9 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-31 14:30 | 박지은 | 배포 | origin/develop push — feature/detections 머지 (탐지 규칙 개별 토글 제거, 로그인 로고 경로 변경) |
+| 2026-03-31 14:30 | 박지은 | 리팩터 | 탐지 규칙 개별 토글(active/inactive) 제거 — 디텍터 단위 on/off만 유지, UI/API/서비스/리포지토리/스키마 일괄 정리 |
+| 2026-03-31 14:30 | 박지은 | 수정 | 로그인 페이지 로고 경로 cruxsiem_vertical.svg → cruxsiem.svg 변경 (Docker 볼륨 마운트 런타임 교체 지원) |
 | 2026-03-26 17:15 | 박지은 | 배포 | origin/develop push — feature/detections 머지 (TS 타입 단언 수정, 미사용 import 제거, 조건부 렌더링 truthiness 수정) |
 | 2026-03-24 09:40 | 박지은 | 배포 | origin/develop push — feature/detections 머지 (죽은 코드 정리, 내보내기 조건부 표시, 타임존 통일, 토글/벌크삭제/웹훅 등) |
 | 2026-03-24 09:40 | 박지은 | 리팩터 | 디텍션 죽은 코드 정리, 내보내기 버튼 조건부 표시, 변환완료 아이콘 제거, 날짜 표시 Asia/Seoul 타임존 통일 |
