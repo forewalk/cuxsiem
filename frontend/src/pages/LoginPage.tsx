@@ -1,47 +1,47 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Box,
-  Card,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  CircularProgress,
-  Container,
-  InputAdornment,
-  IconButton,
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
-  Select,
-  MenuItem,
-  Snackbar,
-  AppBar,
-  Toolbar,
-  Link,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-} from "@mui/material";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
-import { useAuth } from "../hooks/useAuth";
-import { authService } from "../services/authService";
-import { advancedSettingsService } from "../services/advancedSettingsService";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import {
+  Alert,
+  AppBar,
+  Box,
+  Button,
+  Card,
+  CircularProgress,
+  Container,
+  createTheme,
+  CssBaseline,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  InputAdornment,
+  Link,
+  MenuItem,
+  Select,
+  Snackbar,
+  TextField,
+  ThemeProvider,
+  Toolbar,
+  Typography,
+} from "@mui/material";
+import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AccountApplyModal from "../components/auth/AccountApplyModal";
-import OTPLoginModal from "../components/auth/OTPLoginModal";
 import OTPEnrollModal from "../components/auth/OTPEnrollModal";
+import OTPLoginModal from "../components/auth/OTPLoginModal";
+import { useAuth } from "../hooks/useAuth";
+import { advancedSettingsService } from "../services/advancedSettingsService";
 import api from "../services/api";
+import { authService } from "../services/authService";
 
-import koMessages from "../locales/ko.json";
+import cnMessages from "../locales/cn.json";
 import enMessages from "../locales/en.json";
 import jaMessages from "../locales/ja.json";
-import cnMessages from "../locales/cn.json";
+import koMessages from "../locales/ko.json";
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -192,7 +192,7 @@ export const LoginPage: React.FC = () => {
         navigate("/main");
       } catch (err: any) {
         console.error("Login Error:", err);
-        
+
         let errorMessage = t("loginFailed");
 
         if (err.response) {
@@ -218,14 +218,14 @@ export const LoginPage: React.FC = () => {
               break;
             default:
               // 기타 에러 (백엔드 메시지가 있다면 참고하되 기본은 loginFailed)
-               if (err.response.data && err.response.data.detail && typeof err.response.data.detail === 'string') {
-                 // 필요시 백엔드 메시지를 직접 보여줄 수 있음
-                 // errorMessage = err.response.data.detail; 
-               }
+              if (err.response.data && err.response.data.detail && typeof err.response.data.detail === 'string') {
+                // 필요시 백엔드 메시지를 직접 보여줄 수 있음
+                // errorMessage = err.response.data.detail; 
+              }
               break;
           }
         }
-        
+
         setError(errorMessage);
         setOpenSnackbar(true);
       }
@@ -439,194 +439,165 @@ export const LoginPage: React.FC = () => {
           alignItems="center"
           minHeight="calc(100vh - 64px)"
         >
-        <Card
-          sx={{
-            width: "100%",
-            padding: 0,
-            borderRadius: "8px",
-            boxShadow: `0 8px 24px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05)`,
-            overflow: "hidden",
-            backgroundColor: darkMode ? "#1e1e1e" : "#ffffff",
-          }}
-        >
-          {/* Figma 스타일 헤더 */}
-          <Box
+          <Card
             sx={{
-              background: darkMode ? "#2a2a2a" : "#ffffff",
-              padding: "32px 24px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 1,
-            }}
-          >
-            <Box
-              sx={{
-                width: 120,
-                height: 120,
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden"
-              }}
-            >
-              <img 
-                src="/cruxsiem_vertical.svg" 
-                alt="Logo" 
-                style={{ width: "100%", height: "100%", objectFit: "contain" }} 
-              />
-            </Box>
-          </Box>
-
-          {/* 폼 영역 */}
-          <Box
-            sx={{
-              padding: "32px 24px",
+              width: "100%",
+              padding: 0,
+              borderRadius: "8px",
+              boxShadow: `0 8px 24px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05)`,
+              overflow: "hidden",
               backgroundColor: darkMode ? "#1e1e1e" : "#ffffff",
             }}
           >
-            <Box component="form" onSubmit={handleSubmit} noValidate>
-              <TextField
-                fullWidth
-                label={t("id", { fallback: "아이디" })}
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setValidationErrors((prev) => ({ ...prev, username: "" }));
-                }}
-                error={!!validationErrors.username}
-                helperText={validationErrors.username}
-                margin="normal"
-                disabled={isLoading}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "3px",
-                    "& fieldset": {
-                      borderColor: FIGMA_COLORS.inputBorder,
-                    },
-                    "&:hover fieldset": {
-                      borderColor: FIGMA_COLORS.inputBorder,
-                    },
-                  },
-                }}
-              />
-
-              <TextField
-                fullWidth
-                label={t("password")}
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setValidationErrors((prev) => ({ ...prev, password: "" }));
-                }}
-                error={!!validationErrors.password}
-                helperText={validationErrors.password}
-                margin="normal"
-                disabled={isLoading}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "3px",
-                    "& fieldset": {
-                      borderColor: FIGMA_COLORS.inputBorder,
-                    },
-                    "&:hover fieldset": {
-                      borderColor: FIGMA_COLORS.inputBorder,
-                    },
-                  },
-                }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        disabled={isLoading}
-                      >
-                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{
-                  mt: 3,
-                  mb: 2,
-                  height: 44,
-                  backgroundColor: FIGMA_COLORS.buttonBg,
-                  borderRadius: "3px",
-                  textTransform: "none",
-                  fontSize: "16px",
-                  fontWeight: 500,
-                  "&:hover": {
-                    backgroundColor: "#3a4452",
-                  },
-                }}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  t("loginBtn")
-                )}
-              </Button>
-
-              {/* 비밀번호 재설정 / 계정신청 버튼 영역 */}
+            {/* Figma 스타일 헤더 */}
+            <Box
+              sx={{
+                background: darkMode ? "#2a2a2a" : "#ffffff",
+                padding: "32px 24px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
               <Box
                 sx={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: "8px",
                   display: "flex",
-                  gap: 1.5,
-                  mt: 3,
-                  justifyContent: userRegisterEnabled ? "stretch" : "center",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden"
                 }}
               >
-                <Link
-                  component="button"
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleForgotPassword();
+                <img
+                  src="/cruxsiem_vertical.svg"
+                  alt="Logo"
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
+              </Box>
+            </Box>
+
+            {/* 폼 영역 */}
+            <Box
+              sx={{
+                padding: "32px 24px",
+                backgroundColor: darkMode ? "#1e1e1e" : "#ffffff",
+              }}
+            >
+              <Box component="form" onSubmit={handleSubmit} noValidate>
+                <TextField
+                  fullWidth
+                  label={t("id", { fallback: "아이디" })}
+                  type="text"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setValidationErrors((prev) => ({ ...prev, username: "" }));
                   }}
+                  error={!!validationErrors.username}
+                  helperText={validationErrors.username}
+                  margin="normal"
+                  disabled={isLoading}
                   sx={{
-                    flex: userRegisterEnabled ? 1 : "none",
-                    padding: "10px 16px",
-                    minWidth: userRegisterEnabled ? "auto" : "200px",
-                    fontSize: "12px",
-                    color: FIGMA_COLORS.buttonBg,
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    border: `1px solid ${FIGMA_COLORS.inputBorder}`,
-                    borderRadius: "3px",
-                    backgroundColor: "#fafbfc",
-                    transition: "all 0.2s",
-                    textAlign: "center",
-                    "&:hover": {
-                      backgroundColor: FIGMA_COLORS.labelBg,
-                      borderColor: FIGMA_COLORS.buttonBg,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "3px",
+                      "& fieldset": {
+                        borderColor: FIGMA_COLORS.inputBorder,
+                      },
+                      "&:hover fieldset": {
+                        borderColor: FIGMA_COLORS.inputBorder,
+                      },
                     },
                   }}
+                />
+
+                <TextField
+                  fullWidth
+                  label={t("password")}
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setValidationErrors((prev) => ({ ...prev, password: "" }));
+                  }}
+                  error={!!validationErrors.password}
+                  helperText={validationErrors.password}
+                  margin="normal"
+                  disabled={isLoading}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "3px",
+                      "& fieldset": {
+                        borderColor: FIGMA_COLORS.inputBorder,
+                      },
+                      "&:hover fieldset": {
+                        borderColor: FIGMA_COLORS.inputBorder,
+                      },
+                    },
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          disabled={isLoading}
+                        >
+                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  sx={{
+                    mt: 3,
+                    mb: 2,
+                    height: 44,
+                    backgroundColor: FIGMA_COLORS.buttonBg,
+                    borderRadius: "3px",
+                    textTransform: "none",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                    "&:hover": {
+                      backgroundColor: "#3a4452",
+                    },
+                  }}
+                  disabled={isLoading}
                 >
-                  {t("forgotPassword")}
-                </Link>
-                
-                {userRegisterEnabled && (
+                  {isLoading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    t("loginBtn")
+                  )}
+                </Button>
+
+                {/* 비밀번호 재설정 / 계정신청 버튼 영역 */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1.5,
+                    mt: 3,
+                    justifyContent: userRegisterEnabled ? "stretch" : "center",
+                  }}
+                >
                   <Link
                     component="button"
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
-                      setApplyModalOpen(true);
+                      handleForgotPassword();
                     }}
                     sx={{
-                      flex: 1,
+                      flex: userRegisterEnabled ? 1 : "none",
                       padding: "10px 16px",
+                      minWidth: userRegisterEnabled ? "auto" : "200px",
                       fontSize: "12px",
                       color: FIGMA_COLORS.buttonBg,
                       textDecoration: "none",
@@ -642,155 +613,184 @@ export const LoginPage: React.FC = () => {
                       },
                     }}
                   >
-                    {t("signup")}
+                    {t("forgotPassword")}
                   </Link>
-                )}
+
+                  {userRegisterEnabled && (
+                    <Link
+                      component="button"
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setApplyModalOpen(true);
+                      }}
+                      sx={{
+                        flex: 1,
+                        padding: "10px 16px",
+                        fontSize: "12px",
+                        color: FIGMA_COLORS.buttonBg,
+                        textDecoration: "none",
+                        cursor: "pointer",
+                        border: `1px solid ${FIGMA_COLORS.inputBorder}`,
+                        borderRadius: "3px",
+                        backgroundColor: "#fafbfc",
+                        transition: "all 0.2s",
+                        textAlign: "center",
+                        "&:hover": {
+                          backgroundColor: FIGMA_COLORS.labelBg,
+                          borderColor: FIGMA_COLORS.buttonBg,
+                        },
+                      }}
+                    >
+                      {t("signup")}
+                    </Link>
+                  )}
+                </Box>
+              </Box>
+
+              <Box sx={{ mt: 4 }}>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  textAlign="center"
+                  sx={{ color: darkMode ? "#888888" : "#999999" }}
+                >
+                  {t("copyright")}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  textAlign="center"
+                  sx={{ color: darkMode ? "#555555" : "#cccccc", mt: 0.5 }}
+                >
+                  version: {import.meta.env.VITE_APP_VERSION || 'dev'}
+                </Typography>
               </Box>
             </Box>
+          </Card>
+        </Box>
 
-            <Box sx={{ mt: 4 }}>
-              <Typography
-                variant="caption"
-                display="block"
-                textAlign="center"
-                sx={{ color: darkMode ? "#888888" : "#999999" }}
-              >
-                {t("copyright")}
-              </Typography>
-              <Typography
-                variant="caption"
-                display="block"
-                textAlign="center"
-                sx={{ color: darkMode ? "#555555" : "#cccccc", mt: 0.5 }}
-              >
-                version: {import.meta.env.VITE_APP_VERSION || 'dev'}
-              </Typography>
-            </Box>
-          </Box>
-        </Card>
-      </Box>
-
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={() => { setOpenSnackbar(false); setSignupSuccessMsg(''); }}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
+        <Snackbar
+          open={openSnackbar}
+          autoHideDuration={6000}
           onClose={() => { setOpenSnackbar(false); setSignupSuccessMsg(''); }}
-          severity={signupSuccessMsg ? "success" : "error"}
-          sx={{
-            width: "100%",
-            fontSize: "14px",
-            fontWeight: 500,
-            ...(signupSuccessMsg ? {} : {
-              backgroundColor: "#d32f2f",
-              color: "white",
-              "& .MuiAlert-icon": { color: "white" },
-            }),
-          }}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
         >
-          {signupSuccessMsg || error}
-        </Alert>
-      </Snackbar>
+          <Alert
+            onClose={() => { setOpenSnackbar(false); setSignupSuccessMsg(''); }}
+            severity={signupSuccessMsg ? "success" : "error"}
+            sx={{
+              width: "100%",
+              fontSize: "14px",
+              fontWeight: 500,
+              ...(signupSuccessMsg ? {} : {
+                backgroundColor: "#d32f2f",
+                color: "white",
+                "& .MuiAlert-icon": { color: "white" },
+              }),
+            }}
+          >
+            {signupSuccessMsg || error}
+          </Alert>
+        </Snackbar>
 
-      {/* 비밀번호 초기화 다이얼로그 */}
-      <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
-        <DialogTitle>{t("resetPassword", { fallback: "비밀번호 초기화" })}</DialogTitle>
-        <DialogContent>
-          {!tempPassword ? (
-            <>
-              <DialogContentText sx={{ mb: 2 }}>
-                {t("resetPasswordDesc", { fallback: "사용자 아이디를 입력하면 임시 비밀번호를 발급해 드립니다." })}
-              </DialogContentText>
-              <TextField
-                autoFocus
-                margin="dense"
-                label={t("id", { fallback: "아이디" })}
-                type="text"
-                fullWidth
-                variant="outlined"
-                value={resetId}
-                onChange={(e) => setResetId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && resetId && !resetLoading) {
-                    e.preventDefault();
-                    handleResetPassword();
-                  }
-                }}
-              />
-            </>
-          ) : (
-            <>
-              <DialogContentText sx={{ mb: 2 }}>
-                {t("tempPasswordIssued", { fallback: "임시 비밀번호가 발급되었습니다." })}
-              </DialogContentText>
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: darkMode ? "#333" : "#f5f5f5",
-                  borderRadius: 1,
-                  textAlign: "center",
-                  fontWeight: "bold",
-                  fontSize: "1.2rem",
-                  userSelect: "all",
-                  border: "1px dashed #ccc"
-                }}
-              >
-                {tempPassword}
-              </Box>
-              <DialogContentText sx={{ mt: 2, fontSize: "0.875rem" }}>
-                {t("copyPasswordDesc", { fallback: "위 비밀번호를 복사하여 로그인하세요." })}
-              </DialogContentText>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setResetDialogOpen(false)}>{t("close", { fallback: "닫기" })}</Button>
-          {!tempPassword && (
-            <Button onClick={handleResetPassword} disabled={resetLoading || !resetId} variant="contained" color="primary">
-              {resetLoading ? <CircularProgress size={20} color="inherit" /> : t("reset", { fallback: "초기화" })}
+        {/* 비밀번호 초기화 다이얼로그 */}
+        <Dialog open={resetDialogOpen} onClose={() => setResetDialogOpen(false)}>
+          <DialogTitle>{t("resetPassword", { fallback: "비밀번호 초기화" })}</DialogTitle>
+          <DialogContent>
+            {!tempPassword ? (
+              <>
+                <DialogContentText sx={{ mb: 2 }}>
+                  {t("resetPasswordDesc", { fallback: "사용자 아이디를 입력하면 임시 비밀번호를 발급해 드립니다." })}
+                </DialogContentText>
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  label={t("id", { fallback: "아이디" })}
+                  type="text"
+                  fullWidth
+                  variant="outlined"
+                  value={resetId}
+                  onChange={(e) => setResetId(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && resetId && !resetLoading) {
+                      e.preventDefault();
+                      handleResetPassword();
+                    }
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <DialogContentText sx={{ mb: 2 }}>
+                  {t("tempPasswordIssued", { fallback: "임시 비밀번호가 발급되었습니다." })}
+                </DialogContentText>
+                <Box
+                  sx={{
+                    p: 2,
+                    bgcolor: darkMode ? "#333" : "#f5f5f5",
+                    borderRadius: 1,
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    fontSize: "1.2rem",
+                    userSelect: "all",
+                    border: "1px dashed #ccc"
+                  }}
+                >
+                  {tempPassword}
+                </Box>
+                <DialogContentText sx={{ mt: 2, fontSize: "0.875rem" }}>
+                  {t("copyPasswordDesc", { fallback: "위 비밀번호를 복사하여 로그인하세요." })}
+                </DialogContentText>
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setResetDialogOpen(false)}>{t("close", { fallback: "닫기" })}</Button>
+            {!tempPassword && (
+              <Button onClick={handleResetPassword} disabled={resetLoading || !resetId} variant="contained" color="primary">
+                {resetLoading ? <CircularProgress size={20} color="inherit" /> : t("reset", { fallback: "초기화" })}
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
+
+        {/* 다중 접속 확인 다이얼로그 */}
+        <Dialog open={conflictDialogOpen} onClose={() => setConflictDialogOpen(false)}>
+          <DialogTitle>{t("multipleSessionDetected", { fallback: "다중 접속 감지" })}</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              {t("multipleSessionMsg", { fallback: "해당 계정은 이미 다른 기기에서 로그인되어 이용 중입니다. 기존 접속을 끊고 로그인하시겠습니까?" })}
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setConflictDialogOpen(false)}>
+              {t("multipleSessionCancel", { fallback: "아니오" })}
             </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+            <Button onClick={handleForceLogin} variant="contained" color="primary">
+              {t("multipleSessionConfirm", { fallback: "예" })}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-      {/* 다중 접속 확인 다이얼로그 */}
-      <Dialog open={conflictDialogOpen} onClose={() => setConflictDialogOpen(false)}>
-        <DialogTitle>{t("multipleSessionDetected", { fallback: "다중 접속 감지" })}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {t("multipleSessionMsg", { fallback: "해당 계정은 이미 다른 기기에서 로그인되어 이용 중입니다. 기존 접속을 끊고 로그인하시겠습니까?" })}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConflictDialogOpen(false)}>
-            {t("multipleSessionCancel", { fallback: "아니오" })}
-          </Button>
-          <Button onClick={handleForceLogin} variant="contained" color="primary">
-            {t("multipleSessionConfirm", { fallback: "예" })}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <AccountApplyModal
+          open={applyModalOpen}
+          onClose={() => setApplyModalOpen(false)}
+          onSuccess={handleApplySuccess}
+        />
 
-      <AccountApplyModal
-        open={applyModalOpen}
-        onClose={() => setApplyModalOpen(false)}
-        onSuccess={handleApplySuccess}
-      />
-
-      {/* OTP 검증 모달 (비밀번호 초기화용) */}
-      <OTPLoginModal
-        open={otpResetModalOpen}
-        onClose={() => {
-          setOtpResetModalOpen(false);
-          setResetDialogOpen(true);
-        }}
-        title={t("otpVerificationRequired")}
-        showBackupCode={false}
-        onSubmit={handleOtpResetSubmit}
-      />
-    </Container>
+        {/* OTP 검증 모달 (비밀번호 초기화용) */}
+        <OTPLoginModal
+          open={otpResetModalOpen}
+          onClose={() => {
+            setOtpResetModalOpen(false);
+            setResetDialogOpen(true);
+          }}
+          title={t("otpVerificationRequired")}
+          showBackupCode={false}
+          onSubmit={handleOtpResetSubmit}
+        />
+      </Container>
     </ThemeProvider>
   );
 };
