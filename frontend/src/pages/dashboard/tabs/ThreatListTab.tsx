@@ -11,6 +11,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Snackbar,
   TextField,
   Tooltip,
   Typography,
@@ -27,6 +28,8 @@ import { useSettingsStore } from "../../../stores/useSettingsStore";
 import useThreatStore from "../../../stores/useThreatStore";
 import BarChartWidget from "../components/BarChartWidget";
 import ControlBar from "../components/ControlBar";
+import ActionService from "../../../services/ActionService";
+import type { Action } from "../../../services/ActionService";
 
 // 아이콘
 import AbcIcon from "@mui/icons-material/Abc";
@@ -67,6 +70,43 @@ const ThreatListTab: React.FC = () => {
   const [selectedRowIndices, setSelectedRowIndices] = useState<Set<number>>(new Set());
   const [actionAnchorEl, setActionAnchorEl] = useState<null | HTMLElement>(null);
   const openActionMenu = Boolean(actionAnchorEl);
+  const [availableActions, setAvailableActions] = useState<Action[]>([]);
+  const [loadingActions, setLoadingActions] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+
+  const handleExecuteAction = async (action: Action) => {
+    const selectedLogs = Array.from(selectedRowIndices).map(idx => logs[idx]);
+    if (selectedLogs.length === 0) {
+      setSnackbar({ open: true, message: t('noSelectedLogs') || '선택된 로그가 없습니다.', severity: 'warning' });
+      handleActionClose();
+      return;
+    }
+
+    setLoadingActions(true);
+    try {
+      const result = await ActionService.executeAction(action.id, selectedLogs);
+      if (result.success) {
+        setSnackbar({ 
+          open: true, 
+          message: `${action.name} 실행 완료: 총 ${result.total}건`, 
+          severity: 'success' 
+        });
+        setSelectedRowIndices(new Set()); // 선택 초기화
+      } else {
+        setSnackbar({ open: true, message: result.message || '실행 실패', severity: 'error' });
+      }
+    } catch (error) {
+      console.error("Action execution failed:", error);
+      setSnackbar({ open: true, message: '액션 실행 중 오류가 발생했습니다.', severity: 'error' });
+    } finally {
+      setLoadingActions(false);
+      handleActionClose();
+    }
+  };
 
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem('threatListColumnWidths');
@@ -173,7 +213,6 @@ const ThreatListTab: React.FC = () => {
       const hasTimeParams = searchParams.has('threatFromValue') || searchParams.has('threatFromDate');
       const hasQueryParam = searchParams.has('threatQuery');
       
-      // 이 탭과 관련된 파라미터가 아예 없으면 무시 (다른 탭의 동작임)
       if (!hasTimeParams && !hasQueryParam) {
         const hasOtherTabParams = searchParams.has('fromValue') || searchParams.has('fromDate') || searchParams.has('edrQuery');
         if (hasOtherTabParams) return;
@@ -189,12 +228,10 @@ const ThreatListTab: React.FC = () => {
       
       const currentStore = useThreatStore.getState();
       
-      // 쿼리 업데이트 (파라미터가 없으면 ""으로 초기화)
       if (currentStore.searchQuery !== query) {
         setSearchQuery(query);
       }
       
-      // 시간 범위 업데이트 (해당 파라미터가 있을 때만)
       if (hasTimeParams) {
         const newRange = {
           fromValue: fromVal ? parseInt(fromVal, 10) : null,
@@ -227,6 +264,22 @@ const ThreatListTab: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const initializedRef = useRef(false);
 
+  useEffect(() => {
+    const loadAvailableActions = async () => {
+      setLoadingActions(true);
+      try {
+        const data = await ActionService.getActions(0, 100);
+        if (Array.isArray(data)) {
+          setAvailableActions(data);
+        }
+      } catch (error) {
+        console.error("Failed to load available actions:", error);
+      } finally {
+        setLoadingActions(false);
+      }
+    };
+    loadAvailableActions();
+  }, []);
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
@@ -282,7 +335,6 @@ const ThreatListTab: React.FC = () => {
     setDragIdx(null);
   };
 
-  // 전체 초기화 (검색어, 시간, 컬럼, 페이지, URL)
   const handleResetColumns = async () => {
     try {
       await resetColumnSettings("threat");
@@ -336,6 +388,7 @@ const ThreatListTab: React.FC = () => {
       return next;
     });
   }, []);
+  
   const translations: Record<string, Record<string, string>> = { ko: koMessages, en: enMessages, ja: jaMessages, cn: cnMessages };
   const t = useMemo(() => (key: string, params?: Record<string, string>): string => {
     const currentTranslations = translations[language] || translations["ko"] || {};
@@ -382,10 +435,7 @@ const ThreatListTab: React.FC = () => {
   }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery, page, pageSize, sortField, sortOrder]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { 
-    // 실제 필터가 변경되었을 때만 페이지 리셋
-    setPage(0); 
-  }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
+  useEffect(() => { setPage(0); }, [fromValue, fromUnit, toValue, toUnit, fromDate, toDate, searchQuery]);
 
   const handleBarClick = (s: string, e: string) => { handleTimeChange(null, "m", null, "m", s, e); };
 
@@ -468,7 +518,11 @@ const ThreatListTab: React.FC = () => {
         </ResizablePanel>
         <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Box sx={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1.5, pr: 0 }}>
-            <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: 180, minHeight: 180, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}><Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}><BarChartWidget data={data?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} /></Box></Paper>
+            <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
+              <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
+                <BarChartWidget data={data?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} />
+              </Box>
+            </Paper>
             <Box sx={{ px: 0.5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>{t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({logs.length}/{data?.summary.total_logs ?? 0})</Box></Typography>
@@ -480,10 +534,21 @@ const ThreatListTab: React.FC = () => {
                 </Box>
                 <Button size="small" variant="outlined" onClick={handleActionClick} endIcon={<KeyboardArrowDownIconMenu />} sx={{ textTransform: 'none', fontSize: '0.75rem', borderColor: 'divider', color: 'text.primary', bgcolor: 'background.paper' }}>Actions</Button>
                 <Menu anchorEl={actionAnchorEl} open={openActionMenu} onClose={handleActionClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }} PaperProps={{ sx: { mt: 0.5, minWidth: 180 } }}>
-                  <MenuItem onClick={handleActionClose} sx={{ fontSize: '0.8rem' }}>Disconnect from network</MenuItem>
-                  <MenuItem onClick={handleActionClose} sx={{ fontSize: '0.8rem' }}>Unquarantine</MenuItem>
-                  <MenuItem onClick={handleActionClose} sx={{ fontSize: '0.8rem' }}>Add to blocklist</MenuItem>
-                  <MenuItem onClick={handleActionClose} sx={{ fontSize: '0.8rem' }}>Add to exclusions</MenuItem>
+                  {loadingActions ? (
+                    <MenuItem disabled sx={{ fontSize: '0.8rem' }}>{t('loading')}</MenuItem>
+                  ) : availableActions.length === 0 ? (
+                    <MenuItem disabled sx={{ fontSize: '0.8rem' }}>{t('noResults')}</MenuItem>
+                  ) : (
+                    availableActions.map((action) => (
+                      <MenuItem 
+                        key={action.id} 
+                        onClick={() => handleExecuteAction(action)} 
+                        sx={{ fontSize: '0.8rem' }}
+                      >
+                        {action.name}
+                      </MenuItem>
+                    ))
+                  )}
                 </Menu>
               </Box>
             </Box>
@@ -579,7 +644,7 @@ const ThreatListTab: React.FC = () => {
                               }}
                             >
                               {fn === "threatInfo.createdAt" || fn === "@timestamp" 
-                                ? dayjs(log[fn.split('.').pop() || fn]).format("MMM D, YYYY @ HH:mm:ss.SSS") 
+                                ? dayjs(getValueByPath(log, fn)).format("MMM D, YYYY @ HH:mm:ss.SSS") 
                                 : getValueByPath(log, fn)}
                             </Typography>
                           );
@@ -633,6 +698,16 @@ const ThreatListTab: React.FC = () => {
           </Paper>
         </Box>
       </Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity as any} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

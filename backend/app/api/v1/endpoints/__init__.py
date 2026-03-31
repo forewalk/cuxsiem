@@ -12,6 +12,8 @@ from .monitoring import router as monitoring_router
 from .sigma_rule import router as sigma_rule_router
 from .detection_policy import router as detection_policy_router
 from .detection_policy import event_router as detection_event_router
+from .action import router as action_router
+from .action_history import router as action_history_router
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(auth_router)
@@ -27,3 +29,5 @@ router.include_router(monitoring_router)
 router.include_router(sigma_rule_router, prefix="/sigma-rules", tags=["sigma-rules"])
 router.include_router(detection_policy_router, prefix="/detection-policies", tags=["detection-policies"])
 router.include_router(detection_event_router, prefix="/detection-events", tags=["detection-events"])
+router.include_router(action_router, prefix="/actions", tags=["actions"])
+router.include_router(action_history_router, prefix="/action-history", tags=["action-history"])

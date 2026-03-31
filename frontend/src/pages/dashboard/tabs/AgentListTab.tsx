@@ -92,7 +92,7 @@ const AgentListTab: React.FC = () => {
   };
 
   const [selectedFieldNames, setSelectedFieldNames] = useState<string[]>([
-    "createdAt", "groupName", "agentVersion", "domain", "computerName", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
+    "computerName", "groupName", "agentVersion", "domain", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
   ]);
 
   // 정렬 상태 추가
@@ -208,7 +208,7 @@ const AgentListTab: React.FC = () => {
       toValue: null, toUnit: 'm', fromDate: null, toDate: null,
     });
     setSelectedFieldNames([
-      "createdAt", "groupName", "agentVersion", "domain", "computerName", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
+      "computerName", "groupName", "agentVersion", "domain", "osName", "osType", "totalMemory", "coreCount", "lastLoggedInUserName", "machineType", "lastActiveDate", "lastIpToMgmt", "networkStatus", "threatRebootRequired"
     ]);
     setPage(0);
     navigate('?', { replace: true });

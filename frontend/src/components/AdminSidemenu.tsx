@@ -60,7 +60,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   // 초기값 항상 false: 로그인·로고 클릭·새로고침 시 모두 접힌 상태로 시작
   const [openAdminMenu, setOpenAdminMenu] = useState(false);
   const [openActionMenu, setOpenActionMenu] = useState(false);
-  const [openNotifSubMenu, setOpenNotifSubMenu] = useState(false);
   const [openDashboardMenu, setOpenDashboardMenu] = useState(false);
   const [openThreatMenu, setOpenThreatMenu] = useState(false);
   const [openAgentMenu, setOpenAgentMenu] = useState(false);
@@ -78,7 +77,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
   const collapseAllMenus = () => {
     setOpenAdminMenu(false);
     setOpenActionMenu(false);
-    setOpenNotifSubMenu(false);
     setOpenDashboardMenu(false);
     setOpenThreatMenu(false);
     setOpenAgentMenu(false);
@@ -121,11 +119,6 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
     } else {
       setOpenActionMenu(!openActionMenu);
     }
-  };
-
-  const handleNotifMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpenNotifSubMenu(!openNotifSubMenu);
   };
 
   const handleMonitorMenuClick = () => {
@@ -355,28 +348,32 @@ const AdminSidemenu: React.FC<AdminSidemenuProps> = ({ t, userRole, drawerOpen, 
             </ListItemButton>
           </ListItem>
 
-          <Collapse in={openActionMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
+          <Collapse in={openActionMenu} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              {/* Notification Sub-Group */}
-              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={handleNotifMenuClick}>
-                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><NotificationsIcon /></ListItemIcon>
-                <ListItemText primary={t('notificationMenu')} sx={listItemTextStyle} />
-                {(drawerOpen || isMobile) && (openNotifSubMenu ? <ExpandLess /> : <ExpandMore />)}
+              {/* Action Management (was API Management) */}
+              {userRole === 'role-1' && (
+                <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('apiMgmtMenu'), 'ActionApiTab', 'apiMgmtMenu')}>
+                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><SettingsIcon /></ListItemIcon>
+                  <ListItemText primary={t('apiMgmtMenu')} sx={listItemTextStyle} />
+                </ListItemButton>
+              )}
+              {/* Action History (New) */}
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('actionHistory'), 'ActionHistoryTab', 'actionHistory')}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><HistoryIcon /></ListItemIcon>
+                <ListItemText primary={t('actionHistory')} sx={listItemTextStyle} />
               </ListItemButton>
-              <Collapse in={openNotifSubMenu && (drawerOpen || isMobile)} timeout="auto" unmountOnExit>
-                <List component="div" disablePadding>
-                  <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('notificationHistory'), 'NotificationHistoryTab', 'notificationHistory')}>
-                    <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><HistoryIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText primary={t('notificationHistory')} sx={subListItemTextStyle} />
-                  </ListItemButton>
-                  {userRole === 'role-1' && (
-                    <ListItemButton sx={{ pl: 9, minHeight: 40 }} onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}>
-                      <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 1 }}><SettingsIcon fontSize="small" /></ListItemIcon>
-                      <ListItemText primary={t('notificationCenter')} sx={subListItemTextStyle} />
-                    </ListItemButton>
-                  )}
-                </List>
-              </Collapse>
+              {/* Notification History */}
+              <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('notificationHistory'), 'NotificationHistoryTab', 'notificationHistory')}>
+                <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><HistoryIcon /></ListItemIcon>
+                <ListItemText primary={t('notificationHistory')} sx={listItemTextStyle} />
+              </ListItemButton>
+              {/* Notification Management */}
+              {userRole === 'role-1' && (
+                <ListItemButton sx={{ pl: 4, minHeight: listItemHeight }} onClick={() => handleMenuTabClick(t('notificationRuleList'), 'NotificationRuleListTab', 'notificationRuleList')}>
+                  <ListItemIcon sx={{ minWidth: iconMinWidth, mr: 2 }}><NotificationsIcon /></ListItemIcon>
+                  <ListItemText primary={t('notificationCenter')} sx={listItemTextStyle} />
+                </ListItemButton>
+              )}
             </List>
           </Collapse>
 

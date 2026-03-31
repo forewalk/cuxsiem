@@ -622,7 +622,11 @@ const EdrListTab: React.FC = () => {
         </ResizablePanel>
         <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Box sx={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1.5, pr: 0 }}>
-            <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, height: 180, minHeight: 180, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}><Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}><BarChartWidget data={filteredData?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} /></Box></Paper>
+            <Paper elevation={1} sx={{ p: { xs: 1, md: 2 }, width: '100%', borderRadius: 1.5, bgcolor: 'background.paper', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
+              <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
+                <BarChartWidget data={filteredData?.histogram || []} onBarClick={handleBarClick} onRangeSelect={handleBarClick} />
+              </Box>
+            </Paper>
             <Box sx={{ px: 0.5, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.primary' }}>{t('results')} <Box component="span" sx={{ color: 'text.secondary', fontWeight: 'normal' }}>({logs.length}/{data?.summary.total_logs ?? 0})</Box></Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

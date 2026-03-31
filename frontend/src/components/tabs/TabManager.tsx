@@ -20,6 +20,7 @@ import SbomTab from '../../pages/bom/tabs/SbomTab';
 import AibomTab from '../../pages/bom/tabs/AibomTab';
 import ScenarioProcessTreeTab from '../../pages/scenario/tabs/ScenarioProcessTreeTab';
 import DetectionRuleTab from '../../pages/scenario/tabs/DetectionRuleTab';
+import ActionApiTab from '../../pages/admin/tabs/ActionApiTab';
 
 // i18n: JSON 파일에서 번역 로드
 import koMessages from "../../locales/ko.json";
@@ -44,6 +45,7 @@ const tabComponents: { [key: string]: React.ComponentType<any> } = {
   ScenarioProcessTreeTab: ScenarioProcessTreeTab,
   DetectionRuleTab: DetectionRuleTab,
   HeartbeatTab: HeartbeatTab,
+  ActionApiTab: ActionApiTab,
 };
 
 const TabItem = styled(Box, {
@@ -75,7 +77,6 @@ const TabManager: React.FC = () => {
   const { language } = useLanguageStore();
   const theme = useTheme();
 
-  // i18n 지원
   const translations: Record<string, Record<string, string>> = {
     ko: koMessages,
     en: enMessages,
@@ -119,10 +120,10 @@ const TabManager: React.FC = () => {
         overflowX: 'auto',
         minHeight: 40,
         display: 'flex',
-        msOverflowStyle: 'none',  /* IE and Edge */
-        scrollbarWidth: 'none',   /* Firefox */
+        msOverflowStyle: 'none',
+        scrollbarWidth: 'none',
         '&::-webkit-scrollbar': {
-          display: 'none'         /* Chrome, Safari, Opera */
+          display: 'none'
         }
       }}>
         <DragDropContext onDragEnd={onDragEnd}>
@@ -150,21 +151,10 @@ const TabManager: React.FC = () => {
                         }}
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                          <Typography 
-                            variant="body2" 
-                            noWrap 
-                            sx={{ 
-                              fontWeight: activeTabId === tab.id ? 600 : 400,
-                              flexGrow: 1 
-                            }}
-                          >
+                          <Typography variant="body2" noWrap sx={{ fontWeight: activeTabId === tab.id ? 600 : 400, flexGrow: 1 }}>
                             {tab.labelKey ? t(tab.labelKey) : tab.label}
                           </Typography>
-                          <IconButton
-                            size="small"
-                            onClick={handleCloseTab(tab.id)}
-                            sx={{ p: 0.2, ml: 0.5, '&:hover': { bgcolor: 'rgba(0,0,0,0.1)' } }}
-                          >
+                          <IconButton size="small" onClick={handleCloseTab(tab.id)} sx={{ p: 0.2, ml: 0.5, '&:hover': { bgcolor: 'rgba(0,0,0,0.1)' } }}>
                             <CloseIcon sx={{ fontSize: 14 }} />
                           </IconButton>
                         </Box>
@@ -178,32 +168,12 @@ const TabManager: React.FC = () => {
           </Droppable>
         </DragDropContext>
       </Box>
-      <Box sx={{ 
-        flexGrow: 1, 
-        overflow: 'hidden', 
-        position: 'relative',
-        bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#F4F5F7'
-      }}>
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative', bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#F4F5F7' }}>
         {tabs.map((tab) => {
           const TabComponent = tabComponents[tab.component];
           return (
-            <Box
-              key={tab.id}
-              sx={{
-                height: '100%',
-                width: '100%',
-                overflow: 'hidden',
-                display: activeTabId === tab.id ? 'flex' : 'none',
-                flexDirection: 'column',
-              }}
-            >
-              {TabComponent ? (
-                <TabComponent {...tab.props} />
-              ) : (
-                <Box sx={{ p: 2 }}>
-                  <Typography>Error: {tab.component}</Typography>
-                </Box>
-              )}
+            <Box key={tab.id} sx={{ height: '100%', width: '100%', overflow: 'hidden', display: activeTabId === tab.id ? 'flex' : 'none', flexDirection: 'column' }}>
+              {TabComponent ? <TabComponent {...tab.props} /> : <Box sx={{ p: 2 }}><Typography>Error: {tab.component}</Typography></Box>}
             </Box>
           );
         })}
