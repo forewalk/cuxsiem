@@ -7,7 +7,6 @@ from app.schemas.sigma_rule import (
     SigmaRuleListResponse,
     SigmaRuleResponse,
     SigmaRuleStatsResponse,
-    SigmaRuleToggleResponse,
     FilterOptionsResponse,
     CustomRuleCreate,
     CustomRuleUpdate,
@@ -209,17 +208,6 @@ async def update_custom_rule(
     result = await service.update_custom_rule(rule_id, rule_in.model_dump(exclude_none=True))
     if not result:
         raise HTTPException(status_code=404, detail="Custom rule not found or not editable")
-    return result
-
-
-@router.put("/{rule_id}/toggle", response_model=SigmaRuleToggleResponse)
-async def toggle_sigma_rule(
-    rule_id: str,
-    current_user: UserResponse = Depends(get_current_active_user),
-):
-    result = await service.toggle_status(rule_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Rule not found")
     return result
 
 

@@ -186,32 +186,6 @@ class SigmaRuleRepository:
 
         return await loop.run_in_executor(None, update)
 
-    # --- 토글 (active ↔ inactive) ---
-
-    async def toggle_status(self, rule_id: str) -> Optional[Dict[str, Any]]:
-        loop = asyncio.get_event_loop()
-
-        def toggle():
-            try:
-                existing = self.client.get(index=self.rules_index, id=rule_id)
-                doc = existing["_source"]
-                if doc.get("is_deleted"):
-                    return None
-                new_status = "inactive" if doc.get("status") == "active" else "active"
-                now = datetime.utcnow().isoformat()
-                self.client.update(
-                    index=self.rules_index,
-                    id=rule_id,
-                    body={"doc": {"status": new_status, "updated_at": now}},
-                    refresh=True,
-                )
-                return {"id": rule_id, "status": new_status, "updated_at": now}
-            except Exception as e:
-                logger.error(f"토글 실패 ({rule_id}): {e}")
-                return None
-
-        return await loop.run_in_executor(None, toggle)
-
     # --- Soft Delete ---
 
     async def delete_rule(self, rule_id: str, deleted_by: Optional[str] = None) -> bool:

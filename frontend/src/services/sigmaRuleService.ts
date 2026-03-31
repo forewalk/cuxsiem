@@ -47,13 +47,6 @@ export const detectionRuleService = {
     return response.data;
   },
 
-  toggle: async (id: string) => {
-    const response = await api.put<{ id: string; status: string; updated_at: string }>(
-      `/api/v1/sigma-rules/${id}/toggle`,
-    );
-    return response.data;
-  },
-
   delete: async (id: string) => {
     await api.delete(`/api/v1/sigma-rules/${id}`);
   },

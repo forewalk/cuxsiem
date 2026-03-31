@@ -133,14 +133,6 @@ class SigmaRuleListResponse(BaseModel):
     items: List[SigmaRuleListItem]
 
 
-# --- 토글 응답 ---
-
-class SigmaRuleToggleResponse(BaseModel):
-    id: str
-    status: str
-    updated_at: datetime
-
-
 # --- 통계 응답 ---
 
 class SigmaRuleStatsResponse(BaseModel):

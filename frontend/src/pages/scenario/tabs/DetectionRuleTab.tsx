@@ -268,16 +268,6 @@ const DetectionRuleTab: React.FC = () => {
     setPreviewRuleId(null);
   }, []);
 
-  const handleToggleEnabled = useCallback(async (ruleId: string) => {
-    try {
-      const result = await detectionRuleService.toggle(ruleId);
-      setRules((prev) => prev.map((r) => r.id === ruleId ? { ...r, status: result.status } : r));
-      if (selectedRule?.id === ruleId) {
-        setSelectedRule((prev) => prev ? { ...prev, status: result.status } : prev);
-      }
-    } catch { /* toggle failed */ }
-  }, [selectedRule?.id]);
-
   const handleToggleCheck = useCallback((ruleId: string) => {
     setCheckedRuleIds(prev => {
       const next = new Set(prev);
@@ -680,7 +670,6 @@ const DetectionRuleTab: React.FC = () => {
                 setEditingDetector(null);
                 setPreviewRuleId(null);
               }}
-              onToggleEnabled={handleToggleEnabled}
               onToggleCheck={handleToggleCheck}
               onToggleDetectorCheck={handleToggleDetectorCheck}
               checkedDetectorIds={checkedDetectorIds}

@@ -271,12 +271,6 @@ class TestSigmaRuleServiceCRUD:
         assert rule is None
 
     @pytest.mark.asyncio
-    async def test_toggle_status(self):
-        self.service.repository.toggle_status = AsyncMock(return_value={"id": "1", "status": "inactive"})
-        result = await self.service.toggle_status("1")
-        assert result["status"] == "inactive"
-
-    @pytest.mark.asyncio
     async def test_delete_rule(self):
         self.service.repository.delete_rule = AsyncMock(return_value=True)
         result = await self.service.delete_rule("1", deleted_by="user-1")

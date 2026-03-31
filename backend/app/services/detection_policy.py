@@ -284,7 +284,7 @@ class DetectionPolicyService:
         rules = []
         for rule_id in rule_ids:
             rule = await self.rule_repository.get_rule_by_id(rule_id)
-            if rule and rule.get("status") == "active":
+            if rule:
                 rules.append(rule)
         return rules
 

@@ -35,7 +35,6 @@ interface DetectionRuleListProps {
   checkedDetectorIds: Set<string>;
   onSelect: (ruleId: string) => void;
   onSelectDetector: (detectorId: string) => void;
-  onToggleEnabled: (ruleId: string) => void;
   onToggleCheck: (ruleId: string) => void;
   onToggleDetectorCheck: (detectorId: string) => void;
   loading: boolean;
@@ -128,7 +127,6 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
   checkedDetectorIds,
   onSelect,
   onSelectDetector,
-  onToggleEnabled,
   onToggleCheck,
   onToggleDetectorCheck,
   loading,
@@ -298,7 +296,6 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
           {rules.length > 0 ? rules.map((rule) => {
             const technique = extractFirstTechnique(rule.mitre_technique_ids);
             const platform = platformLabel(rule.log_source_product);
-            const isActive = rule.status === 'active';
 
             return (
               <ListItemButton
@@ -316,7 +313,6 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                   gap: 0.5,
                 }}
               >
-                {/* Row 1: checkbox + name + severity + toggle */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                   <Checkbox
                     size="small"
@@ -329,13 +325,6 @@ export const DetectionRuleList: React.FC<DetectionRuleListProps> = ({
                     {rule.name}
                   </Typography>
                   <SeverityChip severity={rule.level_normalized} size="small" />
-                  <Switch
-                    size="small"
-                    checked={isActive}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={() => onToggleEnabled(rule.id)}
-                    sx={{ flexShrink: 0 }}
-                  />
                 </Box>
                 {/* Row 2: tags + conversion status */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 3.5 }}>

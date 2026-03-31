@@ -113,9 +113,6 @@ class SigmaRuleService:
             result = await self.repository.get_rule_by_sigma_id(rule_id)
         return result
 
-    async def toggle_status(self, rule_id: str):
-        return await self.repository.toggle_status(rule_id)
-
     async def delete_rule(self, rule_id: str, deleted_by: Optional[str] = None):
         return await self.repository.delete_rule(rule_id, deleted_by=deleted_by)
 

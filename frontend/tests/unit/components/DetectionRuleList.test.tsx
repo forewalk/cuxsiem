@@ -41,13 +41,26 @@ function renderList(props: Partial<React.ComponentProps<typeof DetectionRuleList
     detectors: [],
     selectedRuleId: null as string | null,
     selectedDetectorId: null as string | null,
+    checkedRuleIds: new Set<string>(),
+    checkedDetectorIds: new Set<string>(),
     onSelect: vi.fn(),
     onSelectDetector: vi.fn(),
-    onToggleEnabled: vi.fn(),
+    onToggleCheck: vi.fn(),
+    onToggleDetectorCheck: vi.fn(),
     loading: false,
     t: (k: string) => k,
     activeTab: 0,
     onTabChange: vi.fn(),
+    rulePage: 0,
+    ruleTotal: mockRules.length,
+    detectorPage: 0,
+    detectorTotal: 0,
+    pageSize: 20,
+    onRulePageChange: vi.fn(),
+    onDetectorPageChange: vi.fn(),
+    onCreateCustomRule: vi.fn(),
+    onCreateDetector: vi.fn(),
+    onCreateDetectorWithRules: vi.fn(),
     ...props,
   };
   return {
@@ -57,7 +70,6 @@ function renderList(props: Partial<React.ComponentProps<typeof DetectionRuleList
       </ThemeProvider>
     ),
     onSelect: defaultProps.onSelect,
-    onToggleEnabled: defaultProps.onToggleEnabled,
   };
 }
 
@@ -69,77 +81,52 @@ describe('DetectionRuleList', () => {
   });
 
   it('룰 이름을 렌더링한다', () => {
-    renderList({ activeTab: 0 });
+    renderList({ activeTab: 1 });
     expect(screen.getByText('Linux Reverse Shell 탐지')).toBeInTheDocument();
     expect(screen.getByText('PowerShell 인코딩 명령 실행')).toBeInTheDocument();
   });
 
   it('플랫폼 칩이 표시된다', () => {
-    renderList({ activeTab: 0 });
+    renderList({ activeTab: 1 });
     expect(screen.getAllByText('Linux')).toHaveLength(1);
     expect(screen.getAllByText('Windows')).toHaveLength(1);
     expect(screen.getAllByText('Network')).toHaveLength(1);
   });
 
   it('심각도 칩이 표시된다', () => {
-    renderList({ activeTab: 0 });
+    renderList({ activeTab: 1 });
     expect(screen.getByText('Critical')).toBeInTheDocument();
     expect(screen.getByText('High')).toBeInTheDocument();
     expect(screen.getByText('Medium')).toBeInTheDocument();
   });
 
-  it('type 칩이 Sigma/Custom으로 표시된다', () => {
-    renderList({ activeTab: 0 });
-    expect(screen.getAllByText('Sigma')).toHaveLength(2);
+  it('type 칩이 Standard/Custom으로 표시된다', () => {
+    renderList({ activeTab: 1 });
+    expect(screen.getAllByText('Standard')).toHaveLength(2);
     expect(screen.getAllByText('Custom')).toHaveLength(1);
   });
 
   it('MITRE technique이 표시된다', () => {
-    renderList({ activeTab: 0 });
+    renderList({ activeTab: 1 });
     expect(screen.getByText('T1059.004')).toBeInTheDocument();
     expect(screen.getByText('T1059.001')).toBeInTheDocument();
   });
 
-  it('활성화 토글 스위치가 표시된다', () => {
-    renderList({ activeTab: 0 });
-    const switches = screen.getAllByRole('switch');
-    expect(switches).toHaveLength(3);
-    expect(switches[0]).toBeChecked();
-    expect(switches[1]).toBeChecked();
-    expect(switches[2]).not.toBeChecked();
-  });
-
-  it('토글 클릭 시 onToggleEnabled가 호출된다', async () => {
-    const { onToggleEnabled } = renderList({ activeTab: 0 });
-    const switches = screen.getAllByRole('switch');
-    const user = userEvent.setup();
-    await user.click(switches[0]);
-    expect(onToggleEnabled).toHaveBeenCalledWith('1');
-  });
-
-  it('토글 클릭이 행 선택을 트리거하지 않는다', async () => {
-    const { onSelect } = renderList({ activeTab: 0 });
-    const switches = screen.getAllByRole('switch');
-    const user = userEvent.setup();
-    await user.click(switches[0]);
-    expect(onSelect).not.toHaveBeenCalled();
-  });
-
   it('룰 클릭 시 onSelect가 호출된다', async () => {
-    const { onSelect } = renderList({ activeTab: 0 });
+    const { onSelect } = renderList({ activeTab: 1 });
     const user = userEvent.setup();
     await user.click(screen.getByText('Linux Reverse Shell 탐지'));
     expect(onSelect).toHaveBeenCalledWith('1');
   });
 
   it('선택된 룰이 하이라이트된다', () => {
-    renderList({ activeTab: 0, selectedRuleId: '1' });
+    renderList({ activeTab: 1, selectedRuleId: '1' });
     const listItem = screen.getByText('Linux Reverse Shell 탐지').closest('[role="button"]');
     expect(listItem).toHaveClass('Mui-selected');
   });
 
   it('빈 상태 메시지를 표시한다', () => {
-    renderList({ activeTab: 0, rules: [] });
+    renderList({ activeTab: 1, rules: [] });
     expect(screen.getByText('drRuleEmpty')).toBeInTheDocument();
   });
 
@@ -149,7 +136,7 @@ describe('DetectionRuleList', () => {
   });
 
   it('Detector 탭에서 빈 상태 메시지를 표시한다', () => {
-    renderList({ activeTab: 1 });
+    renderList({ activeTab: 0 });
     expect(screen.getByText('drDetectorEmpty')).toBeInTheDocument();
   });
 });
