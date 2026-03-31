@@ -25,6 +25,8 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
+| 2026-03-31 16:35 | 박지은 | 배포 | origin/develop push — feature/detections 머지 (feature/dashboard 반영, ActionApiTab 빌드 오류 수정, v0.8.7 배포) |
+| 2026-03-31 16:35 | 박지은 | 수리 | ActionApiTab.tsx 미사용 import(Divider, MenuItem) 제거 — Docker 빌드 TS 컴파일 오류 수정 |
 | 2026-03-31 16:04 | 최지호 | 추가 | 액션 관리 추가, 리스트 시간 표시 버그 수정 |
 | 2026-03-31 14:30 | 박지은 | 배포 | origin/develop push — feature/detections 머지 (탐지 규칙 개별 토글 제거, 로그인 로고 경로 변경) |
 | 2026-03-31 14:30 | 박지은 | 리팩터 | 탐지 규칙 개별 토글(active/inactive) 제거 — 디텍터 단위 on/off만 유지, UI/API/서비스/리포지토리/스키마 일괄 정리 |
