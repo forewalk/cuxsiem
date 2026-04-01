@@ -25,7 +25,7 @@
 
 | 날짜 | 작업자 | 유형 | 내용 |
 |------|--------|------|------|
-| 2026-04-01 | zhenya | 배포 | origin/develop push — setup/ 설치 폴더 신설, ASSISTANT.md 동기화 강령 추가, ROADMAP 업데이트 |
+| 2026-04-01 | 김장훈 | 배포 | origin/develop push — setup/ 설치 폴더 신설, ASSISTANT.md 동기화 강령 추가, ROADMAP 업데이트 |
 | 2026-03-31 16:35 | 박지은 | 배포 | origin/develop push — feature/detections 머지 (feature/dashboard 반영, ActionApiTab 빌드 오류 수정, v0.8.7 배포) |
 | 2026-03-31 16:35 | 박지은 | 수리 | ActionApiTab.tsx 미사용 import(Divider, MenuItem) 제거 — Docker 빌드 TS 컴파일 오류 수정 |
 | 2026-03-31 16:04 | 최지호 | 추가 | 액션 관리 추가, 리스트 시간 표시 버그 수정 |
