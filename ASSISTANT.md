@@ -20,8 +20,16 @@
 >
 > - 새 기능 → 테스트 파일 먼저 작성 후 구현 (Red → Green → Refactor)
 > - 버그 수정 → 해당 버그를 재현하는 테스트 먼저 추가
-> - 테스트 위치: 백엔드 `backend/tests/`, 프론트엔드 `frontend/tests/` (src/ 내부 금지)
+> - 테스트 위치: 백엔드 `backend/tests/`, 프론트엔드 `frontend/tests/` (**`src/` 내부 테스트 파일 생성 금지**)
 > - 기능 파일 패턴 참조: `## 테스트 구조 및 TDD 규칙` 섹션
+
+### setup/ 폴더 동기화 의무
+
+> **`cs_` 인덱스 스키마·초기 데이터·환경변수 항목이 변경될 때 반드시 `setup/` 폴더도 함께 업데이트할 것. 예외 없음.**
+>
+> - 새 `cs_` 인덱스 추가 → `setup/opensearch/1_index_cruxsiem.json` 매핑 반영
+> - 초기 데이터 변경 → `setup/opensearch/` 해당 data JSON 파일 갱신
+> - 환경변수 항목 추가/제거 → `setup/env/*.env.example` 동기화
 
 ### 원격 Git Push 시 docs/HISTORY.md 기록 의무
 
@@ -325,13 +333,6 @@ import Button from '@mui/material/Button'
 - **카드/패널**: `Paper elevation={1}` 또는 `Card` 사용
 - **아이콘**: `@mui/icons-material`에서 개별 import (예: `import EditIcon from '@mui/icons-material/Edit'`)
 - **레이아웃**: 페이지는 `AppLayout`으로 감싸고, 내부는 `Box`, `Stack`, `Container` 활용
-
-### i18n (다국어 지원)
-
-- react-i18next 사용, 기본 언어: 한국어 (`ko`), 폴백: 영어 (`en`)
-- 네임스페이스: `common`, `auth`, `board` 등 기능별 분리
-- 번역 파일: `src/i18n/locales/{ko,en}/{namespace}.json`
-- 새 기능 추가 시 해당 네임스페이스 JSON 파일을 ko/en 모두 생성
 
 ## 9단계 개발 워크플로우
 

@@ -1,0 +1,66 @@
+services:
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:3.5.0
+    container_name: opensearch-dashboards
+    restart: always
+    ports:
+      - "5601:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["https://opensearch:9200"]'
+      SERVER_SSL_ENABLED: "true"
+      SERVER_SSL_CERTIFICATE: /conf/certs/site.crt
+      SERVER_SSL_KEY: /conf/certs/site.key
+      SERVER_SSL_CERTIFICATEAUTHORITIES: '["/conf/certs/ca.crt"]'
+      OPENSEARCH_SSL_CERTIFICATE: /conf/certs/site.crt
+      OPENSEARCH_SSL_KEY: /conf/certs/site.key
+      OPENSEARCH_SSL_CERTIFICATEAUTHORITIES: '["/conf/certs/ca.crt"]'
+      OPENSEARCH_SSL_VERIFICATIONMODE: certificate
+      OPENSEARCH_USERNAME: admin
+      OPENSEARCH_PASSWORD: admin
+      SERVER_NAME: siem-dashboards
+      OPENSEARCH_REQUESTHEADERSALLOWLIST: '[authorization,securitytenant]'
+      OPENSEARCH_SECURITY_MULTITENANCY_ENABLED: "true"
+      OPENSEARCH_SECURITY_MULTITENANCY_TENANTS_PREFERRED: '[Private,Global]'
+      OPENSEARCH_SECURITY_READONLY_MODE_ROLES: '[kibana_read_only]'
+      OPENSEARCH_SECURITY_COOKIE_SECURE: "false"
+    volumes:
+      - /conf/opensearch-dashboard/certs/ca.crt:/conf/certs/ca.crt:ro
+      - /conf/opensearch-dashboard/certs/site.crt:/conf/certs/site.crt:ro
+      - /conf/opensearch-dashboard/certs/site.key:/conf/certs/site.key:ro
+    networks:
+      - platform-net
+  kafbat:
+    image: kafbat/kafka-ui:ec46dff
+    container_name: kafbat
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: cruxsiem-kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: pipeline:9092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
+      AUTH_TYPE: DISABLED
+      DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - platform-net
+    extra_hosts:
+      - "pipeline:172.16.4.75"
+
+  heartbeat:
+    image: docker.elastic.co/beats/heartbeat:8.13.0
+    container_name: heartbeat
+    restart: always
+    user: "1001:1001"
+    volumes:
+      - /conf/heartbeat/heartbeat.yml:/usr/share/heartbeat/heartbeat.yml:ro
+      - /data/heartbeat:/usr/share/heartbeat/data
+    networks:
+      - platform-net
+    extra_hosts:
+      - "pipeline:172.16.4.75"
+    command: heartbeat -e
+
+networks:
+  platform-net:
+    driver: bridge

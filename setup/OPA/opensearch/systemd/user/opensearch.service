@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenSearch
+Documentation=https://opensearch.org/docs/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=forking
+ExecStart=/home/cruxsiem/opensearch.sh start
+ExecStop=/home/cruxsiem/opensearch.sh stop
+ExecReload=/home/cruxsiem/opensearch.sh restart
+PIDFile=/core/opensearch/opensearch.pid
+Restart=on-failure
+RestartSec=10s
+TimeoutStartSec=300
+TimeoutStopSec=180
+
+[Install]
+WantedBy=default.target

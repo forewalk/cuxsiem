@@ -52,7 +52,7 @@
 > 구조: 액션 → 알림 → 알림 내역 / 알림 센터(role-1)
 >
 - [x] 사이드바 액션 메뉴 신설 (알림 내역 / 알림 센터 3단 구조로 이동)
-- [ ] 에이전트 제어 액션 (웹훅 API 호출로 agent 컨트롤)
+- [x] 에이전트 제어 액션 (웹훅 API 호출로 agent 컨트롤)
 - [ ] MITRE ATT&CK 기반 탐지 룰 엔진
   - [ ] https://attack.mitre.org/ 시나리오 기반 탐지 규칙 정의
   - [ ] Rule: 탐지 조건 정의 (필드 매칭, 임계값, 시간 윈도우)
@@ -129,6 +129,14 @@
   - [ ] NIST AI RMF 컴플라이언스 체크리스트
 
 ### 배포 및 자동화 (데모 및 운영 준비)
+
+#### setup/ 폴더 정비
+> 신규 설치·데모 환경 구성을 위한 단일 진입점. 스키마·데이터·쉘·환경변수를 한 곳에서 관리.
+> `cs_` 인덱스 구조나 초기 데이터가 변경될 때마다 이 폴더도 함께 업데이트해야 한다.
+- [ ] `setup/opensearch/` — CS_ 인덱스 매핑 JSON + 초기 데이터 정리 (`scripts/opensearch_setup/` 이관)
+- [ ] `setup/scripts/` — 설치(`setup.sh`)·시작(`start.sh`)·중지(`stop.sh`)·상태(`status.sh`) 쉘 작성
+- [ ] `setup/env/` — `backend.env.example`, `frontend.env.example` 정리 및 이관
+
 - [ ] 인프라 구성 자동화 (.ini 설정 기반)
   - [ ] Kafka Topic 구조 생성 자동화
   - [ ] Vector 설치 및 파이프라인 구성 자동화

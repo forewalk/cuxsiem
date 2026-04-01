@@ -1,0 +1,215 @@
+
+data_dir: /data/vector/state
+
+sources:
+  sentinelone_threats:
+    type: exec
+    mode: scheduled
+    scheduled:
+      exec_interval_secs: 90
+    command: ["python3", "/conf/vector/scripts/fetch_threats.py"]
+
+  sentinelone_threat_updates:
+    type: exec
+    mode: scheduled
+    scheduled:
+      exec_interval_secs: 120
+    command: ["python3", "/conf/vector/scripts/fetch_threat_updates.py"]
+
+  sentinelone_agents:
+    type: exec
+    mode: scheduled
+    scheduled:
+      exec_interval_secs: 300
+    command: ["python3", "/conf/vector/scripts/fetch_agents.py"]
+
+  kafka_edg:
+    type: kafka
+    bootstrap_servers: "pipeline:9092"
+    group_id: vector
+    topics: ["edg"]
+    auto_offset_reset: earliest
+    session_timeout_ms: 10000
+    decoding:
+      codec: json
+
+  kafka_threats:
+    type: kafka
+    bootstrap_servers: "pipeline:9092"
+    group_id: vector
+    topics: ["threats"]
+    auto_offset_reset: earliest
+    session_timeout_ms: 10000
+    decoding:
+      codec: json
+
+  kafka_agents:
+    type: kafka
+    bootstrap_servers: "pipeline:9092"
+    group_id: vector
+    topics: ["agents"]
+    auto_offset_reset: earliest
+    session_timeout_ms: 10000
+    decoding:
+      codec: json
+
+  kafka_hb:
+    type: kafka
+    bootstrap_servers: "pipeline:9092"
+    group_id: vector
+    topics: ["heartbeat"]
+    auto_offset_reset: earliest
+    session_timeout_ms: 10000
+    decoding:
+      codec: json
+
+transforms:
+  parse_edr:
+    type: remap
+    inputs: ["kafka_edg"]
+    source: |
+      if exists(.timestamp) {
+        if is_string(.timestamp) {
+          .@timestamp = parse_timestamp!(.timestamp, format: "%+")
+        } else {
+          .@timestamp = .timestamp
+        }
+      } else if !exists(.@timestamp) {
+        .@timestamp = now()
+      }
+    reroute_dropped: true
+
+  parse_threats:
+    type: remap
+    inputs: ["kafka_threats"]
+    source: |
+      .@timestamp = parse_timestamp!(.threatInfo.createdAt, format: "%+")
+    reroute_dropped: true
+
+  parse_agents:
+    type: remap
+    inputs: ["kafka_agents"]
+    source: |
+      ._uuid_backup = .uuid
+      .@timestamp = parse_timestamp!(.updatedAt, format: "%+")
+    reroute_dropped: true
+
+  parse_heartbeat:
+    type: remap
+    inputs: ["kafka_hb"]
+    source: |
+      if !exists(.@timestamp) {
+        .@timestamp = now()
+      }
+    reroute_dropped: true
+
+sinks:
+  opensearch_edr:
+    type: elasticsearch
+    inputs: ["parse_edr"]
+    endpoints: ["https://opensearch:9200"]
+    auth:
+      strategy: basic
+      user: "admin"
+      password: "admin"
+    tls:
+      ca_file: /conf/vector/certs/ca.crt
+      verify_certificate: true
+      verify_hostname: false
+    bulk:
+      index: logs-sentinel_one.edr
+      action: create
+    api_version: v8
+    batch:
+      timeout_secs: 5
+    compression: gzip
+    healthcheck:
+      enabled: true
+    pipeline: flatten-dots
+
+  opensearch_threats:
+    type: elasticsearch
+    inputs: ["parse_threats"]
+    endpoints: ["https://opensearch:9200"]
+    auth:
+      strategy: basic
+      user: "admin"
+      password: "admin"
+    tls:
+      ca_file: /conf/vector/certs/ca.crt
+      verify_certificate: true
+      verify_hostname: false
+    bulk:
+      index: logs-sentinel_one.threats
+      action: index
+    id_key: "id"
+    api_version: v8
+    batch:
+      timeout_secs: 5
+    compression: gzip
+    healthcheck:
+      enabled: true
+
+  opensearch_agents:
+    type: elasticsearch
+    inputs: ["parse_agents"]
+    endpoints: ["https://opensearch:9200"]
+    auth:
+      strategy: basic
+      user: "admin"
+      password: "admin"
+    tls:
+      ca_file: /conf/vector/certs/ca.crt
+      verify_certificate: true
+      verify_hostname: false
+    bulk:
+      index: logs-sentinel_one.agents
+      action: index
+    id_key: "_uuid_backup"
+    api_version: v8
+    batch:
+      timeout_secs: 5
+    compression: gzip
+    healthcheck:
+      enabled: true
+
+  opensearch_heartbeat:
+    type: elasticsearch
+    inputs: ["parse_heartbeat"]
+    endpoints: ["https://opensearch:9200"]
+    auth:
+      strategy: basic
+      user: "admin"
+      password: "admin"
+    tls:
+      ca_file: /conf/vector/certs/ca.crt
+      verify_certificate: true
+      verify_hostname: false
+    bulk:
+      index: heartbeat
+      action: create
+    api_version: v8
+    batch:
+      timeout_secs: 5
+    compression: gzip
+    healthcheck:
+      enabled: true
+
+  exec_blackhole:
+    type: blackhole
+    inputs:
+      - "sentinelone_threats"
+      - "sentinelone_threat_updates"
+      - "sentinelone_agents"
+    print_interval_secs: 0
+
+  dead_letter_queue:
+    type: file
+    inputs:
+      - "parse_edr.dropped"
+      - "parse_threats.dropped"
+      - "parse_agents.dropped"
+      - "parse_heartbeat.dropped"
+    path: /data/vector/dlq/failed-%Y-%m-%d-%H.log
+    encoding:
+      codec: json
