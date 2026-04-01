@@ -107,10 +107,32 @@ esac
 
 ---
 
-## SSL/TLS 인증서 구성 (선택)
+## SSL/TLS 인증서 생성 (선택)
 
-SAN 항목 (`san.cnf`):
-```
+인증서는 환경마다 새로 생성. 아래 절차를 참고.
+
+```bash
+CERT_DIR=/conf/kafka/certs
+mkdir -p $CERT_DIR
+
+# 1. san.cnf 작성 (IP/호스트명은 환경에 맞게 수정)
+cat > $CERT_DIR/san.cnf << 'CNF'
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+C=KR
+ST=Seoul
+L=Seoul
+O=cruxsiem
+CN=sentinel
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
 DNS.1 = sentinel
 DNS.2 = pipeline
 DNS.3 = webui
@@ -119,9 +141,28 @@ IP.1  = 127.0.0.1
 IP.2  = <OPENSEARCH_IP>
 IP.3  = <KAFKA_IP>
 IP.4  = <WEBUI_IP>
-```
+CNF
 
-> 실제 인증서 파일: `setup/OPA/kafka/certs/`
+# 2. CA 키 및 인증서 생성
+openssl genrsa -out $CERT_DIR/ca.key 4096
+openssl req -new -x509 -days 3650 -key $CERT_DIR/ca.key -out $CERT_DIR/ca.crt \
+  -subj "/C=KR/ST=Seoul/L=Seoul/O=cruxsiem/CN=cruxsiem-ca"
+
+# 3. 사이트 키 및 CSR 생성
+openssl genrsa -out $CERT_DIR/site.key 2048
+openssl req -new -key $CERT_DIR/site.key -out $CERT_DIR/site.csr \
+  -config $CERT_DIR/san.cnf
+
+# 4. CA로 서명
+openssl x509 -req -days 3650 -in $CERT_DIR/site.csr \
+  -CA $CERT_DIR/ca.crt -CAkey $CERT_DIR/ca.key -CAcreateserial \
+  -out $CERT_DIR/site.crt -extensions v3_req -extfile $CERT_DIR/san.cnf
+
+# 5. PKCS12 keystore 생성 (비밀번호: changeit)
+openssl pkcs12 -export -in $CERT_DIR/site.crt -inkey $CERT_DIR/site.key \
+  -certfile $CERT_DIR/ca.crt -out $CERT_DIR/site.p12 \
+  -passout pass:changeit -name sentinel
+```
 
 ---
 
