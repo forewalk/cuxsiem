@@ -72,3 +72,6 @@ docs/research.md
 # SigmaHQ 규칙 리소스 (import 스크립트로 OpenSearch에 적재)
 backend/resources/rules/
 backend/resources/rules-*/
+
+# 실제 환경 설정 파일 (IP, 인증정보 등 포함 — 형상 제외)
+setup/OPA/
